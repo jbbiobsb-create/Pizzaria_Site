@@ -185,12 +185,12 @@ async function carregarCardapio() {
   const mapa = {}; (precos || []).forEach((p) => (mapa[`${p.sabor_id}-${p.tamanho_id}`] = p.preco));
   qs('[data-sabores]').innerHTML = `<table><thead><tr><th>Disp.</th><th>Sabor</th>${tamanhos.map((t) => `<th>${t.nome}</th>`).join('')}<th></th></tr></thead><tbody>${sabores.map((s) => `<tr data-sabor="${s.id}">
     <td><input type="checkbox" data-disp ${s.disponivel ? 'checked' : ''}></td>
-    <td><b>${esc(s.nome)}</b><br><small class="muted">${esc(s.tipo)}${s.tags?.length ? ' · ' + s.tags.join(', ') : ''}</small></td>
-    ${tamanhos.map((t) => `<td><input type="number" step="0.01" data-tam="${t.id}" value="${mapa[`${s.id}-${t.id}`] ?? ''}" placeholder="—"></td>`).join('')}
+    <td><b>${esc(s.nome)}</b><br><small class="muted">${esc(s.tipo)}${s.tags?.length ? ' · ' + s.tags.join(', ') : ''}${s.codigo_saipos ? ' · Saipos ' + esc(s.codigo_saipos) : ''}</small><br><textarea data-desc rows="2" style="width:100%;min-width:240px;font-size:.8rem;margin-top:4px;border:1px solid var(--linha);border-radius:6px;padding:4px 6px">${esc(s.descricao || '')}</textarea></td>
+    ${tamanhos.map((t) => `<td>${(t.grupo === 'calzone') === (s.tipo === 'calzone') ? `<input type="number" step="0.01" data-tam="${t.id}" value="${mapa[`${s.id}-${t.id}`] ?? ''}" placeholder="—">` : '<span class="muted">—</span>'}</td>`).join('')}
     <td><button class="btn" data-salvar-sabor>Salvar</button></td></tr>`).join('')}</tbody></table>`;
   qsa('[data-salvar-sabor]').forEach((b) => b.addEventListener('click', async () => {
     const tr = b.closest('tr'); const id = Number(tr.dataset.sabor);
-    const { error } = await supabase.from('sabores').update({ disponivel: qs('[data-disp]', tr).checked }).eq('id', id);
+    const { error } = await supabase.from('sabores').update({ disponivel: qs('[data-disp]', tr).checked, descricao: qs('[data-desc]', tr).value.trim() }).eq('id', id);
     if (error) { toast('Erro: ' + error.message, 'erro'); return; }
     for (const inp of qsa('[data-tam]', tr)) {
       const tid = Number(inp.dataset.tam);
@@ -204,11 +204,11 @@ async function carregarCardapio() {
     toast(error ? 'Erro' : (c.checked ? 'Disponível' : 'Esgotado'), error ? 'erro' : 'ok');
   }));
   qs('[data-produtos]').innerHTML = `<table><thead><tr><th>Disp.</th><th>Produto</th><th>Preço</th><th></th></tr></thead><tbody>${produtos.map((p) => `<tr data-produto="${p.id}">
-    <td><input type="checkbox" data-disp ${p.disponivel ? 'checked' : ''}></td><td><b>${esc(p.nome)}</b><br><small class="muted">${esc(p.tipo)}</small></td>
+    <td><input type="checkbox" data-disp ${p.disponivel ? 'checked' : ''}></td><td><b>${esc(p.nome)}</b><br><small class="muted">${esc(p.tipo)}${p.codigo_saipos ? ' · Saipos ' + esc(p.codigo_saipos) : ''}</small><br><textarea data-desc rows="2" style="width:100%;min-width:240px;font-size:.8rem;margin-top:4px;border:1px solid var(--linha);border-radius:6px;padding:4px 6px">${esc(p.descricao || '')}</textarea></td>
     <td><input type="number" step="0.01" data-preco value="${p.preco}"></td><td><button class="btn" data-salvar-produto>Salvar</button></td></tr>`).join('')}</tbody></table>`;
   qsa('[data-salvar-produto]').forEach((b) => b.addEventListener('click', async () => {
     const tr = b.closest('tr');
-    const { error } = await supabase.from('produtos').update({ disponivel: qs('[data-disp]', tr).checked, preco: Number(qs('[data-preco]', tr).value) }).eq('id', Number(tr.dataset.produto));
+    const { error } = await supabase.from('produtos').update({ disponivel: qs('[data-disp]', tr).checked, preco: Number(qs('[data-preco]', tr).value), descricao: qs('[data-desc]', tr).value.trim() }).eq('id', Number(tr.dataset.produto));
     toast(error ? 'Erro: ' + error.message : 'Produto salvo', error ? 'erro' : 'ok');
   }));
   qsa('[data-produtos] [data-disp]').forEach((c) => c.addEventListener('change', async () => {

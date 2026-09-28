@@ -31,7 +31,9 @@ alterar horários, taxas por km, tempos, chave Pix, esgotar sabores/produtos, ed
 
 ## Dados da loja e cardápio
 
-O cardápio real foi importado para `seed/cardapio.json` e carregado no banco (`supabase/seed.sql`).
+O cardápio foi importado do Anota Aí (`seed/cardapio.json`, `supabase/seed.sql`) e depois atualizado com a planilha de
+códigos de integração da Saipos (`supabase/seed_saipos.sql`): tamanhos Bambina/Grande, calzones, entradas, sobremesas,
+bebidas, cervejas, vinhos e drinks. Os códigos Saipos ficam nas colunas `codigo_saipos`.
 Fotos dos produtos em `img/cardapio/`. Depois da carga inicial, tudo se edita pelo painel.
 
 ## Deploy na Vercel

@@ -485,3 +485,16 @@ grant execute on function public.status_loja() to anon, authenticated;
 grant execute on function public.calcular_entrega(double precision, double precision) to anon, authenticated;
 grant execute on function public.validar_cupom(text, numeric) to anon, authenticated;
 grant execute on function public.loja_aberta() to anon, authenticated;
+
+-- ---------------------------------------------------------------
+-- (migração 2) códigos Saipos e grupos de tamanho (pizza / calzone)
+-- ---------------------------------------------------------------
+alter table public.tamanhos add column if not exists codigo_saipos text, add column if not exists grupo text not null default 'pizza';
+alter table public.categorias add column if not exists grupo text;
+alter table public.sabores add column if not exists codigo_saipos text;
+alter table public.produtos add column if not exists codigo_saipos text;
+alter table public.sabor_precos add column if not exists codigo_saipos text;
+alter table public.sabores drop constraint if exists sabores_tipo_check;
+alter table public.sabores add constraint sabores_tipo_check check (tipo in ('salgada','doce','calzone'));
+-- criar_pedido passou a nomear "Calzone <tamanho>" quando o grupo do tamanho é calzone e a
+-- respeitar endereco.aprox (geocodificação aproximada => taxa a confirmar). Versão atual: ver o painel do Supabase.

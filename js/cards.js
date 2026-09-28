@@ -15,7 +15,7 @@ export function cardSabor(s) {
       <h3>${esc(s.nome)}</h3>
       <p>${esc(s.descricao || '')}</p>
       <div class="rodape">
-        <span class="apartir">A partir de <b>${brl(s.precoMin)}</b></span>
+        <span class="apartir">${s.precoMin != null ? `A partir de <b>${brl(s.precoMin)}</b>` : ''}</span>
         <span class="add" aria-hidden="true">+</span>
       </div>
     </div>
@@ -45,7 +45,7 @@ export function cardMonte(tamanhos) {
   return `
   <div class="card card-destaque">
     <h3>Monte sua pizza · meio a meio</h3>
-    <p>Escolha o tamanho (Bambina, Média ou Grande) e até 2 sabores na mesma pizza. Massa napolitana de longa fermentação.</p>
+    <p>Escolha o tamanho (Bambina ou Grande) e até 2 sabores na mesma pizza. Massa napolitana de longa fermentação.</p>
     <a class="btn btn-light" href="produto.html?meio=1">Montar minha pizza ${isFinite(menor) ? `· a partir de ${brl(menor)}` : ''}</a>
   </div>`;
 }
