@@ -1,6 +1,9 @@
 // Painel da equipe: pedidos em tempo real, loja, cardápio e cupons
 import { supabase } from '../js/supabase.js';
 import { qs, qsa, esc, brl, toast, STATUS, PAGAMENTOS, dataHoraBR, horaBR, whatsappLink, DIAS, DIAS_ORDEM, mascaraTelefone } from '../js/util.js';
+import { icone, hidratarIcones } from '../js/icons.js';
+
+hidratarIcones();
 
 const $login = qs('#login'), $app = qs('#app');
 let pedidos = []; let config = null; let somLigado = localStorage.getItem('adm_som') !== '0'; let vistos = new Set(); let canal = null; let timerPoll = null;
@@ -37,7 +40,7 @@ qsa('[data-aba]').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.aba === 'loja') preencherLoja();
 }));
 qs('[data-som]').addEventListener('click', () => { somLigado = !somLigado; localStorage.setItem('adm_som', somLigado ? '1' : '0'); atualizarSom(); if (somLigado) tocar(); });
-function atualizarSom() { qs('[data-som]').textContent = somLigado ? '🔔 Som ligado' : '🔕 Som desligado'; }
+function atualizarSom() { qs('[data-som]').innerHTML = somLigado ? `${icone('sino')} Som ligado` : `${icone('sino-off')} Som desligado`; }
 atualizarSom();
 function tocar() { if (!somLigado) return; try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; g.gain.value = 0.15; o.start(); o.frequency.setValueAtTime(1175, ctx.currentTime + 0.18); o.stop(ctx.currentTime + 0.4); } catch {} }
 
@@ -96,7 +99,7 @@ async function carregarPedidos(primeira = false) {
   const { data, error } = await supabase.from('pedidos').select('*, pedido_itens(*)').gte('criado_em', desde.toISOString()).order('criado_em', { ascending: false }).limit(200);
   if (error) { toast('Erro ao carregar pedidos', 'erro'); return; }
   const novos = data.filter((p) => p.status === 'recebido' && !vistos.has(p.id));
-  if (!primeira && novos.length) { tocar(); toast(`🍕 ${novos.length} novo(s) pedido(s)!`); }
+  if (!primeira && novos.length) { tocar(); toast(`${novos.length} novo(s) pedido(s)!`); }
   data.forEach((p) => vistos.add(p.id));
   pedidos = data; renderKanban();
   qs('[data-ultima]').textContent = new Date().toLocaleTimeString('pt-BR');
@@ -129,15 +132,15 @@ function renderKanban() {
 function cardPedido(p) {
   const prox = proximoStatus(p);
   const itens = (p.pedido_itens || []).map((i) => `${i.quantidade}× ${i.nome}`).join(' · ');
-  const ag = p.agendado_para ? `<span>📅 ${dataHoraBR(p.agendado_para)}</span>` : '';
+  const ag = p.agendado_para ? `<span>${icone('calendario')} ${dataHoraBR(p.agendado_para)}</span>` : '';
   return `<div class="pedido-card ${p.status === 'recebido' ? 'novo' : ''} ${p.agendado_para ? 'agendado' : ''}" data-abrir="${p.id}">
     <div class="cab"><span>#${p.numero} ${esc(p.cliente_nome)}</span><small>${horaBR(p.criado_em)}</small></div>
     <div class="itens">${esc(itens)}</div>
-    <div class="meta"><span>${p.tipo_entrega === 'entrega' ? '🛵 Entrega' : '🏪 Retirada'}</span><span>${PAGAMENTOS[p.pagamento]?.rotulo.split(' ')[0] || p.pagamento}</span><span><b>${brl(p.total)}</b></span>${ag}</div>
+    <div class="meta"><span>${p.tipo_entrega === 'entrega' ? icone('moto') + ' Entrega' : icone('loja') + ' Retirada'}</span><span>${PAGAMENTOS[p.pagamento]?.rotulo.split(' ')[0] || p.pagamento}</span><span><b>${brl(p.total)}</b></span>${ag}</div>
     ${etiquetasIntegracao(p)}
     <div class="acoes">
-      ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-outline" data-pago="${p.id}">✔ Pix recebido</button>` : ''}
-      ${prox ? `<button class="btn" data-st="${prox}" data-id="${p.id}">${STATUS[prox].icone} ${STATUS[prox].rotulo}</button>` : ''}
+      ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-outline" data-pago="${p.id}">${icone('check')} Pix recebido</button>` : ''}
+      ${prox ? `<button class="btn" data-st="${prox}" data-id="${p.id}">${icone(STATUS[prox].icone)} ${STATUS[prox].rotulo}</button>` : ''}
       ${['entregue', 'cancelado'].includes(p.status) ? '' : `<button class="btn btn-ghost" data-st="cancelado" data-id="${p.id}">Cancelar</button>`}
     </div></div>`;
 }
@@ -188,23 +191,23 @@ function abrirDetalhe(id) {
   qs('[data-detalhe]').innerHTML = `<div class="detalhe">
     <h2>Pedido #${p.numero} <span class="tag">${esc(STATUS[p.status]?.rotulo)}</span></h2>
     <p class="small muted">${dataHoraBR(p.criado_em)} · ${p.tipo_entrega === 'entrega' ? 'Entrega' : 'Retirada'}${p.agendado_para ? ` · <b>agendado para ${dataHoraBR(p.agendado_para)}</b>` : ''}</p>
-    <div class="status-btns" style="margin:10px 0">${fluxo.map((s) => `<button class="btn btn-sm ${p.status === s ? '' : 'btn-outline'}" data-st="${s}" data-id="${p.id}">${STATUS[s].icone} ${STATUS[s].rotulo}</button>`).join('')}<button class="btn btn-sm btn-ghost" data-st="cancelado" data-id="${p.id}">✖ Cancelar</button></div>
+    <div class="status-btns" style="margin:10px 0">${fluxo.map((s) => `<button class="btn btn-sm ${p.status === s ? '' : 'btn-outline'}" data-st="${s}" data-id="${p.id}">${icone(STATUS[s].icone)} ${STATUS[s].rotulo}</button>`).join('')}<button class="btn btn-sm btn-ghost" data-st="cancelado" data-id="${p.id}">${icone('x')} Cancelar</button></div>
     <div class="grid">
       <div class="bloco"><b>Cliente</b><br>${esc(p.cliente_nome)}<br>${mascaraTelefone(p.cliente_telefone)}<br><a class="btn btn-sm btn-wa no-print" style="margin-top:6px" target="_blank" href="${wa}">WhatsApp</a></div>
       <div class="bloco"><b>${p.tipo_entrega === 'entrega' ? 'Endereço' : 'Retirada na loja'}</b><br>${p.tipo_entrega === 'entrega' ? `${esc(e.rua)}, ${esc(e.numero)}${e.complemento ? ' - ' + esc(e.complemento) : ''}<br>${esc(e.bairro)} — ${esc(e.cidade)}/${esc(e.uf)}${e.referencia ? '<br>Ref.: ' + esc(e.referencia) : ''}${e.distancia_km ? `<br><small>${e.distancia_km} km${e.aprox ? ' (aprox.)' : ''}</small>` : ''}` : 'Cliente vem buscar'}</div>
     </div>
-    <table><tbody>${(p.pedido_itens || []).map((i) => `<tr><td><b>${i.quantidade}×</b></td><td>${esc(i.nome)}${i.detalhes?.escolhas?.length ? '<br><small>' + i.detalhes.escolhas.map((x) => esc(x.nome)).join(', ') + '</small>' : ''}${i.detalhes?.observacao ? `<br><small>⚠ ${esc(i.detalhes.observacao)}</small>` : ''}</td><td style="text-align:right">${brl(i.subtotal)}</td></tr>`).join('')}</tbody></table>
+    <table><tbody>${(p.pedido_itens || []).map((i) => `<tr><td><b>${i.quantidade}×</b></td><td>${esc(i.nome)}${i.detalhes?.escolhas?.length ? '<br><small>' + i.detalhes.escolhas.map((x) => esc(x.nome)).join(', ') + '</small>' : ''}${i.detalhes?.observacao ? `<br><small>${icone('alerta')} ${esc(i.detalhes.observacao)}</small>` : ''}</td><td style="text-align:right">${brl(i.subtotal)}</td></tr>`).join('')}</tbody></table>
     <div class="totais"><div><span>Subtotal</span><span>${brl(p.subtotal)}</span></div>${Number(p.desconto) ? `<div class="desconto"><span>Desconto ${esc(p.cupom_codigo || '')}</span><span>− ${brl(p.desconto)}</span></div>` : ''}<div><span>Taxa${p.taxa_a_confirmar ? ' (a confirmar!)' : ''}</span><span>${brl(p.taxa_entrega)}</span></div><div class="total"><span>Total</span><span>${brl(p.total)}</span></div></div>
     <p style="margin-top:8px"><b>Pagamento:</b> ${esc(PAGAMENTOS[p.pagamento]?.rotulo || p.pagamento)}${p.troco_para ? ` · troco para ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : ''}</p>
     ${etiquetasIntegracao(p)}
-    ${p.saipos_erro ? `<p class="aviso" style="margin-top:8px">⚠ ${esc(p.saipos_erro)}</p>` : ''}
+    ${p.saipos_erro ? `<p class="aviso aviso-ic" style="margin-top:8px">${icone('alerta')}<span>${esc(p.saipos_erro)}</span></p>` : ''}
     <div class="acoes no-print" style="margin-top:8px">
-      ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-sm" data-pago="${p.id}">✔ Pix recebido</button>` : ''}
-      ${p.saipos_status === 'erro' ? `<button class="btn btn-sm btn-outline" data-reenviar="${p.id}">↻ Reenviar à Saipos</button>` : ''}
+      ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-sm" data-pago="${p.id}">${icone('check')} Pix recebido</button>` : ''}
+      ${p.saipos_status === 'erro' ? `<button class="btn btn-sm btn-outline" data-reenviar="${p.id}">${icone('seta-dir')} Reenviar à Saipos</button>` : ''}
     </div>
-    ${p.observacoes ? `<p class="aviso" style="margin-top:8px">📝 ${esc(p.observacoes)}</p>` : ''}
+    ${p.observacoes ? `<p class="aviso aviso-ic" style="margin-top:8px">${icone('nota')}<span>${esc(p.observacoes)}</span></p>` : ''}
     <p class="small muted" style="margin-top:10px">${(p.status_historico || []).map((h) => `${STATUS[h.status]?.rotulo || h.status} ${horaBR(h.em)}`).join(' → ')}</p>
-    <div class="acoes no-print"><button class="btn btn-outline" onclick="window.print()">🖨 Imprimir</button></div>
+    <div class="acoes no-print"><button class="btn btn-outline" onclick="window.print()">${icone('impressora')} Imprimir</button></div>
   </div>`;
   qsa('#modal-pedido [data-st]').forEach((b) => b.addEventListener('click', () => mudarStatus(b.dataset.id, b.dataset.st)));
   qs('#modal-pedido').classList.add('aberto');

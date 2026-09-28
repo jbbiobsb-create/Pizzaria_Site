@@ -15,7 +15,10 @@ body.admin { background: #f1ede6; padding-bottom: 0 !important; }
 main { padding: 16px; }
 .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; }
 .coluna { background: #e6e0d6; border-radius: 12px; padding: 10px; min-height: 200px; }
-.coluna h3 { font-family: var(--fonte); font-size: .95rem; margin-bottom: 8px; display: flex; justify-content: space-between; }
+.coluna h3 { font-family: var(--fonte); font-size: .95rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.coluna h3 > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+.coluna h3 .i { width: 18px; height: 18px; color: var(--tomate); }
+.coluna h3 [data-cnt]:not(:empty) { background: #fff; border-radius: 999px; padding: 1px 8px; font-size: .78rem; }
 .coluna .cards { display: grid; gap: 8px; }
 .pedido-card { background: #fff; border-radius: 10px; padding: 10px 12px; box-shadow: var(--sombra); border-left: 4px solid var(--pedra-clara); cursor: pointer; }
 .pedido-card.novo { border-left-color: var(--tomate); animation: pisca 1.2s 3; }
@@ -24,7 +27,8 @@ main { padding: 16px; }
 .pedido-card .cab small { font-weight: 500; color: var(--texto-2); }
 .pedido-card .itens { font-size: .82rem; color: var(--texto-2); margin: 4px 0; }
 .pedido-card .meta { font-size: .78rem; display: flex; gap: 8px; flex-wrap: wrap; }
-.pedido-card .meta span { background: var(--creme); padding: 2px 7px; border-radius: 999px; }
+.pedido-card .meta span { background: var(--creme); padding: 2px 7px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
+.pedido-card .meta .i { width: 13px; height: 13px; }
 .pedido-card .acoes { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .pedido-card .acoes .btn { padding: 6px 10px; font-size: .78rem; }
 @keyframes pisca { 50% { background: #fdf0e8; } }

@@ -19,7 +19,7 @@
       <div class="campo"><label>Senha</label><input name="senha" type="password" required autocomplete="current-password"></div>
       <div class="aviso erro" data-erro hidden></div>
       <button class="btn btn-block btn-lg" type="submit">Entrar</button>
-      <p class="small muted center" style="margin-top:10px"><a href="../index.html">← voltar ao site</a></p>
+      <p class="small muted center" style="margin-top:10px"><a href="../index.html" class="link-ic"><span class="ic-w" data-icone="seta-esq"></span>voltar ao site</a></p>
     </form>
   </div>
 
@@ -34,7 +34,7 @@
       </nav>
       <div class="topo-dir">
         <label class="switch" title="Fecha a loja para novos pedidos imediatos"><input type="checkbox" data-forcar-fechada><span data-forcar-txt>Loja aberta</span></label>
-        <button class="btn btn-sm btn-outline" data-som>🔔 Som</button>
+        <button class="btn btn-sm btn-outline" data-som></button>
         <button class="btn btn-sm btn-ghost" data-sair>Sair</button>
       </div>
     </header>
@@ -42,10 +42,10 @@
     <main>
       <section data-secao="pedidos">
         <div class="kanban" data-kanban>
-          <div class="coluna" data-col="novos"><h3>🆕 Novos <span data-cnt></span></h3><div class="cards"></div></div>
-          <div class="coluna" data-col="andamento"><h3>👨‍🍳 Em andamento <span data-cnt></span></h3><div class="cards"></div></div>
-          <div class="coluna" data-col="saida"><h3>🛵 Saiu / pronto <span data-cnt></span></h3><div class="cards"></div></div>
-          <div class="coluna" data-col="finalizados"><h3>✅ Finalizados hoje <span data-cnt></span></h3><div class="cards"></div></div>
+          <div class="coluna" data-col="novos"><h3><span><span class="ic-w" data-icone="recebido"></span>Novos</span><span data-cnt></span></h3><div class="cards"></div></div>
+          <div class="coluna" data-col="andamento"><h3><span><span class="ic-w" data-icone="chef"></span>Em andamento</span><span data-cnt></span></h3><div class="cards"></div></div>
+          <div class="coluna" data-col="saida"><h3><span><span class="ic-w" data-icone="moto"></span>Saiu / pronto</span><span data-cnt></span></h3><div class="cards"></div></div>
+          <div class="coluna" data-col="finalizados"><h3><span><span class="ic-w" data-icone="check-circulo"></span>Finalizados hoje</span><span data-cnt></span></h3><div class="cards"></div></div>
         </div>
         <p class="small muted" style="margin-top:10px">Atualiza em tempo real. Última atualização: <span data-ultima>—</span> · <button class="btn btn-sm btn-ghost" data-recarregar>Recarregar</button> · <label class="small"><input type="checkbox" data-agendados> mostrar agendados de outros dias</label></p>
       </section>

@@ -2,11 +2,12 @@ import { montarLayout, montarFooter } from '../ui.js';
 import { carregarCardapio } from '../api.js';
 import { cardSabor, cardProduto, cardMonte } from '../cards.js';
 import { qs, qsa, esc } from '../util.js';
+import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'cardapio' });
 montarFooter();
 
-const ICONES = { pizza: '🍕', doce: '🍫', calzone: '🥟', combo: '🎁', entrada: '🥖', sanduiche: '🥪', sobremesa: '🍨', molho: '🫙', bebida: '🥤', cerveja: '🍺', vinho: '🍷', drink: '🍹', 'mais-pedidas': '⭐' };
+const ICONES = { pizza: 'pizza', doce: 'doce', calzone: 'calzone', combo: 'combo', entrada: 'entrada', sanduiche: 'sanduiche', sobremesa: 'sobremesa', molho: 'molho', bebida: 'bebida', cerveja: 'cerveja', vinho: 'vinho', drink: 'drink', 'mais-pedidas': 'estrela' };
 
 (async () => {
   try {
@@ -29,12 +30,12 @@ const ICONES = { pizza: '🍕', doce: '🍫', calzone: '🥟', combo: '🎁', en
       if (html) secoes.push({ slug: c.slug, nome: c.nome, icone: c.icone, html });
     }
 
-    qs('[data-chips]').innerHTML = secoes.map((s) => `<a class="chip" href="#${esc(s.slug)}" data-chip="${esc(s.slug)}">${ICONES[s.icone] || ''} ${esc(s.nome)}</a>`).join('');
+    qs('[data-chips]').innerHTML = secoes.map((s) => `<a class="chip" href="#${esc(s.slug)}" data-chip="${esc(s.slug)}">${ICONES[s.icone] ? icone(ICONES[s.icone]) : ''}${esc(s.nome)}</a>`).join('');
     qs('[data-secoes]').innerHTML = secoes.map((s) => `
       <section class="secao" id="${esc(s.slug)}" style="padding: 22px 0 10px" data-secao="${esc(s.slug)}">
         <div class="secao-titulo"><h2>${esc(s.nome)}</h2>${s.slug === 'pizzas' || s.slug === 'pizzas-doces' ? '<span class="muted small">Bambina 4 fatias · Grande 8 fatias</span>' : s.slug === 'calzones' ? '<span class="muted small">Individual ou Família</span>' : ''}</div>
         <div class="grade">${s.html}</div>
-      </section>`).join('') + (d.config.aviso_preparo ? `<p class="aviso" style="margin-top:20px">⏳ ${esc(d.config.aviso_preparo)}</p>` : '');
+      </section>`).join('') + (d.config.aviso_preparo ? `<p class="aviso aviso-ic" style="margin-top:20px">${icone('ampulheta')}<span>${esc(d.config.aviso_preparo)}</span></p>` : '');
 
     // chip ativo conforme rolagem
     const chips = qsa('[data-chip]');

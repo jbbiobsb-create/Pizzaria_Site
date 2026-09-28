@@ -3,6 +3,7 @@ import { validarCupom, criarPedido } from '../api.js';
 import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, toast, lerLS, gravarLS, mascaraTelefone, PAGAMENTOS, dataHoraBR } from '../util.js';
 import { LS } from '../config.js';
+import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'carrinho', subheader: false });
 montarFooter();
@@ -30,7 +31,7 @@ form.elements.telefone.addEventListener('input', (e) => (e.target.value = mascar
 
   // pagamentos disponíveis
   const lista = qs('[data-pagamentos]');
-  lista.innerHTML = (CFG.pagamentos || []).map((p) => PAGAMENTOS[p] ? `<button type="button" class="opcao" data-pg="${p}"><b>${PAGAMENTOS[p].icone} ${PAGAMENTOS[p].rotulo}</b><small>${PAGAMENTOS[p].desc}</small></button>` : '').join('');
+  lista.innerHTML = (CFG.pagamentos || []).map((p) => PAGAMENTOS[p] ? `<button type="button" class="opcao" data-pg="${p}"><b>${icone(PAGAMENTOS[p].icone)} ${PAGAMENTOS[p].rotulo}</b><small>${PAGAMENTOS[p].desc}</small></button>` : '').join('');
   qsa('[data-pg]', lista).forEach((b) => b.addEventListener('click', () => {
     pagamento = b.dataset.pg;
     qsa('[data-pg]', lista).forEach((x) => x.classList.toggle('ativo', x === b));
@@ -51,7 +52,7 @@ form.elements.telefone.addEventListener('input', (e) => (e.target.value = mascar
   qs('[data-subtotal]').textContent = brl(sub);
   qs('[data-taxa]').textContent = taxa ? brl(taxa) + (e.a_confirmar ? ' (a confirmar)' : '') : 'grátis';
   qs('[data-total]').textContent = brl(sub - desconto + taxa);
-  qs('[data-quando]').textContent = sessao.quando === 'agendar' && sessao.agendado ? `📅 Agendado para ${dataHoraBR(sessao.agendado)}` : `⏱ O mais rápido possível (${e.tipo === 'entrega' ? CFG.tempo_entrega_min + '–' + CFG.tempo_entrega_max : CFG.tempo_retirada_min + '–' + CFG.tempo_retirada_max} min após confirmar)`;
+  qs('[data-quando]').innerHTML = sessao.quando === 'agendar' && sessao.agendado ? `${icone('calendario')} Agendado para ${dataHoraBR(sessao.agendado)}` : `${icone('relogio')} O mais rápido possível (${e.tipo === 'entrega' ? CFG.tempo_entrega_min + '–' + CFG.tempo_entrega_max : CFG.tempo_retirada_min + '–' + CFG.tempo_retirada_max} min após confirmar)`;
 })();
 
 form.addEventListener('submit', async (ev) => {

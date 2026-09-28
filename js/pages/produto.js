@@ -3,6 +3,7 @@ import { montarLayout, montarFooter, abrirUpsell, tagHTML } from '../ui.js';
 import { carregarCardapio } from '../api.js';
 import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, param, toast } from '../util.js';
+import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'cardapio' });
 montarFooter();
@@ -43,7 +44,7 @@ function montarPizza(saborInicial) {
   document.title = `${sab ? sab.nome : 'Monte sua pizza'} — Sesconetto's Pizzeria`;
   raiz.innerHTML = `
     <div>
-      <div class="foto-grande ${sab?.imagem_url ? '' : 'vazia'}" data-foto>${sab?.imagem_url ? `<img src="${esc(sab.imagem_url)}" alt="${esc(sab.nome)}">` : '🍕'}</div>
+      <div class="foto-grande ${sab?.imagem_url ? '' : 'vazia'}" data-foto>${sab?.imagem_url ? `<img src="${esc(sab.imagem_url)}" alt="${esc(sab.nome)}">` : icone('pizza')}</div>
       <p class="small muted" style="margin-top:10px">${esc(D.config.sobre_massa || '')}</p>
     </div>
     <div>
@@ -137,7 +138,7 @@ function renderMetades() {
   qs('[data-desc]').textContent = s0 ? (s1 ? `Meio ${s0.nome.split(' (')[0]}: ${s0.descricao} Meio ${s1.nome.split(' (')[0]}: ${s1.descricao}` : s0.descricao) : 'Escolha o tamanho e até dois sabores na mesma pizza.';
   const foto = qs('[data-foto]');
   if (s0?.imagem_url) { foto.classList.remove('vazia'); foto.innerHTML = `<img src="${esc(s0.imagem_url)}" alt="${esc(s0.nome)}">`; }
-  else { foto.classList.add('vazia'); foto.innerHTML = '🍕'; }
+  else { foto.classList.add('vazia'); foto.innerHTML = icone('pizza'); }
 }
 
 function renderSabores() {
@@ -157,7 +158,7 @@ function renderSabores() {
     const ativo = estado.sabores.includes(s.slug);
     const off = !s.disponivel || !preco || (cheio && !ativo);
     return `<button type="button" class="sabor-item ${ativo ? 'ativo' : ''}" data-s="${esc(s.slug)}" ${off ? 'disabled' : ''}>
-      ${s.imagem_url ? `<img src="${esc(s.imagem_url)}" alt="" loading="lazy">` : '<div class="ph">🍕</div>'}
+      ${s.imagem_url ? `<img src="${esc(s.imagem_url)}" alt="" loading="lazy">` : `<div class="ph">${icone('pizza')}</div>`}
       <div><b>${esc(s.nome)} ${s.tipo === 'doce' ? '<span class="tag">doce</span>' : ''}${!s.disponivel ? '<span class="tag esgotado">esgotado</span>' : ''}</b><small>${esc(s.descricao || '')}</small></div>
       <span class="p">${preco ? brl(preco) : '—'}</span></button>`;
   }).join('') || '<p class="muted small">Nenhum sabor encontrado.</p>';
@@ -207,7 +208,7 @@ function montarProduto(p) {
   document.title = `${p.nome} — Sesconetto's Pizzeria`;
   const passos = Array.isArray(p.passos) ? p.passos : [];
   raiz.innerHTML = `
-    <div><div class="foto-grande ${p.imagem_url ? '' : 'vazia'}">${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="${esc(p.nome)}">` : '🍕'}</div></div>
+    <div><div class="foto-grande ${p.imagem_url ? '' : 'vazia'}">${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="${esc(p.nome)}">` : icone('pizza')}</div></div>
     <div>
       <div class="tags" style="margin-bottom:6px">${(p.tags || []).map(tagHTML).join('')}${p.disponivel ? '' : tagHTML('esgotado')}</div>
       <h1>${esc(p.nome)}</h1>

@@ -1,12 +1,13 @@
 // Cards de sabor e de produto usados na home e no cardápio
 import { brl, esc } from './util.js';
 import { tagHTML } from './ui.js';
+import { icone } from './icons.js';
 
-const FOTO_PADRAO = { pizza: '🍕', bebida: '🥤', combo: '🍕', molho: '🫙', sanduiche: '🥪' };
+const FOTO_PADRAO = { pizza: 'pizza', bebida: 'bebida', combo: 'combo', molho: 'molho', sanduiche: 'sanduiche', entrada: 'entrada', sobremesa: 'sobremesa', cerveja: 'cerveja', vinho: 'vinho', drink: 'drink' };
 
 export function cardSabor(s) {
   const tags = (s.tags || []).filter((t) => t !== 'mais-pedida' || true);
-  const foto = s.imagem_url ? `<img class="foto" src="${esc(s.imagem_url)}" alt="${esc(s.nome)}" loading="lazy">` : `<div class="foto vazia">🍕</div>`;
+  const foto = s.imagem_url ? `<img class="foto" src="${esc(s.imagem_url)}" alt="${esc(s.nome)}" loading="lazy">` : `<div class="foto vazia">${icone(s.tipo === 'calzone' ? 'calzone' : 'pizza')}</div>`;
   return `
   <a class="card ${s.disponivel ? '' : 'indisponivel'}" href="produto.html?sabor=${esc(s.slug)}">
     ${foto}
@@ -23,8 +24,8 @@ export function cardSabor(s) {
 }
 
 export function cardProduto(p) {
-  const icone = FOTO_PADRAO[p.categoria?.replace(/s$/, '')] || '🍕';
-  const foto = p.imagem_url ? `<img class="foto" src="${esc(p.imagem_url)}" alt="${esc(p.nome)}" loading="lazy">` : `<div class="foto vazia">${icone}</div>`;
+  const ic = FOTO_PADRAO[p.categoria?.replace(/s$/, '')] || 'pizza';
+  const foto = p.imagem_url ? `<img class="foto" src="${esc(p.imagem_url)}" alt="${esc(p.nome)}" loading="lazy">` : `<div class="foto vazia">${icone(ic)}</div>`;
   return `
   <a class="card ${p.disponivel ? '' : 'indisponivel'}" href="produto.html?p=${esc(p.slug)}">
     ${foto}

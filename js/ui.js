@@ -3,15 +3,10 @@ import * as cart from './cart.js';
 import { carregarCardapio, buscarCep, geocodificar, calcularEntrega } from './api.js';
 import { brl, esc, qs, qsa, mascaraCep, resumoHorario, whatsappLink, toast, lerLS, gravarLS } from './util.js';
 import { LS } from './config.js';
+import { icone, hidratarIcones } from './icons.js';
 
-export const ICONES = {
-  casa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>',
-  pizza: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 21h20z"/><path d="M4.5 16.5c5-3 10-3 15 0"/><circle cx="12" cy="13" r="1"/><circle cx="9" cy="17" r="1"/><circle cx="15" cy="17" r="1"/></svg>',
-  sacola: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
-  rastreio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-  pin: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
-  wa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1l-.9 1.2c-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.5-.6.3-.5c.1-.2 0-.4 0-.5L9.3 6.8c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 2.5 1 3 .8 3.6.8.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>',
-};
+// Ícones: ver js/icons.js
+export { icone, hidratarIcones };
 
 let CFG = null;
 
@@ -41,7 +36,7 @@ export function montarLayout({ pagina = '', subheader = true } = {}) {
       </nav>
       <div class="header-right">
         <a href="cardapio.html" class="btn btn-sm btn-pedir">Pedir agora</a>
-        <a href="carrinho.html" class="btn-carrinho" aria-label="Seu pedido">${ICONES.sacola.replace('<svg', '<svg width="20" height="20"')}<span class="txt">Pedido</span><span class="badge" data-badge></span></a>
+        <a href="carrinho.html" class="btn-carrinho" aria-label="Seu pedido">${icone('sacola')}<span class="txt">Pedido</span><span class="badge" data-badge></span></a>
       </div>
     </div>
   </header>
@@ -50,18 +45,19 @@ export function montarLayout({ pagina = '', subheader = true } = {}) {
         <button data-tipo="entrega">Entrega</button>
         <button data-tipo="retirada"><span class="longo">Retirar na loja</span><span class="curto">Retirada</span></button>
       </div>
-      <button class="pill-end" data-abrir-entrega>${ICONES.pin}<span data-endereco-txt>Onde você está?</span></button>
+      <button class="pill-end" data-abrir-entrega>${icone('pin')}<span data-endereco-txt>Onde você está?</span></button>
       <div class="status-loja" data-status-loja><i></i><span>…</span></div>
   </div></div>` : ''}`;
   const tabbar = `
   <nav class="tabbar">
-    <a href="index.html" class="${pagina === 'home' ? 'ativo' : ''}">${ICONES.casa}Início</a>
-    <a href="cardapio.html" class="${pagina === 'cardapio' ? 'ativo' : ''}">${ICONES.pizza}Cardápio</a>
-    <a href="carrinho.html" class="${pagina === 'carrinho' ? 'ativo' : ''}">${ICONES.sacola}Pedido<span class="badge" data-badge></span></a>
-    <a href="pedido.html" class="${pagina === 'pedido' ? 'ativo' : ''}">${ICONES.rastreio}Acompanhar</a>
+    <a href="index.html" class="${pagina === 'home' ? 'ativo' : ''}">${icone('casa')}Início</a>
+    <a href="cardapio.html" class="${pagina === 'cardapio' ? 'ativo' : ''}">${icone('pizza')}Cardápio</a>
+    <a href="carrinho.html" class="${pagina === 'carrinho' ? 'ativo' : ''}">${icone('sacola')}Pedido<span class="badge" data-badge></span></a>
+    <a href="pedido.html" class="${pagina === 'pedido' ? 'ativo' : ''}">${icone('relogio')}Acompanhar</a>
   </nav>`;
   document.body.insertAdjacentHTML('afterbegin', header);
   document.body.insertAdjacentHTML('beforeend', tabbar + modalEntregaHTML() + modalUpsellHTML());
+  hidratarIcones();
   atualizarBadge();
   cart.onChange(atualizarBadge);
   window.addEventListener('ses:entrega', atualizarSubheader);
@@ -101,7 +97,7 @@ export function montarFooter() {
         <div class="legal">Entregamos em Vicente Pires e região, conforme a área de entrega e o horário de funcionamento. Cobramos taxa de entrega calculada pela distância. Nossos produtos contêm glúten e podem conter leite, ovos e traços de castanhas. Imagens ilustrativas. Bebidas alcoólicas: venda proibida para menores de 18 anos.</div>
       </div>
     </footer>
-    <a class="wa-flutuante" href="${whatsappLink(c.whatsapp, 'Olá! Quero fazer um pedido na ' + c.nome + '.')}" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">${ICONES.wa}</a>`;
+    <a class="wa-flutuante" href="${whatsappLink(c.whatsapp, 'Olá! Quero fazer um pedido na ' + c.nome + '.')}" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">${icone('wa')}</a>`;
     document.body.insertAdjacentHTML('beforeend', html);
   }).catch(() => {});
 }
@@ -149,8 +145,8 @@ function modalEntregaHTML() {
       <h2>Como você quer receber?</h2>
       <p class="muted small">Precisamos disso para calcular a taxa e o tempo do seu pedido.</p>
       <div class="escolha-entrega">
-        <button type="button" data-tipo="entrega"><div class="ic">🛵</div><b>Entrega</b><small>Receba em casa</small></button>
-        <button type="button" data-tipo="retirada"><div class="ic">🏪</div><b>Retirar na loja</b><small>Peça antes e só passe para buscar</small></button>
+        <button type="button" data-tipo="entrega"><div class="ic">${icone('moto')}</div><b>Entrega</b><small>Receba em casa</small></button>
+        <button type="button" data-tipo="retirada"><div class="ic">${icone('loja')}</div><b>Retirar na loja</b><small>Peça antes e só passe para buscar</small></button>
       </div>
       <form id="form-entrega" novalidate>
         <div class="linha-campos">
@@ -278,19 +274,19 @@ export async function abrirUpsell(excluirSlug) {
   const lista = qs('[data-upsell]');
   lista.innerHTML = [...molhos, ...bebidas].map((p) => `
     <div class="upsell-item">
-      ${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="">` : '<div class="ph">🥤</div>'}
+      ${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="">` : `<div class="ph">${icone('bebida')}</div>`}
       <b>${esc(p.nome)}</b><span class="p">${brl(p.preco)}</span>
       <button class="btn btn-sm" data-add="${esc(p.slug)}">Adicionar</button>
     </div>`).join('') + doces.map((s) => `
     <div class="upsell-item">
-      ${s.imagem_url ? `<img src="${esc(s.imagem_url)}" alt="">` : '<div class="ph">🍫</div>'}
+      ${s.imagem_url ? `<img src="${esc(s.imagem_url)}" alt="">` : `<div class="ph">${icone('doce')}</div>`}
       <b>${esc(s.nome.split(' (')[0])} (doce)</b><span class="p">a partir de ${brl(s.precoMin)}</span>
       <a class="btn btn-sm btn-outline" href="produto.html?sabor=${esc(s.slug)}">Escolher</a>
     </div>`).join('');
   qsa('[data-add]', lista).forEach((b) => b.addEventListener('click', () => {
     const p = d.produtosPorSlug[b.dataset.add];
     cart.adicionar({ tipo: 'produto', slug: p.slug, nome: p.nome, imagem: p.imagem_url, preco: Number(p.preco), quantidade: 1 });
-    b.textContent = 'Adicionado ✓'; b.disabled = true;
+    b.innerHTML = `${icone('check')} Adicionado`; b.disabled = true;
     toast(`${p.nome} adicionado`);
   }));
   abrirModal('modal-upsell');
