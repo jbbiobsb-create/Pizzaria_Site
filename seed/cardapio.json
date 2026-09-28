@@ -1,0 +1,773 @@
+{
+ "loja": {
+  "nome": "Sesconetto's Pizzeria",
+  "nome_completo": "Sesconetto's Pizzaria Napolitana",
+  "slogan": "Família servindo amigos",
+  "fundacao": 2022,
+  "telefone": "(61) 98220-5432",
+  "whatsapp": "556182205432",
+  "instagram": "sesconettospizzeria",
+  "endereco": {
+   "rua": "Chácara 152, Conjunto 1",
+   "numero": "12",
+   "complemento": "Loja 1",
+   "bairro": "Vicente Pires",
+   "cidade": "Brasília",
+   "uf": "DF",
+   "cep": "72007-655"
+  },
+  "lat": -15.794494406482224,
+  "lng": -48.03940236695688,
+  "horario": {
+   "seg": [
+    "18:00",
+    "23:30"
+   ],
+   "ter": [
+    "18:00",
+    "23:30"
+   ],
+   "qua": [
+    "18:00",
+    "23:30"
+   ],
+   "qui": [
+    "18:00",
+    "23:30"
+   ],
+   "sex": [
+    "18:00",
+    "23:30"
+   ],
+   "sab": [
+    "18:00",
+    "23:30"
+   ],
+   "dom": [
+    "18:00",
+    "23:30"
+   ]
+  },
+  "tempo_entrega": [
+   40,
+   60
+  ],
+  "tempo_retirada": [
+   30,
+   50
+  ],
+  "pedido_minimo": 0,
+  "faixas_taxa": [
+   {
+    "ate_km": 1,
+    "taxa": 7.9
+   },
+   {
+    "ate_km": 3,
+    "taxa": 9.9
+   },
+   {
+    "ate_km": 4,
+    "taxa": 14.9
+   },
+   {
+    "ate_km": 6,
+    "taxa": 19.9
+   },
+   {
+    "ate_km": 8,
+    "taxa": 22.9
+   }
+  ],
+  "pagamentos": [
+   "pix",
+   "cartao_entrega",
+   "dinheiro"
+  ],
+  "sobre_massa": "Massa artesanal aberta à mão, fermentada por 24 horas com farinha de trigo italiana. Molho feito com tomates San Marzano e manjericão. Assada no forno a lenha.",
+  "aviso_preparo": "Nossa pizza é artesanal: do início do preparo até a entrega, tudo é feito à mão e na hora. Por isso pode demorar um pouco mais. Vale a pena esperar!"
+ },
+ "tamanhos": [
+  {
+   "slug": "bambina",
+   "nome": "Bambina",
+   "fatias": 4,
+   "max_sabores": 1,
+   "ordem": 1
+  },
+  {
+   "slug": "media",
+   "nome": "Média",
+   "fatias": 6,
+   "max_sabores": 2,
+   "ordem": 2
+  },
+  {
+   "slug": "grande",
+   "nome": "Grande",
+   "fatias": 8,
+   "max_sabores": 2,
+   "ordem": 3
+  }
+ ],
+ "categorias": [
+  {
+   "slug": "pizzas",
+   "nome": "Pizzas",
+   "tipo": "pizza",
+   "ordem": 1,
+   "icone": "pizza"
+  },
+  {
+   "slug": "pizzas-doces",
+   "nome": "Pizzas Doces",
+   "tipo": "pizza",
+   "ordem": 2,
+   "icone": "doce"
+  },
+  {
+   "slug": "combos",
+   "nome": "Combos",
+   "tipo": "simples",
+   "ordem": 3,
+   "icone": "combo"
+  },
+  {
+   "slug": "sanduiches",
+   "nome": "Sanduíches",
+   "tipo": "simples",
+   "ordem": 4,
+   "icone": "sanduiche"
+  },
+  {
+   "slug": "molhos",
+   "nome": "Molhos",
+   "tipo": "simples",
+   "ordem": 5,
+   "icone": "molho"
+  },
+  {
+   "slug": "bebidas",
+   "nome": "Bebidas",
+   "tipo": "simples",
+   "ordem": 6,
+   "icone": "bebida"
+  }
+ ],
+ "sabores": [
+  {
+   "slug": "napolitana",
+   "nome": "Napolitana (A Verdadeira)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, mozzarella, manjericão basílico e parmesão.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/napolitana.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "precos": {
+    "grande": 84.55
+   }
+  },
+  {
+   "slug": "florenca",
+   "nome": "Florença (Marguerita Especial)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, tomate cereja, mozzarella de búfala, pesto de manjericão.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/florenca.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida",
+    "vegetariana"
+   ],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "veneza",
+   "nome": "Veneza (Marguerita)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, parmesão, mozzarella, tomate em fatias, manjericão.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/veneza.jpg",
+   "disponivel": false,
+   "tags": [
+    "vegetariana"
+   ],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "bolonha",
+   "nome": "Bolonha (Portuguesa)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, mozzarella, presunto, tomate, calabresa, tiras de pimentão verde, cebola, azeitona preta, ovo cozido, orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/bolonha.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "roma",
+   "nome": "Roma (Calabresa)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, mozzarella, calabresa, cebola, azeitona preta, orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/roma.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "pisa",
+   "nome": "Pisa (Pepperoni)",
+   "descricao": "Massa artesanal aberta à mão, pomodoro pelati italiano, parmesão, mozzarella, pepperoni e orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/pisa.jpg",
+   "disponivel": true,
+   "tags": [],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "palermo",
+   "nome": "Palermo (Frango com Catupiry)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, mozzarella, frango desfiado, Catupiry, orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/palermo.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "san-polo-di-piave",
+   "nome": "San Polo di Piave (Salame Italiano e Mozzarella de Búfala)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, parmesão, mozzarella de búfala, salame italiano em tiras, manjericão basílico.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/san-polo-di-piave.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "parma",
+   "nome": "Parma (Presunto de Parma e Queijo Grana Padano)",
+   "descricao": "Pomodoro pelatti, palmito, tomate seco, mussarela de búfala, rúcula, presunto de parma e grana padano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/parma.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "precos": {
+    "bambina": 94.05,
+    "grande": 113.05,
+    "media": 103.55
+   }
+  },
+  {
+   "slug": "treviso-brie",
+   "nome": "Treviso Brie (Queijo Brie c/ Lombo Defumado e Geléia de Pimenta)",
+   "descricao": "Massa napolitana de longa fermentação, geleia de abacaxi com pimenta, queijo Brie, lombo canadense, e pesto de manjericão.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/treviso-brie.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "potenza",
+   "nome": "Potenza (Carne de Sol)",
+   "descricao": "Massa napolitana de longa fermentação, purê de abóbora, parmesão, mozzarela, carne de sol desfiada e cebola roxa.",
+   "tipo": "salgada",
+   "imagem": null,
+   "disponivel": true,
+   "tags": [
+    "novidade"
+   ],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "trentino",
+   "nome": "Trentino (Três Queijos)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, mozzarella, parmesão, gorgonzola, orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/trentino.jpg",
+   "disponivel": false,
+   "tags": [
+    "vegetariana"
+   ],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "bari",
+   "nome": "Bari (Quatro Queijos)",
+   "descricao": "Massa artesanal aberta à mão, fio de azeite, creme de leite, mozzarella de búfala, parmesão, provolone, gorgonzola e manjericão.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/bari.jpg",
+   "disponivel": false,
+   "tags": [
+    "vegetariana"
+   ],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "genova",
+   "nome": "Gênova (Bacon com Milho)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, mozzarella, tiras de bacon crocante, milho verde, óregano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/genova.jpg",
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "milao",
+   "nome": "Milão (Cogumelo Paris com Presunto)",
+   "descricao": "Massa napolitana de longa fermentação, pomodoro pelatti italiano, mozzarella, presunto, cogumelo Paris, azeitona preta e orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/milao.jpg",
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "turim",
+   "nome": "Turim (Tomate Seco e Cogumelo Paris)",
+   "descricao": "Massa artesanal aberta à mão, molho de tomate caseiro, mozzarella de búfala, tomate seco em tiras, cogumelo Paris, manjericão basílico.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/turim.jpg",
+   "disponivel": false,
+   "tags": [
+    "vegetariana"
+   ],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "bergamo",
+   "nome": "Bergamo (Abobrinha Italiana com Gorgonzola)",
+   "descricao": "Massa artesanal aberta à mão, pomodoro pelati italiano, mozzarella, abobrinha italiana, gorgonzola, orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/bergamo.jpg",
+   "disponivel": false,
+   "tags": [
+    "vegetariana"
+   ],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "sardegna",
+   "nome": "Sardegna (Atum)",
+   "descricao": "Massa napolitana de longa fermentação, pomodoro pelati italiano, mozzarella, atum, cebola roxa e azeitonas pretas.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/sardegna.jpg",
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "modena",
+   "nome": "Modena",
+   "descricao": "Massa napoletana de longa fermentação, Pomodoro Pelatti italiano, mozzarela, bacon em fatias finas, finalizada com grana padano e crema - aceto balsamico di Modena.",
+   "tipo": "salgada",
+   "imagem": null,
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "bambina": 79.0,
+    "grande": 99.0,
+    "media": 89.0
+   }
+  },
+  {
+   "slug": "marinara",
+   "nome": "Marinara",
+   "descricao": "Massa napolitana de longa fermentação, pomodoro pelatti italiano, lâminas de alho e orégano.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/marinara.jpg",
+   "disponivel": true,
+   "tags": [
+    "novidade",
+    "vegana",
+    "vegetariana"
+   ],
+   "precos": {
+    "bambina": 41.8,
+    "grande": 60.8
+   }
+  },
+  {
+   "slug": "ferrara",
+   "nome": "Ferrara (Burrata)",
+   "descricao": "Massa napoletana de longa fermentação, parmesão, uma burrata de 200 g, tomate cereja, pesto de manjericão e manjericão.",
+   "tipo": "salgada",
+   "imagem": "img/cardapio/ferrara.jpg",
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "grande": 119.0
+   }
+  },
+  {
+   "slug": "sorrento",
+   "nome": "Sorrento (Chocolate c/ Morango)",
+   "descricao": "Massa artesanal aberta à mão, leve camada de leite condensado, mozzarella, chocolate ao leite ralado, morangos frescos.",
+   "tipo": "doce",
+   "imagem": "img/cardapio/sorrento.jpg",
+   "disponivel": true,
+   "tags": [],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "vicenza",
+   "nome": "Vicenza (Banana c/ Chocolate)",
+   "descricao": "Massa artesanal aberta à mão, leve camada de leite condensado, mozzarella, banana em fatias, chocolate ao leite em lascas.",
+   "tipo": "doce",
+   "imagem": "img/cardapio/vicenza.jpg",
+   "disponivel": true,
+   "tags": [],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "cartona",
+   "nome": "Cartona (Banana c/ Canela)",
+   "descricao": "Massa artesanal aberta à mão, leve camada de leite condensado, mozzarella, banana nanica, açúcar cristal com canela em pó.",
+   "tipo": "doce",
+   "imagem": "img/cardapio/cartona.jpg",
+   "disponivel": true,
+   "tags": [],
+   "precos": {
+    "bambina": 75.05,
+    "grande": 94.05,
+    "media": 84.55
+   }
+  },
+  {
+   "slug": "padova",
+   "nome": "Padova (Banoffee c/ Doce de Leite Argentino)",
+   "descricao": "Massa napolitana de longa fermentação, Banoffe de banana, mozzarella, doce de leite argentino, banana nanica, creme de leite fresco e canela.",
+   "tipo": "doce",
+   "imagem": "img/cardapio/padova.jpg",
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "luca",
+   "nome": "Luca (Marshmalow c/ Chocolate e Uvas Verdes)",
+   "descricao": "Massa artesanal aberta à mão, mozzarella, marshmalows, gotas de chocolate e uvas verdes.",
+   "tipo": "doce",
+   "imagem": "img/cardapio/luca.jpg",
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "bambina": 84.55,
+    "grande": 103.55,
+    "media": 94.05
+   }
+  },
+  {
+   "slug": "siena",
+   "nome": "Siena (Pistache com Frutas Vermelhas)",
+   "descricao": "Massa napoletana de longa fermentação, cream cheese, frutas vermelhas (amora e framboesa), uma generosa camada de creme de pistache e pistaches naturais salteados.",
+   "tipo": "doce",
+   "imagem": "img/cardapio/siena.jpg",
+   "disponivel": false,
+   "tags": [],
+   "precos": {
+    "bambina": 89.0,
+    "grande": 109.0,
+    "media": 99.0
+   }
+  }
+ ],
+ "produtos": [
+  {
+   "slug": "coca-cola-lata",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Coca-Cola 310ml",
+   "descricao": "Lata 310ml",
+   "preco": 8.45,
+   "imagem": "img/cardapio/coca-cola-lata.jpg",
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "coca-cola-zero-lata",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Coca-Cola Zero 310ml",
+   "descricao": "Lata 310ml",
+   "preco": 8.45,
+   "imagem": "img/cardapio/coca-cola-zero-lata.jpg",
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "guarana-lata",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Guaraná Antarctica 310ml",
+   "descricao": "Lata 310ml",
+   "preco": 8.45,
+   "imagem": "img/cardapio/guarana-lata.jpg",
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "sprite-lata",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Sprite Limão 310ml",
+   "descricao": "Lata 310ml",
+   "preco": 8.45,
+   "imagem": "img/cardapio/sprite-lata.jpg",
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "coca-cola-1-5l",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Coca-Cola 1,5L",
+   "descricao": "Garrafa 1,5L",
+   "preco": 14.15,
+   "imagem": "img/cardapio/coca-cola-1-5l.jpg",
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "coca-cola-zero-1-5l",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Coca-Cola Zero 1,5L",
+   "descricao": "Garrafa 1,5L",
+   "preco": 14.15,
+   "imagem": "img/cardapio/coca-cola-zero-1-5l.jpg",
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "guarana-1-5l",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Guaraná Antarctica 1,5L",
+   "descricao": "Garrafa 1,5L",
+   "preco": 11.4,
+   "imagem": "img/cardapio/guarana-1-5l.jpg",
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "guarana-zero-1-5l",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Guaraná Antarctica Zero 1,5L",
+   "descricao": "Garrafa 1,5L",
+   "preco": 11.4,
+   "imagem": "img/cardapio/guarana-zero-1-5l.jpg",
+   "disponivel": false,
+   "tags": []
+  },
+  {
+   "slug": "coca-cola-2l",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Coca-Cola 2L",
+   "descricao": "Garrafa 2L",
+   "preco": 16.0,
+   "imagem": "img/cardapio/coca-cola-2l.jpg",
+   "disponivel": false,
+   "tags": []
+  },
+  {
+   "slug": "coca-cola-zero-2l",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Coca-Cola Zero 2L",
+   "descricao": "Garrafa 2L",
+   "preco": 16.0,
+   "imagem": "img/cardapio/coca-cola-zero-2l.jpg",
+   "disponivel": false,
+   "tags": []
+  },
+  {
+   "slug": "guarana-zero-2l",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Guaraná Zero 2L",
+   "descricao": "Garrafa 2L",
+   "preco": 16.0,
+   "imagem": null,
+   "disponivel": false,
+   "tags": []
+  },
+  {
+   "slug": "heineken-600",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Heineken 600ml",
+   "descricao": "Cerveja lager puro malte, garrafa 600ml. Venda proibida para menores de 18 anos.",
+   "preco": 11.4,
+   "imagem": "img/cardapio/heineken-600.jpg",
+   "disponivel": false,
+   "tags": []
+  },
+  {
+   "slug": "vinho-di-mallo-tannat",
+   "categoria": "bebidas",
+   "tipo": "simples",
+   "nome": "Vinho Tinto Di Mallo Tannat 750ml",
+   "descricao": "Vinho uruguaio. Venda proibida para menores de 18 anos.",
+   "preco": 61.65,
+   "imagem": "img/cardapio/vinho-di-mallo-tannat.jpg",
+   "disponivel": false,
+   "tags": []
+  },
+  {
+   "slug": "kit-molhos-do-chef",
+   "categoria": "molhos",
+   "tipo": "simples",
+   "nome": "Kit Molhos do Chef (Pesto + San Marzano)",
+   "descricao": "1 molho de tomate especial feito com tomate San Marzano e manjericão + 1 molho pesto à base de castanha de caju, manjericão e parmesão. Perfeito para comer com as bordas da pizza.",
+   "preco": 9.4,
+   "imagem": "img/cardapio/kit-molhos-do-chef.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ]
+  },
+  {
+   "slug": "sanduiche-napolitano",
+   "categoria": "sanduiches",
+   "tipo": "simples",
+   "nome": "Sanduíche Napolitano",
+   "descricao": "Pão de massa napolitana, pomodoro pelati, parmesão, mussarela de búfala, tomate seco, rúcula e pesto de manjericão.",
+   "preco": 39.0,
+   "imagem": null,
+   "disponivel": true,
+   "tags": []
+  },
+  {
+   "slug": "combo-solteirao",
+   "categoria": "combos",
+   "tipo": "combo",
+   "nome": "Combo Solteirão",
+   "descricao": "1 pizza Bambina Napolitana (4 fatias: molho de tomate caseiro, mozzarella, manjericão e parmesão) + 1 refrigerante lata 310ml.",
+   "preco": 89.0,
+   "imagem": "img/cardapio/combo-solteirao.jpg",
+   "disponivel": true,
+   "tags": [
+    "mais-pedida"
+   ],
+   "passos": [
+    {
+     "titulo": "Escolha o refrigerante",
+     "tipo": "produto",
+     "min": 1,
+     "max": 1,
+     "opcoes": [
+      "coca-cola-lata",
+      "coca-cola-zero-lata",
+      "guarana-lata",
+      "sprite-lata"
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "combo-nona-sinfonia",
+   "categoria": "combos",
+   "tipo": "combo",
+   "nome": "Combo 9ª Sinfonia",
+   "descricao": "1 pizza Grande Parma (pomodoro pelati, palmito, tomate seco, mussarela de búfala, rúcula, presunto de parma e grana padano) + 1 vinho tinto uruguaio Di Mallo Tannat 750ml.",
+   "preco": 180.4,
+   "imagem": "img/cardapio/combo-nona-sinfonia.jpg",
+   "disponivel": false,
+   "tags": [],
+   "passos": []
+  }
+ ]
+}

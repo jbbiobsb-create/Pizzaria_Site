@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sesconetto's Pizzeria — Pizza napolitana em Vicente Pires, Brasília</title>
+  <meta name="description" content="Pizza napolitana artesanal, massa de longa fermentação e forno a lenha. Peça online para entrega em Vicente Pires e região ou retire na loja.">
+  <meta name="theme-color" content="#1f1b18">
+  <link rel="icon" href="img/logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <img class="bg" src="img/hero-pizza.jpg" alt="" fetchpriority="high">
+      <div class="container">
+        <span class="eyebrow">🔥 Forno a lenha · massa de 24h de fermentação</span>
+        <h1>Pizza napolitana <em>de verdade</em>, feita por uma família.</h1>
+        <p>Massa aberta à mão, molho de tomate San Marzano e ingredientes frescos. Peça e receba em casa ou retire na loja em Vicente Pires.</p>
+        <div class="hero-acoes">
+          <a class="btn btn-lg" href="#" data-pedir="entrega">🛵 Pedir para entrega</a>
+          <a class="btn btn-lg btn-light" href="#" data-pedir="retirada">🏪 Retirar na loja</a>
+        </div>
+        <div class="hero-info">
+          <span data-info-status>⏱ …</span>
+          <span data-info-tempo></span>
+          <span data-info-endereco></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao" style="padding-top:28px">
+      <div class="container">
+        <div class="atalhos">
+          <a class="atalho" href="cardapio.html#pizzas"><div class="ic">🍕</div><b>Pizzas</b><small>salgadas</small></a>
+          <a class="atalho" href="produto.html?meio=1"><div class="ic">🔀</div><b>Meio a meio</b><small>2 sabores</small></a>
+          <a class="atalho" href="cardapio.html#pizzas-doces"><div class="ic">🍫</div><b>Pizzas doces</b><small>pra fechar</small></a>
+          <a class="atalho" href="cardapio.html#combos"><div class="ic">🎁</div><b>Combos</b><small>pizza + bebida</small></a>
+          <a class="atalho" href="cardapio.html#bebidas"><div class="ic">🥤</div><b>Bebidas</b><small>geladas</small></a>
+          <a class="atalho" href="pedido.html"><div class="ic">⏱</div><b>Acompanhar</b><small>meu pedido</small></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao" style="padding-top:0">
+      <div class="container">
+        <div class="secao-titulo"><h2>As mais pedidas</h2><a href="cardapio.html">Ver cardápio completo →</a></div>
+        <div class="grade" data-mais-pedidas>
+          <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao" style="padding-top:0">
+      <div class="container">
+        <div class="secao-titulo"><h2>Combos e promoções</h2><a href="cardapio.html#combos">Ver todos →</a></div>
+        <div class="grade" data-combos></div>
+      </div>
+    </section>
+
+    <section class="secao secao-escura" id="sobre">
+      <div class="container sobre">
+        <img src="img/chef.jpg" alt="Chef da Sesconetto's segurando uma pizza napolitana" loading="lazy">
+        <div>
+          <h2>Nossa massa, nossa história</h2>
+          <p>A Sesconetto's nasceu em 2022 em Vicente Pires com uma ideia simples: fazer a pizza napolitana do jeito que ela é feita na Itália, com calma e com as mãos.</p>
+          <p data-sobre-massa>Massa artesanal aberta à mão, fermentada por 24 horas com farinha de trigo italiana. Molho feito com tomates San Marzano e manjericão. Assada no forno a lenha.</p>
+          <ul class="pontos">
+            <li><span>🌾</span><div><b>Longa fermentação</b><br><span class="muted">24 horas de descanso para uma massa leve e digestiva.</span></div></li>
+            <li><span>🍅</span><div><b>Ingredientes escolhidos</b><br><span class="muted">Tomate San Marzano, mozzarella de búfala, manjericão fresco.</span></div></li>
+            <li><span>🔥</span><div><b>Forno a lenha</b><br><span class="muted">Borda alta, macia por dentro e com as manchinhas do forno.</span></div></li>
+          </ul>
+          <p class="small" style="margin-top:16px" data-aviso-preparo></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao" id="contato">
+      <div class="container contato-grid">
+        <div>
+          <h2>Onde estamos</h2>
+          <p data-contato-endereco style="margin-top:10px"></p>
+          <p><b>Horário:</b> <span data-contato-horario></span></p>
+          <p><b>Entrega:</b> <span data-contato-entrega></span></p>
+          <p><b>WhatsApp:</b> <a data-contato-wa href="#" target="_blank" rel="noopener" class="preco"></a></p>
+          <p style="margin-top:14px"><a class="btn btn-wa" data-contato-wa-btn href="#" target="_blank" rel="noopener">Falar no WhatsApp</a></p>
+        </div>
+        <iframe data-mapa title="Mapa da pizzaria" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="js/pages/home.js"></script>
+</body>
+</html>

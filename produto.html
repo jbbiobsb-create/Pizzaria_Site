@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Monte sua pizza — Sesconetto's Pizzeria</title>
+  <meta name="theme-color" content="#1f1b18">
+  <link rel="icon" href="img/logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main>
+    <div class="container">
+      <p class="small" style="padding-top:14px"><a href="cardapio.html" class="muted">← Voltar ao cardápio</a></p>
+      <div class="produto" data-produto>
+        <div class="skeleton" style="aspect-ratio:1"></div>
+        <div><div class="skeleton" style="min-height:60px;margin-bottom:12px"></div><div class="skeleton" style="min-height:200px"></div></div>
+      </div>
+    </div>
+  </main>
+  <div class="barra-fixa" data-barra hidden>
+    <div class="container">
+      <div class="total"><small data-total-rotulo>Total</small><b data-total>R$ 0,00</b></div>
+      <button class="btn btn-lg btn-light" data-adicionar>Adicionar ao pedido</button>
+    </div>
+  </div>
+  <script type="module" src="js/pages/produto.js"></script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel — Sesconetto's Pizzeria</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="../img/logo.jpg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+  <div id="login" class="login" hidden>
+    <form class="painel" data-login>
+      <img src="../img/logo.jpg" alt="" style="width:80px;height:80px;border-radius:50%;margin:0 auto 10px">
+      <h2 class="center">Área da equipe</h2>
+      <div class="campo"><label>E-mail</label><input name="email" type="email" required autocomplete="username"></div>
+      <div class="campo"><label>Senha</label><input name="senha" type="password" required autocomplete="current-password"></div>
+      <div class="aviso erro" data-erro hidden></div>
+      <button class="btn btn-block btn-lg" type="submit">Entrar</button>
+      <p class="small muted center" style="margin-top:10px"><a href="../index.html">← voltar ao site</a></p>
+    </form>
+  </div>
+
+  <div id="app" hidden>
+    <header class="topo">
+      <div class="logo"><img src="../img/logo.jpg" alt=""><span>Painel <small data-usuario></small></span></div>
+      <nav class="abas">
+        <button data-aba="pedidos" class="ativo">Pedidos <span class="badge" data-badge-novos></span></button>
+        <button data-aba="loja">Loja</button>
+        <button data-aba="cardapio">Cardápio</button>
+        <button data-aba="cupons">Cupons</button>
+      </nav>
+      <div class="topo-dir">
+        <label class="switch" title="Fecha a loja para novos pedidos imediatos"><input type="checkbox" data-forcar-fechada><span data-forcar-txt>Loja aberta</span></label>
+        <button class="btn btn-sm btn-outline" data-som>🔔 Som</button>
+        <button class="btn btn-sm btn-ghost" data-sair>Sair</button>
+      </div>
+    </header>
+
+    <main>
+      <section data-secao="pedidos">
+        <div class="kanban" data-kanban>
+          <div class="coluna" data-col="novos"><h3>🆕 Novos <span data-cnt></span></h3><div class="cards"></div></div>
+          <div class="coluna" data-col="andamento"><h3>👨‍🍳 Em andamento <span data-cnt></span></h3><div class="cards"></div></div>
+          <div class="coluna" data-col="saida"><h3>🛵 Saiu / pronto <span data-cnt></span></h3><div class="cards"></div></div>
+          <div class="coluna" data-col="finalizados"><h3>✅ Finalizados hoje <span data-cnt></span></h3><div class="cards"></div></div>
+        </div>
+        <p class="small muted" style="margin-top:10px">Atualiza em tempo real. Última atualização: <span data-ultima>—</span> · <button class="btn btn-sm btn-ghost" data-recarregar>Recarregar</button> · <label class="small"><input type="checkbox" data-agendados> mostrar agendados de outros dias</label></p>
+      </section>
+
+      <section data-secao="loja" hidden>
+        <form class="painel" data-form-loja style="max-width:760px">
+          <h2>Configurações da loja</h2>
+          <div class="linha-campos">
+            <div class="campo"><label>Nome</label><input name="nome"></div>
+            <div class="campo"><label>Telefone (exibido)</label><input name="telefone"></div>
+          </div>
+          <div class="linha-campos">
+            <div class="campo"><label>WhatsApp (só dígitos, com 55)</label><input name="whatsapp"></div>
+            <div class="campo"><label>Instagram (sem @)</label><input name="instagram"></div>
+          </div>
+          <h3>Horário de funcionamento</h3>
+          <p class="small muted">Deixe vazio para dia fechado.</p>
+          <div class="horarios" data-horarios></div>
+          <h3>Entrega</h3>
+          <div class="linha-campos">
+            <label class="check"><input type="checkbox" name="aceita_entrega"> Aceitar entrega</label>
+            <label class="check"><input type="checkbox" name="aceita_retirada"> Aceitar retirada</label>
+          </div>
+          <div class="linha-campos" style="margin-top:10px">
+            <div class="campo"><label>Entrega: tempo mín–máx (min)</label><div class="dupla"><input name="tempo_entrega_min" type="number"><input name="tempo_entrega_max" type="number"></div></div>
+            <div class="campo"><label>Retirada: tempo mín–máx (min)</label><div class="dupla"><input name="tempo_retirada_min" type="number"><input name="tempo_retirada_max" type="number"></div></div>
+          </div>
+          <div class="linha-campos tres">
+            <div class="campo"><label>Raio de entrega (km)</label><input name="raio_entrega_km" type="number" step="0.1"></div>
+            <div class="campo"><label>Taxa padrão (R$)</label><input name="taxa_padrao" type="number" step="0.01"></div>
+            <div class="campo"><label>Pedido mínimo (R$)</label><input name="pedido_minimo" type="number" step="0.01"></div>
+          </div>
+          <div class="campo"><label>Faixas de taxa por distância</label><div class="faixas" data-faixas></div><button type="button" class="btn btn-sm btn-outline" data-add-faixa>+ faixa</button></div>
+          <h3>Pagamento</h3>
+          <div class="linha-campos tres">
+            <label class="check"><input type="checkbox" name="pg_pix"> Pix</label>
+            <label class="check"><input type="checkbox" name="pg_cartao_entrega"> Cartão na entrega</label>
+            <label class="check"><input type="checkbox" name="pg_dinheiro"> Dinheiro</label>
+          </div>
+          <div class="linha-campos" style="margin-top:10px">
+            <div class="campo"><label>Chave Pix (mostrada ao cliente)</label><input name="chave_pix"></div>
+            <div class="campo"><label>Nome do titular Pix</label><input name="pix_nome"></div>
+          </div>
+          <h3>Textos</h3>
+          <div class="campo"><label>Sobre a massa</label><textarea name="sobre_massa" class="obs"></textarea></div>
+          <div class="campo"><label>Aviso de preparo</label><textarea name="aviso_preparo" class="obs"></textarea></div>
+          <div class="aviso ok" data-ok hidden>Salvo!</div>
+          <button class="btn btn-lg" type="submit">Salvar configurações</button>
+        </form>
+      </section>
+
+      <section data-secao="cardapio" hidden>
+        <h2>Sabores de pizza</h2>
+        <p class="small muted">Desmarque "disponível" para esgotar na hora. Preço vazio = não vende naquele tamanho.</p>
+        <div class="tabela" data-sabores></div>
+        <h2 style="margin-top:28px">Produtos (bebidas, combos, molhos…)</h2>
+        <div class="tabela" data-produtos></div>
+      </section>
+
+      <section data-secao="cupons" hidden>
+        <h2>Cupons</h2>
+        <form class="painel" data-form-cupom style="max-width:760px">
+          <div class="linha-campos tres">
+            <div class="campo"><label>Código</label><input name="codigo" required style="text-transform:uppercase"></div>
+            <div class="campo"><label>Tipo</label><select name="tipo"><option value="percentual">% de desconto</option><option value="valor">R$ de desconto</option></select></div>
+            <div class="campo"><label>Valor</label><input name="valor" type="number" step="0.01" required></div>
+          </div>
+          <div class="linha-campos tres">
+            <div class="campo"><label>Pedido mínimo (R$)</label><input name="minimo" type="number" step="0.01" value="0"></div>
+            <div class="campo"><label>Limite de usos</label><input name="uso_max" type="number" placeholder="sem limite"></div>
+            <div class="campo"><label>Validade</label><input name="validade" type="date"></div>
+          </div>
+          <div class="campo"><label>Descrição (o cliente vê)</label><input name="descricao"></div>
+          <button class="btn" type="submit">Criar cupom</button>
+        </form>
+        <div class="tabela" data-cupons style="margin-top:16px"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-bg" id="modal-pedido"><div class="modal modal-lg"><button class="fechar" data-fechar>×</button><div data-detalhe></div></div></div>
+  <audio id="som" preload="auto" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"></audio>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

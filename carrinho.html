@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Meu pedido — Sesconetto's Pizzeria</title>
+  <meta name="theme-color" content="#1f1b18">
+  <link rel="icon" href="img/logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main>
+    <div class="container duas-colunas" data-raiz>
+      <div>
+        <div class="painel">
+          <div class="secao-titulo" style="margin-bottom:6px"><h2>Meu pedido</h2><button class="btn btn-ghost btn-sm" data-limpar>Limpar</button></div>
+          <div data-itens></div>
+        </div>
+        <div class="painel">
+          <h2>Como você quer receber?</h2>
+          <div class="escolha-entrega" data-tipo-entrega>
+            <button type="button" data-tipo="entrega"><div class="ic">🛵</div><b>Entrega</b><small data-tempo-entrega></small></button>
+            <button type="button" data-tipo="retirada"><div class="ic">🏪</div><b>Retirar na loja</b><small data-tempo-retirada></small></button>
+          </div>
+          <div class="resumo-entrega" data-resumo-entrega></div>
+          <h3>Quando?</h3>
+          <div class="radio-lista">
+            <button type="button" class="opcao" data-quando="agora"><b>O mais rápido possível</b><small data-quando-agora-txt></small></button>
+            <button type="button" class="opcao" data-quando="agendar"><b>Agendar para mais tarde</b><small>Escolha o dia e a hora</small></button>
+          </div>
+          <div class="linha-campos" data-agendar hidden style="margin-top:12px">
+            <div class="campo"><label>Dia</label><select data-ag-dia></select></div>
+            <div class="campo"><label>Hora</label><select data-ag-hora></select></div>
+          </div>
+        </div>
+      </div>
+      <div class="sticky-lateral">
+        <div class="painel">
+          <h2>Resumo</h2>
+          <h3>Cupom de desconto</h3>
+          <div class="cupom"><input placeholder="Digite o cupom" data-cupom-input maxlength="30"><button class="btn btn-outline btn-sm" data-cupom-btn>Aplicar</button></div>
+          <p class="small" data-cupom-msg style="margin-top:6px"></p>
+          <div class="totais">
+            <div><span>Subtotal</span><span data-subtotal>R$ 0,00</span></div>
+            <div class="desconto" data-linha-desconto hidden><span>Desconto</span><span data-desconto></span></div>
+            <div><span>Taxa de entrega</span><span data-taxa>—</span></div>
+            <div class="total"><span>Total</span><span data-total>R$ 0,00</span></div>
+          </div>
+          <p class="small muted" data-aviso-minimo style="margin-top:8px"></p>
+          <div style="display:grid;gap:8px;margin-top:14px">
+            <button class="btn btn-lg" data-continuar>Continuar para pagamento</button>
+            <a class="btn btn-outline" href="cardapio.html">Adicionar mais itens</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="js/pages/carrinho.js"></script>
+</body>
+</html>
