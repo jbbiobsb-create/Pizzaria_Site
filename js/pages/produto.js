@@ -13,7 +13,7 @@ const barra = qs('[data-barra]');
 const btnAdd = qs('[data-adicionar]');
 const totalEl = qs('[data-total]');
 
-const estado = { tamanho: null, sabores: [], quantidade: 1, observacao: '', produto: null, escolhas: {} };
+const estado = { tamanho: null, grupo: 'pizza', sabores: [], quantidade: 1, observacao: '', produto: null, escolhas: {} };
 let D;
 
 (async () => {
@@ -34,9 +34,12 @@ let D;
 function montarPizza(saborInicial) {
   const sab = saborInicial ? D.saboresPorSlug[saborInicial] : null;
   if (sab && sab.disponivel) estado.sabores = [sab.slug];
-  // tamanho padrão: Grande se disponível no sabor, senão o primeiro com preço
-  const tamanhosOk = D.tamanhos.filter((t) => !sab || sab.precos[t.slug]);
-  estado.tamanho = (tamanhosOk.find((t) => t.slug === 'grande') || tamanhosOk[0] || D.tamanhos[0]).slug;
+  // calzone ou pizza: cada grupo tem seus tamanhos e seus sabores
+  estado.grupo = sab?.tipo === 'calzone' ? 'calzone' : 'pizza';
+  const CZ = estado.grupo === 'calzone';
+  const tamanhosGrupo = D.tamanhos.filter((t) => (t.grupo || 'pizza') === estado.grupo);
+  const tamanhosOk = tamanhosGrupo.filter((t) => !sab || sab.precos[t.slug]);
+  estado.tamanho = (tamanhosOk.find((t) => t.slug === 'grande') || tamanhosOk[0] || tamanhosGrupo[0]).slug;
 
   document.title = `${sab ? sab.nome : 'Monte sua pizza'} — Sesconetto's Pizzeria`;
   raiz.innerHTML = `
@@ -46,21 +49,21 @@ function montarPizza(saborInicial) {
     </div>
     <div>
       <div class="tags" style="margin-bottom:6px">${(sab?.tags || []).map(tagHTML).join('')}</div>
-      <h1 data-titulo>${sab ? esc(sab.nome) : 'Monte sua pizza'}</h1>
+      <h1 data-titulo>${sab ? (CZ ? 'Calzone ' : '') + esc(sab.nome) : 'Monte sua pizza'}</h1>
       <p class="desc" data-desc>${sab ? esc(sab.descricao || '') : 'Escolha o tamanho e até dois sabores na mesma pizza.'}</p>
 
       <div class="bloco">
         <h3>1. Tamanho</h3>
-        <p class="ajuda">Bambina serve 1 pessoa; Média 2; Grande 3 a 4.</p>
+        <p class="ajuda">${CZ ? 'Individual serve 1 pessoa; Família serve 2 ou mais.' : 'Bambina (4 fatias) serve 1 pessoa; Grande (8 fatias) serve 2 a 3.'}</p>
         <div class="opcoes" data-tamanhos></div>
       </div>
 
       <div class="bloco">
-        <h3>2. Sabores <span class="muted small" data-contagem></span></h3>
+        <h3>2. ${CZ ? 'Recheio' : 'Sabores'} <span class="muted small" data-contagem></span></h3>
         <p class="ajuda" data-ajuda-sabor></p>
         <div class="metades" data-metades></div>
         <input class="busca" placeholder="Buscar sabor…" data-busca>
-        <div class="filtros-sabor" data-filtros>
+        <div class="filtros-sabor" data-filtros ${CZ ? 'hidden' : ''}>
           <button data-f="todos" class="ativo">Todos</button>
           <button data-f="salgada">Salgadas</button>
           <button data-f="doce">Doces</button>
@@ -95,14 +98,14 @@ function tamanhoAtual() { return D.tamanhosPorSlug[estado.tamanho]; }
 
 function renderTamanhos() {
   const el = qs('[data-tamanhos]');
-  el.innerHTML = D.tamanhos.map((t) => {
+  el.innerHTML = D.tamanhos.filter((t) => (t.grupo || 'pizza') === estado.grupo).map((t) => {
     const precos = D.sabores.filter((s) => s.disponivel && s.precos[t.slug]).map((s) => Number(s.precos[t.slug]));
     const minimo = precos.length ? Math.min(...precos) : null;
     // se já há sabor escolhido, mostra o preço dele nesse tamanho
     const escolhido = estado.sabores.length ? Math.max(...estado.sabores.map((sl) => Number(D.saboresPorSlug[sl].precos[t.slug] || 0))) : 0;
     const semPreco = estado.sabores.some((sl) => !D.saboresPorSlug[sl].precos[t.slug]);
     return `<button type="button" class="opcao ${estado.tamanho === t.slug ? 'ativo' : ''}" data-t="${esc(t.slug)}" ${semPreco ? 'disabled' : ''}>
-      <b>${esc(t.nome)}</b><small>${t.fatias} fatias · ${t.max_sabores > 1 ? `até ${t.max_sabores} sabores` : '1 sabor'}</small>
+      <b>${esc(t.nome)}</b><small>${t.grupo === 'calzone' ? '1 recheio' : `${t.fatias} fatias · ${t.max_sabores > 1 ? `até ${t.max_sabores} sabores` : '1 sabor'}`}</small>
       <span class="p">${semPreco ? 'indisponível p/ este sabor' : (escolhido ? brl(escolhido) : (minimo ? 'a partir de ' + brl(minimo) : ''))}</span></button>`;
   }).join('');
   qsa('[data-t]', el).forEach((b) => b.addEventListener('click', () => {
@@ -116,11 +119,13 @@ function renderTamanhos() {
 function renderMetades() {
   const t = tamanhoAtual();
   const el = qs('[data-metades]');
-  qs('[data-ajuda-sabor]').textContent = t.max_sabores > 1
+  qs('[data-ajuda-sabor]').textContent = estado.grupo === 'calzone'
+    ? 'Escolha o recheio do seu calzone.'
+    : t.max_sabores > 1
     ? `Escolha 1 sabor inteiro ou 2 sabores (meio a meio). No meio a meio cobramos o sabor de maior valor.`
-    : `A ${t.nome} vai com 1 sabor. Para meio a meio, escolha Média ou Grande.`;
+    : `A ${t.nome} vai com 1 sabor. Para meio a meio, escolha a Grande.`;
   qs('[data-contagem]').textContent = `${estado.sabores.length}/${t.max_sabores}`;
-  const slots = t.max_sabores > 1 ? ['1ª metade', '2ª metade'] : ['Sabor'];
+  const slots = t.max_sabores > 1 ? ['1ª metade', '2ª metade'] : [estado.grupo === 'calzone' ? 'Recheio' : 'Sabor'];
   el.innerHTML = slots.map((rot, i) => {
     const s = estado.sabores[i] ? D.saboresPorSlug[estado.sabores[i]] : null;
     return `<div class="metade ${s ? 'cheia' : ''}"><small>${rot}${i === 1 ? ' (opcional)' : ''}</small><b>${s ? esc(s.nome) : 'Escolha abaixo'}</b>${s ? `<button type="button" data-rm="${i}" aria-label="Remover">×</button>` : ''}</div>`;
@@ -129,7 +134,7 @@ function renderMetades() {
   // foto e título acompanham o primeiro sabor
   const s0 = estado.sabores[0] ? D.saboresPorSlug[estado.sabores[0]] : null;
   const s1 = estado.sabores[1] ? D.saboresPorSlug[estado.sabores[1]] : null;
-  qs('[data-titulo]').textContent = s0 ? (s1 ? `${s0.nome.split(' (')[0]} + ${s1.nome.split(' (')[0]}` : s0.nome) : 'Monte sua pizza';
+  qs('[data-titulo]').textContent = s0 ? (s1 ? `${s0.nome.split(' (')[0]} + ${s1.nome.split(' (')[0]}` : (estado.grupo === 'calzone' ? 'Calzone ' : '') + s0.nome) : 'Monte sua pizza';
   qs('[data-desc]').textContent = s0 ? (s1 ? `Meio ${s0.nome.split(' (')[0]}: ${s0.descricao} Meio ${s1.nome.split(' (')[0]}: ${s1.descricao}` : s0.descricao) : 'Escolha o tamanho e até dois sabores na mesma pizza.';
   const foto = qs('[data-foto]');
   if (s0?.imagem_url) { foto.classList.remove('vazia'); foto.innerHTML = `<img src="${esc(s0.imagem_url)}" alt="${esc(s0.nome)}">`; }
@@ -141,6 +146,7 @@ function renderSabores() {
   const busca = (qs('[data-busca]').value || '').toLowerCase();
   const filtro = qs('[data-filtros] .ativo').dataset.f;
   const lista = D.sabores.filter((s) => {
+    if ((s.tipo === 'calzone') !== (estado.grupo === 'calzone')) return false;
     if (busca && !s.nome.toLowerCase().includes(busca) && !(s.descricao || '').toLowerCase().includes(busca)) return false;
     if (filtro === 'salgada' || filtro === 'doce') return s.tipo === filtro;
     if (filtro === 'vegetariana') return s.tags?.includes('vegetariana') || s.tags?.includes('vegana');
@@ -184,12 +190,12 @@ function adicionarPizza() {
   const s0 = D.saboresPorSlug[estado.sabores[0]];
   cart.adicionar({
     tipo: 'pizza', tamanho: t.slug, sabores: [...estado.sabores],
-    nome: `Pizza ${t.nome} (${t.fatias} fatias)`,
+    nome: t.grupo === 'calzone' ? `Calzone ${t.nome}` : `Pizza ${t.nome} (${t.fatias} fatias)`,
     descricao: nomes.length > 1 ? `Meio a meio: ${nomes.join(' / ')}` : nomes[0],
     imagem: s0?.imagem_url || null,
     preco: precoPizza(), quantidade: estado.quantidade, observacao: estado.observacao.trim() || null,
   });
-  toast('Pizza adicionada ao pedido!');
+  toast(t.grupo === 'calzone' ? 'Calzone adicionado ao pedido!' : 'Pizza adicionada ao pedido!');
   abrirUpsell();
 }
 

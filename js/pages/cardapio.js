@@ -7,7 +7,7 @@ import { icone } from '../icons.js';
 montarLayout({ pagina: 'cardapio' });
 montarFooter();
 
-const ICONES = { pizza: 'pizza', doce: 'doce', combo: 'combo', sanduiche: 'sanduiche', molho: 'molho', bebida: 'bebida', 'mais-pedidas': 'estrela' };
+const ICONES = { pizza: 'pizza', doce: 'doce', calzone: 'calzone', combo: 'combo', entrada: 'entrada', sanduiche: 'sanduiche', sobremesa: 'sobremesa', molho: 'molho', bebida: 'bebida', cerveja: 'cerveja', vinho: 'vinho', drink: 'drink', 'mais-pedidas': 'estrela' };
 
 (async () => {
   try {
@@ -19,9 +19,9 @@ const ICONES = { pizza: 'pizza', doce: 'doce', combo: 'combo', sanduiche: 'sandu
     for (const c of d.categorias) {
       let html = '';
       if (c.tipo === 'pizza') {
-        const tipo = c.slug === 'pizzas-doces' ? 'doce' : 'salgada';
+        const tipo = c.grupo || (c.slug === 'pizzas-doces' ? 'doce' : 'salgada');
         const lista = d.sabores.filter((s) => s.tipo === tipo).sort((a, b) => (b.disponivel - a.disponivel) || a.ordem - b.ordem);
-        const monte = c.slug === 'pizzas' ? cardMonte(d.tamanhos.map((t) => ({ ...t, precoMin: Math.min(...d.sabores.filter((s) => s.disponivel && s.precos[t.slug]).map((s) => Number(s.precos[t.slug]))) }))) : '';
+        const monte = c.slug === 'pizzas' ? cardMonte(d.tamanhos.filter((t) => t.grupo !== 'calzone').map((t) => ({ ...t, precoMin: Math.min(...d.sabores.filter((s) => s.disponivel && s.precos[t.slug]).map((s) => Number(s.precos[t.slug]))) }))) : '';
         html = monte + lista.map(cardSabor).join('');
       } else {
         const lista = d.produtos.filter((p) => p.categoria === c.slug).sort((a, b) => (b.disponivel - a.disponivel) || a.ordem - b.ordem);
@@ -33,7 +33,7 @@ const ICONES = { pizza: 'pizza', doce: 'doce', combo: 'combo', sanduiche: 'sandu
     qs('[data-chips]').innerHTML = secoes.map((s) => `<a class="chip" href="#${esc(s.slug)}" data-chip="${esc(s.slug)}">${ICONES[s.icone] ? icone(ICONES[s.icone]) : ''}${esc(s.nome)}</a>`).join('');
     qs('[data-secoes]').innerHTML = secoes.map((s) => `
       <section class="secao" id="${esc(s.slug)}" style="padding: 22px 0 10px" data-secao="${esc(s.slug)}">
-        <div class="secao-titulo"><h2>${esc(s.nome)}</h2>${s.slug === 'pizzas' ? '<span class="muted small">Bambina 4 fatias · Média 6 · Grande 8</span>' : ''}</div>
+        <div class="secao-titulo"><h2>${esc(s.nome)}</h2>${s.slug === 'pizzas' || s.slug === 'pizzas-doces' ? '<span class="muted small">Bambina 4 fatias · Grande 8 fatias</span>' : s.slug === 'calzones' ? '<span class="muted small">Individual ou Família</span>' : ''}</div>
         <div class="grade">${s.html}</div>
       </section>`).join('') + (d.config.aviso_preparo ? `<p class="aviso aviso-ic" style="margin-top:20px">${icone('ampulheta')}<span>${esc(d.config.aviso_preparo)}</span></p>` : '');
 
