@@ -44,3 +44,21 @@ Fotos dos produtos em `img/cardapio/`. Depois da carga inicial, tudo se edita pe
 ## Referências de UX
 
 `docs/` guarda o benchmark da Domino's (conceitual + observado) que orientou o formato do site.
+
+## Integração com o PDV Saipos
+
+Pedidos prontos para o PDV (pagos no site ou com pagamento na entrega) vão sozinhos para a Saipos,
+e as mudanças de status feitas no PDV voltam para o site.
+
+- `supabase/migrations/0002_saipos.sql`: `pagamento_status` e colunas `saipos_*` em `pedidos`; triggers que
+  chamam a Edge Function `saipos-enviar` (via `pg_net`) quando o pedido fica `pago` ou `na_entrega`;
+  tabela `saipos_eventos` com os avisos recebidos.
+- `supabase/functions/saipos-enviar`: monta o pedido no formato da API de Pedidos da Saipos (`POST /order`).
+  Pizzas usam o `codigo_saipos` de `sabor_precos` (`ITEM.COMPLEMENTO`: item antes do ponto, sabor como complemento).
+- `supabase/functions/saipos-webhook`: recebe `CONFIRMED`, `DISPATCHED`, `CONCLUDED` e `CANCELLED`.
+  URL no Saipos Developer: `https://<projeto>.supabase.co/functions/v1/saipos-webhook?key=<SAIPOS_WEBHOOK_KEY>`.
+- Credenciais no **Vault** do Supabase (nunca no front): `SAIPOS_ID_PARTNER`, `SAIPOS_SECRET`, `SAIPOS_COD_STORE`
+  (o "COD. LOJA" do canal, não o ID da loja), `SAIPOS_BASE_URL`, `SAIPOS_WEBHOOK_KEY`, `SAIPOS_INTERNAL_KEY`,
+  `SUPABASE_FUNCTIONS_URL`.
+- Painel: etiquetas de pagamento e de envio, botão **Pix recebido** (confirma Pix manual e envia) e
+  **Reenviar à Saipos** quando o envio der erro.

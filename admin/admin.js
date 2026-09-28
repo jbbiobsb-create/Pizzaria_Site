@@ -134,11 +134,39 @@ function cardPedido(p) {
     <div class="cab"><span>#${p.numero} ${esc(p.cliente_nome)}</span><small>${horaBR(p.criado_em)}</small></div>
     <div class="itens">${esc(itens)}</div>
     <div class="meta"><span>${p.tipo_entrega === 'entrega' ? '🛵 Entrega' : '🏪 Retirada'}</span><span>${PAGAMENTOS[p.pagamento]?.rotulo.split(' ')[0] || p.pagamento}</span><span><b>${brl(p.total)}</b></span>${ag}</div>
+    ${etiquetasIntegracao(p)}
     <div class="acoes">
+      ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-outline" data-pago="${p.id}">✔ Pix recebido</button>` : ''}
       ${prox ? `<button class="btn" data-st="${prox}" data-id="${p.id}">${STATUS[prox].icone} ${STATUS[prox].rotulo}</button>` : ''}
       ${['entregue', 'cancelado'].includes(p.status) ? '' : `<button class="btn btn-ghost" data-st="cancelado" data-id="${p.id}">Cancelar</button>`}
     </div></div>`;
 }
+// situação do pagamento e do envio ao PDV Saipos
+function etiquetasIntegracao(p) {
+  const pg = { pendente: ['aguardando pagamento', 'alerta'], pago: ['pago', 'ok'], na_entrega: ['cobrar na entrega', ''], estornado: ['estornado', 'alerta'] }[p.pagamento_status] || [p.pagamento_status, ''];
+  const sp = { enviando: ['Saipos: enviando…', ''], enviado: [`Saipos ✓${p.saipos_sale_number ? ' nº ' + p.saipos_sale_number : ''}`, 'ok'], erro: ['Saipos: erro', 'alerta'] }[p.saipos_status];
+  return `<div class="etiquetas"><span class="tag ${pg[1]}">${esc(pg[0])}</span>${sp ? `<span class="tag ${sp[1]}">${esc(sp[0])}</span>` : ''}</div>`;
+}
+async function confirmarPagamento(id) {
+  if (!confirm('Confirma que o Pix deste pedido caiu na conta? Ele será enviado ao PDV Saipos.')) return;
+  const { error } = await supabase.from('pedidos').update({ pagamento_status: 'pago' }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'erro'); return; }
+  toast('Pagamento confirmado — enviando à Saipos');
+  await carregarPedidos();
+  if (qs('#modal-pedido').classList.contains('aberto')) abrirDetalhe(id);
+}
+async function reenviarSaipos(id) {
+  const { error } = await supabase.from('pedidos').update({ saipos_status: null }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'erro'); return; }
+  toast('Reenviando à Saipos…');
+  setTimeout(async () => { await carregarPedidos(); if (qs('#modal-pedido').classList.contains('aberto')) abrirDetalhe(id); }, 3000);
+}
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-pago],[data-reenviar]'); if (!b) return;
+  ev.stopPropagation();
+  if (b.dataset.pago) confirmarPagamento(b.dataset.pago); else reenviarSaipos(b.dataset.reenviar);
+}, true);
+
 function proximoStatus(p) {
   if (p.status === 'no_forno') return p.tipo_entrega === 'entrega' ? 'saiu_entrega' : 'pronto_retirada';
   return PROXIMO[p.status] ?? null;
@@ -168,6 +196,12 @@ function abrirDetalhe(id) {
     <table><tbody>${(p.pedido_itens || []).map((i) => `<tr><td><b>${i.quantidade}×</b></td><td>${esc(i.nome)}${i.detalhes?.escolhas?.length ? '<br><small>' + i.detalhes.escolhas.map((x) => esc(x.nome)).join(', ') + '</small>' : ''}${i.detalhes?.observacao ? `<br><small>⚠ ${esc(i.detalhes.observacao)}</small>` : ''}</td><td style="text-align:right">${brl(i.subtotal)}</td></tr>`).join('')}</tbody></table>
     <div class="totais"><div><span>Subtotal</span><span>${brl(p.subtotal)}</span></div>${Number(p.desconto) ? `<div class="desconto"><span>Desconto ${esc(p.cupom_codigo || '')}</span><span>− ${brl(p.desconto)}</span></div>` : ''}<div><span>Taxa${p.taxa_a_confirmar ? ' (a confirmar!)' : ''}</span><span>${brl(p.taxa_entrega)}</span></div><div class="total"><span>Total</span><span>${brl(p.total)}</span></div></div>
     <p style="margin-top:8px"><b>Pagamento:</b> ${esc(PAGAMENTOS[p.pagamento]?.rotulo || p.pagamento)}${p.troco_para ? ` · troco para ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : ''}</p>
+    ${etiquetasIntegracao(p)}
+    ${p.saipos_erro ? `<p class="aviso" style="margin-top:8px">⚠ ${esc(p.saipos_erro)}</p>` : ''}
+    <div class="acoes no-print" style="margin-top:8px">
+      ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-sm" data-pago="${p.id}">✔ Pix recebido</button>` : ''}
+      ${p.saipos_status === 'erro' ? `<button class="btn btn-sm btn-outline" data-reenviar="${p.id}">↻ Reenviar à Saipos</button>` : ''}
+    </div>
     ${p.observacoes ? `<p class="aviso" style="margin-top:8px">📝 ${esc(p.observacoes)}</p>` : ''}
     <p class="small muted" style="margin-top:10px">${(p.status_historico || []).map((h) => `${STATUS[h.status]?.rotulo || h.status} ${horaBR(h.em)}`).join(' → ')}</p>
     <div class="acoes no-print"><button class="btn btn-outline" onclick="window.print()">🖨 Imprimir</button></div>

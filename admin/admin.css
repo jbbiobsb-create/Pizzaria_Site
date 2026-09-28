@@ -52,3 +52,8 @@ main { padding: 16px; }
 @media (max-width: 1000px) { .kanban { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .kanban { grid-template-columns: 1fr; } .topo { height: auto; padding: 8px 12px; } .detalhe .grid { grid-template-columns: 1fr; } }
 @media print { body * { visibility: hidden; } #modal-pedido, #modal-pedido * { visibility: visible; } #modal-pedido { position: absolute; inset: 0; background: #fff; } .modal .fechar, .status-btns, .no-print { display: none !important; } }
+
+/* integração Saipos */
+.etiquetas { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.tag.ok { background: #e1efdc; color: var(--verde-ok); }
+.tag.alerta { background: #fbe3df; color: var(--erro); }
