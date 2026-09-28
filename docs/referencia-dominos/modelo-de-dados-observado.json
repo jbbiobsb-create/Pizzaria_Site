@@ -1,0 +1,326 @@
+{
+  "observacao": "Estruturas de dados observadas nas respostas da API pública do site da Domino's Brasil (prd-dominos.alphacode.com.br/apiV1). Use apenas como referência de MODELAGEM. Nomes de produtos e preços são deles e não devem ser copiados.",
+  "endpoints_observados": [
+    "GET getBannerV2/?storeId&deliveryType&type=HOME|COUPON  -> banners da home / promoções",
+    "GET getBestCoupons/?storeId&deliveryType -> 3 ofertas em destaque na home",
+    "GET getMenu/?storeId -> categorias > seções (Mais pedidas, Clássicas, Especiais) > produtos (preço 'a partir de', price_max, minSize)",
+    "GET getThematicMenu/?storeId&deliveryType -> categorias temáticas/sazonais com data de início/fim e horário ativo",
+    "GET zipCodeV2/{cep}/ -> autocompleta rua/bairro/cidade/UF",
+    "POST address -> salva endereço (nome, rua, número, complemento, bairro, cidade, UF, CEP, lat, long)",
+    "GET getStore/?zipCode&city&state&neighborhood&street&number&lat&long -> lojas para delivery e takeout: taxa de entrega, distância, horário, isOpen, slots de agendamento por data",
+    "GET getPaymentMethods/?storeId -> métodos (OFFLINE, CREDIT_CARD, PIX) e bandeiras",
+    "GET getPizzas/?storeId -> tamanhos, massas (com sub-bordas e preço por tamanho) e matriz de variantes código=TAMANHO+MASSA+SABOR",
+    "GET getProductDetails/?flavorCode&storeId -> ingredientes padrão, toppings extras, massas, tamanhos, restrições por tamanho",
+    "GET getProductToppings/?productCode&storeId -> ingredientes da metade (meio a meio)",
+    "GET upsell/?store_id&category_id&size_code -> sugestões após adicionar (bebidas, sobremesas, acompanhamentos)",
+    "GET getUpgrade/?storeId&productCode -> oferta de upgrade de tamanho no carrinho",
+    "POST cartPrice -> subtotal, desconto, taxa de entrega, total, tempo de preparo (min/max)",
+    "GET getCoupons/?storeId&deliveryType -> lista de promoções",
+    "GET getCouponDetails/{id}/ -> grupos de produtos da promoção (categoria, tamanhos permitidos, massas permitidas, quantidade obrigatória, preço, desconto máximo)"
+  ],
+  "tamanhos": [
+    {
+      "code": "BT",
+      "name": "Brotinho",
+      "price": 6.9
+    },
+    {
+      "code": "MD",
+      "name": "Média",
+      "price": 7.9
+    },
+    {
+      "code": "GR",
+      "name": "Grande",
+      "price": 8.9
+    },
+    {
+      "code": "GI",
+      "name": "Giga",
+      "price": 9.9
+    }
+  ],
+  "massas": [
+    {
+      "code": "HT",
+      "name": "Tradicional",
+      "description": "Massa tradicional, densa, espessa e macia"
+    },
+    {
+      "code": "PN",
+      "name": "Pan",
+      "description": "Massa fofa e crocante"
+    },
+    {
+      "code": "BK",
+      "name": "Fina",
+      "description": "Massa leve, fina e crocante"
+    },
+    {
+      "code": "NY",
+      "name": "Super fina",
+      "description": "Massa leve, super fina e crocante"
+    },
+    {
+      "code": "XX",
+      "name": "Borda recheada",
+      "subPizzaCrusts": [
+        {
+          "code": "CH",
+          "name": "Cheddar",
+          "description": null
+        },
+        {
+          "code": "SC",
+          "name": "Catupiry",
+          "description": null
+        },
+        {
+          "code": "CC",
+          "name": "Cream Cheese",
+          "description": null
+        },
+        {
+          "code": "PC",
+          "name": "Pasta de Alho",
+          "description": null
+        }
+      ],
+      "description": "Massa com borda recheada",
+      "prices": [
+        {
+          "size": "MD",
+          "price": 12
+        },
+        {
+          "size": "GR",
+          "price": 14
+        }
+      ]
+    }
+  ],
+  "regra_codigo_variante": "code = size.code + crust.code + flavorCode (ex.: GR + HT + PEPPON = GRHTPEPPON). Cada variante tem seu próprio preço.",
+  "exemplo_variantes_um_sabor": [
+    {
+      "code": "BTHTFRABAC",
+      "price": 19.95
+    },
+    {
+      "code": "MDHTFRABAC",
+      "price": 41.25
+    },
+    {
+      "code": "MDBKFRABAC",
+      "price": 41.25
+    },
+    {
+      "code": "MDPNFRABAC",
+      "price": 43.75
+    },
+    {
+      "code": "GRHTFRABAC",
+      "price": 47.75
+    },
+    {
+      "code": "GRBKFRABAC",
+      "price": 47.75
+    },
+    {
+      "code": "MDPCFRABAC",
+      "price": 47.75
+    },
+    {
+      "code": "MDCCFRABAC",
+      "price": 47.75
+    },
+    {
+      "code": "MDSCFRABAC",
+      "price": 47.75
+    },
+    {
+      "code": "GRNYFRABAC",
+      "price": 47.75
+    },
+    {
+      "code": "MDCHFRABAC",
+      "price": 47.75
+    },
+    {
+      "code": "GIBKFRABAC",
+      "price": 52.75
+    }
+  ],
+  "produto_detalhe_chaves": [
+    "id",
+    "image",
+    "name",
+    "description",
+    "flavorCode",
+    "ingredients",
+    "toppings",
+    "pizzaCrusts",
+    "sizes",
+    "flavors",
+    "categoryId",
+    "restrictedIngredientSizeCodes",
+    "isCombo"
+  ],
+  "produto_detalhe_exemplo_ingredientes": [
+    {
+      "code": "C",
+      "name": "Queijo",
+      "image_url": "https://dominos-app.s3.amazonaws.com/c0f5796163402bea6d761da705b79fba962.png"
+    },
+    {
+      "code": "X",
+      "name": "Molho Pizza",
+      "image_url": "https://dominos-app.s3.amazonaws.com/a3ac701ab135fcf177540ab81b2ce4cb973.png"
+    },
+    {
+      "code": "P",
+      "name": "Pepperoni",
+      "image_url": "https://dominos-app.s3.amazonaws.com/1a03c6c548dfdfc5e9c3aa07366ace07374.png"
+    },
+    {
+      "code": "Og",
+      "name": "Orégano",
+      "image_url": "https://dominos-app.s3.amazonaws.com/6e39f44b31b3f5eefd0290b46997a006914.png"
+    }
+  ],
+  "produto_detalhe_toppings_extras_quantidade": 23,
+  "produto_detalhe_toppings_extras_exemplo": [
+    {
+      "code": "Hc",
+      "name": "Creme Culinário",
+      "image_url": "https://dominos-app.s3.amazonaws.com/08f1d57e6815a13f2176dbab2c67fcba771.png"
+    },
+    {
+      "code": "Ca",
+      "name": "Calabresa",
+      "image_url": "https://dominos-app.s3.amazonaws.com/5d2c45864fb222e44cc905ed726775df926.png"
+    },
+    {
+      "code": "Fs",
+      "name": "Frango Desfiado",
+      "image_url": "https://dominos-app.s3.amazonaws.com/9182274a0d2ecf2352d6b2c071577d2e374.png"
+    },
+    {
+      "code": "Fg",
+      "name": "Frango Grelhado",
+      "image_url": "https://dominos-app.s3.amazonaws.com/4966886eedb8239ebf53c7594348f2ef51.png"
+    },
+    {
+      "code": "K",
+      "name": "Bacon",
+      "image_url": "https://dominos-app.s3.amazonaws.com/53558f5d6355fda24941fa6f920d515c753.png"
+    },
+    {
+      "code": "H",
+      "name": "Presunto",
+      "image_url": "https://dominos-app.s3.amazonaws.com/af71e64b32752cee9550f2ca5b8d6ebe573.png"
+    }
+  ],
+  "produto_detalhe_restricoes_por_tamanho": [
+    "BT"
+  ],
+  "promocao_detalhe_chaves": [
+    "id",
+    "image",
+    "description",
+    "groupProducts",
+    "usageLimit",
+    "codePromo"
+  ],
+  "promocao_detalhe_grupos": [
+    {
+      "category": "Pizza",
+      "categoryId": 4,
+      "sizes": [
+        {
+          "code": "MD",
+          "name": "Média",
+          "price": 7.9
+        }
+      ],
+      "pizzaCrusts": [
+        {
+          "code": "HT",
+          "name": "Tradicional",
+          "description": "Massa tradicional, densa, espessa e macia"
+        },
+        {
+          "code": "BK",
+          "name": "Fina",
+          "description": "Massa leve, fina e crocante"
+        }
+      ],
+      "price": 74.5,
+      "minimumPrice": 46.8,
+      "maximumDiscount": 27.7,
+      "requiredQuantity": 1,
+      "maximumQuantity": 1,
+      "optionQuantity": 0
+    },
+    {
+      "category": "Bebida",
+      "categoryId": 3,
+      "sizes": [],
+      "pizzaCrusts": [],
+      "price": 10.9,
+      "minimumPrice": 6.85,
+      "maximumDiscount": 4.05,
+      "requiredQuantity": 1,
+      "maximumQuantity": 1,
+      "optionQuantity": 0
+    },
+    {
+      "category": "Sobremesa",
+      "categoryId": 2,
+      "sizes": [],
+      "pizzaCrusts": [],
+      "price": 30.9,
+      "minimumPrice": 19.4,
+      "maximumDiscount": 11.5,
+      "requiredQuantity": 1,
+      "maximumQuantity": 1,
+      "optionQuantity": 0
+    },
+    {
+      "category": "Bebida",
+      "categoryId": 3,
+      "sizes": [],
+      "pizzaCrusts": [],
+      "price": 10.9,
+      "minimumPrice": 6.85,
+      "maximumDiscount": 4.05,
+      "requiredQuantity": 1,
+      "maximumQuantity": 1,
+      "optionQuantity": 0
+    }
+  ],
+  "upsell_categorias": [
+    {
+      "name": "Bebidas",
+      "qtd": 4
+    },
+    {
+      "name": "Sobremesas",
+      "qtd": 4
+    },
+    {
+      "name": "Acompanhamentos",
+      "qtd": 4
+    }
+  ],
+  "carrinho_totais_exemplo": {
+    "subtotal": 87.5,
+    "discount": 0,
+    "deliveryFee": 9.9,
+    "total": 97.4,
+    "statusTextPulse": [],
+    "preparationTime": {
+      "min": 20,
+      "max": 30
+    }
+  }
+}
