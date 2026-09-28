@@ -2,6 +2,7 @@ import { montarLayout, montarFooter, config } from '../ui.js';
 import { consultarPedido, pedidosPorTelefone } from '../api.js';
 import { qs, qsa, esc, brl, param, toast, lerLS, mascaraTelefone, STATUS, FLUXO_ENTREGA, FLUXO_RETIRADA, PAGAMENTOS, dataHoraBR, horaBR, whatsappLink } from '../util.js';
 import { LS } from '../config.js';
+import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'pedido', subheader: false });
 montarFooter();
@@ -36,10 +37,10 @@ function render(p) {
   document.title = `Pedido #${p.numero} — Sesconetto's Pizzeria`;
 
   raiz.innerHTML = `
-    ${novo ? '<div class="aviso ok" style="margin-bottom:14px">🎉 <b>Pedido enviado!</b> Salve esta página ou use seu celular para acompanhar. Você também pode receber atualizações pelo WhatsApp.</div>' : ''}
+    ${novo ? `<div class="aviso ok aviso-ic" style="margin-bottom:14px">${icone('brilho')}<span><b>Pedido enviado!</b> Salve esta página ou use seu celular para acompanhar. Você também pode receber atualizações pelo WhatsApp.</span></div>` : ''}
     <div class="painel">
       <div class="status-grande">
-        <div class="ic">${st.icone}</div>
+        <div class="ic">${icone(st.icone)}</div>
         <h2>${esc(st.rotulo)}</h2>
         <p class="muted">${esc(st.msg)}</p>
         ${idx >= 0 && idx < fluxo.length - 1 ? `<p class="small" style="margin-top:8px">Previsão: <b>${p.tempo_min}–${p.tempo_max} min</b> ${p.agendado_para ? `· agendado para <b>${dataHoraBR(p.agendado_para)}</b>` : 'após a confirmação'}</p>` : ''}
@@ -47,7 +48,7 @@ function render(p) {
       <p class="center small muted">Pedido <b>#${p.numero}</b> · ${dataHoraBR(p.criado_em)} · ${p.tipo_entrega === 'entrega' ? 'Entrega' : 'Retirada na loja'}</p>
       ${p.status !== 'cancelado' ? `<div class="timeline">${fluxo.map((s, i) => `
         <div class="passo ${i < idx ? 'feito' : i === idx ? 'atual' : ''}">
-          <div class="bola">${i < idx ? '✓' : STATUS[s].icone}</div>
+          <div class="bola">${icone(i < idx ? 'check' : STATUS[s].icone)}</div>
           <div><b>${esc(STATUS[s].rotulo)}</b>${hist[s] ? `<small>${horaBR(hist[s])}</small>` : ''}</div>
         </div>`).join('')}</div>` : ''}
       <a class="btn btn-wa btn-block" href="${wa}" target="_blank" rel="noopener">Falar com a pizzaria no WhatsApp</a>
@@ -85,7 +86,7 @@ function montarBusca() {
     <div class="painel">
       <h2>Acompanhar pedido</h2>
       <p class="muted small" style="margin-bottom:12px">Digite o celular usado no pedido.</p>
-      ${ultimo ? `<p class="aviso ok" style="margin-bottom:12px">Seu último pedido: <a href="pedido.html?id=${esc(ultimo.id)}"><b>#${ultimo.numero}</b> → ver status</a></p>` : ''}
+      ${ultimo ? `<p class="aviso ok" style="margin-bottom:12px">Seu último pedido: <a href="pedido.html?id=${esc(ultimo.id)}"><b>#${esc(ultimo.numero)}</b> · ver status ${icone('chevron-dir')}</a></p>` : ''}
       <form data-busca class="cupom"><input inputmode="tel" placeholder="(61) 99999-9999" value="${esc(cli.telefone ? mascaraTelefone(cli.telefone) : '')}" required><button class="btn">Buscar</button></form>
       <div class="lista-pedidos" data-lista style="margin-top:14px"></div>
     </div>`;

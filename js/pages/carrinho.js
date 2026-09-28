@@ -3,6 +3,7 @@ import { validarCupom } from '../api.js';
 import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, toast, lerLS, gravarLS, DIAS } from '../util.js';
 import { LS } from '../config.js';
+import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'carrinho' });
 montarFooter();
@@ -16,13 +17,13 @@ function renderItens() {
   const el = qs('[data-itens]');
   const itens = cart.itens();
   if (!itens.length) {
-    el.innerHTML = `<div class="vazio"><div class="ic">🍕</div><h3>Seu pedido está vazio</h3><p class="muted">Que tal uma napolitana saindo do forno?</p><a class="btn" href="cardapio.html" style="margin-top:14px">Ver cardápio</a></div>`;
+    el.innerHTML = `<div class="vazio"><div class="ic">${icone('sacola')}</div><h3>Seu pedido está vazio</h3><p class="muted">Que tal uma napolitana saindo do forno?</p><a class="btn" href="cardapio.html" style="margin-top:14px">Ver cardápio</a></div>`;
     qs('[data-continuar]').disabled = true;
     return;
   }
   el.innerHTML = itens.map((i) => `
     <div class="item-carrinho">
-      ${i.imagem ? `<img src="${esc(i.imagem)}" alt="">` : '<div class="ph">🍕</div>'}
+      ${i.imagem ? `<img src="${esc(i.imagem)}" alt="">` : `<div class="ph">${icone('pizza')}</div>`}
       <div>
         <b>${esc(i.nome)}</b>
         ${i.descricao ? `<small>${esc(i.descricao)}</small>` : ''}
@@ -108,7 +109,7 @@ async function renderTotais() {
   if (sessao.cupom) {
     try {
       const r = await validarCupom(sessao.cupom, sub);
-      if (r.ok) { desconto = Number(r.desconto); msg.textContent = `✓ ${r.codigo}: ${r.descricao || 'desconto aplicado'} (−${brl(desconto)})`; msg.className = 'small'; msg.style.color = 'var(--verde-ok)'; }
+      if (r.ok) { desconto = Number(r.desconto); msg.innerHTML = `${icone('check')} ${esc(r.codigo)}: ${esc(r.descricao || 'desconto aplicado')} (−${brl(desconto)})`; msg.className = 'small'; msg.style.color = 'var(--verde-ok)'; }
       else { msg.textContent = r.motivo; msg.style.color = 'var(--erro)'; sessao.cupom = null; salvarSessao(); }
     } catch { }
   }

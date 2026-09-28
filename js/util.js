@@ -56,22 +56,22 @@ export function horaBR(iso) {
 }
 
 export const STATUS = {
-  recebido:        { rotulo: 'Pedido recebido',        msg: 'Recebemos seu pedido e já vamos confirmar.', icone: '📥' },
-  confirmado:      { rotulo: 'Pedido confirmado',      msg: 'A pizzaria confirmou seu pedido.', icone: '✅' },
-  preparando:      { rotulo: 'Em preparo',             msg: 'Estamos abrindo a massa e montando sua pizza.', icone: '👨‍🍳' },
-  no_forno:        { rotulo: 'No forno',               msg: 'Sua pizza está no forno a lenha!', icone: '🔥' },
-  saiu_entrega:    { rotulo: 'Saiu para entrega',      msg: 'Seu pedido está a caminho.', icone: '🛵' },
-  pronto_retirada: { rotulo: 'Pronto para retirada',   msg: 'Pode vir buscar! Está quentinha.', icone: '🍕' },
-  entregue:        { rotulo: 'Concluído',              msg: 'Bom apetite! Obrigado por pedir na Sesconetto\'s.', icone: '🎉' },
-  cancelado:       { rotulo: 'Cancelado',              msg: 'Este pedido foi cancelado. Fale com a gente pelo WhatsApp se tiver dúvida.', icone: '✖' },
+  recebido:        { rotulo: 'Pedido recebido',        msg: 'Recebemos seu pedido e já vamos confirmar.', icone: 'entrada' },
+  confirmado:      { rotulo: 'Pedido confirmado',      msg: 'A pizzaria confirmou seu pedido.', icone: 'check-circulo' },
+  preparando:      { rotulo: 'Em preparo',             msg: 'Estamos abrindo a massa e montando sua pizza.', icone: 'chef' },
+  no_forno:        { rotulo: 'No forno',               msg: 'Sua pizza está no forno a lenha!', icone: 'fogo' },
+  saiu_entrega:    { rotulo: 'Saiu para entrega',      msg: 'Seu pedido está a caminho.', icone: 'moto' },
+  pronto_retirada: { rotulo: 'Pronto para retirada',   msg: 'Pode vir buscar! Está quentinha.', icone: 'pizza' },
+  entregue:        { rotulo: 'Concluído',              msg: 'Bom apetite! Obrigado por pedir na Sesconetto\'s.', icone: 'brilho' },
+  cancelado:       { rotulo: 'Cancelado',              msg: 'Este pedido foi cancelado. Fale com a gente pelo WhatsApp se tiver dúvida.', icone: 'x-circulo' },
 };
 export const FLUXO_ENTREGA = ['recebido', 'confirmado', 'preparando', 'no_forno', 'saiu_entrega', 'entregue'];
 export const FLUXO_RETIRADA = ['recebido', 'confirmado', 'preparando', 'no_forno', 'pronto_retirada', 'entregue'];
 
 export const PAGAMENTOS = {
-  pix: { rotulo: 'Pix', desc: 'Você recebe a chave após confirmar o pedido', icone: '◇' },
-  cartao_entrega: { rotulo: 'Cartão na entrega / retirada', desc: 'Débito ou crédito na maquininha', icone: '💳' },
-  dinheiro: { rotulo: 'Dinheiro', desc: 'Informe se precisa de troco', icone: '💵' },
+  pix: { rotulo: 'Pix', desc: 'Você recebe a chave após confirmar o pedido', icone: 'pix' },
+  cartao_entrega: { rotulo: 'Cartão na entrega / retirada', desc: 'Débito ou crédito na maquininha', icone: 'cartao' },
+  dinheiro: { rotulo: 'Dinheiro', desc: 'Informe se precisa de troco', icone: 'dinheiro' },
 };
 
 export function whatsappLink(numero, msg) {
