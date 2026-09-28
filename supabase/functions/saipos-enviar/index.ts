@@ -1,4 +1,4 @@
-// Envia um pedido do site para o PDV Saipos (API de Pedidos).
+// Envia (ou cancela) um pedido do site no PDV Saipos (API de Pedidos).
 // Chamada pelo banco (trigger pedidos_saipos_disparar via pg_net) com o header x-internal-key.
 // Credenciais no Vault, lidas pela função integracao_segredos() (só service_role).
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -19,7 +19,8 @@ function partes(codigo: string | null | undefined) {
   return { item: item || null, choice: choice || null };
 }
 
-async function token(s: Segredos) {
+// Cada login novo invalida o token anterior, então o token fica salvo e é reaproveitado.
+async function novoToken(s: Segredos) {
   const r = await fetch(`${s.SAIPOS_BASE_URL}/auth`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -27,7 +28,26 @@ async function token(s: Segredos) {
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || !j.token) throw new Error(`Falha no login Saipos (${r.status}): ${JSON.stringify(j)}`);
+  await db.from("integracao_tokens").upsert({ nome: "saipos", token: j.token, atualizado_em: new Date().toISOString() });
   return j.token as string;
+}
+
+// POST na Saipos com o token salvo; se for recusado, lê o token de novo (outra chamada pode ter renovado) ou renova.
+async function saiposPost(s: Segredos, caminho: string, corpo: unknown) {
+  const { data } = await db.from("integracao_tokens").select("token").eq("nome", "saipos").maybeSingle();
+  let t = data?.token || await novoToken(s);
+  for (let tentativa = 1; ; tentativa++) {
+    const r = await fetch(`${s.SAIPOS_BASE_URL}${caminho}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: t },
+      body: JSON.stringify(corpo),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.status !== 401 || tentativa >= 3) return { r, j };
+    await new Promise((ok) => setTimeout(ok, 300 + Math.random() * 700));
+    const { data: atual } = await db.from("integracao_tokens").select("token").eq("nome", "saipos").maybeSingle();
+    t = atual?.token && atual.token !== t ? atual.token : await novoToken(s);
+  }
 }
 
 async function montarItens(itens: any[]) {
@@ -149,29 +169,38 @@ async function montarPedido(p: any, s: Segredos) {
   return pedido;
 }
 
+async function cancelar(p: any, s: Segredos) {
+  try {
+    const { r, j } = await saiposPost(s, "/cancel-order", { order_id: p.id, cod_store: s.SAIPOS_COD_STORE });
+    if (!r.ok || j.status === false) throw new Error(`Saipos ${r.status}: ${j.errorMessage || JSON.stringify(j)}`);
+    await db.from("pedidos").update({ saipos_erro: null }).eq("id", p.id);
+    return json({ ok: true, cancelado: true });
+  } catch (err) {
+    const msg = `Cancelamento na Saipos falhou: ${String((err as Error)?.message || err)}`.slice(0, 1000);
+    console.error("saipos-cancelar", p.id, msg);
+    await db.from("pedidos").update({ saipos_erro: msg }).eq("id", p.id);
+    return json({ ok: false, erro: msg }, 502);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ erro: "método" }, 405);
   const { data: s, error: errS } = await db.rpc("integracao_segredos");
   if (errS || !s) return json({ erro: "segredos" }, 500);
   if (!s.SAIPOS_INTERNAL_KEY || req.headers.get("x-internal-key") !== s.SAIPOS_INTERNAL_KEY) return json({ erro: "não autorizado" }, 401);
 
-  const { pedido_id } = await req.json().catch(() => ({}));
+  const { pedido_id, acao = "enviar" } = await req.json().catch(() => ({}));
   if (!pedido_id) return json({ erro: "pedido_id" }, 400);
   const { data: p, error } = await db.from("pedidos").select("*, pedido_itens(*)").eq("id", pedido_id).single();
   if (error || !p) return json({ erro: "pedido não encontrado" }, 404);
+  if (acao === "cancelar") return cancelar(p, s);
   if (p.saipos_status === "enviado") return json({ ok: true, ja_enviado: true });
 
   const tentativas = (p.saipos_tentativas || 0) + 1;
   let corpo: unknown = null;
   try {
-    const t = await token(s);
     corpo = await montarPedido(p, s);
-    const r = await fetch(`${s.SAIPOS_BASE_URL}/order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: t },
-      body: JSON.stringify(corpo),
-    });
-    const j = await r.json().catch(() => ({}));
+    const { r, j } = await saiposPost(s, "/order", corpo);
     if (!r.ok) throw new Error(`Saipos ${r.status}: ${j.errorMessage || JSON.stringify(j)}`);
     await db.from("pedidos").update({
       saipos_status: "enviado",

@@ -60,5 +60,9 @@ e as mudanças de status feitas no PDV voltam para o site.
 - Credenciais no **Vault** do Supabase (nunca no front): `SAIPOS_ID_PARTNER`, `SAIPOS_SECRET`, `SAIPOS_COD_STORE`
   (o "COD. LOJA" do canal, não o ID da loja), `SAIPOS_BASE_URL`, `SAIPOS_WEBHOOK_KEY`, `SAIPOS_INTERNAL_KEY`,
   `SUPABASE_FUNCTIONS_URL`.
+- Cancelar no site (status `cancelado`) cancela também na Saipos (`POST /cancel-order`); a Saipos não avisa
+  pelo webhook os cancelamentos feitos pela API.
+- O token da Saipos fica salvo em `integracao_tokens` e é reaproveitado: cada login novo invalida o anterior,
+  então pedidos simultâneos não podem pedir um token cada um.
 - Painel: etiquetas de pagamento e de envio, botão **Pix recebido** (confirma Pix manual e envia) e
   **Reenviar à Saipos** quando o envio der erro.
