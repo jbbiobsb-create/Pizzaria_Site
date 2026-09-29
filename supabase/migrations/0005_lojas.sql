@@ -24,7 +24,7 @@ create policy "lojas: equipe" on public.lojas for all to authenticated using (pu
 insert into public.lojas (slug, nome, endereco, lat, lng, principal, ordem)
 select 'vicente-pires', 'Vicente Pires', c.endereco, c.lat, c.lng, true, 1 from public.config c where c.id = 1;
 insert into public.lojas (slug, nome, endereco, lat, lng, ordem) values
-  ('asa-sul', 'Asa Sul', '{"rua":"CLS 105","numero":"","complemento":"","bairro":"Asa Sul","cidade":"Brasília","uf":"DF","cep":"70344-520"}', -15.8118, -47.8940, 2),
+  ('asa-sul', 'Asa Sul', '{"rua":"CLS 105 Bloco B","numero":"","complemento":"","bairro":"Asa Sul","cidade":"Brasília","uf":"DF","cep":"70344-520"}', -15.8113569, -47.8975066, 2),
   ('sig', 'SIG', '{"rua":"SIG Quadra 8","numero":"Lotes 2265/2275","complemento":"","bairro":"Zona Industrial","cidade":"Brasília","uf":"DF","cep":"70610-480"}', -15.7953, -47.9167, 3);
 
 alter table public.pedidos add column loja_id int references public.lojas(id);
