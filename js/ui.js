@@ -1,4 +1,5 @@
-// Componentes compartilhados: header, subheader, tab bar, footer, modais (entrega, upsell)
+// Componentes compartilhados: header, subheader, tab bar, barra "Ver sacola", footer,
+// bottom sheets (entrega/retirada, upsell) com puxador, arraste para fechar e rodapé fixo.
 import * as cart from './cart.js';
 import { carregarCardapio, buscarCep, geocodificar, calcularEntrega } from './api.js';
 import { brl, esc, qs, qsa, mascaraCep, resumoHorario, whatsappLink, toast, lerLS, gravarLS } from './util.js';
@@ -9,6 +10,7 @@ import { icone, hidratarIcones } from './icons.js';
 export { icone, hidratarIcones };
 
 let CFG = null;
+let PAGINA = '';
 
 export async function config() {
   if (CFG) return CFG;
@@ -30,10 +32,13 @@ export function enderecoLoja(l) {
 // ------------------------------------------------------------------
 // Layout
 // ------------------------------------------------------------------
-export function montarLayout({ pagina = '', subheader = true } = {}) {
+let COM_SACOLA = true;
+export function montarLayout({ pagina = '', subheader = true, sacola = true } = {}) {
   const c = lerLS(LS.cardapio)?.dados?.config || {};
   const nome = c.nome || "Sesconetto's Pizzeria";
+  PAGINA = pagina; COM_SACOLA = sacola;
   document.body.classList.add('com-tabbar');
+  document.body.dataset.pagina = pagina;
   const header = `
   <header class="header">
     <div class="container">
@@ -46,30 +51,32 @@ export function montarLayout({ pagina = '', subheader = true } = {}) {
       </nav>
       <div class="header-right">
         <a href="cardapio.html" class="btn btn-sm btn-pedir">Pedir agora</a>
-        <a href="carrinho.html" class="btn-carrinho" aria-label="Seu pedido">${icone('sacola')}<span class="txt">Pedido</span><span class="badge" data-badge></span></a>
+        <a href="carrinho.html" class="btn-carrinho" aria-label="Sua sacola">${icone('sacola')}<span class="txt">Sacola</span><span class="badge" data-badge></span></a>
       </div>
     </div>
   </header>
   ${subheader ? `<div class="subheader"><div class="container">
       <div class="seg" data-seg>
-        <button data-tipo="entrega">Entrega</button>
-        <button data-tipo="retirada"><span class="longo">Retirar na loja</span><span class="curto">Retirada</span></button>
+        <button type="button" data-tipo="entrega">Entrega</button>
+        <button type="button" data-tipo="retirada"><span class="longo">Retirar na loja</span><span class="curto">Retirada</span></button>
       </div>
-      <button class="pill-end" data-abrir-entrega>${icone('pin')}<span data-endereco-txt>Onde você está?</span></button>
+      <button type="button" class="pill-end" data-abrir-entrega>${icone('pin')}<span data-endereco-txt>Onde você está?</span></button>
       <div class="status-loja" data-status-loja><i></i><span>…</span></div>
-  </div></div>` : ''}`;
+  </div></div><div data-faixa-fechada></div>` : ''}`;
+  const aba = (href, id, ic, rot, extra = '') => `<a href="${href}" class="${pagina === id ? 'ativo' : ''}" ${pagina === id ? 'aria-current="page"' : ''}>${icone(ic)}${rot}${extra}</a>`;
   const tabbar = `
-  <nav class="tabbar">
-    <a href="index.html" class="${pagina === 'home' ? 'ativo' : ''}">${icone('casa')}Início</a>
-    <a href="cardapio.html" class="${pagina === 'cardapio' ? 'ativo' : ''}">${icone('pizza')}Cardápio</a>
-    <a href="carrinho.html" class="${pagina === 'carrinho' ? 'ativo' : ''}">${icone('sacola')}Pedido<span class="badge" data-badge></span></a>
-    <a href="pedido.html" class="${pagina === 'pedido' ? 'ativo' : ''}">${icone('relogio')}Acompanhar</a>
+  <nav class="tabbar" aria-label="Navegação principal">
+    ${aba('index.html', 'home', 'casa', 'Início')}
+    ${aba('cardapio.html', 'cardapio', 'pizza', 'Cardápio')}
+    ${aba('carrinho.html', 'carrinho', 'sacola', 'Sacola', '<span class="badge" data-badge></span>')}
+    ${aba('conta.html', 'conta', 'usuario', 'Conta')}
   </nav>`;
   document.body.insertAdjacentHTML('afterbegin', header);
-  document.body.insertAdjacentHTML('beforeend', tabbar + modalEntregaHTML() + modalUpsellHTML());
+  document.body.insertAdjacentHTML('beforeend', tabbar + barraSacolaHTML() + modalEntregaHTML() + modalUpsellHTML());
   hidratarIcones();
   atualizarBadge();
-  cart.onChange(atualizarBadge);
+  atualizarSacola();
+  cart.onChange(() => { atualizarBadge(true); atualizarSacola(); });
   window.addEventListener('ses:entrega', atualizarSubheader);
   qsa('[data-abrir-entrega]').forEach((b) => b.addEventListener('click', () => abrirModalEntrega()));
   qsa('[data-seg] button').forEach((b) => b.addEventListener('click', () => abrirModalEntrega(b.dataset.tipo)));
@@ -96,7 +103,8 @@ export function montarFooter() {
           <a href="cardapio.html">Cardápio</a>
           <a href="cardapio.html#combos">Combos</a>
           <a href="pedido.html">Acompanhar pedido</a>
-          <a href="carrinho.html">Meu pedido</a>
+          <a href="carrinho.html">Minha sacola</a>
+          <a href="conta.html">Minha conta</a>
         </div>
         <div>
           <h4>Fale com a gente</h4>
@@ -112,9 +120,38 @@ export function montarFooter() {
   }).catch(() => {});
 }
 
-function atualizarBadge() {
+function atualizarBadge(animar = false) {
   const n = cart.quantidadeTotal();
-  qsa('[data-badge]').forEach((b) => (b.textContent = n ? n : ''));
+  qsa('[data-badge]').forEach((b) => {
+    b.textContent = n ? n : '';
+    if (animar && n) { b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); }
+  });
+}
+
+// barra "Ver sacola · N itens · R$ X" acima da tab bar (cardápio, home, conta…)
+function barraSacolaHTML() {
+  return `
+  <div class="barra-fixa barra-sacola so-mobile" data-barra-sacola hidden role="region" aria-label="Resumo da sacola">
+    <div class="container">
+      <a class="btn-sacola" href="carrinho.html">
+        <span class="txt"><span class="n" data-sacola-n>0</span><span>Ver sacola</span></span>
+        <span class="val" data-sacola-total>R$ 0,00</span>
+      </a>
+    </div>
+  </div>`;
+}
+const PAGINAS_SEM_SACOLA = ['carrinho', 'checkout'];
+export function atualizarSacola() {
+  const el = qs('[data-barra-sacola]'); if (!el) return;
+  const n = cart.quantidadeTotal();
+  const mostrar = COM_SACOLA && n > 0 && !PAGINAS_SEM_SACOLA.includes(PAGINA) && !document.body.classList.contains('tem-barra');
+  el.hidden = !mostrar;
+  document.body.classList.toggle('tem-sacola', mostrar);
+  if (mostrar) {
+    qs('[data-sacola-n]', el).textContent = n;
+    qs('[data-sacola-total]', el).textContent = brl(cart.subtotal());
+    qs('.btn-sacola', el).setAttribute('aria-label', `Ver sacola: ${n} ${n === 1 ? 'item' : 'itens'}, ${brl(cart.subtotal())}`);
+  }
 }
 
 export function atualizarSubheader() {
@@ -128,63 +165,134 @@ export function atualizarSubheader() {
   }
   const st = qs('[data-status-loja]');
   if (st && CFG) {
+    const abre = CFG.horario?.seg?.[0] || '18:00';
     st.classList.toggle('aberta', !!CFG.aberta);
     st.classList.toggle('fechada', !CFG.aberta);
-    st.querySelector('span').textContent = CFG.aberta ? 'Aberto agora' : 'Fechado · abre às ' + (CFG.horario?.seg?.[0] || '18:00');
+    st.querySelector('span').textContent = CFG.aberta ? 'Aberto' : 'Fechado';
+    st.title = CFG.aberta ? 'Aberto agora' : 'Fechado · abre às ' + abre;
+    st.setAttribute('aria-label', st.title);
+    const faixa = qs('[data-faixa-fechada]');
+    if (faixa) faixa.innerHTML = CFG.aberta ? '' : `<div class="faixa-fechada"><div class="container">${icone('relogio')}<span>Fechado agora · abre às ${esc(abre)}</span><a href="carrinho.html">Agendar pedido</a></div></div>`;
   }
 }
 
 // ------------------------------------------------------------------
-// Modal genérico
+// Modal genérico (bottom sheet no mobile, central no desktop)
 // ------------------------------------------------------------------
-export function abrirModal(id) { const m = qs('#' + id); if (m) { m.classList.add('aberto'); document.body.style.overflow = 'hidden'; } }
-export function fecharModal(id) { const m = qs('#' + id); if (m) { m.classList.remove('aberto'); document.body.style.overflow = ''; } }
+let ultimoFoco = null;
+export function abrirModal(id) {
+  const m = qs('#' + id); if (!m) return;
+  ultimoFoco = document.activeElement;
+  m.classList.add('aberto');
+  document.body.style.overflow = 'hidden';
+  document.body.classList.add('modal-aberto');
+  const corpo = qs('.modal-corpo', m); if (corpo) corpo.scrollTop = 0;
+  const sheet = qs('.modal', m); if (sheet) sheet.style.transform = '';
+  // foco inicial: título do sheet (leitores de tela anunciam) sem abrir teclado
+  const h = qs('h2', m); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+}
+export function fecharModal(id) {
+  const m = qs('#' + id); if (!m) return;
+  m.classList.remove('aberto');
+  if (!qs('.modal-bg.aberto')) { document.body.style.overflow = ''; document.body.classList.remove('modal-aberto'); }
+  if (ultimoFoco && typeof ultimoFoco.focus === 'function') { try { ultimoFoco.focus({ preventScroll: true }); } catch {} }
+  ultimoFoco = null;
+}
 document.addEventListener('click', (ev) => {
   const bg = ev.target.closest('.modal-bg');
-  if (ev.target.matches('[data-fechar]') || (bg && ev.target === bg)) { fecharModal(bg.id); }
+  if (ev.target.closest('[data-fechar]') || (bg && ev.target === bg)) { fecharModal(bg.id); }
 });
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  const aberto = qs('.modal-bg.aberto'); if (aberto) { ev.preventDefault(); fecharModal(aberto.id); }
+});
+
+// arrastar o sheet para baixo fecha (só quando o corpo está no topo); limiares: 100 px ou > 0,5 px/ms
+function habilitarArraste(bg) {
+  const sheet = qs('.modal', bg); const alca = qs('.modal-cabeca', bg); if (!sheet || !alca) return;
+  let y0 = 0, t0 = 0, dy = 0, ativo = false;
+  alca.addEventListener('pointerdown', (e) => {
+    if (matchMedia('(min-width: 640px)').matches || e.target.closest('button')) return;
+    ativo = true; y0 = e.clientY; t0 = performance.now(); dy = 0;
+    sheet.classList.add('arrastando');
+    try { alca.setPointerCapture(e.pointerId); } catch {}
+  });
+  alca.addEventListener('pointermove', (e) => {
+    if (!ativo) return; dy = Math.max(0, e.clientY - y0);
+    sheet.style.transform = `translateY(${dy}px)`;
+  });
+  const soltar = () => {
+    if (!ativo) return; ativo = false;
+    const v = dy / Math.max(1, performance.now() - t0);
+    sheet.classList.remove('arrastando');
+    if (dy > 100 || v > 0.5) { sheet.style.transform = ''; fecharModal(bg.id); }
+    else { sheet.style.transition = 'transform .18s ease-out'; sheet.style.transform = ''; setTimeout(() => (sheet.style.transition = ''), 200); }
+    dy = 0;
+  };
+  alca.addEventListener('pointerup', soltar);
+  alca.addEventListener('pointercancel', soltar);
+}
+// estrutura padrão de um sheet: cabeça (puxador, fechar, título), corpo rolável e rodapé fixo
+function sheetHTML(id, { titulo, sub = '', corpo, rodape = '' }) {
+  return `
+  <div class="modal-bg" id="${id}" role="dialog" aria-modal="true" aria-labelledby="${id}-titulo">
+    <div class="modal sheet">
+      <div class="modal-cabeca">
+        <div class="alca" aria-hidden="true"></div>
+        <button type="button" class="fechar" data-fechar aria-label="Fechar">${icone('x')}</button>
+        <h2 id="${id}-titulo">${titulo}</h2>
+        ${sub ? `<p class="muted small">${sub}</p>` : ''}
+      </div>
+      <div class="modal-corpo">${corpo}</div>
+      ${rodape ? `<div class="modal-rodape">${rodape}</div>` : ''}
+    </div>
+  </div>`;
+}
 
 // ------------------------------------------------------------------
 // Modal entrega / retirada
 // ------------------------------------------------------------------
 function modalEntregaHTML() {
-  return `
-  <div class="modal-bg" id="modal-entrega" role="dialog" aria-modal="true">
-    <div class="modal">
-      <button class="fechar" data-fechar aria-label="Fechar">×</button>
-      <h2>Como você quer receber?</h2>
-      <p class="muted small">Precisamos disso para calcular a taxa e o tempo do seu pedido.</p>
+  return sheetHTML('modal-entrega', {
+    titulo: 'Como você quer receber?',
+    sub: 'Precisamos disso para calcular a taxa e o tempo do seu pedido.',
+    corpo: `
       <div class="escolha-entrega">
-        <button type="button" data-tipo="entrega"><div class="ic">${icone('moto')}</div><b>Entrega</b><small>Receba em casa</small></button>
-        <button type="button" data-tipo="retirada"><div class="ic">${icone('loja')}</div><b>Retirar na loja</b><small>Peça antes e só passe para buscar</small></button>
+        <button type="button" data-tipo="entrega"><div class="ic">${icone('moto')}</div><div><b>Entrega</b><small>Receba em casa</small></div></button>
+        <button type="button" data-tipo="retirada"><div class="ic">${icone('loja')}</div><div><b>Retirar na loja</b><small>Peça antes e só passe para buscar</small></div></button>
       </div>
       <form id="form-entrega" novalidate>
         <div class="linha-campos">
-          <div class="campo"><label>CEP</label><input name="cep" inputmode="numeric" placeholder="00000-000" autocomplete="postal-code"></div>
-          <div class="campo"><label>Número *</label><input name="numero" placeholder="Ex.: 12" autocomplete="off"></div>
+          <div class="campo"><label for="ent-cep">CEP</label><input id="ent-cep" name="cep" inputmode="numeric" placeholder="00000-000" autocomplete="postal-code"></div>
+          <div class="campo"><label for="ent-numero">Número *</label><input id="ent-numero" name="numero" placeholder="Ex.: 12" autocomplete="off"></div>
         </div>
-        <div class="campo"><label>Rua / Quadra *</label><input name="rua" placeholder="Rua, quadra, chácara…" autocomplete="street-address"></div>
+        <div class="campo"><label for="ent-rua">Rua / Quadra *</label><input id="ent-rua" name="rua" placeholder="Rua, quadra, chácara…" autocomplete="street-address"></div>
         <div class="linha-campos">
-          <div class="campo"><label>Complemento</label><input name="complemento" placeholder="Apto, bloco, casa…"></div>
-          <div class="campo"><label>Bairro *</label><input name="bairro" placeholder="Bairro"></div>
+          <div class="campo"><label for="ent-compl">Complemento</label><input id="ent-compl" name="complemento" placeholder="Apto, bloco, casa…"></div>
+          <div class="campo"><label for="ent-bairro">Bairro *</label><input id="ent-bairro" name="bairro" placeholder="Bairro"></div>
         </div>
-        <div class="linha-campos">
-          <div class="campo"><label>Cidade *</label><input name="cidade" value="Brasília"></div>
-          <div class="campo"><label>UF</label><input name="uf" value="DF" maxlength="2"></div>
+        <div class="linha-campos cidade-uf">
+          <div class="campo"><label for="ent-cidade">Cidade *</label><input id="ent-cidade" name="cidade" value="Brasília"></div>
+          <div class="campo"><label for="ent-uf">UF</label><input id="ent-uf" name="uf" value="DF" maxlength="2"></div>
         </div>
-        <div class="campo"><label>Ponto de referência</label><input name="referencia" placeholder="Ex.: portão verde, ao lado da padaria"></div>
+        <details class="detalhe" data-ref>
+          <summary>${icone('mais')} Ponto de referência</summary>
+          <div class="campo"><label for="ent-ref">Ponto de referência</label><input id="ent-ref" name="referencia" placeholder="Ex.: portão verde, ao lado da padaria"></div>
+        </details>
         <div class="aviso erro" data-erro hidden></div>
         <div class="resumo-entrega" data-resumo hidden></div>
-        <div class="acoes"><button class="btn btn-lg" type="submit" data-salvar>Calcular taxa e salvar</button></div>
+        <button type="submit" class="sr" tabindex="-1" aria-hidden="true"></button>
       </form>
       <div id="bloco-retirada" hidden>
         <p class="small muted" style="margin-bottom:8px">Escolha a loja onde vai buscar:</p>
         <div class="lojas-retirada" data-lojas-retirada></div>
         <div class="resumo-entrega" data-resumo-retirada></div>
-        <div class="acoes"><button class="btn btn-lg" type="button" data-salvar-retirada>Vou retirar na loja</button></div>
-      </div>
-    </div>
-  </div>`;
+      </div>`,
+    rodape: `
+      <div class="acoes" data-acoes-entrega><button class="btn btn-lg" type="submit" form="form-entrega" data-salvar>Calcular taxa e salvar</button></div>
+      <div class="acoes" data-acoes-retirada hidden><button class="btn btn-lg" type="button" data-salvar-retirada>Vou retirar na loja</button></div>
+      <a class="link-secundario" href="cardapio.html" data-fechar data-ver-cardapio>Ver o cardápio primeiro</a>`,
+  });
 }
 
 let tipoModal = 'entrega';
@@ -201,9 +309,13 @@ export function abrirModalEntrega(tipo) {
   });
   const form = qs('#form-entrega', m); const ret = qs('#bloco-retirada', m);
   form.hidden = tipoModal !== 'entrega'; ret.hidden = tipoModal !== 'retirada';
+  qs('[data-acoes-entrega]', m).hidden = tipoModal !== 'entrega'; qs('[data-acoes-retirada]', m).hidden = tipoModal !== 'retirada';
   qs('[data-erro]', form).hidden = true; qs('[data-resumo]', form).hidden = true;
+  // "ver o cardápio primeiro" só faz sentido fora do cardápio
+  const ver = qs('[data-ver-cardapio]', m); if (ver) ver.hidden = PAGINA === 'cardapio' || PAGINA === 'carrinho';
   if (atual?.tipo === 'entrega' && atual.endereco) {
     for (const [k, v] of Object.entries(atual.endereco)) if (form.elements[k]) form.elements[k].value = v ?? '';
+    if (atual.endereco.referencia) qs('[data-ref]', form).open = true;
   }
   config().then((c) => {
     // loja sugerida: a já escolhida, senão a mais perto do endereço salvo, senão a principal
@@ -226,6 +338,8 @@ export function abrirModalEntrega(tipo) {
 
 function ligarFormEntrega() {
   const m = qs('#modal-entrega'); if (!m || m._ligado) return; m._ligado = true;
+  habilitarArraste(m);
+  habilitarArraste(qs('#modal-upsell'));
   const form = qs('#form-entrega', m);
   const cep = form.elements.cep;
   cep.addEventListener('input', async () => {
@@ -237,26 +351,26 @@ function ligarFormEntrega() {
   });
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    const erro = qs('[data-erro]', form); const resumo = qs('[data-resumo]', form); const btn = qs('[data-salvar]', form);
+    const erro = qs('[data-erro]', form); const resumo = qs('[data-resumo]', form); const btn = qs('[data-salvar]', m);
     erro.hidden = true; resumo.hidden = true;
     const end = Object.fromEntries(['cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'referencia'].map((k) => [k, form.elements[k].value.trim()]));
-    if (!end.rua || !end.numero || !end.bairro || !end.cidade) { erro.textContent = 'Preencha rua, número, bairro e cidade.'; erro.hidden = false; return; }
+    if (!end.rua || !end.numero || !end.bairro || !end.cidade) { erro.textContent = 'Preencha rua, número, bairro e cidade.'; erro.hidden = false; erro.scrollIntoView({ block: 'nearest' }); return; }
     btn.disabled = true; btn.textContent = 'Calculando…';
     try {
       const geo = await geocodificar(end);
       let calc;
       if (geo) { end.lat = geo.lat; end.lng = geo.lng; end.aprox = !!geo.aprox; calc = await calcularEntrega(geo.lat, geo.lng); if (geo.aprox) calc.a_confirmar = true; }
       else { calc = await calcularEntrega(null, null); }
-      if (!calc.ok && calc.motivo === 'sem_loja') { erro.textContent = 'No momento nenhuma loja está fazendo entregas. Você pode retirar na loja ou falar com a gente pelo WhatsApp.'; erro.hidden = false; return; }
+      if (!calc.ok && calc.motivo === 'sem_loja') { erro.textContent = 'No momento nenhuma loja está fazendo entregas. Você pode retirar na loja ou falar com a gente pelo WhatsApp.'; erro.hidden = false; erro.scrollIntoView({ block: 'nearest' }); return; }
       if (!calc.ok) {
         erro.innerHTML = `Esse endereço fica a <b>${calc.distancia_km} km</b> da loja mais próxima, fora da nossa área de entrega (até ${calc.raio_km} km). Você pode <b>retirar na loja</b> ou falar com a gente pelo WhatsApp.`;
-        erro.hidden = false; return;
+        erro.hidden = false; erro.scrollIntoView({ block: 'nearest' }); return;
       }
       const c = await config();
       end.distancia_km = calc.distancia_km;
       cart.salvarEntrega({ tipo: 'entrega', endereco: end, taxa: Number(calc.taxa), a_confirmar: !!calc.a_confirmar, distancia_km: calc.distancia_km, loja: calc.loja?.slug, loja_nome: calc.loja?.nome });
       resumo.innerHTML = `Taxa de entrega: <b>${brl(calc.taxa)}</b>${calc.a_confirmar ? ' <span class="muted">(a confirmar pela pizzaria)</span>' : ` · ${calc.distancia_km} km`}${calc.loja ? `<br>Sai da loja <b>${esc(calc.loja.nome)}</b>` : ''}<br>Chega em <b>${c.tempo_entrega_min}–${c.tempo_entrega_max} min</b> depois de confirmado.`;
-      resumo.hidden = false;
+      resumo.hidden = false; resumo.scrollIntoView({ block: 'nearest' });
       toast('Endereço salvo!');
       setTimeout(() => fecharModal('modal-entrega'), 900);
     } catch (e) {
@@ -277,19 +391,15 @@ setTimeout(ligarFormEntrega, 0);
 // Upsell ("Quer completar?")
 // ------------------------------------------------------------------
 function modalUpsellHTML() {
-  return `
-  <div class="modal-bg" id="modal-upsell" role="dialog" aria-modal="true">
-    <div class="modal">
-      <button class="fechar" data-fechar aria-label="Fechar">×</button>
-      <h2>Adicionado! Quer completar?</h2>
-      <p class="muted small">Uma bebida gelada ou um docinho pra fechar.</p>
-      <div class="upsell-lista" data-upsell></div>
-      <div class="acoes">
+  return sheetHTML('modal-upsell', {
+    titulo: 'Adicionado! Quer completar?',
+    sub: 'Uma bebida gelada ou um docinho pra fechar.',
+    corpo: `<div class="upsell-lista" data-upsell></div>`,
+    rodape: `<div class="acoes">
         <a class="btn btn-outline" href="cardapio.html">Continuar pedindo</a>
-        <a class="btn" href="carrinho.html">Ver meu pedido</a>
-      </div>
-    </div>
-  </div>`;
+        <a class="btn" href="carrinho.html">Ver sacola</a>
+      </div>`,
+  });
 }
 
 export async function abrirUpsell(excluirSlug) {
@@ -328,4 +438,9 @@ export function exigirEntrega() {
 export function tagHTML(t) {
   const nomes = { 'mais-pedida': 'Mais pedida', novidade: 'Novidade', vegetariana: 'Vegetariana', vegana: 'Vegana', esgotado: 'Esgotado' };
   return `<span class="tag ${esc(t)}">${nomes[t] || esc(t)}</span>`;
+}
+
+// skeleton com a forma dos cards (usado enquanto o cardápio carrega)
+export function skeletonCards(n = 6) {
+  return Array.from({ length: n }, () => `<div class="skeleton-card" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div></div>`).join('');
 }

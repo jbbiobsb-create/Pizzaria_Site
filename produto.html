@@ -13,9 +13,9 @@
 <body>
   <main>
     <div class="container">
-      <p class="small" style="padding-top:14px"><a href="cardapio.html" class="muted link-ic"><span class="ic-w" data-icone="seta-esq"></span>Voltar ao cardápio</a></p>
-      <div class="produto" data-produto>
-        <div class="skeleton" style="aspect-ratio:1"></div>
+      <p class="small" style="padding-top:8px"><a href="cardapio.html" class="muted link-ic link-acao"><span class="ic-w" data-icone="seta-esq"></span>Voltar ao cardápio</a></p>
+      <div class="produto" data-produto aria-busy="true">
+        <div class="skeleton foto-grande" style="border:0"></div>
         <div><div class="skeleton" style="min-height:60px;margin-bottom:12px"></div><div class="skeleton" style="min-height:200px"></div></div>
       </div>
     </div>
@@ -23,7 +23,7 @@
   <div class="barra-fixa" data-barra hidden>
     <div class="container">
       <div class="total"><small data-total-rotulo>Total</small><b data-total>R$ 0,00</b></div>
-      <button class="btn btn-lg btn-light" data-adicionar>Adicionar ao pedido</button>
+      <button class="btn btn-lg btn-light" data-adicionar>Adicionar à sacola</button>
     </div>
   </div>
   <script type="module" src="js/pages/produto.js"></script>

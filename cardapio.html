@@ -13,9 +13,19 @@
 </head>
 <body>
   <main>
-    <div class="chips-wrap"><div class="container"><div class="chips" data-chips></div></div></div>
-    <div class="container" style="padding: 8px 0 90px" data-secoes>
-      <div class="grade"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    <div class="chips-wrap"><div class="container">
+      <div class="chips-linha" data-chips-linha>
+        <button type="button" class="chip chip-busca" data-abrir-busca aria-label="Buscar no cardápio"><span data-icone="busca"></span></button>
+        <div class="chips" data-chips><div class="chips-skel" aria-hidden="true"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div></div>
+      </div>
+      <div class="busca-cardapio" data-busca-cardapio hidden role="search">
+        <div class="campo-busca"><span data-icone="busca"></span><input type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Buscar sabor, bebida, vinho…" aria-label="Buscar no cardápio"><button type="button" class="limpar" data-limpar-busca aria-label="Limpar busca" hidden><span data-icone="x"></span></button></div>
+        <button type="button" class="fechar-busca" data-fechar-busca>Cancelar</button>
+      </div>
+    </div></div>
+    <div class="container" style="padding: 8px 0 40px">
+      <div data-resultados hidden></div>
+      <div data-secoes></div>
     </div>
   </main>
   <script type="module" src="js/pages/cardapio.js"></script>

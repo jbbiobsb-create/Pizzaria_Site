@@ -5,7 +5,7 @@ import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, param, toast } from '../util.js';
 import { icone } from '../icons.js';
 
-montarLayout({ pagina: 'cardapio' });
+montarLayout({ pagina: 'cardapio', sacola: false }); // a página tem a própria barra fixa
 montarFooter();
 
 const raiz = qs('[data-produto]');
@@ -42,10 +42,10 @@ function montarPizza(saborInicial) {
   estado.tamanho = (tamanhosOk.find((t) => t.slug === 'grande') || tamanhosOk[0] || tamanhosGrupo[0]).slug;
 
   document.title = `${sab ? sab.nome : 'Monte sua pizza'} — Sesconetto's Pizzeria`;
+  raiz.removeAttribute('aria-busy');
   raiz.innerHTML = `
     <div>
       <div class="foto-grande ${sab?.imagem_url ? '' : 'vazia'}" data-foto>${sab?.imagem_url ? `<img src="${esc(sab.imagem_url)}" alt="${esc(sab.nome)}">` : icone('pizza')}</div>
-      <p class="small muted" style="margin-top:10px">${esc(D.config.sobre_massa || '')}</p>
     </div>
     <div>
       <div class="tags" style="margin-bottom:6px">${(sab?.tags || []).map(tagHTML).join('')}</div>
@@ -77,9 +77,10 @@ function montarPizza(saborInicial) {
         <textarea class="obs" placeholder="Ex.: sem cebola, bem assada, cortar em mais pedaços…" data-obs maxlength="200"></textarea>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
           <span class="strong">Quantidade</span>
-          <div class="qtd"><button type="button" data-qtd="-1">−</button><span data-qtd-v>1</span><button type="button" data-qtd="1">+</button></div>
+          <div class="qtd"><button type="button" data-qtd="-1" aria-label="Diminuir quantidade">${icone('menos')}</button><span data-qtd-v aria-live="polite">1</span><button type="button" data-qtd="1" aria-label="Aumentar quantidade">${icone('mais')}</button></div>
         </div>
       </div>
+      ${D.config.sobre_massa ? `<p class="nota-massa">${icone('trigo')}<span>${esc(D.config.sobre_massa)}</span></p>` : ''}
     </div>`;
 
   renderTamanhos();
@@ -128,7 +129,8 @@ function renderMetades() {
   const slots = t.max_sabores > 1 ? ['1ª metade', '2ª metade'] : [estado.grupo === 'calzone' ? 'Recheio' : 'Sabor'];
   el.innerHTML = slots.map((rot, i) => {
     const s = estado.sabores[i] ? D.saboresPorSlug[estado.sabores[i]] : null;
-    return `<div class="metade ${s ? 'cheia' : ''}"><small>${rot}${i === 1 ? ' (opcional)' : ''}</small><b>${s ? esc(s.nome) : 'Escolha abaixo'}</b>${s ? `<button type="button" data-rm="${i}" aria-label="Remover">×</button>` : ''}</div>`;
+    const vazio = i === 1 ? (estado.sabores.length === 1 ? 'Quer meio a meio? Escolha o 2º sabor' : 'Escolha abaixo') : 'Escolha abaixo';
+    return `<div class="metade ${s ? 'cheia' : ''}"><small>${rot}${i === 1 ? ' (opcional)' : ''}</small><b>${s ? esc(s.nome) : vazio}</b>${s ? `<button type="button" data-rm="${i}" aria-label="Remover ${esc(s.nome)}">${icone('x')}</button>` : ''}</div>`;
   }).join('');
   qsa('[data-rm]', el).forEach((b) => b.addEventListener('click', () => { estado.sabores.splice(Number(b.dataset.rm), 1); renderTamanhos(); renderSabores(); renderMetades(); atualizarTotal(); }));
   // foto e título acompanham o primeiro sabor
@@ -167,7 +169,6 @@ function renderSabores() {
     if (estado.sabores.includes(slug)) estado.sabores = estado.sabores.filter((x) => x !== slug);
     else estado.sabores.push(slug);
     renderTamanhos(); renderSabores(); renderMetades(); atualizarTotal();
-    if (estado.sabores.length === 1 && t.max_sabores > 1) toast('Quer meio a meio? Escolha o 2º sabor. Ou adicione assim mesmo.', 'ok', 2500);
   }));
 }
 
@@ -177,11 +178,28 @@ function precoPizza() {
   return Math.max(...estado.sabores.map((sl) => Number(D.saboresPorSlug[sl].precos[t.slug] || 0)));
 }
 
+// total + rótulo do que já foi escolhido; o botão diz exatamente o que falta
 function atualizarTotal() {
   const p = estado.produto ? precoProduto() : precoPizza();
+  const rotulo = qs('[data-total-rotulo]');
   totalEl.textContent = brl(p * estado.quantidade);
-  btnAdd.disabled = estado.produto ? !passosOk() : estado.sabores.length === 0;
-  btnAdd.textContent = estado.produto ? 'Adicionar ao pedido' : (estado.sabores.length ? 'Adicionar ao pedido' : 'Escolha um sabor');
+  if (estado.produto) {
+    const falta = passoFaltando();
+    if (!estado.produto.disponivel) { btnAdd.disabled = true; btnAdd.textContent = 'Esgotado'; }
+    else {
+      btnAdd.disabled = !!falta;
+      const t = falta ? falta.titulo.trim() : '';
+      const nPassos = (estado.produto.passos || []).length;
+      btnAdd.textContent = falta ? `${/^escolh/i.test(t) ? t : 'Escolha ' + t.toLowerCase()}${nPassos > 1 ? ` (passo ${falta.i + 1})` : ''}` : 'Adicionar à sacola';
+    }
+    if (rotulo) rotulo.textContent = estado.quantidade > 1 ? `${estado.quantidade}× ${estado.produto.nome}` : 'Total';
+    return;
+  }
+  const t = tamanhoAtual();
+  const n = estado.sabores.length;
+  btnAdd.disabled = n === 0;
+  btnAdd.textContent = n ? 'Adicionar à sacola' : (estado.grupo === 'calzone' ? 'Escolha o recheio' : 'Escolha 1 sabor');
+  if (rotulo) rotulo.textContent = n ? `${n > 1 ? 'Meio a meio' : n + ' sabor'} · ${t.nome}${estado.quantidade > 1 ? ` · ${estado.quantidade}×` : ''}` : `${t.nome} · falta o sabor`;
 }
 
 function adicionarPizza() {
@@ -195,7 +213,7 @@ function adicionarPizza() {
     imagem: s0?.imagem_url || null,
     preco: precoPizza(), quantidade: estado.quantidade, observacao: estado.observacao.trim() || null,
   });
-  toast(t.grupo === 'calzone' ? 'Calzone adicionado ao pedido!' : 'Pizza adicionada ao pedido!');
+  toast(t.grupo === 'calzone' ? 'Calzone na sacola!' : 'Pizza na sacola!');
   abrirUpsell();
 }
 
@@ -207,6 +225,7 @@ function montarProduto(p) {
   estado.produto = p;
   document.title = `${p.nome} — Sesconetto's Pizzeria`;
   const passos = Array.isArray(p.passos) ? p.passos : [];
+  raiz.removeAttribute('aria-busy');
   raiz.innerHTML = `
     <div><div class="foto-grande ${p.imagem_url ? '' : 'vazia'}">${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="${esc(p.nome)}">` : icone('pizza')}</div></div>
     <div>
@@ -226,7 +245,7 @@ function montarProduto(p) {
         <textarea class="obs" placeholder="Alguma observação?" data-obs maxlength="200"></textarea>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
           <span class="strong">Quantidade</span>
-          <div class="qtd"><button type="button" data-qtd="-1">−</button><span data-qtd-v>1</span><button type="button" data-qtd="1">+</button></div>
+          <div class="qtd"><button type="button" data-qtd="-1" aria-label="Diminuir quantidade">${icone('menos')}</button><span data-qtd-v aria-live="polite">1</span><button type="button" data-qtd="1" aria-label="Aumentar quantidade">${icone('mais')}</button></div>
         </div>
       </div>
     </div>`;
@@ -255,11 +274,13 @@ function montarProduto(p) {
     abrirUpsell(p.slug);
   });
   barra.hidden = false; document.body.classList.add('tem-barra');
-  if (!p.disponivel) { btnAdd.disabled = true; btnAdd.textContent = 'Esgotado'; }
   atualizarTotal();
 }
 function precoProduto() { return Number(estado.produto.preco); }
-function passosOk() {
+// primeiro passo obrigatório ainda não atendido ({i, titulo}) ou null
+function passoFaltando() {
   const passos = Array.isArray(estado.produto.passos) ? estado.produto.passos : [];
-  return estado.produto.disponivel && passos.every((ps, i) => (estado.escolhas[i] || []).length >= (ps.min || 0));
+  const i = passos.findIndex((ps, k) => (estado.escolhas[k] || []).length < (ps.min || 0));
+  return i < 0 ? null : { i, titulo: passos[i].titulo || 'a opção' };
 }
+function passosOk() { return estado.produto.disponivel && !passoFaltando(); }

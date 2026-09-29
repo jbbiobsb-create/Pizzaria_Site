@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Meu pedido — Sesconetto's Pizzeria</title>
+  <title>Minha sacola — Sesconetto's Pizzeria</title>
   <meta name="theme-color" content="#1f1b18">
   <link rel="icon" href="img/logo.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,14 +15,14 @@
     <div class="container duas-colunas" data-raiz>
       <div>
         <div class="painel">
-          <div class="secao-titulo" style="margin-bottom:6px"><h2>Meu pedido</h2><button class="btn btn-ghost btn-sm" data-limpar>Limpar</button></div>
+          <div class="secao-titulo" style="margin-bottom:6px"><h2>Minha sacola</h2><button class="btn btn-ghost btn-sm" data-limpar>Limpar</button></div>
           <div data-itens></div>
         </div>
-        <div class="painel">
+        <div class="painel" data-painel-entrega>
           <h2>Como você quer receber?</h2>
           <div class="escolha-entrega" data-tipo-entrega>
-            <button type="button" data-tipo="entrega"><div class="ic" data-icone="moto"></div><b>Entrega</b><small data-tempo-entrega></small></button>
-            <button type="button" data-tipo="retirada"><div class="ic" data-icone="loja"></div><b>Retirar na loja</b><small data-tempo-retirada></small></button>
+            <button type="button" data-tipo="entrega"><div class="ic" data-icone="moto"></div><div><b>Entrega</b><small data-tempo-entrega></small></div></button>
+            <button type="button" data-tipo="retirada"><div class="ic" data-icone="loja"></div><div><b>Retirar na loja</b><small data-tempo-retirada></small></div></button>
           </div>
           <div class="resumo-entrega" data-resumo-entrega></div>
           <h3>Quando?</h3>
@@ -31,16 +31,16 @@
             <button type="button" class="opcao" data-quando="agendar"><b>Agendar para mais tarde</b><small>Escolha o dia e a hora</small></button>
           </div>
           <div class="linha-campos" data-agendar hidden style="margin-top:12px">
-            <div class="campo"><label>Dia</label><select data-ag-dia></select></div>
-            <div class="campo"><label>Hora</label><select data-ag-hora></select></div>
+            <div class="campo"><label for="ag-dia">Dia</label><select id="ag-dia" data-ag-dia></select></div>
+            <div class="campo"><label for="ag-hora">Hora</label><select id="ag-hora" data-ag-hora></select></div>
           </div>
         </div>
       </div>
-      <div class="sticky-lateral">
+      <div class="sticky-lateral" data-painel-resumo>
         <div class="painel">
           <h2>Resumo</h2>
           <h3>Cupom de desconto</h3>
-          <div class="cupom"><input placeholder="Digite o cupom" data-cupom-input maxlength="30"><button class="btn btn-outline btn-sm" data-cupom-btn>Aplicar</button></div>
+          <div class="cupom"><input placeholder="Digite o cupom" data-cupom-input maxlength="30" aria-label="Cupom de desconto"><button class="btn btn-outline btn-sm" data-cupom-btn>Aplicar</button></div>
           <p class="small" data-cupom-msg style="margin-top:6px"></p>
           <div class="totais">
             <div><span>Subtotal</span><span data-subtotal>R$ 0,00</span></div>
@@ -50,13 +50,20 @@
           </div>
           <p class="small muted" data-aviso-minimo style="margin-top:8px"></p>
           <div style="display:grid;gap:8px;margin-top:14px">
-            <button class="btn btn-lg" data-continuar>Continuar para pagamento</button>
+            <button class="btn btn-lg esconder-mobile" data-continuar>Continuar para pagamento</button>
             <a class="btn btn-outline" href="cardapio.html">Adicionar mais itens</a>
           </div>
         </div>
       </div>
     </div>
   </main>
+  <!-- CTA fixo (coluna única): espelha o botão "Continuar" -->
+  <div class="barra-fixa so-mobile" data-barra-continuar hidden>
+    <div class="container">
+      <div class="total"><small>Total</small><b data-total-barra>R$ 0,00</b></div>
+      <button type="button" class="btn btn-lg btn-light" data-continuar-barra>Continuar</button>
+    </div>
+  </div>
   <script type="module" src="js/pages/carrinho.js"></script>
 </body>
 </html>

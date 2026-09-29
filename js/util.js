@@ -80,7 +80,7 @@ export function whatsappLink(numero, msg) {
 
 export function toast(msg, tipo = 'ok', ms = 3200) {
   let el = qs('#toast');
-  if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
   el.textContent = msg;
   el.className = `toast toast-${tipo} show`;
   clearTimeout(el._t);

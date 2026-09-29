@@ -20,8 +20,20 @@ pagamento → acompanhamento em tempo real. Sem cadastro para o cliente.
 | `produto.html?sabor=…` / `?meio=1` / `?p=…` | Configurador de pizza (tamanho + sabores) ou produto/combo |
 | `carrinho.html` | Pedido: itens, entrega/retirada, agora/agendar, cupom, totais |
 | `checkout.html` | Dados do cliente, observações, pagamento, confirmação |
-| `pedido.html?id=…` | Acompanhamento com linha do tempo (ou busca pelo celular) |
+| `pedido.html?id=…` | Acompanhamento com linha do tempo, previsão em horário, WhatsApp/ligar (ou busca pelo celular) |
+| `conta.html` | Minha conta (aba "Conta" da tab bar) |
 | `admin/` | Painel da equipe: pedidos em tempo real, loja, cardápio, cupons |
+
+## UX mobile ("cara de app")
+
+- Tab bar com 4 abas (Início · Cardápio · Sacola · Conta) e barra fixa de CTA acima dela, sempre respeitando `safe-area-inset-bottom`
+  (`body.tem-barra` / `body.tem-sacola` reservam o espaço para nada ficar escondido).
+- Cardápio: chips de categoria fixos com scroll-spy (`js/pages/cardapio.js`), busca sem acento (lupa ao lado dos chips), "Adicionar" rápido
+  com stepper nos produtos simples (`js/cards.js`); pizzas e combos abrem o configurador.
+- Modais são bottom sheets no celular (`.modal.sheet` em `js/ui.js`): puxador, arrastar para baixo fecha, `Esc`, corpo rolável e rodapé fixo com o CTA.
+- "Pedir de novo" (`js/repetir.js`): o checkout guarda os itens em `LS.ultimoPedido`; home, sacola vazia e acompanhamento reconstroem a sacola
+  revalidando cada item contra o cardápio atual (indisponível → aviso).
+- `pedido.html` tem um contêiner `[data-push]` (com `data-pedido-id`/`data-pedido-status`) reservado para o botão de aviso por push.
 
 ## Painel da equipe
 
