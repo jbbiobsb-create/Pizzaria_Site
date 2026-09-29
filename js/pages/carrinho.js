@@ -4,6 +4,7 @@ import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, toast, lerLS, gravarLS, DIAS } from '../util.js';
 import { icone } from '../icons.js';
 import { ultimoPedidoLocal, itensDoUltimoPedido, repetirItens, mensagemRepetir } from '../repetir.js';
+import { cfgFidelidade, programaAtivo, nivelBase, calcularPrevisto } from '../fidelidade.js';
 
 montarLayout({ pagina: 'carrinho' });
 montarFooter();
@@ -136,6 +137,12 @@ async function renderTotais() {
   qs('[data-total]').textContent = brl(totalAtual);
   const min = Number(CFG?.pedido_minimo || 0);
   qs('[data-aviso-minimo]').textContent = min && sub < min ? `Pedido mínimo: ${brl(min)}` : (e?.a_confirmar ? '* Taxa estimada; a pizzaria confirma pelo WhatsApp.' : '');
+  // Clube: prévia com o % do nível de entrada (o checkout refina pelo nível real do celular)
+  const cb = qs('[data-cashback-sacola]');
+  const F = cfgFidelidade(CFG);
+  const ganho = programaAtivo(CFG) ? calcularPrevisto(F, nivelBase(F).pct, sub - desconto) : 0;
+  cb.hidden = !(ganho > 0);
+  if (ganho > 0) cb.innerHTML = `${icone('presente')} Este pedido dá pelo menos <b>${brl(ganho)}</b> de cashback (${esc(nivelBase(F).pct)}% · até ${esc(Math.max(...(F.niveis || []).map((n) => Number(n.pct) || 0), nivelBase(F).pct))}% para quem pede mais)`;
   renderBarra();
 }
 

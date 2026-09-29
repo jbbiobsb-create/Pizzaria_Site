@@ -51,6 +51,12 @@ export async function validarCupom(codigo, subtotal) {
 export async function criarPedido(payload) {
   const { data, error } = await supabase.rpc('criar_pedido', { p: payload });
   if (error) throw new Error(limparErro(error.message));
+  // PIN errado / saldo: o servidor devolve {ok:false, erro} sem lançar (para o contador de tentativas persistir)
+  if (data && (data.ok === false || data.erro)) {
+    const e = new Error(data.erro || data.motivo || 'Não foi possível concluir o pedido.');
+    e.pin = data.pin || null; e.cashback = true;
+    throw e;
+  }
   return data;
 }
 
@@ -113,4 +119,32 @@ export async function cancelarPush(endpoint) {
   const { error } = await supabase.rpc('push_cancelar', { p_endpoint: endpoint });
   if (error) throw new Error(limparErro(error.message));
   return true;
+}
+
+// ---------- Clube Sesconetto's (fidelidade / cashback; ver js/fidelidade.js) ----------
+// Sem PIN: só o que o checkout precisa (tem_conta, tem_pin, nível, %) — nunca o saldo.
+export async function fidelidadeResumo(telefone) {
+  const { data, error } = await supabase.rpc('fidelidade_resumo', { p_telefone: soDigitos(telefone) });
+  if (error) throw new Error(limparErro(error.message));
+  return data || { ativo: false };
+}
+
+// Com PIN: saldo, nível, próximo vencimento e movimentos. Erros de PIN vêm como {ok:false, motivo, bloqueado?}.
+export async function fidelidadeSaldo(telefone, pin) {
+  const { data, error } = await supabase.rpc('fidelidade_saldo', { p_telefone: soDigitos(telefone), p_pin: String(pin || '') });
+  if (error) throw new Error(limparErro(error.message));
+  return data || { ok: false, motivo: 'Não foi possível consultar agora.' };
+}
+
+// Cria o PIN provando posse do link do pedido (UUID). Só funciona se o celular ainda não tem PIN.
+export async function fidelidadeCriarPin(pedidoId, pin) {
+  const { data, error } = await supabase.rpc('fidelidade_criar_pin', { p_pedido: pedidoId, p_pin: String(pin || '') });
+  if (error) throw new Error(limparErro(error.message));
+  return data || { ok: false, motivo: 'Não foi possível criar o PIN agora.' };
+}
+
+export async function fidelidadeTrocarPin(telefone, pinAtual, pinNovo) {
+  const { data, error } = await supabase.rpc('fidelidade_trocar_pin', { p_telefone: soDigitos(telefone), p_pin_atual: String(pinAtual || ''), p_pin_novo: String(pinNovo || '') });
+  if (error) throw new Error(limparErro(error.message));
+  return data || { ok: false, motivo: 'Não foi possível trocar o PIN agora.' };
 }

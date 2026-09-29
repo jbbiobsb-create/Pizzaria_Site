@@ -1,9 +1,10 @@
 import { montarLayout, montarFooter, config } from '../ui.js';
-import { consultarPedido, pedidosPorTelefone } from '../api.js';
+import { consultarPedido, pedidosPorTelefone, fidelidadeCriarPin } from '../api.js';
 import { qs, qsa, esc, brl, param, toast, lerLS, mascaraTelefone, STATUS, FLUXO_ENTREGA, FLUXO_RETIRADA, PAGAMENTOS, dataHoraBR, horaBR, whatsappLink, soDigitos } from '../util.js';
 import { LS } from '../config.js';
 import { icone } from '../icons.js';
 import { repetirItens, mensagemRepetir } from '../repetir.js';
+import { NOME_CLUBE, cfgFidelidade, programaAtivo, validadeDias, seloNivel, telefoneMascarado, pinValido, ligarCampoPin, salvarTelefone, abrirRegulamento } from '../fidelidade.js';
 
 montarLayout({ pagina: 'pedido', subheader: false });
 montarFooter();
@@ -52,6 +53,9 @@ function render(p) {
   const andamento = idx >= 0 && idx < fluxo.length - 1;
   const et = andamento ? eta(p, hist) : null;
   document.title = `Pedido #${p.numero} — Sesconetto's Pizzeria`;
+  // a página se redesenha a cada atualização: guarda o que o cliente já digitou no "criar PIN"
+  const fp = qs('[data-form-pin]');
+  const pinDigitado = fp ? [fp.elements.pin.value, fp.elements.conf.value, fp.elements.aceite.checked ? 'on' : ''] : [];
 
   let etaHTML = '';
   if (et) {
@@ -85,6 +89,9 @@ function render(p) {
       ${andamento ? `<p class="atualizado"><i></i>Atualizado há <span data-ha>0 s</span> · a página atualiza sozinha</p>` : ''}
     </div>
 
+    <!-- Clube Sesconetto's: cashback previsto/creditado e criação do PIN (renderFidelidade) -->
+    <div data-fidelidade></div>
+
     ${p.pagamento === 'pix' && p.status !== 'cancelado' ? `<div class="painel"><h2>Pagamento por Pix</h2>
       ${p.pix?.chave ? `<div class="pix-box">Chave Pix ${p.pix.nome ? `(${esc(p.pix.nome)})` : ''}:<code data-pix>${esc(p.pix.chave)}</code>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-sm" data-copiar>Copiar chave</button><span class="small muted">Valor: <b>${brl(p.total)}</b></span></div>
@@ -97,6 +104,7 @@ function render(p) {
       <div class="totais">
         <div><span>Subtotal</span><span>${brl(p.subtotal)}</span></div>
         ${Number(p.desconto) > 0 ? `<div class="desconto"><span>Desconto${p.cupom_codigo ? ' (' + esc(p.cupom_codigo) + ')' : ''}</span><span>− ${brl(p.desconto)}</span></div>` : ''}
+        ${Number(p.cashback_usado) > 0 ? `<div class="cashback"><span>Cashback usado</span><span>− ${brl(p.cashback_usado)}</span></div>` : ''}
         <div><span>Taxa de entrega</span><span>${Number(p.taxa_entrega) ? brl(p.taxa_entrega) + (p.taxa_a_confirmar ? ' (a confirmar)' : '') : 'grátis'}</span></div>
         <div class="total"><span>Total</span><span>${brl(p.total)}</span></div>
       </div>
@@ -109,6 +117,7 @@ function render(p) {
         ${['entregue', 'cancelado'].includes(p.status) && p.itens?.length ? `<button type="button" class="btn" data-repetir>${icone('repetir')} Pedir de novo</button><a class="btn btn-outline" href="cardapio.html">Ver cardápio</a>` : `<a class="btn btn-outline" href="cardapio.html">Fazer outro pedido</a>`}
       </div>
     </div>`;
+  renderFidelidade(p, pinDigitado);
   qs('[data-copiar]')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(p.pix.chave); toast('Chave Pix copiada!'); } catch { toast('Selecione e copie a chave', 'erro'); } });
   qs('[data-salvar-link]')?.addEventListener('click', async () => {
     const url = location.href.replace(/[?&]novo=1/, '');
@@ -128,6 +137,83 @@ function render(p) {
   const ha = qs('[data-ha]');
   if (ha) timerRelogio = setInterval(() => { ha.textContent = Math.max(0, Math.round((Date.now() - ultimaAtualizacao) / 1000)) + ' s'; }, 1000);
   window.dispatchEvent(new CustomEvent('ses:pedido', { detail: p }));
+}
+
+// ---------------------------------------------------------------
+// Clube Sesconetto's na página do pedido
+//   - cashback previsto (antes de entregar) ou creditado (entregue) + "Ver meu saldo"
+//   - sem PIN: card "Crie seu PIN" (prova de posse = o link deste pedido)
+// ---------------------------------------------------------------
+let pinCriado = false;
+function renderFidelidade(p, pinDigitado = []) {
+  const el = qs('[data-fidelidade]'); if (!el) return;
+  const F = cfgFidelidade(CFG);
+  const ativo = p.fidelidade_ativa ?? programaAtivo(CFG);
+  if (!ativo || p.status === 'cancelado') { el.innerHTML = ''; return; }
+  const ganho = Number(p.cashback_ganho || 0); const previsto = Number(p.cashback_previsto || 0);
+  const entregue = p.status === 'entregue';
+  const dias = validadeDias(F);
+  const temPin = !!p.tem_pin || pinCriado;
+  const tel = p.cliente_telefone || '';
+  const linkConta = `conta.html${tel ? `?tel=${esc(soDigitos(tel))}` : ''}`;
+  const selo = p.fidelidade_nivel ? seloNivel(p.fidelidade_nivel, p.fidelidade_pct) : '';
+
+  let banner = '';
+  if (entregue && ganho > 0) {
+    banner = `<div class="cb-pedido creditado">${icone('presente')}<div><b>${brl(ganho)} de cashback creditados!</b><small>Válido por ${dias} dias para usar no site. ${selo}</small>${temPin ? `<a class="btn btn-sm" href="${linkConta}" data-ver-saldo>${icone('moeda')} Ver meu saldo</a>` : ''}</div></div>`;
+  } else if (!entregue && previsto > 0) {
+    banner = `<div class="cb-pedido previsto">${icone('presente')}<div><b>Você ganha ${brl(previsto)} de cashback quando o pedido for entregue.</b><small>Vale ${dias} dias para usar no site. ${selo}</small></div></div>`;
+  } else if (entregue && ganho === 0 && Number(p.cashback_usado) > 0) {
+    banner = `<div class="cb-pedido previsto">${icone('moeda')}<div><b>Você usou ${brl(p.cashback_usado)} de cashback neste pedido.</b></div></div>`;
+  }
+
+  let pinHTML = '';
+  if (!temPin) {
+    pinHTML = `
+      <form class="criar-pin" data-form-pin novalidate>
+        <h3>${icone('cadeado')} Crie seu PIN para usar o cashback</h3>
+        <p>Seu cashback já acumula no celular ${esc(telefoneMascarado(tel))}. Escolha 4 dígitos que só você saiba (evite 1234 ou o fim do celular) para ver o saldo e usar nos próximos pedidos.</p>
+        <div class="linha-campos">
+          <div class="campo"><label for="pin-1">PIN</label><input id="pin-1" name="pin" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="${esc(pinDigitado[0] || '')}"></div>
+          <div class="campo"><label for="pin-2">Confirmar PIN</label><input id="pin-2" name="conf" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="${esc(pinDigitado[1] || '')}"></div>
+        </div>
+        <label class="check" style="padding-top:0"><input type="checkbox" name="aceite" ${pinDigitado[2] === 'on' ? 'checked' : ''}> Li e aceito o regulamento do ${esc(NOME_CLUBE)}.</label>
+        <div class="aviso erro" data-pin-erro hidden style="margin-bottom:10px"></div>
+        <button type="submit" class="btn btn-block" data-criar-pin>${icone('cadeado')} Criar PIN</button>
+      </form>`;
+  } else if (!banner || !(entregue && ganho > 0)) {
+    pinHTML = `<div class="cb-pedido previsto" style="background:var(--creme);border-color:var(--linha);color:var(--texto-2)">${icone('cadeado')}<div><b style="color:var(--texto)">Seu cashback fica guardado no celular ${esc(telefoneMascarado(tel))}.</b><a class="btn btn-sm btn-outline" href="${linkConta}" data-ver-saldo>${icone('moeda')} Ver meu saldo</a></div></div>`;
+  }
+  if (!banner && !pinHTML) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `<div class="painel">
+    <h2 style="display:flex;align-items:center;gap:8px;font-size:1.15rem">${icone('presente')} ${esc(NOME_CLUBE)}</h2>
+    ${banner}${pinHTML}
+    <p class="small muted" style="margin-top:12px">Pediu, ganhou: parte do que você paga volta para a próxima pizza. <button type="button" class="link-acao" data-regulamento style="text-decoration:underline;font-weight:600;padding:0 4px">Como funciona</button></p>
+  </div>`;
+  qs('[data-regulamento]', el).addEventListener('click', () => abrirRegulamento(F));
+  qsa('[data-ver-saldo]', el).forEach((a) => a.addEventListener('click', () => salvarTelefone(tel)));
+
+  const form = qs('[data-form-pin]', el);
+  if (!form) return;
+  ['pin', 'conf'].forEach((k) => ligarCampoPin(form.elements[k]));
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const f = form.elements; const erro = qs('[data-pin-erro]', form); const btn = qs('[data-criar-pin]', form);
+    erro.hidden = true;
+    if (!pinValido(f.pin.value)) { erro.textContent = 'Escolha um PIN de 4 dígitos que não seja sequência nem repetição.'; erro.hidden = false; f.pin.focus(); return; }
+    if (f.pin.value !== f.conf.value) { erro.textContent = 'Os dois PINs não conferem.'; erro.hidden = false; f.conf.focus(); return; }
+    if (!f.aceite.checked) { erro.textContent = 'Marque que leu e aceita o regulamento.'; erro.hidden = false; return; }
+    btn.disabled = true; btn.textContent = 'Criando…';
+    try {
+      const r = await fidelidadeCriarPin(p.id, f.pin.value);
+      if (!r.ok) { erro.textContent = r.motivo || 'Não foi possível criar o PIN.'; erro.hidden = false; return; }
+      pinCriado = true; salvarTelefone(r.telefone || tel);
+      toast('PIN criado! Você entrou no Clube.');
+      form.outerHTML = `<div class="cb-pedido creditado">${icone('check-circulo')}<div><b>PIN criado! Você entrou no ${esc(NOME_CLUBE)}.</b><small>Seu saldo aparece em "Minha conta" com o celular ${esc(telefoneMascarado(tel))} e o PIN.</small><a class="btn btn-sm" href="${linkConta}">${icone('moeda')} Ver meu saldo</a></div></div>`;
+    } catch (e) { erro.textContent = e.message || 'Não foi possível criar o PIN agora.'; erro.hidden = false; }
+    finally { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = `${icone('cadeado')} Criar PIN`; } }
+  });
 }
 
 function montarBusca() {

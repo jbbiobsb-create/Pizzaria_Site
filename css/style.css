@@ -718,3 +718,156 @@ body:has([data-banner-instalar]) #toast-atualizar { bottom: calc(var(--tab-h) + 
 .offline-card p.muted { font-size: .95rem; }
 .offline-acoes { display: grid; gap: 10px; margin: 20px 0 14px; }
 .offline-card [data-status] { display: inline-flex; align-items: center; gap: 6px; }
+
+/* =====================================================================
+   Clube Sesconetto's — fidelidade / cashback (js/fidelidade.js, conta.html)
+   ===================================================================== */
+/* selo de nível */
+.nivel-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.nivel-chip .i { width: 15px; height: 15px; }
+.nivel-chip.bronze { background: #f3e2d3; color: #8a4f22; }
+.nivel-chip.prata { background: #e9ecf0; color: #4f5b68; }
+.nivel-chip.ouro { background: #fbe9c9; color: #8a5a10; }
+.nivel-chip.grande { font-size: .9rem; padding: 6px 14px; }
+.nivel-chip.grande .i { width: 18px; height: 18px; }
+
+/* cartão do saldo (Minha conta) */
+.cb-card { position: relative; overflow: hidden; background: linear-gradient(135deg, var(--forno), #3b2a22); color: #fff; border-radius: 20px; padding: 20px; box-shadow: var(--sombra-2); }
+.cb-card::after { content: ""; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(217,154,61,.14); pointer-events: none; }
+.cb-card .topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cb-card .clube { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--pedra-clara); display: inline-flex; align-items: center; gap: 6px; }
+.cb-card .clube .i { width: 16px; height: 16px; color: var(--queijo); }
+.cb-card .saldo { font-family: var(--fonte-titulo); font-size: clamp(2.2rem, 9vw, 2.8rem); line-height: 1.1; margin: 12px 0 2px; color: var(--queijo); }
+.cb-card .saldo-txt { color: #e9e2d8; font-size: .95rem; }
+.cb-card .venc { margin-top: 12px; font-size: .85rem; color: #e9e2d8; display: flex; align-items: center; gap: 6px; }
+.cb-card .venc .i { width: 16px; height: 16px; color: var(--queijo); }
+.cb-card .venc.urgente { color: #ffb4a3; }
+.cb-card .venc.urgente .i { color: #ffb4a3; }
+.cb-card .nivel-chip.bronze { background: rgba(255,255,255,.12); color: #f2c9a6; }
+.cb-card .nivel-chip.prata { background: rgba(255,255,255,.14); color: #e6ebf0; }
+.cb-card .nivel-chip.ouro { background: rgba(217,154,61,.2); color: #f3cf85; }
+.cb-card .tel { font-size: .8rem; color: var(--pedra-clara); margin-top: 6px; }
+/* progresso de nível */
+.progresso { margin-top: 14px; }
+.progresso .txt { display: flex; justify-content: space-between; gap: 10px; font-size: .82rem; margin-bottom: 6px; color: #e9e2d8; }
+.progresso .barra { height: 8px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
+.progresso .barra i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--queijo), #f3cf85); transition: width .4s ease-out; min-width: 6px; }
+.progresso.topo .barra i { background: linear-gradient(90deg, #f3cf85, #fff2cc); }
+
+/* ações da conta */
+.acoes-conta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.acoes-conta .btn { padding-inline: 12px; }
+.regras-curtas { display: grid; gap: 8px; margin-top: 4px; }
+.regras-curtas li { list-style: none; display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; color: var(--texto-2); }
+.regras-curtas li .i { width: 18px; height: 18px; color: var(--tomate); flex: none; margin-top: 2px; }
+.regras-curtas li b { color: var(--texto); }
+
+/* histórico de movimentos */
+.movs { display: grid; }
+.mov { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--linha); }
+.mov:last-child { border-bottom: 0; }
+.mov .ic { width: 38px; height: 38px; border-radius: 50%; background: var(--creme-2); color: var(--texto-2); display: grid; place-items: center; }
+.mov .ic .i { width: 18px; height: 18px; }
+.mov.mais .ic { background: #e9f4ea; color: var(--verde-ok); }
+.mov.menos .ic { background: #fdf1ec; color: var(--tomate); }
+.mov.neutro .ic { background: var(--creme-2); color: var(--pedra); }
+.mov b { display: block; font-size: .92rem; }
+.mov small { display: block; color: var(--texto-2); font-size: .78rem; }
+.mov .val { font-weight: 700; white-space: nowrap; font-size: .95rem; }
+.mov.mais .val { color: var(--verde-ok); }
+.mov.menos .val { color: var(--tomate); }
+.mov.neutro .val { color: var(--texto-2); text-decoration: line-through; }
+.vazio-movs { text-align: center; color: var(--texto-2); padding: 18px 0; font-size: .9rem; }
+.links-conta { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; margin-top: 16px; }
+.links-conta button, .links-conta a { color: var(--texto-2); font-size: .88rem; font-weight: 600; min-height: 44px; min-width: 44px; padding: 0 8px; justify-content: center; display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 3px; }
+
+/* entrada (celular + PIN) */
+.campo input.pin { letter-spacing: .5em; font-weight: 700; font-size: 1.25rem; text-align: center; padding-left: calc(13px + .5em); }
+.campo input.pin::placeholder { letter-spacing: .3em; font-weight: 400; color: var(--pedra-clara); }
+.entrar-cab { text-align: center; padding: 8px 0 14px; }
+.entrar-cab .ic { width: 64px; height: 64px; border-radius: 50%; background: #fdf1ec; color: var(--tomate); display: grid; place-items: center; margin: 0 auto 10px; }
+.entrar-cab .ic .i { width: 30px; height: 30px; stroke-width: 1.75; }
+.entrar-cab h2 { margin-bottom: 4px; }
+.beneficios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 4px; }
+.beneficio { background: var(--creme); border-radius: var(--raio-sm); padding: 10px 8px; text-align: center; font-size: .78rem; color: var(--texto-2); line-height: 1.3; }
+.beneficio b { display: block; color: var(--tomate); font-size: 1rem; font-family: var(--fonte-titulo); }
+.skeleton-conta { display: grid; gap: 12px; }
+.skeleton-conta .skeleton { min-height: 0; }
+
+/* regulamento (sheet) */
+.niveis-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 14px; }
+.nivel-box { border-radius: var(--raio-sm); padding: 12px 6px; text-align: center; display: grid; gap: 2px; justify-items: center; }
+.nivel-box .i { width: 24px; height: 24px; }
+.nivel-box b { font-size: .9rem; }
+.nivel-box span { font-family: var(--fonte-titulo); font-size: 1.3rem; font-weight: 700; }
+.nivel-box small { font-size: .7rem; line-height: 1.25; opacity: .85; }
+.nivel-box.bronze { background: #f3e2d3; color: #8a4f22; }
+.nivel-box.prata { background: #e9ecf0; color: #4f5b68; }
+.nivel-box.ouro { background: #fbe9c9; color: #8a5a10; }
+.regulamento { padding-left: 20px; display: grid; gap: 10px; font-size: .9rem; color: var(--texto-2); }
+.regulamento li::marker { color: var(--tomate); font-weight: 700; }
+.regulamento b { color: var(--texto); }
+
+/* bloco de cashback no checkout */
+.cb-bloco { border: 1.5px solid #c4e0c8; background: #f2f9f3; border-radius: var(--raio-sm); padding: 12px 14px; display: grid; gap: 8px; }
+.cb-bloco .linha { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; color: #2b5e35; }
+.cb-bloco .linha .i { width: 20px; height: 20px; flex: none; margin-top: 1px; color: var(--verde-ok); }
+.cb-bloco .linha b { color: #1f4a28; }
+.cb-bloco .switch-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; cursor: pointer; }
+.cb-bloco .switch-linha > span { font-weight: 600; font-size: .92rem; }
+.switch { position: relative; width: 48px; height: 28px; flex: none; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch i { position: absolute; inset: 0; border-radius: 999px; background: var(--pedra-clara); transition: background .18s; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .18s; }
+.switch input:checked + i { background: var(--verde-ok); }
+.switch input:checked + i::after { transform: translateX(20px); }
+.switch input:focus-visible + i { outline: 3px solid var(--queijo); outline-offset: 2px; }
+.cb-bloco .pin-linha { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.cb-bloco .pin-linha .campo { margin-bottom: 0; }
+.cb-bloco .pin-linha .btn { min-height: 46px; }
+.cb-bloco .usar-ok { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: .9rem; background: #fff; border-radius: 8px; padding: 8px 12px; }
+.cb-bloco .usar-ok b { color: var(--verde-ok); }
+.cb-bloco .rodape { font-size: .78rem; color: var(--texto-2); }
+.cb-bloco .rodape button, .cb-bloco .rodape a { text-decoration: underline; font-weight: 600; color: var(--texto-2); min-height: 44px; display: inline-flex; align-items: center; }
+.totais .cashback { color: var(--verde-ok); }
+.totais .ganho { font-size: .85rem; color: var(--verde-ok); display: flex; gap: 6px; align-items: center; justify-content: flex-start; }
+.totais .ganho .i { width: 16px; height: 16px; }
+.cb-ganho-sacola { display: flex; gap: 6px; align-items: center; font-size: .85rem; color: var(--verde-ok); margin-top: 6px; }
+.cb-ganho-sacola .i { width: 16px; height: 16px; }
+
+/* banner do Clube (home e página do pedido) */
+.clube-banner { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; background: linear-gradient(135deg, var(--forno), #3b2a22); color: #fff; border-radius: var(--raio); padding: 14px 16px; box-shadow: var(--sombra); }
+.clube-banner .ic { width: 48px; height: 48px; border-radius: 50%; background: rgba(217,154,61,.18); color: var(--queijo); display: grid; place-items: center; }
+.clube-banner .ic .i { width: 24px; height: 24px; }
+.clube-banner b { display: block; font-size: .98rem; }
+.clube-banner b em { font-style: normal; color: var(--queijo); }
+.clube-banner small { display: block; color: var(--pedra-clara); font-size: .8rem; }
+.clube-banner .acoes { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; }
+.clube-banner .btn-sm { white-space: nowrap; }
+.clube-banner .btn-ghost { color: #fff; }
+/* card de cashback na página do pedido */
+.cb-pedido { display: flex; gap: 12px; align-items: flex-start; border-radius: var(--raio-sm); padding: 12px 14px; margin: 12px 0 0; font-size: .92rem; line-height: 1.35; }
+.cb-pedido .i { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+.cb-pedido b { display: block; }
+.cb-pedido small { display: block; opacity: .85; margin-top: 2px; }
+.cb-pedido.previsto { background: #fff7e6; color: #7a5a10; border: 1px solid #f3dfae; }
+.cb-pedido.previsto .i { color: var(--queijo); }
+.cb-pedido.creditado { background: #e9f4ea; color: #2b5e35; border: 1px solid #c4e0c8; }
+.cb-pedido.creditado .i { color: var(--verde-ok); }
+.cb-pedido .btn { margin-top: 10px; }
+.criar-pin { margin-top: 12px; border: 1.5px dashed var(--pedra-clara); border-radius: var(--raio-sm); padding: 14px; background: var(--creme); }
+.criar-pin h3 { margin: 0 0 4px; display: flex; gap: 6px; align-items: center; }
+.criar-pin h3 .i { color: var(--tomate); }
+.criar-pin p { font-size: .85rem; color: var(--texto-2); margin-bottom: 10px; }
+.criar-pin .linha-campos { grid-template-columns: 1fr 1fr; }
+
+@media (max-width: 760px) {
+  .clube-banner { grid-template-columns: 44px 1fr; }
+  .clube-banner .acoes { grid-column: 1 / -1; }
+  .clube-banner .acoes .btn { flex: 1; }
+}
+@media (max-width: 420px) {
+  .acoes-conta { grid-template-columns: 1fr; }
+  .cb-bloco .pin-linha { grid-template-columns: 1fr; }
+  .cb-bloco .pin-linha .btn { width: 100%; }
+}

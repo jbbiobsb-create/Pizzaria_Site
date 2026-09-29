@@ -63,6 +63,28 @@ navegador (`display: standalone`), cache offline e avisos por push do status do 
   assume (`SKIP_WAITING`) e a página recarrega. `sw.js` é servido com `Cache-Control: no-cache` (`vercel.json`).
 - **Checar instalabilidade**: Chrome → DevTools → Application → Manifest ("Installability") e Service Workers (testar "Offline").
 
+## Conta e cashback no site (Clube Sesconetto's)
+
+Programa de fidelidade sem cadastro: a identidade é o celular do pedido e o acesso ao saldo é por PIN de 4 dígitos.
+Os parâmetros vêm de `config.fidelidade` (`{ativo, validade_dias, min_resgate, max_pct_pedido, niveis:[{nome, min_pedidos_90d, pct}]}`),
+que chega ao front pelo `cardapio()`; com `ativo=false` nada aparece no site. Lógica compartilhada em `js/fidelidade.js`
+(cálculo da prévia, uso máximo, textos, regulamento, "esqueci o PIN", "trocar PIN"); RPCs em `js/api.js` (`fidelidade*`).
+
+- **Acumular**: todo pedido entregue e pago credita `pct` do nível (Bronze 5 % · Prata 7 % · Ouro 10 %, pelo nº de pedidos
+  entregues em 90 dias) sobre `subtotal − cupom − cashback usado` (taxa fora), truncado no centavo, válido por 90 dias.
+  A sacola e o checkout mostram a prévia ("você ganha R$ X quando o pedido for entregue").
+- **Criar PIN** (`pedido.html?id=…`): o card "Crie seu PIN" aparece quando o celular do pedido ainda não tem PIN; a prova de
+  posse é o UUID do pedido (`fidelidade_criar_pin`). Depois de entregue, a página mostra "R$ X creditados" e o botão "Ver meu saldo".
+- **Ver saldo** (`conta.html`, aba Conta): celular + PIN → `fidelidade_saldo` devolve saldo, nível, progresso para o próximo
+  nível, próximo vencimento e histórico. Só o celular fica salvo no aparelho (`LS.fidelidadeTel`); o PIN é pedido a cada visita.
+  Erros de PIN mostram as tentativas restantes; 5 erros bloqueiam por 15 min. "Esqueci meu PIN" abre o WhatsApp com mensagem
+  pronta (a equipe reseta pelo painel e o cliente cria outro pelo link do último pedido). "Trocar PIN" usa `fidelidade_trocar_pin`.
+- **Usar no checkout**: ao preencher o celular, `fidelidade_resumo` (sem saldo) diz se há PIN. Com PIN, o toggle "Usar meu
+  cashback" pede o PIN, consulta o saldo e aplica `min(saldo, max_pct_pedido % dos produtos)` (só se saldo ≥ `min_resgate`);
+  o pedido vai com `usar_cashback: true, pin`. Se o servidor recusar o PIN, `criar_pedido` responde `{ok:false, erro}` e o
+  checkout mostra o erro no bloco do cashback sem perder o formulário. O valor exato vem do servidor em `cashback_usado`.
+- **Home**: banner "Ganhe 5 % a 10 % de cashback" → sheet com níveis e regulamento resumido; "Ver meu saldo" se houver celular salvo.
+
 ## Painel da equipe
 
 Acesse `/admin` com o e-mail e senha cadastrados no Supabase (Authentication → Users).

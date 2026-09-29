@@ -41,6 +41,11 @@
           <div class="campo" data-troco hidden style="margin-top:12px"><label for="ck-troco">Troco para quanto?</label><input id="ck-troco" name="troco_para" inputmode="decimal" placeholder="Ex.: 100"><span class="small muted">Deixe em branco se não precisar de troco.</span></div>
           <p class="aviso" data-aviso-pix hidden style="margin-top:12px">Você recebe a chave Pix na tela de confirmação. Envie o comprovante pelo WhatsApp para agilizar.</p>
         </div>
+        <!-- Clube Sesconetto's: aparece quando o programa está ativo e o celular foi preenchido (js/pages/checkout.js) -->
+        <div class="painel" data-painel-cashback hidden>
+          <h2><span class="ic-w" data-icone="presente"></span> Cashback</h2>
+          <div data-cashback></div>
+        </div>
         <label class="check" style="margin: 4px 0 8px"><input type="checkbox" name="aceite" required> Confirmo que os dados estão corretos e que li o horário e a área de entrega.</label>
       </div>
       <div class="sticky-lateral">
@@ -50,8 +55,10 @@
           <div class="totais">
             <div><span>Subtotal</span><span data-subtotal></span></div>
             <div class="desconto" data-linha-desconto hidden><span>Desconto (<span data-cupom-nome></span>)</span><span data-desconto></span></div>
+            <div class="cashback" data-linha-cashback hidden><span>Cashback usado</span><span data-cashback-usado></span></div>
             <div><span>Taxa de entrega</span><span data-taxa></span></div>
             <div class="total"><span>Total</span><span data-total></span></div>
+            <div class="ganho" data-linha-ganho hidden></div>
           </div>
           <p class="small muted" data-quando style="margin-top:8px"></p>
           <div class="aviso erro" data-erro hidden style="margin-top:12px"></div>

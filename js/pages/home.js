@@ -5,6 +5,23 @@ import * as cart from '../cart.js';
 import { qs, qsa, esc, resumoHorario, whatsappLink, brl, toast } from '../util.js';
 import { icone } from '../icons.js';
 import { itensDoUltimoPedido, repetirItens, mensagemRepetir, resumoItens } from '../repetir.js';
+import { cfgFidelidade, programaAtivo, nivelBase, nivelTopo, telefoneSalvo, abrirRegulamento } from '../fidelidade.js';
+
+// chamada do Clube Sesconetto's (cashback), quando o programa está ativo
+function montarClube(c) {
+  if (!programaAtivo(c)) return;
+  const F = cfgFidelidade(c); const b = nivelBase(F); const t = nivelTopo(F);
+  const tel = telefoneSalvo();
+  qs('[data-clube-banner]').innerHTML = `
+    <div class="ic">${icone('presente')}</div>
+    <div style="min-width:0"><b>Ganhe <em>${esc(b.pct)}% a ${esc(t.pct)}% de cashback</em> em todo pedido</b><small>Clube Sesconetto's: sem cadastro, sem app. Parte do que você paga volta para a próxima pizza.</small></div>
+    <div class="acoes">
+      <button type="button" class="btn btn-sm btn-light" data-clube-regras>Saiba mais</button>
+      ${tel ? `<a class="btn btn-sm btn-ghost" href="conta.html">${icone('moeda')} Ver meu saldo</a>` : ''}
+    </div>`;
+  qs('[data-clube]').hidden = false;
+  qs('[data-clube-regras]').addEventListener('click', () => abrirRegulamento(F));
+}
 
 montarLayout({ pagina: 'home' });
 montarFooter();
@@ -46,7 +63,8 @@ qsa('[data-pedir]').forEach((a) => a.addEventListener('click', (ev) => {
   try {
     const d = await carregarCardapio();
     const c = d.config;
-    const mais = d.sabores.filter((s) => s.tags?.includes('mais-pedida') && s.disponivel).slice(0, 6);
+    montarClube(c);
+    const mais =d.sabores.filter((s) => s.tags?.includes('mais-pedida') && s.disponivel).slice(0, 6);
     const maisProd = d.produtos.filter((p) => p.tags?.includes('mais-pedida') && p.disponivel && p.categoria !== 'combos').slice(0, 2);
     const grade = qs('[data-mais-pedidas]');
     grade.innerHTML = mais.map(cardSabor).join('') + maisProd.map(cardProduto).join('');

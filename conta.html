@@ -21,13 +21,14 @@
 <body>
   <main>
     <div class="container" style="max-width:720px;padding:24px 16px 40px" data-raiz>
-      <div class="painel">
-        <h2>Minha conta</h2>
-        <p class="muted small" style="margin-bottom:14px">Seus pedidos e seus dados, sem cadastro.</p>
-        <div style="display:grid;gap:10px">
-          <a class="btn btn-outline btn-block" href="pedido.html"><span data-icone="relogio"></span> Acompanhar pedido</a>
-        </div>
-      </div>
+      <!-- js/pages/conta.js monta aqui: entrada (celular + PIN) ou o painel do cashback -->
+      <div class="painel"><div class="skeleton-conta" aria-busy="true" aria-label="Carregando">
+        <div class="skeleton" style="height:64px;width:64px;border-radius:50%;margin:8px auto 4px"></div>
+        <div class="skeleton" style="height:22px;width:60%;margin:0 auto"></div>
+        <div class="skeleton" style="height:46px"></div>
+        <div class="skeleton" style="height:46px"></div>
+        <div class="skeleton" style="height:52px;border-radius:999px"></div>
+      </div></div>
     </div>
   </main>
   <script type="module" src="js/pages/conta.js"></script>

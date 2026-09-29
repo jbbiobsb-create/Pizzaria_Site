@@ -251,6 +251,17 @@ function sheetHTML(id, { titulo, sub = '', corpo, rodape = '' }) {
   </div>`;
 }
 
+// cria (uma vez) um sheet dinâmico com a estrutura padrão e devolve o elemento.
+// Usado por js/fidelidade.js (regulamento, esqueci o PIN, trocar PIN). Abrir com abrirModal(id).
+export function criarSheet(id, opts) {
+  let el = qs('#' + id);
+  if (el) return el;
+  document.body.insertAdjacentHTML('beforeend', sheetHTML(id, opts));
+  el = qs('#' + id);
+  habilitarArraste(el);
+  return el;
+}
+
 // ------------------------------------------------------------------
 // Modal entrega / retirada
 // ------------------------------------------------------------------

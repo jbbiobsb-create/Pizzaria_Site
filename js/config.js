@@ -14,6 +14,8 @@ export const LS = {
   visitas: 'ses_visitas',                 // contagem de visitas (banner de instalação só a partir da 2ª)
   instalarDispensado: 'ses_instalar_dispensado', // timestamp de quando o banner foi dispensado (14 dias)
   pushPedidos: 'ses_push_pedidos',        // ids dos pedidos com aviso por push ligado
+  // Clube (js/fidelidade.js): só o celular fica salvo; o PIN é pedido a cada consulta de saldo
+  fidelidadeTel: 'ses_fid_telefone',
 };
 
 // Chave pública VAPID (Web Push). A privada fica só no servidor (Vault do Supabase).
