@@ -1,0 +1,9 @@
+# Arquivos do repositório que NÃO devem ir para o site publicado
+# (código do banco, funções, skills de IA, documentação e dados de carga).
+.agents
+.claude
+supabase
+docs
+seed
+skills-lock.json
+README.md
