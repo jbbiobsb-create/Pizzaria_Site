@@ -66,3 +66,15 @@ e as mudanças de status feitas no PDV voltam para o site.
   então pedidos simultâneos não podem pedir um token cada um.
 - Painel: etiquetas de pagamento e de envio, botão **Pix recebido** (confirma Pix manual e envia) e
   **Reenviar à Saipos** quando o envio der erro.
+
+## Segurança e antifraude
+
+- **Painel só para a equipe**: quem pode usar o `/admin` está na tabela `equipe` (não basta ter conta no Supabase).
+  Para dar acesso a alguém: crie o usuário em Authentication → Users e rode
+  `insert into equipe (user_id, nome) select id, 'Nome' from auth.users where email = 'pessoa@email.com';`.
+- **Pedidos** (`criar_pedido`, migração `0004`): no máximo 3 pedidos por celular e 5 por IP a cada 15 min; no máximo 2
+  pedidos aguardando pagamento por celular; combos só aceitam as opções configuradas; cupom com `uso_por_cliente`
+  (padrão 1 por celular); troco coerente com o total; limites de tamanho em nome, observações e itens.
+- **Privacidade**: a busca por celular mostra só status e resumo (sem link); os detalhes do pedido abrem só pelo link.
+- **Webhook Saipos**: exige a chave da URL e o `cod_store` da loja.
+- **Cabeçalhos** (`vercel.json`): CSP, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`; `/admin` sem cache e fora do Google.

@@ -29,6 +29,10 @@ Deno.serve(async (req) => {
   if (!s?.SAIPOS_WEBHOOK_KEY || key !== s.SAIPOS_WEBHOOK_KEY) return json({ erro: "não autorizado" }, 401);
 
   const payload = await req.json().catch(() => null);
+  if (!payload || String(payload.cod_store || "") !== s.SAIPOS_COD_STORE) {
+    await db.from("saipos_eventos").insert({ evento: String(payload?.event || ""), payload, resultado: "recusado: cod_store diferente" });
+    return json({ erro: "loja inválida" }, 403);
+  }
   const evento = String(payload?.event || "").toUpperCase();
   const orderId = String(payload?.order_id || "");
   const pedidoId = UUID.test(orderId) ? orderId : null;

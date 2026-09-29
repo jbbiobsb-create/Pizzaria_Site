@@ -23,6 +23,13 @@ qs('[data-sair]').addEventListener('click', () => supabase.auth.signOut());
 
 function sair() { $login.hidden = false; $app.hidden = true; if (canal) { supabase.removeChannel(canal); canal = null; } clearInterval(timerPoll); }
 async function entrar(sessao) {
+  // só quem está na tabela "equipe" usa o painel (o banco também bloqueia pelas políticas RLS)
+  const { data: ok } = await supabase.rpc('is_equipe');
+  if (!ok) {
+    await supabase.auth.signOut();
+    const erro = qs('[data-login] [data-erro]'); erro.textContent = 'Este usuário não tem acesso ao painel.'; erro.hidden = false;
+    return;
+  }
   $login.hidden = true; $app.hidden = false;
   qs('[data-usuario]').textContent = sessao.user.email;
   await carregarConfig();
@@ -207,12 +214,13 @@ function abrirDetalhe(id) {
     </div>
     ${p.observacoes ? `<p class="aviso aviso-ic" style="margin-top:8px">${icone('nota')}<span>${esc(p.observacoes)}</span></p>` : ''}
     <p class="small muted" style="margin-top:10px">${(p.status_historico || []).map((h) => `${STATUS[h.status]?.rotulo || h.status} ${horaBR(h.em)}`).join(' → ')}</p>
-    <div class="acoes no-print"><button class="btn btn-outline" onclick="window.print()">${icone('impressora')} Imprimir</button></div>
+    <div class="acoes no-print"><button class="btn btn-outline" data-imprimir>${icone('impressora')} Imprimir</button></div>
   </div>`;
   qsa('#modal-pedido [data-st]').forEach((b) => b.addEventListener('click', () => mudarStatus(b.dataset.id, b.dataset.st)));
   qs('#modal-pedido').classList.add('aberto');
 }
 document.addEventListener('click', (ev) => { if (ev.target.matches('[data-fechar]') || ev.target.classList.contains('modal-bg')) qs('#modal-pedido').classList.remove('aberto'); });
+document.addEventListener('click', (ev) => { if (ev.target.closest('[data-imprimir]')) window.print(); });
 
 // ------------------------------------------------------------------ cardápio
 async function carregarCardapio() {

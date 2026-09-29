@@ -97,8 +97,10 @@ function montarBusca() {
     const lista = qs('[data-lista]'); lista.innerHTML = '<p class="muted small">Buscando…</p>';
     try {
       const ps = await pedidosPorTelefone(inp.value);
-      lista.innerHTML = ps.length ? ps.map((p) => `<a href="pedido.html?id=${esc(p.id)}"><b>#${p.numero} · ${esc(STATUS[p.status]?.rotulo || p.status)}</b><small>${dataHoraBR(p.criado_em)} · ${brl(p.total)} · ${esc(p.resumo || '')}</small></a>`).join('')
-        : '<p class="muted small">Nenhum pedido nos últimos 30 dias com esse celular.</p>';
+      // sem link: o id do pedido só fica com quem fez o pedido (evita ver endereço de terceiros pelo celular)
+      lista.innerHTML = ps.length ? ps.map((p) => `<div class="item"><b>#${esc(p.numero)} · ${esc(STATUS[p.status]?.rotulo || p.status)}</b><small>${dataHoraBR(p.criado_em)} · ${brl(p.total)} · ${esc(p.resumo || '')}</small></div>`).join('')
+        + '<p class="muted small" style="margin-top:8px">Para ver os detalhes, abra o link do pedido neste aparelho ou fale com a gente pelo WhatsApp.</p>'
+        : '<p class="muted small">Nenhum pedido nos últimos 2 dias com esse celular.</p>';
     } catch { lista.innerHTML = '<p class="aviso erro">Não foi possível buscar agora.</p>'; }
   });
   if (inp.value) form.requestSubmit();
