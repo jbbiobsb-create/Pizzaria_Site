@@ -889,3 +889,77 @@ body.modal-aberto #toast-atualizar { bottom: auto !important; top: calc(16px + e
   .cb-bloco .pin-linha { grid-template-columns: 1fr; }
   .cb-bloco .pin-linha .btn { width: 100%; }
 }
+
+/* =====================================================================
+   Fluxo encurtado (auditoria de conversão): estilo mínimo dos elementos novos.
+   Só layout, reutilizando tokens; o redesign visual (DESIGN.md) estiliza estas classes.
+   ===================================================================== */
+/* chips de tamanho no card de pizza: cada um adiciona a pizza inteira em 1 toque */
+.card .rodape-pizza { flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.tamanho-chips { position: relative; z-index: 1; display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-tamanho { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--linha); background: #fff; font-size: .82rem; font-weight: 600; color: var(--texto); }
+.chip-tamanho b { color: var(--tomate); }
+.chip-tamanho:last-child { border-color: var(--tomate); }
+.chip-tamanho.ok { background: var(--verde-ok); border-color: var(--verde-ok); color: #fff; }
+.chip-tamanho.ok .i { width: 16px; height: 16px; }
+.chip-tamanho:active { transform: scale(.97); }
+.card .card-mais { position: relative; z-index: 1; font-size: .8rem; color: var(--texto-2); text-decoration: underline; text-underline-offset: 3px; min-height: 44px; display: inline-flex; align-items: center; margin-left: auto; }
+/* hero curto no celular: "Mais pedidas" cabe na 1ª tela */
+@media (max-width: 760px) {
+  .hero-curto { min-height: auto; }
+  .hero-curto .container { padding: 26px 0 22px; }
+  .hero-curto h1 { font-size: clamp(1.7rem, 7vw, 2.1rem); }
+  .hero-curto .eyebrow { margin-bottom: 12px; }
+  .hero-curto .hero-info { margin-top: 14px; font-size: .82rem; }
+  .produto .foto-grande { max-height: 180px; }
+  .produto .metades { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .produto .metade { padding-right: 40px; min-width: 0; }
+  .produto .metade b { overflow-wrap: anywhere; }
+}
+.hero-info.prova a { color: #fff; }
+/* "Pedir de novo" no topo (recorrente) */
+.repetir-completo { grid-template-columns: 1fr; }
+.repetir-completo .btn { width: 100%; }
+.repetir-completo small { white-space: normal; }
+.repetir-completo .link-acao { justify-content: center; color: var(--texto-2); text-decoration: underline; text-underline-offset: 3px; }
+/* tela "Fechar pedido" */
+.titulo-pagina { font-size: 1.5rem; margin: 4px 0 12px; }
+.link-mais-itens { margin-top: 6px; color: var(--tomate); font-weight: 600; }
+.endereco-lembrado { background: var(--creme); border-radius: var(--raio-sm); padding: 12px 14px; margin-top: 12px; display: grid; gap: 10px; }
+.endereco-lembrado b { display: block; font-size: .95rem; }
+.endereco-lembrado small { color: var(--texto-2); font-size: .82rem; }
+.endereco-lembrado .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.acoes-entrega { margin-top: 4px; }
+.erro-msg:not([hidden]) { display: block; }
+.quando { margin-top: 12px; border-top: 1px dashed var(--linha); padding-top: 10px; }
+.quando [data-quando-txt] { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 32px; }
+.quando [data-quando-txt] .i { width: 18px; height: 18px; color: var(--tomate); }
+.quando .detalhe[open] summary { display: none; }
+.quando .detalhe [data-agendar] { margin-top: 6px; }
+.pagamento-opcoes .opcao { min-height: 60px; }
+.opcionais { display: grid; gap: 4px; }
+.faixa-completa .completa-lista { display: grid; gap: 8px; }
+.completa-item { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; padding: 6px 0; }
+.completa-item img, .completa-item .ph { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: var(--creme-2); display: grid; place-items: center; color: var(--pedra-clara); }
+.completa-item .txt { min-width: 0; display: grid; }
+.completa-item .txt b { font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.completa-item .txt .p { color: var(--tomate); font-weight: 700; font-size: .85rem; }
+.completa-item .add { position: relative; z-index: 1; width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--tomate); color: #fff; display: grid; place-items: center; }
+.completa-item .add .i { width: 22px; height: 22px; stroke-width: 2.5; }
+.completa-item .add.ok { background: var(--verde-ok); }
+.barra-fixa .falta.pronto { color: var(--pedra-clara); }
+/* pedido confirmado: Pix no topo */
+.pix-topo h2 { color: var(--tomate); }
+.acoes-pix { display: grid; gap: 8px; margin-top: 8px; }
+.acoes-pix .btn { width: 100%; white-space: normal; }
+/* faixa "fechamos às" (urgência real) */
+.faixa-fechando { background: #fdf1ec; color: #93361f; border-bottom-color: #f5c6c0; }
+/* toast com ação ("Ver sacola") */
+.toast.toast-acao { pointer-events: auto; }
+.toast.toast-acao span { white-space: normal; text-align: left; }
+.toast.toast-acao .btn { flex: none; }
+/* configurador: tamanhos em 2 chips na mesma linha */
+.tamanho-chips-config { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.tamanho-chips-config .opcao { min-width: 0; overflow-wrap: anywhere; }
+.tamanho-chips-config .opcao b .tag { margin-left: 4px; vertical-align: middle; white-space: nowrap; }
+@media (max-width: 420px) { .tamanho-chips-config .opcao { padding-left: 30px; } .tamanho-chips-config .opcao::before { left: 9px; } }

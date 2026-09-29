@@ -1,8 +1,9 @@
 # Sesconetto's Pizzeria — site de pedidos
 
-Site próprio de pedidos da Sesconetto's (pizza napolitana, Vicente Pires/DF), inspirado no fluxo
-de compra da Domino's: entrega ou retirada → cardápio → monte a pizza (até 2 sabores) → pedido →
-pagamento → acompanhamento em tempo real. Sem cadastro para o cliente.
+Site próprio de pedidos da Sesconetto's (pizza napolitana, Vicente Pires/DF). Fluxo "pizza antes de
+logística": cardápio com preços sempre visíveis → pizza inteira em 1 toque (ou configurador para meio a meio)
+→ uma tela "Fechar pedido" (itens, entrega/retirada inline, dados, pagamento) → acompanhamento em tempo real.
+Sem cadastro para o cliente; endereço só é pedido na hora de fechar.
 
 ## Como funciona
 
@@ -15,14 +16,33 @@ pagamento → acompanhamento em tempo real. Sem cadastro para o cliente.
 
 | Arquivo | O que é |
 |---|---|
-| `index.html` | Home: hero, atalhos, mais pedidas, combos, nossa massa, contato |
-| `cardapio.html` | Cardápio com chips de categoria |
-| `produto.html?sabor=…` / `?meio=1` / `?p=…` | Configurador de pizza (tamanho + sabores) ou produto/combo |
-| `carrinho.html` | Pedido: itens, entrega/retirada, agora/agendar, cupom, totais |
-| `checkout.html` | Dados do cliente, observações, pagamento, confirmação |
-| `pedido.html?id=…` | Acompanhamento com linha do tempo, previsão em horário, WhatsApp/ligar (ou busca pelo celular) |
+| `index.html` | Home: "Pedir de novo" no topo (recorrente, botão "Repetir e confirmar"), hero curto com 1 CTA, "As mais pedidas" com chips de tamanho na 1ª tela, atalhos, combos, nossa massa, contato |
+| `cardapio.html` (`?cat=slug` mostra só uma categoria) | Cardápio com chips de categoria; card de pizza com chips "Bambina R$ X / Grande R$ Y" que adicionam em 1 toque |
+| `produto.html?sabor=…` / `?meio=1` / `?p=…` | Configurador de pizza (Grande pré-marcada, meio a meio, observações recolhidas) ou produto/combo; "Adicionar" vai direto para "Fechar pedido" |
+| `checkout.html` | **Fechar pedido** (tela única): itens editáveis → "Como você recebe?" inline (endereço lembrado com "Usar este", loja de retirada sugerida em 1 toque, agendar recolhido; loja fechada exige agendamento) → "Quem recebe" (nome/celular lembrados) → "Como você paga" (3 opções; última escolha marcada) → opcionais recolhidos (e-mail, observações, cupom, troco) → faixa "Completa com" → barra fixa "Confirmar pedido · total" com a pendência atual |
+| `carrinho.html` | Só redireciona para `checkout.html` (links antigos, atalho do PWA, cache do SW) |
+| `pedido.html?id=…&novo=1` | Acompanhamento: bloco Pix no topo (chave copiável, valor, comprovante no WhatsApp) quando o pagamento é Pix, status, previsão em horário, linha do tempo, WhatsApp/ligar, "Pedir de novo" (ou busca pelo celular) |
 | `conta.html` | Minha conta (aba "Conta" da tab bar) |
 | `admin/` | Painel da equipe: pedidos em tempo real, loja, cardápio, cupons |
+
+## Fluxo de compra (conversão)
+
+Princípios (auditoria `aud-conversao.md`): pizza antes de logística, uma pergunta em um só lugar, padrão inteligente sempre
+editável, obrigatório visível e opcional recolhido, upsell sem bloquear, sem checkbox de aceite (texto legal abaixo do botão).
+
+- **Entrega/retirada** é um componente único (`entregaHTML()` + `montarEntrega()` em `js/ui.js`) usado inline em `checkout.html`
+  e dentro do bottom sheet (pill "Informar endereço" do subheader, "trocar"). "Entrega" já vem aberta; a taxa é calculada sozinha
+  quando rua, número e bairro estão preenchidos (`calcular_entrega`), e o último endereço fica em `LS.enderecoLembrado` para "Usar este".
+  "Retirar na loja" já escolhe a loja sugerida (mais perto do endereço lembrado ou a principal); a lista permite trocar.
+- **Chips de tamanho** no card (`js/cards.js` `cardSabor`, `[data-add-pizza][data-tamanho]`): mostram os dois preços reais (sem
+  "a partir de") e adicionam a pizza inteira; o corpo do card abre o configurador. Toast "X na sacola" com ação "Ver sacola".
+- **Barra fixa** do cardápio/home: "N · Fechar pedido · R$ X" → `checkout.html`. Na tela de fechamento a barra mostra o total e a
+  primeira pendência ("Falta o endereço", "Falta seu nome", "Escolha como paga"…); sem pendência, o texto legal.
+- **Gatilhos honestos**: tag "Mais pedida", "desde 2022 · 3 lojas", "Aberto agora · fecha às 23:30", faixa "Fechamos às HH:MM" só
+  quando faltam menos de 60 min, Grande pré-marcada com o motivo, cashback com frame de perda ("Não perca R$ X de volta"). Nada de contador falso.
+- **Instrumentação** (`track(evento, dados)` em `js/util.js`): grava em `localStorage.ses_eventos` (últimos 200) e `console.debug`.
+  Eventos: `ver_cardapio`, `add_item {origem: card|configurador|faixa|repetir}`, `abrir_fechar_pedido`, `endereco_ok`,
+  `pagamento_escolhido`, `confirmar`, `pedido_ok`, `pix_copiado`. Sem serviço externo.
 
 ## UX mobile ("cara de app")
 
@@ -31,7 +51,8 @@ pagamento → acompanhamento em tempo real. Sem cadastro para o cliente.
 - Cardápio: chips de categoria fixos com scroll-spy (`js/pages/cardapio.js`), busca sem acento (lupa ao lado dos chips), "Adicionar" rápido
   com stepper nos produtos simples (`js/cards.js`); pizzas e combos abrem o configurador.
 - Modais são bottom sheets no celular (`.modal.sheet` em `js/ui.js`): puxador, arrastar para baixo fecha, `Esc`, corpo rolável e rodapé fixo com o CTA.
-- "Pedir de novo" (`js/repetir.js`): o checkout guarda os itens em `LS.ultimoPedido`; home, sacola vazia e acompanhamento reconstroem a sacola
+- "Pedir de novo" (`js/repetir.js`): o checkout guarda os itens em `LS.ultimoPedido` (com canal e pagamento); a home mostra o card no topo
+  com "Repetir e confirmar" (vai direto para "Fechar pedido" já completo), e sacola vazia/acompanhamento reconstroem a sacola
   revalidando cada item contra o cardápio atual (indisponível → aviso).
 - `pedido.html` tem um contêiner `[data-push]` (com `data-pedido-id`/`data-pedido-status`) reservado para o botão de aviso por push.
 
@@ -47,7 +68,7 @@ navegador (`display: standalone`), cache offline e avisos por push do status do 
 - **Cache** (`sw.js`): HTML/CSS/JS/manifest são *network-first* (cada visita busca a versão nova; sem rede cai no cache e, por fim,
   em `/offline`); imagens e fontes locais *stale-while-revalidate*; `esm.sh` e Google Fonts SWR em cache próprio.
   Supabase, ViaCEP, Nominatim, Google Maps e `/admin` **nunca** passam pelo cache.
-- **Como instalar**: Android/Chrome — banner "Instalar app" (aparece a partir da 2ª visita ou após um pedido; some por 14 dias
+- **Como instalar**: Android/Chrome — banner "Sesconetto's na sua tela" (aparece na página do pedido recém-enviado, a partir da 2ª visita ou após um pedido; some por 14 dias
   se dispensado) ou menu ⋮ → *Instalar app*. iPhone — Safari → Compartilhar → *Adicionar à Tela de Início* (o site mostra o
   passo a passo). Desktop Chrome/Edge — ícone de instalar na barra de endereço.
 - **Push (avisos do pedido)**: na página do pedido, o botão "Avisar quando sair para entrega" (retirada: "quando estiver pronto")

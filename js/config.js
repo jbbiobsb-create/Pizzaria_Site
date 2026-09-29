@@ -7,6 +7,7 @@ export const SUPABASE_KEY = 'sb_publishable_EfQE4zaak4S8FExCC676IA_PUT3OHAQ';
 export const LS = {
   carrinho: 'ses_carrinho',
   entrega: 'ses_entrega',
+  enderecoLembrado: 'ses_endereco',       // último endereço de entrega com taxa (para "Usar este" em 1 toque)
   cliente: 'ses_cliente',
   ultimoPedido: 'ses_ultimo_pedido',
   cardapio: 'ses_cardapio_cache',

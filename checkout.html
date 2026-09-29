@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Pagamento — Sesconetto's Pizzeria</title>
+  <title>Fechar pedido · Sesconetto's Pizzeria</title>
   <meta name="theme-color" content="#1f1b18">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32.png">
@@ -19,41 +19,78 @@
 </head>
 <body>
   <main>
-    <form class="container duas-colunas" id="form-checkout" novalidate>
+    <form class="container duas-colunas fechar-pedido" id="form-checkout" novalidate>
       <div>
-        <div class="painel">
-          <h2>Seus dados</h2>
-          <p class="muted small" style="margin-bottom:12px">Sem cadastro. Usamos o celular para você acompanhar o pedido.</p>
-          <div class="campo"><label for="ck-nome">Nome *</label><input id="ck-nome" name="nome" autocomplete="name" placeholder="Como devemos te chamar?" required></div>
-          <div class="linha-campos">
-            <div class="campo"><label for="ck-tel">Celular (WhatsApp) *</label><input id="ck-tel" name="telefone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(61) 99999-9999" required></div>
-            <div class="campo"><label for="ck-email">E-mail <span class="muted">opcional</span></label><input id="ck-email" name="email" type="email" autocomplete="email" autocapitalize="off" placeholder="voce@email.com"></div>
+        <h1 class="titulo-pagina">Fechar pedido</h1>
+        <!-- 1. itens editáveis -->
+        <div class="painel" data-painel-itens>
+          <div class="secao-titulo" style="margin-bottom:6px"><h2>Seu pedido</h2><button type="button" class="btn btn-ghost btn-sm" data-limpar hidden>Esvaziar</button></div>
+          <div data-itens></div>
+          <a class="link-acao small link-mais-itens" href="cardapio.html" data-mais-itens hidden><span class="ic-w" data-icone="mais"></span> Adicionar mais itens</a>
+        </div>
+        <!-- 2. como recebe (inline: chips + endereço lembrado / formulário / lojas) -->
+        <div class="painel" data-painel-entrega hidden>
+          <h2>Como você recebe?</h2>
+          <div data-entrega-inline></div>
+          <div class="quando" data-quando-bloco>
+            <p class="small" data-quando-txt></p>
+            <details class="detalhe" data-agendar-detalhe>
+              <summary><span class="ic-w" data-icone="calendario"></span> Agendar para mais tarde</summary>
+              <p class="small muted" data-agendar-titulo>Para quando?</p>
+              <div class="linha-campos" data-agendar>
+                <div class="campo"><label for="ag-dia">Dia</label><select id="ag-dia" data-ag-dia></select></div>
+                <div class="campo"><label for="ag-hora">Hora</label><select id="ag-hora" data-ag-hora></select></div>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" data-agendar-cancelar>Quero o mais rápido possível</button>
+            </details>
           </div>
         </div>
-        <div class="painel">
-          <h2 data-titulo-entrega>Entrega</h2>
-          <div class="resumo-entrega" data-resumo-entrega></div>
-          <div class="campo" style="margin-top:12px"><label for="ck-obs">Observações para a pizzaria <span class="muted">opcional</span></label><textarea id="ck-obs" name="observacoes" class="obs" placeholder="Ex.: interfone quebrado, deixar na portaria, pizza bem assada…" maxlength="300"></textarea></div>
+        <!-- 3. quem recebe (lembrado do último pedido) -->
+        <div class="painel" data-painel-cliente hidden>
+          <h2>Quem recebe</h2>
+          <p class="muted small" style="margin-bottom:12px">Sem cadastro. O celular serve para você acompanhar o pedido e falar com a gente.</p>
+          <div class="campo"><label for="ck-nome">Nome</label><input id="ck-nome" name="nome" autocomplete="name" placeholder="Como devemos te chamar?" required></div>
+          <div class="campo"><label for="ck-tel">Celular (WhatsApp)</label><input id="ck-tel" name="telefone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(61) 99999-9999" required></div>
+          <details class="detalhe" data-email-detalhe>
+            <summary><span class="ic-w" data-icone="mais"></span> E-mail (recibo)</summary>
+            <div class="campo"><label for="ck-email">E-mail <span class="muted">opcional</span></label><input id="ck-email" name="email" type="email" autocomplete="email" autocapitalize="off" placeholder="voce@email.com"></div>
+          </details>
         </div>
-        <div class="painel">
-          <h2>Pagamento</h2>
-          <div class="radio-lista" data-pagamentos></div>
+        <!-- 4. como paga (3 opções grandes; a última escolha vem marcada) -->
+        <div class="painel" data-painel-pagamento hidden>
+          <h2>Como você paga</h2>
+          <div class="radio-lista pagamento-opcoes" data-pagamentos></div>
           <div class="campo" data-troco hidden style="margin-top:12px"><label for="ck-troco">Troco para quanto?</label><input id="ck-troco" name="troco_para" inputmode="decimal" placeholder="Ex.: 100"><span class="small muted">Deixe em branco se não precisar de troco.</span></div>
-          <p class="aviso" data-aviso-pix hidden style="margin-top:12px">Você recebe a chave Pix na tela de confirmação. Envie o comprovante pelo WhatsApp para agilizar.</p>
+          <p class="aviso" data-aviso-pix hidden style="margin-top:12px">Pix: a chave aparece assim que você confirmar. Pague e mande o comprovante no WhatsApp, o pedido entra no forno quando a gente confirma.</p>
         </div>
         <!-- Clube Sesconetto's: aparece quando o programa está ativo e o celular foi preenchido (js/pages/checkout.js) -->
         <div class="painel" data-painel-cashback hidden>
           <h2><span class="ic-w" data-icone="presente"></span> Cashback</h2>
           <div data-cashback></div>
         </div>
-        <label class="check" style="margin: 4px 0 8px"><input type="checkbox" name="aceite" required> Confirmo que os dados estão corretos e que li o horário e a área de entrega.</label>
+        <!-- opcionais recolhidos -->
+        <div class="painel opcionais" data-painel-opcionais hidden>
+          <details class="detalhe" data-obs-detalhe>
+            <summary><span class="ic-w" data-icone="mais"></span> Observações para a pizzaria</summary>
+            <div class="campo"><label for="ck-obs">Observações</label><textarea id="ck-obs" name="observacoes" class="obs" placeholder="Ex.: portaria, interfone quebrado, bem assada" maxlength="300"></textarea></div>
+          </details>
+          <details class="detalhe" data-cupom-detalhe>
+            <summary><span class="ic-w" data-icone="mais"></span> Tem cupom?</summary>
+            <div class="cupom"><input placeholder="Digite o cupom" data-cupom-input maxlength="30" aria-label="Cupom de desconto"><button type="button" class="btn btn-outline btn-sm" data-cupom-btn>Aplicar</button></div>
+            <p class="small" data-cupom-msg style="margin-top:6px"></p>
+          </details>
+        </div>
+        <!-- upsell sem bloquear: 3 sugestões com "+" de 1 toque -->
+        <div class="painel faixa-completa" data-completa hidden>
+          <div class="secao-titulo" style="margin-bottom:6px"><h2>Completa com</h2><a href="cardapio.html?cat=bebidas">Mais bebidas <span class="ic-w" data-icone="chevron-dir"></span></a></div>
+          <div class="completa-lista" data-completa-lista></div>
+        </div>
       </div>
-      <div class="sticky-lateral">
+      <div class="sticky-lateral" data-painel-resumo hidden>
         <div class="painel">
-          <h2>Resumo do pedido</h2>
-          <div data-itens></div>
+          <h2>Resumo</h2>
           <div class="totais">
-            <div><span>Subtotal</span><span data-subtotal></span></div>
+            <div><span>Itens</span><span data-subtotal></span></div>
             <div class="desconto" data-linha-desconto hidden><span>Desconto (<span data-cupom-nome></span>)</span><span data-desconto></span></div>
             <div class="cashback" data-linha-cashback hidden><span>Cashback usado</span><span data-cashback-usado></span></div>
             <div><span>Taxa de entrega</span><span data-taxa></span></div>
@@ -61,17 +98,18 @@
             <div class="ganho" data-linha-ganho hidden></div>
           </div>
           <p class="small muted" data-quando style="margin-top:8px"></p>
+          <p class="small muted" data-aviso-minimo></p>
           <div class="aviso erro" data-erro hidden style="margin-top:12px"></div>
           <button class="btn btn-lg btn-block esconder-mobile" type="submit" data-confirmar style="margin-top:14px">Confirmar pedido</button>
-          <a class="btn btn-ghost btn-block" href="carrinho.html" style="margin-top:6px">Voltar à sacola</a>
+          <p class="small muted reasseguro" style="margin-top:10px">Deu algo errado? É só chamar no WhatsApp: a gente ajusta. Ao confirmar, você aceita o horário e a área de entrega.</p>
         </div>
       </div>
     </form>
   </main>
   <!-- CTA fixo (coluna única): dispara o submit do formulário -->
-  <div class="barra-fixa so-mobile" data-barra-confirmar>
+  <div class="barra-fixa so-mobile" data-barra-confirmar hidden>
     <div class="container">
-      <div class="total"><small>Total</small><b data-total-barra>—</b></div>
+      <div class="total"><small>Total</small><b data-total-barra>R$ 0,00</b></div>
       <button type="button" class="btn btn-lg btn-light" data-confirmar-barra disabled>Confirmar pedido</button>
     </div>
     <div class="container"><small class="falta" data-falta></small></div>

@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Minha sacola — Sesconetto's Pizzeria</title>
+  <title>Minha sacola · Sesconetto's Pizzeria</title>
+  <meta http-equiv="refresh" content="0; url=checkout.html">
+  <meta name="robots" content="noindex">
   <meta name="theme-color" content="#1f1b18">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32.png">
@@ -19,59 +21,8 @@
 </head>
 <body>
   <main>
-    <div class="container duas-colunas" data-raiz>
-      <div>
-        <div class="painel">
-          <div class="secao-titulo" style="margin-bottom:6px"><h2>Minha sacola</h2><button class="btn btn-ghost btn-sm" data-limpar>Limpar</button></div>
-          <div data-itens></div>
-        </div>
-        <div class="painel" data-painel-entrega>
-          <h2>Como você quer receber?</h2>
-          <div class="escolha-entrega" data-tipo-entrega>
-            <button type="button" data-tipo="entrega"><div class="ic" data-icone="moto"></div><div><b>Entrega</b><small data-tempo-entrega></small></div></button>
-            <button type="button" data-tipo="retirada"><div class="ic" data-icone="loja"></div><div><b>Retirar na loja</b><small data-tempo-retirada></small></div></button>
-          </div>
-          <div class="resumo-entrega" data-resumo-entrega></div>
-          <h3>Quando?</h3>
-          <div class="radio-lista">
-            <button type="button" class="opcao" data-quando="agora"><b>O mais rápido possível</b><small data-quando-agora-txt></small></button>
-            <button type="button" class="opcao" data-quando="agendar"><b>Agendar para mais tarde</b><small>Escolha o dia e a hora</small></button>
-          </div>
-          <div class="linha-campos" data-agendar hidden style="margin-top:12px">
-            <div class="campo"><label for="ag-dia">Dia</label><select id="ag-dia" data-ag-dia></select></div>
-            <div class="campo"><label for="ag-hora">Hora</label><select id="ag-hora" data-ag-hora></select></div>
-          </div>
-        </div>
-      </div>
-      <div class="sticky-lateral" data-painel-resumo>
-        <div class="painel">
-          <h2>Resumo</h2>
-          <h3>Cupom de desconto</h3>
-          <div class="cupom"><input placeholder="Digite o cupom" data-cupom-input maxlength="30" aria-label="Cupom de desconto"><button class="btn btn-outline btn-sm" data-cupom-btn>Aplicar</button></div>
-          <p class="small" data-cupom-msg style="margin-top:6px"></p>
-          <div class="totais">
-            <div><span>Subtotal</span><span data-subtotal>R$ 0,00</span></div>
-            <div class="desconto" data-linha-desconto hidden><span>Desconto</span><span data-desconto></span></div>
-            <div><span>Taxa de entrega</span><span data-taxa>—</span></div>
-            <div class="total"><span>Total</span><span data-total>R$ 0,00</span></div>
-          </div>
-          <p class="small muted" data-aviso-minimo style="margin-top:8px"></p>
-          <p class="cb-ganho-sacola" data-cashback-sacola hidden></p>
-          <div style="display:grid;gap:8px;margin-top:14px">
-            <button class="btn btn-lg esconder-mobile" data-continuar>Continuar para pagamento</button>
-            <a class="btn btn-outline" href="cardapio.html">Adicionar mais itens</a>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="container" style="padding:24px 0"><p class="small muted">Abrindo a sua sacola… <a href="checkout.html" class="link-acao">Fechar pedido</a></p></div>
   </main>
-  <!-- CTA fixo (coluna única): espelha o botão "Continuar" -->
-  <div class="barra-fixa so-mobile" data-barra-continuar hidden>
-    <div class="container">
-      <div class="total"><small>Total</small><b data-total-barra>R$ 0,00</b></div>
-      <button type="button" class="btn btn-lg btn-light" data-continuar-barra>Continuar</button>
-    </div>
-  </div>
   <script type="module" src="js/pages/carrinho.js"></script>
 </body>
 </html>

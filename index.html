@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Sesconetto's Pizzeria — Pizza napolitana em Brasília</title>
+  <title>Sesconetto's Pizzeria · Pizza napolitana em Brasília</title>
   <meta name="description" content="Pizza napolitana artesanal, massa de longa fermentação e forno a lenha. Lojas na Asa Sul, SIG e Vicente Pires: peça online para entrega ou retire na loja.">
   <meta name="theme-color" content="#1f1b18">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -20,21 +20,36 @@
 </head>
 <body>
   <main>
-    <section class="hero">
+    <!-- recorrente: primeiro bloco da página (js/pages/home.js preenche quando há um pedido salvo neste aparelho) -->
+    <section class="secao pedir-de-novo" style="padding:16px 0 0" data-pedir-de-novo hidden>
+      <div class="container">
+        <div class="secao-titulo" style="margin-bottom:10px"><h2 data-boas-vindas>Pedir de novo</h2><a href="pedido.html">Acompanhar <span class="ic-w" data-icone="chevron-dir"></span></a></div>
+        <div data-repetir-card></div>
+      </div>
+    </section>
+
+    <section class="hero hero-curto">
       <img class="bg" src="img/hero-pizza.jpg" alt="" fetchpriority="high">
       <div class="container">
-        <span class="eyebrow"><span class="ic-w" data-icone="fogo"></span>Forno a lenha · massa de 24h de fermentação</span>
-        <h1>Pizza napolitana <em>de verdade</em>, feita por uma família.</h1>
-        <p>Massa aberta à mão, molho de tomate San Marzano e ingredientes frescos. Peça e receba em casa ou retire em uma das nossas lojas: Asa Sul, SIG e Vicente Pires.</p>
+        <span class="eyebrow"><span class="ic-w" data-icone="fogo"></span>Forno a lenha · massa de 24 h · Asa Sul, SIG e Vicente Pires</span>
+        <h1>Napolitana de verdade, na sua mesa em 40 minutos.</h1>
+        <p>Massa aberta à mão, molho San Marzano, assada na hora. Peça sem cadastro: entrega ou retirada na loja mais perto de você.</p>
         <div class="hero-acoes">
-          <a class="btn btn-lg" href="#" data-pedir="entrega"><span class="ic-w" data-icone="moto"></span>Pedir para entrega</a>
-          <a class="btn btn-lg btn-light" href="#" data-pedir="retirada"><span class="ic-w" data-icone="loja"></span>Retirar na loja</a>
+          <a class="btn btn-lg" href="cardapio.html#mais-pedidas" data-ver-cardapio><span class="ic-w" data-icone="pizza"></span>Ver cardápio e pedir</a>
         </div>
-        <div class="hero-info">
+        <div class="hero-info prova">
           <span data-info-status><i class="dot"></i> …</span>
           <span data-info-tempo></span>
           <span data-info-endereco></span>
         </div>
+      </div>
+    </section>
+
+    <!-- novo cliente: "Mais pedidas" com chips de tamanho logo abaixo do hero (1 toque adiciona) -->
+    <section class="secao" style="padding-top:24px" id="mais-pedidas">
+      <div class="container">
+        <div class="secao-titulo"><h2>As mais pedidas</h2><a href="cardapio.html">Ver tudo <span class="ic-w" data-icone="chevron-dir"></span></a></div>
+        <div class="grade grade--destaque" data-mais-pedidas aria-busy="true"></div>
       </div>
     </section>
 
@@ -45,7 +60,7 @@
           <a class="atalho" href="produto.html?meio=1"><div class="ic" data-icone="meio"></div><b>Meio a meio</b><small>2 sabores</small></a>
           <a class="atalho" href="cardapio.html#pizzas-doces"><div class="ic" data-icone="doce"></div><b>Pizzas doces</b><small>pra fechar</small></a>
           <a class="atalho" href="cardapio.html#calzones"><div class="ic" data-icone="calzone"></div><b>Calzones</b><small>24 recheios</small></a>
-          <a class="atalho" href="cardapio.html#bebidas"><div class="ic" data-icone="vinho"></div><b>Bebidas e vinhos</b><small>geladas</small></a>
+          <a class="atalho" href="cardapio.html?cat=bebidas"><div class="ic" data-icone="vinho"></div><b>Bebidas e vinhos</b><small>geladas</small></a>
           <a class="atalho" href="pedido.html"><div class="ic" data-icone="relogio"></div><b>Acompanhar</b><small>meu pedido</small></a>
         </div>
       </div>
@@ -56,23 +71,10 @@
       <div class="container"><div class="clube-banner" data-clube-banner></div></div>
     </section>
 
-    <section class="secao" style="padding-top:0" data-pedir-de-novo hidden>
-      <div class="container">
-        <div class="secao-titulo"><h2>Pedir de novo</h2><a href="pedido.html">Acompanhar <span class="ic-w" data-icone="chevron-dir"></span></a></div>
-        <div data-repetir-card></div>
-      </div>
-    </section>
-
     <section class="secao" style="padding-top:0">
       <div class="container">
-        <div class="secao-titulo"><h2>As mais pedidas</h2><a href="cardapio.html">Ver cardápio <span class="ic-w" data-icone="chevron-dir"></span></a></div>
-        <div class="grade" data-mais-pedidas aria-busy="true"></div>
-      </div>
-    </section>
-
-    <section class="secao" style="padding-top:0">
-      <div class="container">
-        <div class="secao-titulo"><h2>Combos e promoções</h2><a href="cardapio.html#combos">Ver todos <span class="ic-w" data-icone="chevron-dir"></span></a></div>
+        <div class="secao-titulo"><h2>Combos que rendem</h2><a href="cardapio.html#combos">Ver todos <span class="ic-w" data-icone="chevron-dir"></span></a></div>
+        <p class="muted small" style="margin:-10px 0 14px">Pizza + bebida com preço fechado.</p>
         <div class="grade" data-combos></div>
       </div>
     </section>

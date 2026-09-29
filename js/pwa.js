@@ -25,6 +25,8 @@ export function iniciarPWA() {
   window.addEventListener('beforeinstallprompt', (ev) => { ev.preventDefault(); promptInstalacao = ev; mostrarBannerSePuder(); });
   window.addEventListener('appinstalled', () => { promptInstalacao = null; esconderBanner(); toast("App instalado! Procure o ícone da Sesconetto's na tela de início."); });
   if (isIOS && !instalado()) setTimeout(mostrarBannerSePuder, 1500);
+  // momento de maior boa vontade: logo depois do primeiro pedido (pedido.html?novo=1), não na home da 1ª visita
+  if (/pedido(\.html)?$/.test(location.pathname) && /[?&]novo=1/.test(location.search)) setTimeout(mostrarBannerSePuder, 3000);
   window.addEventListener('ses:pedido', (ev) => montarBotaoPush(ev.detail));
 }
 
@@ -67,7 +69,7 @@ function avisarNovaVersao(sw) {
   if (qs('#toast-atualizar')) return;
   const el = document.createElement('div');
   el.id = 'toast-atualizar'; el.className = 'toast toast-acao show'; el.setAttribute('role', 'status');
-  el.innerHTML = `<span>Nova versão disponível</span><button type="button" class="btn btn-sm btn-light" data-atualizar>Atualizar</button><button type="button" class="fechar" aria-label="Depois">${icone('x')}</button>`;
+  el.innerHTML = `<span>Nova versão do site</span><button type="button" class="btn btn-sm btn-light" data-atualizar>Atualizar</button><button type="button" class="fechar" aria-label="Depois">${icone('x')}</button>`;
   document.body.appendChild(el);
   qs('[data-atualizar]', el).addEventListener('click', () => {
     pediuAtualizar = true; el.remove();
@@ -95,8 +97,8 @@ function mostrarBanner() {
   const html = `
   <div class="banner-instalar" data-banner-instalar role="region" aria-label="Instalar o app">
     <img src="/img/icons/icon-192.png" alt="" width="48" height="48">
-    <div class="txt"><b>Instale o app</b><small>${isIOS ? 'Acompanhe o pedido e receba avisos.' : 'Abre na hora e avisa quando o pedido sair.'}</small></div>
-    <button type="button" class="btn btn-sm" data-instalar>${isIOS ? 'Como instalar' : 'Instalar'}</button>
+    <div class="txt"><b>${isIOS ? 'Adicione à tela de início' : "Sesconetto's na sua tela"}</b><small>${isIOS ? 'Compartilhar, Adicionar à Tela de Início. Aí o aviso do pedido chega no celular.' : 'Abre na hora e avisa quando a pizza sair.'}</small></div>
+    <button type="button" class="btn btn-sm" data-instalar>${isIOS ? 'Ver como' : 'Instalar'}</button>
     <button type="button" class="fechar" data-dispensar aria-label="Agora não">${icone('x')}</button>
   </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
@@ -211,9 +213,9 @@ export function montarBotaoPush(pedido) {
   const retirada = (box.dataset.tipoEntrega || (pedido && pedido.tipo_entrega)) === 'retirada';
   box.innerHTML = '';
   if (!id || FINALIZADOS.includes(status) || !podePush()) return;
-  const rotulo = retirada ? 'Avisar quando estiver pronto' : 'Avisar quando sair para entrega';
+  const rotulo = retirada ? 'Me avisa quando ficar pronta' : 'Me avisa quando sair';
   const pintar = (estado, msg = '') => {
-    if (estado === 'ativo') box.innerHTML = `<div class="push-box ativo">${icone('check-circulo')}<span><b>Avisos ligados</b><small>Você recebe uma notificação a cada etapa do pedido.</small></span></div>`;
+    if (estado === 'ativo') box.innerHTML = `<div class="push-box ativo">${icone('check-circulo')}<span><b>Avisos ligados</b><small>Você recebe uma notificação a cada etapa.</small></span></div>`;
     else if (estado === 'negado') box.innerHTML = `<div class="push-box negado">${icone('sino-off')}<span><b>Avisos bloqueados no navegador</b><small>Para receber, libere as notificações deste site nas configurações.</small></span></div>`;
     else box.innerHTML = `<button type="button" class="btn btn-outline btn-push" data-ativar-push>${icone('sino')} ${esc(rotulo)}</button>${msg ? `<p class="small muted center" style="margin-top:6px">${esc(msg)}</p>` : ''}`;
   };
@@ -224,7 +226,7 @@ export function montarBotaoPush(pedido) {
     const b = ev.currentTarget; b.disabled = true;
     try {
       const r = await assinarPushDoPedido(id);
-      if (r === 'ok') { pintar('ativo'); toast(retirada ? 'Vamos avisar quando estiver pronto!' : 'Vamos avisar quando sair para entrega!'); }
+      if (r === 'ok') { pintar('ativo'); toast(retirada ? 'Vamos avisar quando ficar pronta' : 'Vamos avisar quando sair para entrega'); }
       else if (r === 'denied') pintar('negado');
       else if (r === 'sem-suporte') { pintar('botao', 'Este navegador não recebe notificações.'); qs('[data-ativar-push]', box).disabled = true; }
       else if (r === 'ios-instalar') { b.disabled = false; }

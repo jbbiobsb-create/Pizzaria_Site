@@ -194,7 +194,7 @@ function renderPainel() {
 
   qs('[data-repetir]')?.addEventListener('click', async (ev) => {
     const b = ev.currentTarget; b.disabled = true;
-    try { const u = await itensDoUltimoPedido(); const res = await repetirItens(u?.itens || []); const m = mensagemRepetir(res); toast(m.msg, m.tipo, 3500); if (res.adicionados) setTimeout(() => (location.href = 'carrinho.html'), 700); }
+    try { const u = await itensDoUltimoPedido(); const res = await repetirItens(u?.itens || []); const m = mensagemRepetir(res); toast(m.msg, m.tipo, 3500); if (res.adicionados) location.href = 'checkout.html'; }
     catch { toast('Não deu para repetir agora.', 'erro'); }
     finally { b.disabled = false; }
   });

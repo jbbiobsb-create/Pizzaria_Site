@@ -1,12 +1,15 @@
 import { montarLayout, montarFooter, skeletonCards } from '../ui.js';
 import { carregarCardapio } from '../api.js';
 import { cardSabor, cardProduto, cardMonte, ativarAddRapido, atualizarSteppers, normalizar } from '../cards.js';
-import { qs, qsa, esc, debounce } from '../util.js';
+import { qs, qsa, esc, debounce, param, track } from '../util.js';
 import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'cardapio' });
 montarFooter();
 ativarAddRapido();
+track('ver_cardapio', { cat: param('cat') || null, hash: location.hash || null });
+// ?cat=bebidas: só essa categoria na página (o atalho da home não cai no meio de uma página de 200 itens)
+const SO_CAT = param('cat');
 
 const ICONES = { pizza: 'pizza', doce: 'doce', calzone: 'calzone', combo: 'combo', entrada: 'entrada', sanduiche: 'sanduiche', sobremesa: 'sobremesa', molho: 'molho', bebida: 'bebida', cerveja: 'cerveja', vinho: 'vinho', drink: 'drink', 'mais-pedidas': 'estrela' };
 const LIMITE_COLAPSO = 12; // categorias maiores que isso mostram "ver todos"
@@ -34,8 +37,10 @@ qs('[data-secoes]').innerHTML = `<div class="grade" aria-busy="true">${skeletonC
       if (html) secoes.push({ slug: c.slug, nome: c.nome, icone: c.icone, html, n });
     }
 
-    qs('[data-chips]').innerHTML = secoes.map((s) => `<a class="chip" href="#${esc(s.slug)}" data-chip="${esc(s.slug)}">${ICONES[s.icone] ? icone(ICONES[s.icone]) : ''}${esc(s.nome)}</a>`).join('');
-    qs('[data-secoes]').innerHTML = secoes.map((s) => `
+    const visiveis = SO_CAT && secoes.some((s) => s.slug === SO_CAT) ? secoes.filter((s) => s.slug === SO_CAT) : secoes;
+    // com ?cat, os chips das outras categorias levam ao cardápio completo (link normal, sem scroll-spy)
+    qs('[data-chips]').innerHTML = secoes.map((s) => `<a class="chip ${visiveis.includes(s) ? '' : 'chip-externo'}" href="${visiveis.includes(s) ? '' : 'cardapio.html'}#${esc(s.slug)}" data-chip="${esc(s.slug)}">${ICONES[s.icone] ? icone(ICONES[s.icone]) : ''}${esc(s.nome)}</a>`).join('');
+    qs('[data-secoes]').innerHTML = visiveis.map((s) => `
       <section class="secao" id="${esc(s.slug)}" style="padding: 22px 0 10px" data-secao="${esc(s.slug)}">
         <div class="secao-titulo"><h2>${esc(s.nome)}</h2>${s.slug === 'pizzas' || s.slug === 'pizzas-doces' ? '<span class="muted small">Bambina 4 fatias · Grande 8 fatias</span>' : s.slug === 'calzones' ? '<span class="muted small">Individual ou Família</span>' : `<span class="muted small">${s.n} ${s.n === 1 ? 'item' : 'itens'}</span>`}</div>
         <div class="grade ${s.n > LIMITE_COLAPSO ? 'colapsada' : ''}">${s.html}</div>
@@ -48,7 +53,7 @@ qs('[data-secoes]').innerHTML = `<div class="grade" aria-busy="true">${skeletonC
 
     ligarChips();
     ligarBusca(d, secoes);
-    if (location.hash) setTimeout(() => qs(location.hash)?.scrollIntoView({ behavior: 'smooth' }), 100);
+    if (location.hash && !SO_CAT) setTimeout(() => { try { qs(location.hash)?.scrollIntoView({ behavior: 'smooth' }); } catch {} }, 100);
   } catch (err) {
     console.error(err);
     qs('[data-secoes]').innerHTML = '<p class="aviso erro">Não conseguimos carregar o cardápio agora. Tente recarregar a página.</p>';
@@ -85,8 +90,8 @@ function ligarChips() {
   window.addEventListener('scrollend', () => { if (rolando) { clearTimeout(timerRolando); fimRolagem(); } });
 
   chips.forEach((ch) => ch.addEventListener('click', (ev) => {
+    const alvo = qs('#' + CSS.escape(ch.dataset.chip)); if (!alvo) return; // seção fora desta página: navega normalmente
     ev.preventDefault();
-    const alvo = qs('#' + CSS.escape(ch.dataset.chip)); if (!alvo) return;
     rolando = true; ativar(ch.dataset.chip);
     history.replaceState(null, '', '#' + ch.dataset.chip);
     alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });

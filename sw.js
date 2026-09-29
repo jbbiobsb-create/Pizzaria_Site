@@ -11,7 +11,7 @@
  *    mas a versão maior "@2" pode avançar; SWR mantém o offline funcionando e atualiza em segundo plano).
  *  - Supabase, ViaCEP, Nominatim, Google Maps e /admin: NUNCA passam pelo cache (o SW nem intercepta).
  */
-const VERSAO = '2026-09-29-2';
+const VERSAO = '2026-09-29-3';
 const CACHE_APP = 'app-' + VERSAO;
 const CACHE_MIDIA = 'midia-v1';   // imagens e fontes (sobrevive à troca de versão)
 const CACHE_CDN = 'cdn-v1';       // esm.sh e Google Fonts

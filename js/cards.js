@@ -1,7 +1,7 @@
 // Cards de sabor e de produto usados na home e no cardápio.
 // Produto simples (sem passos) tem "Adicionar" rápido no próprio card, que vira um stepper
 // quando o item já está na sacola. Pizzas e combos abrem o configurador (produto.html).
-import { brl, esc, qs, qsa, toast } from './util.js';
+import { brl, esc, qs, qsa, toast, track } from './util.js';
 import { tagHTML } from './ui.js';
 import { icone } from './icons.js';
 import * as cart from './cart.js';
@@ -12,20 +12,42 @@ const FOTO_PADRAO = { pizza: 'pizza', bebida: 'bebida', combo: 'combo', molho: '
 // texto usado pela busca do cardápio (sem acento, minúsculo)
 export const normalizar = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+// nome sem o parêntese ("Nápoles (Napolitana)" → "Nápoles")
+export const nomeCurto = (n) => String(n || '').split(' (')[0];
+// descrição começando pelo que diferencia: a frase da massa/molho, igual em todos, fica só no configurador
+const PREFIXOS = [/^massa artesanal aberta à mão,\s*/i, /^massa napolitana de longa fermentação,\s*/i, /^calzone recheado com:\s*/i, /^molho de tomate caseiro,\s*/i, /^pomodoro pelat+i italiano,\s*/i];
+export function descricaoCurta(d) {
+  let t = String(d || '').trim();
+  let mudou = true;
+  while (mudou) { mudou = false; for (const rx of PREFIXOS) { const n = t.replace(rx, ''); if (n !== t) { t = n; mudou = true; } } }
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+}
+// tamanhos de um sabor, na ordem em que aparecem no card (menor → maior; o maior é a âncora à direita)
+const ORDEM_TAM = ['bambina', 'grande', 'calzone-individual', 'calzone-familia'];
+const NOME_TAM = { bambina: 'Bambina', grande: 'Grande', 'calzone-individual': 'Individual', 'calzone-familia': 'Família' };
+export function tamanhosDoSabor(s) {
+  return Object.entries(s.precos || {}).filter(([, v]) => Number(v) > 0).sort((a, b) => ORDEM_TAM.indexOf(a[0]) - ORDEM_TAM.indexOf(b[0]));
+}
+
 export function cardSabor(s) {
   const tags = s.tags || [];
   const href = `produto.html?sabor=${esc(s.slug)}`;
   const foto = s.imagem_url ? `<img class="foto" src="${esc(s.imagem_url)}" alt="" loading="lazy">` : `<div class="foto vazia">${icone(s.tipo === 'calzone' ? 'calzone' : 'pizza')}</div>`;
+  const tam = tamanhosDoSabor(s);
+  // chips: cada um adiciona a pizza inteira em 1 toque; o corpo do card abre o configurador (meio a meio / observações)
+  const chips = s.disponivel && tam.length
+    ? `<div class="tamanho-chips" role="group" aria-label="Adicionar ${esc(nomeCurto(s.nome))}">${tam.map(([t, v]) => `<button type="button" class="chip-tamanho" data-add-pizza="${esc(s.slug)}" data-tamanho="${esc(t)}" aria-label="Adicionar ${esc(nomeCurto(s.nome))} ${esc(NOME_TAM[t] || t)} por ${brl(v)}"><span>${esc(NOME_TAM[t] || t)}</span><b>${brl(v)}</b></button>`).join('')}</div>`
+    : '';
   return `
-  <article class="card ${s.disponivel ? '' : 'indisponivel'}" data-busca="${esc(normalizar(s.nome + ' ' + (s.descricao || '')))}">
+  <article class="card card-pizza ${s.disponivel ? '' : 'indisponivel'}" data-busca="${esc(normalizar(s.nome + ' ' + (s.descricao || '')))}">
     ${foto}
     <div class="corpo">
       <div class="tags">${tags.map(tagHTML).join('')}${s.disponivel ? '' : tagHTML('esgotado')}</div>
-      <h3><a class="card-link" href="${href}">${esc(s.nome)}</a></h3>
-      <p>${esc(s.descricao || '')}</p>
-      <div class="rodape">
-        <span class="apartir">${s.precoMin != null ? `A partir de <b>${brl(s.precoMin)}</b>` : ''}</span>
-        <a class="add" href="${href}" aria-label="Escolher ${esc(s.nome)}">${icone('mais')}</a>
+      <h3><a class="card-link" href="${href}">${esc(nomeCurto(s.nome))}</a></h3>
+      <p>${esc(descricaoCurta(s.descricao))}</p>
+      <div class="rodape rodape-pizza">
+        ${chips || `<span class="apartir">${s.disponivel ? '' : 'Acabou por hoje'}</span>`}
+        <a class="card-mais" href="${href}">${s.tipo === 'calzone' ? 'Observações' : 'Meio a meio ou observações'}</a>
       </div>
     </div>
   </article>`;
@@ -55,12 +77,13 @@ export function cardProduto(p) {
 }
 
 export function cardMonte(tamanhos) {
-  const menor = Math.min(...tamanhos.map((t) => t.precoMin || Infinity));
+  const grande = tamanhos.find((t) => t.slug === 'grande');
+  const base = grande?.precoMin ?? Math.min(...tamanhos.map((t) => t.precoMin || Infinity));
   return `
-  <div class="card card-destaque">
-    <h3>Monte sua pizza · meio a meio</h3>
-    <p>Escolha o tamanho (Bambina ou Grande) e até 2 sabores na mesma pizza. Massa napolitana de longa fermentação.</p>
-    <a class="btn btn-light" href="produto.html?meio=1">Montar minha pizza ${isFinite(menor) ? `· a partir de ${brl(menor)}` : ''}</a>
+  <div class="card card-destaque card-monte">
+    <h3>Meio a meio: dois sabores, uma pizza</h3>
+    <p>Grande, 8 fatias, cobramos o sabor de maior valor.</p>
+    <a class="btn btn-light" href="produto.html?meio=1">Montar a minha${isFinite(base) ? ` · a partir de ${brl(base)}` : ''}</a>
   </div>`;
 }
 
@@ -98,21 +121,42 @@ export function atualizarSteppers(raiz = document) {
 }
 
 let ativado = false;
-// liga (uma vez por página) os cliques de "+" e do stepper por delegação
+// na tela "Fechar pedido" o toast não precisa do botão "Ver sacola"
+const acaoSacola = () => (document.body.dataset.pagina === 'checkout' ? null : { rotulo: 'Ver sacola', href: 'checkout.html' });
+
+// liga (uma vez por página) os cliques de "+", dos chips de tamanho e do stepper por delegação
 export function ativarAddRapido() {
   if (ativado) return; ativado = true;
   document.addEventListener('click', async (ev) => {
     const add = ev.target.closest('[data-add-rapido]');
+    const pizza = ev.target.closest('[data-add-pizza]');
     const step = ev.target.closest('[data-step]');
-    if (!add && !step) return;
+    if (!add && !step && !pizza) return;
     ev.preventDefault(); ev.stopPropagation();
     const d = await carregarCardapio();
+    if (pizza) {
+      const s = d.saboresPorSlug[pizza.dataset.addPizza]; const t = d.tamanhosPorSlug[pizza.dataset.tamanho];
+      if (!s || !t || !s.disponivel || !s.precos?.[t.slug]) { toast(`A ${nomeCurto(s?.nome || 'pizza')} acabou por hoje.`, 'erro'); return; }
+      cart.adicionar({
+        tipo: 'pizza', tamanho: t.slug, sabores: [s.slug],
+        nome: t.grupo === 'calzone' ? `Calzone ${t.nome}` : `Pizza ${t.nome} (${t.fatias} fatias)`,
+        descricao: s.nome, imagem: s.imagem_url || null, preco: Number(s.precos[t.slug]), quantidade: 1,
+      });
+      // feedback no próprio chip
+      const html = pizza.innerHTML; pizza.classList.add('ok'); pizza.innerHTML = `${icone('check')} <span>Na sacola</span>`;
+      setTimeout(() => { pizza.classList.remove('ok'); pizza.innerHTML = html; }, 1600);
+      toast(`${nomeCurto(s.nome)} ${t.nome} na sacola`, 'ok', 3200, acaoSacola());
+      track('add_item', { origem: 'card', tipo: 'pizza', slug: s.slug, tamanho: t.slug });
+      try { navigator.vibrate?.(10); } catch {}
+      return;
+    }
     if (add) {
       const p = d.produtosPorSlug[add.dataset.addRapido];
-      if (!p || !p.disponivel) { toast('Produto esgotado no momento.', 'erro'); return; }
+      if (!p || !p.disponivel) { toast('Esse item acabou por hoje.', 'erro'); return; }
       cart.adicionar({ tipo: 'produto', slug: p.slug, escolhas: [], nome: p.nome, imagem: p.imagem_url, preco: Number(p.preco), quantidade: 1 });
       add.classList.add('ok'); add.innerHTML = icone('check');
-      toast(`${p.nome} na sacola`);
+      toast(`${p.nome} na sacola`, 'ok', 3200, acaoSacola());
+      track('add_item', { origem: add.closest('[data-completa]') ? 'faixa' : 'card', tipo: 'produto', slug: p.slug });
       try { navigator.vibrate?.(10); } catch {}
       return;
     }

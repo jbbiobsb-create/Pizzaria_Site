@@ -56,23 +56,28 @@ export function horaBR(iso) {
 }
 
 export const STATUS = {
-  recebido:        { rotulo: 'Pedido recebido',        msg: 'Recebemos seu pedido e já vamos confirmar.', icone: 'recebido' },
+  recebido:        { rotulo: 'Pedido recebido',        msg: 'Recebemos e já vamos confirmar.', icone: 'recebido' },
   confirmado:      { rotulo: 'Pedido confirmado',      msg: 'A pizzaria confirmou seu pedido.', icone: 'check-circulo' },
   preparando:      { rotulo: 'Em preparo',             msg: 'Estamos abrindo a massa e montando sua pizza.', icone: 'chef' },
   no_forno:        { rotulo: 'No forno',               msg: 'Sua pizza está no forno a lenha!', icone: 'fogo' },
   saiu_entrega:    { rotulo: 'Saiu para entrega',      msg: 'Seu pedido está a caminho.', icone: 'moto' },
   pronto_retirada: { rotulo: 'Pronto para retirada',   msg: 'Pode vir buscar! Está quentinha.', icone: 'pizza' },
-  entregue:        { rotulo: 'Concluído',              msg: 'Bom apetite! Obrigado por pedir na Sesconetto\'s.', icone: 'brilho' },
-  cancelado:       { rotulo: 'Cancelado',              msg: 'Este pedido foi cancelado. Fale com a gente pelo WhatsApp se tiver dúvida.', icone: 'x-circulo' },
+  entregue:        { rotulo: 'Bom apetite!',           msg: 'Obrigado por pedir na Sesconetto\'s. Pedir de novo é um toque.', icone: 'brilho' },
+  cancelado:       { rotulo: 'Cancelado',              msg: 'Este pedido foi cancelado. Se não foi você, chama a gente no WhatsApp que resolvemos agora.', icone: 'x-circulo' },
 };
 export const FLUXO_ENTREGA = ['recebido', 'confirmado', 'preparando', 'no_forno', 'saiu_entrega', 'entregue'];
 export const FLUXO_RETIRADA = ['recebido', 'confirmado', 'preparando', 'no_forno', 'pronto_retirada', 'entregue'];
 
 export const PAGAMENTOS = {
-  pix: { rotulo: 'Pix', desc: 'Você recebe a chave após confirmar o pedido', icone: 'pix' },
-  cartao_entrega: { rotulo: 'Cartão na entrega / retirada', desc: 'Débito ou crédito na maquininha', icone: 'cartao' },
-  dinheiro: { rotulo: 'Dinheiro', desc: 'Informe se precisa de troco', icone: 'dinheiro' },
+  pix: { rotulo: 'Pix', desc: 'Chave na próxima tela', icone: 'pix' },
+  cartao_entrega: { rotulo: 'Cartão na entrega', desc: 'Débito ou crédito na maquininha', icone: 'cartao' },
+  dinheiro: { rotulo: 'Dinheiro', desc: 'Diga se precisa de troco', icone: 'dinheiro' },
 };
+// rótulo do cartão muda com o canal (retirada: "Cartão na loja")
+export function rotuloPagamento(p, tipoEntrega) {
+  if (p === 'cartao_entrega' && tipoEntrega === 'retirada') return 'Cartão na loja';
+  return PAGAMENTOS[p]?.rotulo || p;
+}
 
 // número para "tel:": telefone da loja com DDI 55 (config.telefone vem "(61) 9…"); sem ele, cai no WhatsApp (já com 55)
 export function telefoneDiscavel(telefone, whatsapp) {
@@ -85,14 +90,36 @@ export function whatsappLink(numero, msg) {
   return `https://wa.me/${soDigitos(numero)}?text=${encodeURIComponent(msg)}`;
 }
 
-export function toast(msg, tipo = 'ok', ms = 3200) {
+// toast(msg, tipo, ms, acao?) — acao = {rotulo, href} vira um botão dentro do toast ("Ver sacola")
+export function toast(msg, tipo = 'ok', ms = 3200, acao = null) {
   let el = qs('#toast');
   if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
-  el.textContent = msg;
-  el.className = `toast toast-${tipo} show`;
+  if (acao && acao.href) {
+    el.innerHTML = `<span>${esc(msg)}</span><a class="btn btn-sm btn-light" href="${esc(acao.href)}">${esc(acao.rotulo)}</a>`;
+    el.className = `toast toast-${tipo} toast-acao show`;
+  } else {
+    el.textContent = msg;
+    el.className = `toast toast-${tipo} show`;
+  }
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), ms);
+  el._t = setTimeout(() => el.classList.remove('show'), acao ? Math.max(ms, 4500) : ms);
 }
+
+// ---------- instrumentação mínima do funil (sem serviço externo) ----------
+// Grava {evento, dados, em, pagina} em localStorage 'ses_eventos' (últimos 200) e no console.debug.
+// Eventos usados: ver_cardapio, add_item {origem}, abrir_fechar_pedido, confirmar, pedido_ok, pix_copiado…
+export function track(evento, dados = {}) {
+  const reg = { evento, dados, em: Date.now(), pagina: location.pathname.split('/').pop() || 'index.html' };
+  try {
+    const lista = lerLS('ses_eventos', []) || [];
+    lista.push(reg);
+    gravarLS('ses_eventos', lista.slice(-200));
+  } catch {}
+  try { console.debug('[ses]', evento, dados); } catch {}
+}
+
+// "40 a 60 min" (sem travessão nos textos visíveis)
+export const faixaMin = (a, b) => `${a} a ${b} min`;
 
 export function debounce(fn, ms = 300) {
   let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };

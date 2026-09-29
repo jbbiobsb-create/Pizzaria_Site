@@ -1,8 +1,9 @@
 // Configurador: pizza (tamanho + até 2 sabores) ou produto simples / combo
-import { montarLayout, montarFooter, abrirUpsell, tagHTML } from '../ui.js';
+import { montarLayout, montarFooter, tagHTML } from '../ui.js';
 import { carregarCardapio } from '../api.js';
 import * as cart from '../cart.js';
-import { qs, qsa, esc, brl, param, toast } from '../util.js';
+import { qs, qsa, esc, brl, param, toast, track } from '../util.js';
+import { nomeCurto } from '../cards.js';
 import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'cardapio', sacola: false }); // a página tem a própria barra fixa
@@ -41,7 +42,7 @@ function montarPizza(saborInicial) {
   const tamanhosOk = tamanhosGrupo.filter((t) => !sab || sab.precos[t.slug]);
   estado.tamanho = (tamanhosOk.find((t) => t.slug === 'grande') || tamanhosOk[0] || tamanhosGrupo[0]).slug;
 
-  document.title = `${sab ? sab.nome : 'Monte sua pizza'} — Sesconetto's Pizzeria`;
+  document.title = `${sab ? sab.nome : 'Monte sua pizza'} · Sesconetto's Pizzeria`;
   raiz.removeAttribute('aria-busy');
   raiz.innerHTML = `
     <div>
@@ -54,8 +55,8 @@ function montarPizza(saborInicial) {
 
       <div class="bloco">
         <h3>1. Tamanho</h3>
-        <p class="ajuda">${CZ ? 'Individual serve 1 pessoa; Família serve 2 ou mais.' : 'Bambina (4 fatias) serve 1 pessoa; Grande (8 fatias) serve 2 a 3.'}</p>
-        <div class="opcoes" data-tamanhos></div>
+        <p class="ajuda">${CZ ? 'Individual serve 1 pessoa; Família serve 2 ou mais.' : 'Grande já vem marcada: é a mais pedida, 8 fatias, serve 2 a 3 e aceita meio a meio. Bambina (4 fatias) serve 1.'}</p>
+        <div class="opcoes tamanho-chips-config" data-tamanhos></div>
       </div>
 
       <div class="bloco">
@@ -73,12 +74,14 @@ function montarPizza(saborInicial) {
       </div>
 
       <div class="bloco">
-        <h3>3. Observações <span class="muted small">opcional</span></h3>
-        <textarea class="obs" placeholder="Ex.: sem cebola, bem assada, cortar em mais pedaços…" data-obs maxlength="200"></textarea>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
           <span class="strong">Quantidade</span>
           <div class="qtd"><button type="button" data-qtd="-1" aria-label="Diminuir quantidade">${icone('menos')}</button><span data-qtd-v aria-live="polite">1</span><button type="button" data-qtd="1" aria-label="Aumentar quantidade">${icone('mais')}</button></div>
         </div>
+        <details class="detalhe" data-obs-detalhe style="margin-top:8px">
+          <summary>${icone('mais')} Observações para a pizzaria</summary>
+          <textarea class="obs" placeholder="Ex.: sem cebola, bem assada, cortar em mais pedaços" data-obs maxlength="200" aria-label="Observações"></textarea>
+        </details>
       </div>
       ${D.config.sobre_massa ? `<p class="nota-massa">${icone('trigo')}<span>${esc(D.config.sobre_massa)}</span></p>` : ''}
     </div>`;
@@ -99,14 +102,16 @@ function tamanhoAtual() { return D.tamanhosPorSlug[estado.tamanho]; }
 
 function renderTamanhos() {
   const el = qs('[data-tamanhos]');
-  el.innerHTML = D.tamanhos.filter((t) => (t.grupo || 'pizza') === estado.grupo).map((t) => {
+  // Grande primeiro (âncora e padrão sugerido); Bambina ao lado como opção menor
+  const ordem = (t) => (t.slug === 'grande' ? 0 : 1);
+  el.innerHTML = D.tamanhos.filter((t) => (t.grupo || 'pizza') === estado.grupo).sort((a, b) => ordem(a) - ordem(b) || a.ordem - b.ordem).map((t) => {
     const precos = D.sabores.filter((s) => s.disponivel && s.precos[t.slug]).map((s) => Number(s.precos[t.slug]));
     const minimo = precos.length ? Math.min(...precos) : null;
     // se já há sabor escolhido, mostra o preço dele nesse tamanho
     const escolhido = estado.sabores.length ? Math.max(...estado.sabores.map((sl) => Number(D.saboresPorSlug[sl].precos[t.slug] || 0))) : 0;
     const semPreco = estado.sabores.some((sl) => !D.saboresPorSlug[sl].precos[t.slug]);
     return `<button type="button" class="opcao ${estado.tamanho === t.slug ? 'ativo' : ''}" data-t="${esc(t.slug)}" ${semPreco ? 'disabled' : ''}>
-      <b>${esc(t.nome)}</b><small>${t.grupo === 'calzone' ? '1 recheio' : `${t.fatias} fatias · ${t.max_sabores > 1 ? `até ${t.max_sabores} sabores` : '1 sabor'}`}</small>
+      <b>${esc(t.nome)}${t.slug === 'grande' ? ' <span class="tag mais-pedida">Mais pedida</span>' : ''}</b><small>${t.grupo === 'calzone' ? '1 recheio' : `${t.fatias} fatias · ${t.slug === 'grande' ? 'serve 2 a 3' : 'serve 1'} · ${t.max_sabores > 1 ? `até ${t.max_sabores} sabores` : '1 sabor'}`}</small>
       <span class="p">${semPreco ? 'indisponível p/ este sabor' : (escolhido ? brl(escolhido) : (minimo ? 'a partir de ' + brl(minimo) : ''))}</span></button>`;
   }).join('');
   qsa('[data-t]', el).forEach((b) => b.addEventListener('click', () => {
@@ -162,7 +167,7 @@ function renderSabores() {
     return `<button type="button" class="sabor-item ${ativo ? 'ativo' : ''}" data-s="${esc(s.slug)}" ${off ? 'disabled' : ''}>
       ${s.imagem_url ? `<img src="${esc(s.imagem_url)}" alt="" loading="lazy">` : `<div class="ph">${icone('pizza')}</div>`}
       <div><b>${esc(s.nome)} ${s.tipo === 'doce' ? '<span class="tag">doce</span>' : ''}${!s.disponivel ? '<span class="tag esgotado">esgotado</span>' : ''}</b><small>${esc(s.descricao || '')}</small></div>
-      <span class="p">${preco ? brl(preco) : '—'}</span></button>`;
+      <span class="p">${preco ? brl(preco) : ''}</span></button>`;
   }).join('') || '<p class="muted small">Nenhum sabor encontrado.</p>';
   qsa('[data-s]').forEach((b) => b.addEventListener('click', () => {
     const slug = b.dataset.s;
@@ -191,6 +196,7 @@ function atualizarTotal() {
       const t = falta ? falta.titulo.trim() : '';
       const nPassos = (estado.produto.passos || []).length;
       btnAdd.textContent = falta ? `${/^escolh/i.test(t) ? t : 'Escolha ' + t.toLowerCase()}${nPassos > 1 ? ` (passo ${falta.i + 1})` : ''}` : 'Adicionar à sacola';
+      if (!falta) btnAdd.textContent = 'Adicionar à sacola';
     }
     if (rotulo) rotulo.textContent = estado.quantidade > 1 ? `${estado.quantidade}× ${estado.produto.nome}` : 'Total';
     return;
@@ -198,7 +204,7 @@ function atualizarTotal() {
   const t = tamanhoAtual();
   const n = estado.sabores.length;
   btnAdd.disabled = n === 0;
-  btnAdd.textContent = n ? 'Adicionar à sacola' : (estado.grupo === 'calzone' ? 'Escolha o recheio' : 'Escolha 1 sabor');
+  btnAdd.textContent = n ? 'Adicionar à sacola' : (estado.grupo === 'calzone' ? 'Escolha o recheio' : 'Escolha um sabor');
   if (rotulo) rotulo.textContent = n ? `${n > 1 ? 'Meio a meio' : n + ' sabor'} · ${t.nome}${estado.quantidade > 1 ? ` · ${estado.quantidade}×` : ''}` : `${t.nome} · falta o sabor`;
 }
 
@@ -213,8 +219,10 @@ function adicionarPizza() {
     imagem: s0?.imagem_url || null,
     preco: precoPizza(), quantidade: estado.quantidade, observacao: estado.observacao.trim() || null,
   });
-  toast(t.grupo === 'calzone' ? 'Calzone na sacola!' : 'Pizza na sacola!');
-  abrirUpsell();
+  track('add_item', { origem: 'configurador', tipo: 'pizza', tamanho: t.slug, sabores: estado.sabores.length });
+  // sem sheet de upsell: vai direto para "Fechar pedido" (a faixa "Completa com" fica lá, sem bloquear)
+  toast(`${nomes.map(nomeCurto).join(' + ')} ${t.nome} na sacola`);
+  location.href = 'checkout.html';
 }
 
 // ------------------------------------------------------------------
@@ -223,7 +231,7 @@ function adicionarPizza() {
 function montarProduto(p) {
   if (!p) { raiz.innerHTML = '<p class="aviso erro">Produto não encontrado. <a href="cardapio.html">Voltar ao cardápio</a></p>'; return; }
   estado.produto = p;
-  document.title = `${p.nome} — Sesconetto's Pizzeria`;
+  document.title = `${p.nome} · Sesconetto's Pizzeria`;
   const passos = Array.isArray(p.passos) ? p.passos : [];
   raiz.removeAttribute('aria-busy');
   raiz.innerHTML = `
@@ -263,15 +271,16 @@ function montarProduto(p) {
   qs('[data-obs]').addEventListener('input', (e) => (estado.observacao = e.target.value));
   qsa('[data-qtd]').forEach((b) => b.addEventListener('click', () => { estado.quantidade = Math.max(1, Math.min(10, estado.quantidade + Number(b.dataset.qtd))); qs('[data-qtd-v]').textContent = estado.quantidade; atualizarTotal(); }));
   btnAdd.addEventListener('click', () => {
-    if (!p.disponivel) { toast('Produto esgotado no momento.', 'erro'); return; }
+    if (!p.disponivel) { toast(`${p.nome} acabou por hoje.`, 'erro'); return; }
     const escolhas = Object.values(estado.escolhas).flat();
     cart.adicionar({
       tipo: 'produto', slug: p.slug, escolhas, nome: p.nome,
       descricao: escolhas.map((s) => D.produtosPorSlug[s]?.nome).filter(Boolean).join(', ') || null,
       imagem: p.imagem_url, preco: Number(p.preco), quantidade: estado.quantidade, observacao: estado.observacao.trim() || null,
     });
-    toast(`${p.nome} adicionado!`);
-    abrirUpsell(p.slug);
+    track('add_item', { origem: 'configurador', tipo: 'produto', slug: p.slug });
+    toast(`${p.nome} na sacola`);
+    location.href = 'checkout.html';
   });
   barra.hidden = false; document.body.classList.add('tem-barra');
   atualizarTotal();
