@@ -46,6 +46,7 @@ qsa('[data-aba]').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.aba === 'cardapio') carregarCardapio();
   if (b.dataset.aba === 'cupons') carregarCupons();
   if (b.dataset.aba === 'loja') preencherLoja();
+  if (b.dataset.aba === 'fidelidade') preencherFidelidade();
 }));
 qs('[data-som]').addEventListener('click', () => { somLigado = !somLigado; localStorage.setItem('adm_som', somLigado ? '1' : '0'); atualizarSom(); if (somLigado) tocar(); });
 function atualizarSom() { qs('[data-som]').innerHTML = somLigado ? `${icone('sino')} Som ligado` : `${icone('sino-off')} Som desligado`; }
@@ -178,7 +179,7 @@ function cardPedido(p) {
     <div class="itens">${esc(itens)}</div>
     <div class="meta"><span>${p.tipo_entrega === 'entrega' ? icone('moto') + ' Entrega' : icone('loja') + ' Retirada'}</span><span>${PAGAMENTOS[p.pagamento]?.rotulo.split(' ')[0] || p.pagamento}</span><span><b>${brl(p.total)}</b></span>${ag}</div>
     ${p.lojas ? `<div class="small muted">${icone('loja')} Loja ${esc(p.lojas.nome)}</div>` : ''}
-    ${etiquetasIntegracao(p)}
+    ${etiquetasIntegracao(p)}${etiquetaCashback(p)}
     <div class="acoes">
       ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-outline" data-pago="${p.id}">${icone('check')} Pix recebido</button>` : ''}
       ${prox ? `<button class="btn" data-st="${prox}" data-id="${p.id}">${icone(STATUS[prox].icone)} ${STATUS[prox].rotulo}</button>` : ''}
@@ -190,6 +191,10 @@ function etiquetasIntegracao(p) {
   const pg = { pendente: ['aguardando pagamento', 'alerta'], pago: ['pago', 'ok'], na_entrega: ['cobrar na entrega', ''], estornado: ['estornado', 'alerta'] }[p.pagamento_status] || [p.pagamento_status, ''];
   const sp = { enviando: ['Saipos: enviando…', ''], enviado: [`Saipos ✓${p.saipos_sale_number ? ' nº ' + p.saipos_sale_number : ''}`, 'ok'], erro: ['Saipos: erro', 'alerta'] }[p.saipos_status];
   return `<div class="etiquetas"><span class="tag ${pg[1]}">${esc(pg[0])}</span>${sp ? `<span class="tag ${sp[1]}">${esc(sp[0])}</span>` : ''}</div>`;
+}
+// cashback usado no pedido (o total já vem líquido) — etiqueta no card
+function etiquetaCashback(p) {
+  return Number(p.cashback_usado) > 0 ? `<div class="etiquetas"><span class="tag ok">cashback − ${brl(p.cashback_usado)}</span></div>` : '';
 }
 async function confirmarPagamento(id) {
   if (!confirm('Confirma que o Pix deste pedido caiu na conta? Ele será enviado ao PDV Saipos.')) return;
@@ -238,7 +243,8 @@ function abrirDetalhe(id) {
       <div class="bloco"><b>${p.tipo_entrega === 'entrega' ? 'Endereço' : 'Retirada na loja'}</b><br>${p.tipo_entrega === 'entrega' ? `${esc(e.rua)}, ${esc(e.numero)}${e.complemento ? ' - ' + esc(e.complemento) : ''}<br>${esc(e.bairro)} — ${esc(e.cidade)}/${esc(e.uf)}${e.referencia ? '<br>Ref.: ' + esc(e.referencia) : ''}${e.distancia_km ? `<br><small>${e.distancia_km} km${e.aprox ? ' (aprox.)' : ''}</small>` : ''}` : 'Cliente vem buscar'}</div>
     </div>
     <table><tbody>${(p.pedido_itens || []).map((i) => `<tr><td><b>${i.quantidade}×</b></td><td>${esc(i.nome)}${i.detalhes?.escolhas?.length ? '<br><small>' + i.detalhes.escolhas.map((x) => esc(x.nome)).join(', ') + '</small>' : ''}${i.detalhes?.observacao ? `<br><small>${icone('alerta')} ${esc(i.detalhes.observacao)}</small>` : ''}</td><td style="text-align:right">${brl(i.subtotal)}</td></tr>`).join('')}</tbody></table>
-    <div class="totais"><div><span>Subtotal</span><span>${brl(p.subtotal)}</span></div>${Number(p.desconto) ? `<div class="desconto"><span>Desconto ${esc(p.cupom_codigo || '')}</span><span>− ${brl(p.desconto)}</span></div>` : ''}<div><span>Taxa${p.taxa_a_confirmar ? ' (a confirmar!)' : ''}</span><span>${brl(p.taxa_entrega)}</span></div><div class="total"><span>Total</span><span>${brl(p.total)}</span></div></div>
+    <div class="totais"><div><span>Subtotal</span><span>${brl(p.subtotal)}</span></div>${Number(p.desconto) ? `<div class="desconto"><span>Desconto ${esc(p.cupom_codigo || '')}</span><span>− ${brl(p.desconto)}</span></div>` : ''}${Number(p.cashback_usado) ? `<div class="desconto"><span>Cashback usado</span><span>− ${brl(p.cashback_usado)}</span></div>` : ''}<div><span>Taxa${p.taxa_a_confirmar ? ' (a confirmar!)' : ''}</span><span>${brl(p.taxa_entrega)}</span></div><div class="total"><span>Total</span><span>${brl(p.total)}</span></div></div>
+    ${p.fidelidade_pct ? `<p class="small muted" style="margin-top:4px">Clube: nível ${esc(p.fidelidade_nivel || '')} (${Number(p.fidelidade_pct)}%) · ${p.cashback_ganho != null ? `cashback creditado ${brl(p.cashback_ganho)}` : `cashback previsto ${brl(Math.floor(Math.max(p.subtotal - p.desconto - (p.cashback_usado || 0), 0) * p.fidelidade_pct) / 100)} (ao entregar)`}</p>` : ''}
     <p style="margin-top:8px"><b>Pagamento:</b> ${esc(PAGAMENTOS[p.pagamento]?.rotulo || p.pagamento)}${p.troco_para ? ` · troco para ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : ''}</p>
     ${etiquetasIntegracao(p)}
     ${p.saipos_erro ? `<p class="aviso aviso-ic" style="margin-top:8px">${icone('alerta')}<span>${esc(p.saipos_erro)}</span></p>` : ''}
@@ -312,3 +318,72 @@ qs('[data-form-cupom]').addEventListener('submit', async (ev) => {
   if (error) { toast('Erro: ' + error.message, 'erro'); return; }
   f.reset(); toast('Cupom criado'); carregarCupons();
 });
+
+// ------------------------------------------------------------------ fidelidade (Clube Sesconetto's)
+const FID_PADRAO = { ativo: true, validade_dias: 90, min_resgate: 10, max_pct_pedido: 50, niveis: [{ nome: 'Bronze', min_pedidos_90d: 0, pct: 5 }, { nome: 'Prata', min_pedidos_90d: 3, pct: 7 }, { nome: 'Ouro', min_pedidos_90d: 6, pct: 10 }] };
+function preencherFidelidade() {
+  if (!config) return;
+  const fid = { ...FID_PADRAO, ...(config.fidelidade || {}) };
+  const f = qs('[data-form-fidelidade]');
+  f.elements.ativo.checked = !!fid.ativo;
+  f.elements.validade_dias.value = fid.validade_dias; f.elements.min_resgate.value = fid.min_resgate; f.elements.max_pct_pedido.value = fid.max_pct_pedido;
+  qs('[data-niveis]').innerHTML = (fid.niveis || []).map((n, i) => `<div class="linha-campos tres" data-nivel="${i}">
+    <div class="campo"><label>Nome</label><input data-n-nome value="${esc(n.nome)}"></div>
+    <div class="campo"><label>A partir de (pedidos em 90 dias)</label><input data-n-min type="number" min="0" value="${n.min_pedidos_90d}"></div>
+    <div class="campo"><label>Cashback (%)</label><input data-n-pct type="number" step="0.5" min="0" max="100" value="${n.pct}"></div></div>`).join('');
+  qs('[data-cliente-fid]').innerHTML = '';
+}
+qs('[data-form-fidelidade]').addEventListener('submit', async (ev) => {
+  ev.preventDefault(); const f = ev.target;
+  const niveis = qsa('[data-nivel]').map((d) => ({ nome: qs('[data-n-nome]', d).value.trim(), min_pedidos_90d: Number(qs('[data-n-min]', d).value), pct: Number(qs('[data-n-pct]', d).value) }))
+    .filter((n) => n.nome).sort((a, b) => a.min_pedidos_90d - b.min_pedidos_90d);
+  if (!niveis.length || niveis[0].min_pedidos_90d !== 0) { toast('O primeiro nível precisa começar em 0 pedidos', 'erro'); return; }
+  const fidelidade = { ...(config.fidelidade || {}), ativo: f.elements.ativo.checked, validade_dias: Number(f.elements.validade_dias.value), min_resgate: Number(f.elements.min_resgate.value), max_pct_pedido: Number(f.elements.max_pct_pedido.value), niveis };
+  const { error } = await supabase.from('config').update({ fidelidade, atualizado_em: new Date().toISOString() }).eq('id', 1);
+  if (error) { toast('Erro: ' + error.message, 'erro'); return; }
+  toast('Fidelidade salva'); qs('[data-ok-fid]').hidden = false; setTimeout(() => (qs('[data-ok-fid]').hidden = true), 2500);
+  localStorage.removeItem('ses_cardapio_cache'); await carregarConfig();
+});
+
+const TIPO_MOV = { credito: 'Cashback ganho', debito: 'Usado em pedido', estorno_credito: 'Estorno (pedido cancelado)', estorno_debito: 'Devolução (pedido cancelado)', expirado: 'Vencido', ajuste: 'Ajuste da equipe' };
+let clienteFid = null;
+async function buscarClienteFid(telefone) {
+  const { data, error } = await supabase.rpc('fidelidade_cliente', { p_telefone: telefone });
+  if (error) { toast('Erro: ' + error.message, 'erro'); return; }
+  clienteFid = data; renderClienteFid();
+}
+function renderClienteFid() {
+  const c = clienteFid; if (!c) return;
+  const bloq = c.pin_bloqueado_ate ? ` · <b style="color:var(--erro)">bloqueado até ${horaBR(c.pin_bloqueado_ate)}</b>` : '';
+  qs('[data-cliente-fid]').innerHTML = `<div class="detalhe">
+    <h3>${esc(c.nome || 'Sem nome')} · ${mascaraTelefone(c.telefone)}</h3>
+    <div class="grid">
+      <div class="bloco"><b>Saldo</b><br><span style="font-size:1.4rem">${brl(c.saldo)}</span>${Number(c.debito_pendente) ? `<br><small class="muted">débito pendente ${brl(c.debito_pendente)} (abatido no próximo crédito)</small>` : ''}</div>
+      <div class="bloco"><b>Nível</b><br>${esc(c.nivel || '—')} (${Number(c.pct)}%) · ${c.pedidos_90d} pedido(s) em 90 dias${c.proximo ? `<br><small class="muted">faltam ${c.proximo.faltam} para ${esc(c.proximo.nome)} (${c.proximo.pct}%)</small>` : ''}</div>
+      <div class="bloco"><b>PIN</b><br>${c.tem_pin ? `criado em ${dataHoraBR(c.pin_criado_em)}${bloq}` : 'ainda não criou'}${c.tem_pin ? `<br><button class="btn btn-sm btn-outline" data-reset-pin style="margin-top:6px">Resetar PIN</button>` : ''}</div>
+    </div>
+    <form data-form-ajuste class="linha-campos tres" style="margin:10px 0">
+      <div class="campo"><label>Ajustar saldo (R$, negativo debita)</label><input name="valor" type="number" step="0.01" required></div>
+      <div class="campo"><label>Motivo (obrigatório)</label><input name="motivo" required placeholder="ex.: cortesia pelo atraso"></div>
+      <div class="campo" style="align-self:flex-end"><button class="btn btn-sm" type="submit">Ajustar</button></div>
+    </form>
+    <table><thead><tr><th>Quando</th><th>Tipo</th><th>Valor</th><th>Restante</th><th>Vence</th><th>Descrição</th></tr></thead><tbody>${(c.movimentos || []).map((m) => `<tr>
+      <td>${dataHoraBR(m.criado_em)}</td><td>${esc(TIPO_MOV[m.tipo] || m.tipo)}${m.pedido_numero ? ` #${m.pedido_numero}` : ''}</td>
+      <td style="color:${Number(m.valor) < 0 ? 'var(--erro)' : 'var(--verde-ok)'}">${Number(m.valor) < 0 ? '−' : '+'} ${brl(Math.abs(m.valor))}</td>
+      <td>${Number(m.restante) > 0 ? brl(m.restante) : '—'}</td><td>${m.expira_em && Number(m.restante) > 0 ? new Date(m.expira_em).toLocaleDateString('pt-BR') : '—'}</td><td class="small">${esc(m.descricao || '')}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">sem movimentos</td></tr>'}</tbody></table>
+  </div>`;
+  qs('[data-form-ajuste]').addEventListener('submit', async (ev) => {
+    ev.preventDefault(); const f = ev.target; const valor = Number(f.valor.value);
+    if (!valor || !confirm(`${valor > 0 ? 'Creditar' : 'Debitar'} ${brl(Math.abs(valor))} para ${mascaraTelefone(c.telefone)}?`)) return;
+    const { data, error } = await supabase.rpc('fidelidade_ajustar', { p_telefone: c.telefone, p_valor: valor, p_descricao: f.motivo.value.trim() });
+    if (error) { toast('Erro: ' + error.message.replace(/^.*?exception:\s*/i, ''), 'erro'); return; }
+    toast(`Saldo ajustado: ${brl(data.saldo)}`); buscarClienteFid(c.telefone);
+  });
+  qs('[data-reset-pin]')?.addEventListener('click', async () => {
+    if (!confirm('Apagar o PIN deste cliente? Ele vai criar um novo pelo link de um pedido recente.')) return;
+    const { error } = await supabase.from('clientes').update({ pin_hash: null, pin_tentativas: 0, pin_bloqueado_ate: null, atualizado_em: new Date().toISOString() }).eq('telefone', c.telefone);
+    if (error) { toast('Erro: ' + error.message, 'erro'); return; }
+    toast('PIN resetado'); buscarClienteFid(c.telefone);
+  });
+}
+qs('[data-form-busca-cliente]').addEventListener('submit', (ev) => { ev.preventDefault(); buscarClienteFid(ev.target.telefone.value.replace(/\D/g, '')); });

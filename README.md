@@ -141,6 +141,48 @@ e as mudanças de status feitas no PDV voltam para o site.
 - **Webhook Saipos**: exige a chave da URL e o `cod_store` da loja.
 - **Cabeçalhos** (`vercel.json`): CSP, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`; `/admin` sem cache e fora do Google.
 
+## Fidelidade e cashback (Clube Sesconetto's)
+
+Migração `supabase/migrations/0007_fidelidade.sql`. Sem cadastro: a conta é o **celular** do pedido.
+
+- **Regras** (tudo em `config.fidelidade`, editável na aba **Fidelidade** do painel): programa ativo; níveis por pedidos
+  entregues nos últimos 90 dias — Bronze 5 % (0–2), Prata 7 % (3–5), Ouro 10 % (6+); base = produtos − cupom − cashback usado
+  (taxa de entrega fora), truncado no centavo; crédito só quando o pedido fica `entregue` **e** `pagamento_status` é `pago`/`na_entrega`;
+  cada crédito vale 90 dias e é consumido do mais antigo (FIFO); mínimo para usar R$ 10; máximo 50 % do valor dos produtos por pedido;
+  pode somar com cupom; sem bônus de boas-vindas. O % do nível fica congelado em cada pedido (`pedidos.fidelidade_pct`).
+- **Cancelamentos**: pedido cancelado que usou cashback devolve o valor como crédito novo; pedido cancelado depois de creditado
+  sofre estorno — se o crédito já foi gasto, o saldo fica negativo (`clientes.debito_pendente`) e é abatido no próximo crédito.
+- **PIN**: para ver ou usar o saldo o cliente cria um PIN de 4 dígitos pelo link do pedido (`pedido.html?id=UUID`, prova de posse).
+  5 erros bloqueiam por 15 min (e 30 erros por IP em 15 min). Esqueceu? A equipe reseta no painel.
+- **Tabelas**: `clientes` (celular, `pin_hash` bcrypt, bloqueio), `fidelidade_movimentos` (crédito/débito/estorno/expirado/ajuste,
+  com `restante` e `expira_em`), `fidelidade_tentativas`. Só a equipe lê (RLS); o site usa RPCs `security definer`.
+- **RPCs públicas** (anon): `fidelidade_resumo(p_telefone)` → nível, %, faltam para o próximo, `tem_pin` (**nunca** o saldo);
+  `fidelidade_saldo(p_telefone, p_pin)` → `{ok, saldo, nivel, pct, pode_usar, proximo_vencimento, movimentos[]}` ou `{ok:false, motivo, bloqueado?}`;
+  `fidelidade_criar_pin(p_pedido uuid, p_pin)`; `fidelidade_trocar_pin(p_telefone, p_pin_atual, p_pin_novo)`.
+  Equipe: `fidelidade_cliente(p_telefone)` (ficha) e `fidelidade_ajustar(p_telefone, p_valor, p_descricao)` (+ credita, − debita, motivo obrigatório).
+- **No pedido**: `criar_pedido` aceita `usar_cashback: true` e `pin` no payload. O servidor calcula o valor (`min(saldo, 50 % dos produtos)`),
+  grava `cashback_usado` e o `total` já líquido (que é o que vai à Saipos como `total_discount = desconto + cashback_usado`).
+  **PIN errado devolve `{ok:false, erro}` sem exceção** (para o contador de tentativas persistir) — o front deve checar `data.erro`.
+  `consultar_pedido` devolve `cashback_usado`, `cashback_ganho` (após entregar), `cashback_previsto`, `fidelidade_nivel`, `fidelidade_pct`,
+  `fidelidade_ativa` e `tem_pin`.
+- **Painel** (aba Fidelidade): liga/desliga o programa, edita níveis/%, validade, mínimo e máximo; busca por celular mostra nome, nível,
+  saldo, PIN e movimentos, com **Ajustar saldo** (valor ± motivo) e **Resetar PIN**. O card/detalhe do pedido mostra o cashback usado e o ganho.
+
+## Notificações push (status do pedido)
+
+Migração `supabase/migrations/0008_push.sql` + Edge Function `supabase/functions/push-enviar` (`jsr:@negrel/webpush`, só WebCrypto).
+
+- O cliente assina na página do pedido: `push_assinar(p_pedido uuid, p_subscription jsonb)` (prova de posse = UUID; máx. 3 aparelhos por
+  pedido; upsert por `endpoint`; recusa pedido já `entregue`/`cancelado`). `push_cancelar(p_endpoint)` remove.
+- Quando `pedidos.status` muda (painel, webhook Saipos ou SQL) e o pedido tem assinantes, o trigger `pedidos_push_disparar` chama
+  `push-enviar` via `pg_net` com o header `x-internal-key` (mesmo padrão da Saipos). A função lê as chaves `VAPID_*` do Vault
+  (`integracao_segredos()`), converte para JWK e envia `{title, body, icon:'/img/icons/icon-192.png', badge:'/img/icons/badge-96.png',
+  tag, data:{url:'/pedido.html?id=…'}}`. Textos por status: confirmado ("Pedido #N confirmado! Já vamos preparar."), preparando,
+  no_forno ("Sua pizza está no forno 🔥"), saiu_entrega ("Saiu para entrega!"), pronto_retirada ("Pronto para retirar na loja X"), entregue, cancelado.
+- Endpoints que respondem 404/410 são apagados; outros erros ficam em `push_assinaturas.ultimo_erro`. Após `entregue`/`cancelado`
+  as assinaturas do pedido são removidas; assinaturas com mais de 7 dias somem na próxima chamada de `push_assinar`.
+- Depurar: `select * from net._http_response order by id desc limit 5` e os logs da função `push-enviar` no Supabase.
+
 ## Três lojas (Asa Sul, SIG, Vicente Pires)
 
 - Tabela `lojas` (migração `0005`): endereço, coordenadas, se faz entrega/retirada, se está ativa e o

@@ -39,6 +39,7 @@
         <button data-aba="loja">Loja</button>
         <button data-aba="cardapio">Cardápio</button>
         <button data-aba="cupons">Cupons</button>
+        <button data-aba="fidelidade">Fidelidade</button>
       </nav>
       <div class="topo-dir">
         <label class="switch" title="Fecha a loja para novos pedidos imediatos"><input type="checkbox" data-forcar-fechada><span data-forcar-txt>Loja aberta</span></label>
@@ -136,6 +137,33 @@
           <button class="btn" type="submit">Criar cupom</button>
         </form>
         <div class="tabela" data-cupons style="margin-top:16px"></div>
+      </section>
+
+      <section data-secao="fidelidade" hidden>
+        <h2>Clube Sesconetto's (cashback)</h2>
+        <form class="painel" data-form-fidelidade style="max-width:760px">
+          <p class="small muted">O cliente acumula cashback no celular a cada pedido <b>entregue</b> e pago (base: produtos − cupom − cashback usado; taxa de entrega fora).
+            Para ver ou usar o saldo ele cria um PIN de 4 dígitos pelo link do pedido. Mudanças valem para os próximos pedidos (o % fica congelado em cada pedido).</p>
+          <label class="check" style="margin:10px 0"><input type="checkbox" name="ativo"> Programa ativo</label>
+          <div class="linha-campos tres">
+            <div class="campo"><label>Validade do crédito (dias)</label><input name="validade_dias" type="number" min="1" required></div>
+            <div class="campo"><label>Mínimo para usar (R$)</label><input name="min_resgate" type="number" step="0.01" min="0" required></div>
+            <div class="campo"><label>Máximo por pedido (% dos produtos)</label><input name="max_pct_pedido" type="number" step="1" min="0" max="100" required></div>
+          </div>
+          <h3>Níveis (pedidos entregues nos últimos 90 dias)</h3>
+          <div class="niveis" data-niveis></div>
+          <div class="aviso ok" data-ok-fid hidden>Salvo!</div>
+          <button class="btn" type="submit">Salvar fidelidade</button>
+        </form>
+
+        <div class="painel" style="max-width:760px;margin-top:16px">
+          <h2>Consultar cliente</h2>
+          <form data-form-busca-cliente class="linha-campos">
+            <div class="campo" style="flex:1"><label>Celular (com DDD)</label><input name="telefone" inputmode="numeric" placeholder="61999990000" required></div>
+            <div class="campo" style="align-self:flex-end"><button class="btn" type="submit">Buscar</button></div>
+          </form>
+          <div data-cliente-fid style="margin-top:12px"></div>
+        </div>
       </section>
     </main>
   </div>

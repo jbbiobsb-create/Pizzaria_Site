@@ -134,6 +134,7 @@ async function montarPedido(p: any, s: Segredos) {
     p.observacoes,
     p.taxa_a_confirmar ? "ATENÇÃO: taxa de entrega a confirmar (endereço aproximado)." : null,
     p.cupom_codigo ? `Cupom: ${p.cupom_codigo}` : null,
+    n(p.cashback_usado) > 0 ? `Cashback usado: R$ ${n(p.cashback_usado).toFixed(2)}` : null,
   ].filter(Boolean).join(" | ");
   const pedido: Record<string, unknown> = {
     order_id: p.id,
@@ -142,7 +143,8 @@ async function montarPedido(p: any, s: Segredos) {
     created_at: new Date(p.criado_em).toISOString(),
     notes: notas,
     total_increase: 0,
-    total_discount: n(p.desconto),
+    // itens − desconto − cashback + taxa = total (o cashback do Clube entra como desconto no PDV)
+    total_discount: n(n(p.desconto) + n(p.cashback_usado)),
     total_amount: n(p.total),
     customer: {
       id: p.cliente_telefone,
