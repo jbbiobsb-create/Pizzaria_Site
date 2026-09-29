@@ -83,7 +83,27 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
   qsa('[data-seg] button').forEach((b) => b.addEventListener('click', () => abrirModalEntrega(b.dataset.tipo)));
   atualizarSubheader();
   config().then(atualizarSubheader).catch(() => {});
+  observarFixos();
   iniciarPWA(); // service worker, banner "Instalar app" e push (js/pwa.js)
+}
+
+// Altura REAL das barras fixas (checkout cresce com a linha "falta…") e do banner de instalação → --barra-h / --banner-h
+// no body. Toasts, banner e o padding do body usam essas variáveis, então nada fica coberto.
+let roFixos = null;
+function observarFixos() {
+  if (roFixos || !('ResizeObserver' in window)) return;
+  const altura = (el) => (el ? Math.ceil(el.getBoundingClientRect().height) : 0);
+  const medir = () => {
+    const barra = qsa('.barra-fixa').find((el) => altura(el) > 0);
+    if (barra) document.body.style.setProperty('--barra-h', altura(barra) + 'px'); else document.body.style.removeProperty('--barra-h');
+    const banner = qs('.banner-instalar');
+    if (altura(banner) > 0) document.body.style.setProperty('--banner-h', altura(banner) + 'px'); else document.body.style.removeProperty('--banner-h');
+  };
+  roFixos = new ResizeObserver(medir);
+  const ligar = () => qsa('.barra-fixa, .banner-instalar').forEach((el) => roFixos.observe(el));
+  ligar(); medir();
+  new MutationObserver(() => { ligar(); medir(); }).observe(document.body, { childList: true });
+  window.addEventListener('resize', medir);
 }
 
 export function montarFooter() {

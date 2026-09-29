@@ -73,11 +73,15 @@ que chega ao front pelo `cardapio()`; com `ativo=false` nada aparece no site. L�
 - **Acumular**: todo pedido entregue e pago credita `pct` do nível (Bronze 5 % · Prata 7 % · Ouro 10 %, pelo nº de pedidos
   entregues em 90 dias) sobre `subtotal − cupom − cashback usado` (taxa fora), truncado no centavo, válido por 90 dias.
   A sacola e o checkout mostram a prévia ("você ganha R$ X quando o pedido for entregue").
-- **Criar PIN** (`pedido.html?id=…`): o card "Crie seu PIN" aparece quando o celular do pedido ainda não tem PIN; a prova de
-  posse é o UUID do pedido (`fidelidade_criar_pin`). Depois de entregue, a página mostra "R$ X creditados" e o botão "Ver meu saldo".
+- **Criar PIN** (`pedido.html?id=…`): o card "Crie seu PIN" aparece **só depois que o pedido está entregue e pago** e o celular
+  ainda não tem PIN (antes disso a página avisa "Depois que o pedido for entregue você cria seu PIN aqui"). A prova de posse é o
+  UUID de um pedido entregue nos últimos 30 dias (`fidelidade_criar_pin`, migração `0009`); o pedido usado fica em `clientes.pin_origem_pedido`.
+  Se o celular já tinha saldo antes desse pedido e ele é o único entregue, o PIN só é criado pelo atendimento (WhatsApp) — evita
+  sequestrar o saldo de outra pessoa fazendo um pedido com o celular dela. Entregue, a página mostra "R$ X creditados" e "Ver meu saldo".
 - **Ver saldo** (`conta.html`, aba Conta): celular + PIN → `fidelidade_saldo` devolve saldo, nível, progresso para o próximo
   nível, próximo vencimento e histórico. Só o celular fica salvo no aparelho (`LS.fidelidadeTel`); o PIN é pedido a cada visita.
-  Erros de PIN mostram as tentativas restantes; 5 erros bloqueiam por 15 min. "Esqueci meu PIN" abre o WhatsApp com mensagem
+  Erros de PIN mostram as tentativas restantes; a partir do 5º erro o bloqueio é escalonado (15 min, 30 min, 1 h… até 32 h) e o
+  contador só zera quando o PIN certo é digitado. "Esqueci meu PIN" abre o WhatsApp com mensagem
   pronta (a equipe reseta pelo painel e o cliente cria outro pelo link do último pedido). "Trocar PIN" usa `fidelidade_trocar_pin`.
 - **Usar no checkout**: ao preencher o celular, `fidelidade_resumo` (sem saldo) diz se há PIN. Com PIN, o toggle "Usar meu
   cashback" pede o PIN, consulta o saldo e aplica `min(saldo, max_pct_pedido % dos produtos)` (só se saldo ≥ `min_resgate`);
@@ -152,28 +156,38 @@ Migração `supabase/migrations/0007_fidelidade.sql`. Sem cadastro: a conta é o
   pode somar com cupom; sem bônus de boas-vindas. O % do nível fica congelado em cada pedido (`pedidos.fidelidade_pct`).
 - **Cancelamentos**: pedido cancelado que usou cashback devolve o valor como crédito novo; pedido cancelado depois de creditado
   sofre estorno — se o crédito já foi gasto, o saldo fica negativo (`clientes.debito_pendente`) e é abatido no próximo crédito.
-- **PIN**: para ver ou usar o saldo o cliente cria um PIN de 4 dígitos pelo link do pedido (`pedido.html?id=UUID`, prova de posse).
-  5 erros bloqueiam por 15 min (e 30 erros por IP em 15 min). Esqueceu? A equipe reseta no painel.
+- **PIN**: para ver ou usar o saldo o cliente cria um PIN de 4 dígitos pelo link de um pedido **entregue e pago** (≤ 30 dias;
+  `pedido.html?id=UUID`, prova de posse). PINs proibidos: repetidos (0000…9999), 1234, 4321, 0123, 3210, 2580, 0852, 1212, 6969
+  (mesma lista em `fidelidade_pin_valido` e `js/fidelidade.js`). Bloqueio escalonado: 5º erro → 15 min, 6º → 30 min, 7º → 1 h…
+  teto de 32 h; as tentativas só zeram no acerto (e 30 erros por IP em 15 min bloqueiam o IP). Esqueceu? A equipe reseta no painel.
+  O IP usado nos limites vem de `cf-connecting-ip`, senão do **último** elemento de `x-forwarded-for`, senão `x-real-ip`.
 - **Tabelas**: `clientes` (celular, `pin_hash` bcrypt, bloqueio), `fidelidade_movimentos` (crédito/débito/estorno/expirado/ajuste,
   com `restante` e `expira_em`), `fidelidade_tentativas`. Só a equipe lê (RLS); o site usa RPCs `security definer`.
-- **RPCs públicas** (anon): `fidelidade_resumo(p_telefone)` → nível, %, faltam para o próximo, `tem_pin` (**nunca** o saldo);
+- **RPCs públicas** (anon): `fidelidade_resumo(p_telefone)` → `ativo`, `tem_conta`, `tem_pin`, nível, % e as regras (**nunca** o saldo
+  nem o nº de pedidos);
   `fidelidade_saldo(p_telefone, p_pin)` → `{ok, saldo, nivel, pct, pode_usar, proximo_vencimento, movimentos[]}` ou `{ok:false, motivo, bloqueado?}`;
   `fidelidade_criar_pin(p_pedido uuid, p_pin)`; `fidelidade_trocar_pin(p_telefone, p_pin_atual, p_pin_novo)`.
   Equipe: `fidelidade_cliente(p_telefone)` (ficha) e `fidelidade_ajustar(p_telefone, p_valor, p_descricao)` (+ credita, − debita, motivo obrigatório).
 - **No pedido**: `criar_pedido` aceita `usar_cashback: true` e `pin` no payload. O servidor calcula o valor (`min(saldo, 50 % dos produtos)`),
   grava `cashback_usado` e o `total` já líquido (que é o que vai à Saipos como `total_discount = desconto + cashback_usado`).
-  **PIN errado devolve `{ok:false, erro}` sem exceção** (para o contador de tentativas persistir) — o front deve checar `data.erro`.
+  **PIN errado, saldo abaixo do mínimo ou saldo insuficiente devolvem `{ok:false, erro, cashback:true}` sem exceção** (para o
+  contador de tentativas persistir e o checkout zerar o desconto na tela) — o front checa `data.erro`.
   `consultar_pedido` devolve `cashback_usado`, `cashback_ganho` (após entregar), `cashback_previsto`, `fidelidade_nivel`, `fidelidade_pct`,
   `fidelidade_ativa` e `tem_pin`.
 - **Painel** (aba Fidelidade): liga/desliga o programa, edita níveis/%, validade, mínimo e máximo; busca por celular mostra nome, nível,
-  saldo, PIN e movimentos, com **Ajustar saldo** (valor ± motivo) e **Resetar PIN**. O card/detalhe do pedido mostra o cashback usado e o ganho.
+  saldo, PIN e movimentos, com **Ajustar saldo** (valor ± motivo — **o motivo aparece para o cliente** no extrato) e **Resetar PIN**.
+  O card/detalhe do pedido mostra o cashback usado e o ganho. Pedido **cancelado não pode ser reaberto** (trigger `tg_pedidos_status`;
+  o painel não oferece botões de status para ele).
 
 ## Notificações push (status do pedido)
 
 Migração `supabase/migrations/0008_push.sql` + Edge Function `supabase/functions/push-enviar` (`jsr:@negrel/webpush`, só WebCrypto).
 
 - O cliente assina na página do pedido: `push_assinar(p_pedido uuid, p_subscription jsonb)` (prova de posse = UUID; máx. 3 aparelhos por
-  pedido; upsert por `endpoint`; recusa pedido já `entregue`/`cancelado`). `push_cancelar(p_endpoint)` remove.
+  pedido; upsert por `endpoint`; recusa pedido já `entregue`/`cancelado`; só endpoints `https` de `fcm.googleapis.com`,
+  `*.push.services.mozilla.com`, `web.push.apple.com`/`*.push.apple.com` e `*.notify.windows.com`, JSON < 4 KB). Uma recusa vem como
+  `{ok:false, motivo}` e o front mostra o motivo sem marcar "avisos ligados". `push_cancelar(p_endpoint)` remove.
+  `push-enviar` compara a `x-internal-key` em tempo constante e loga só contagens; o SW só abre URLs do próprio domínio ao tocar na notificação.
 - Quando `pedidos.status` muda (painel, webhook Saipos ou SQL) e o pedido tem assinantes, o trigger `pedidos_push_disparar` chama
   `push-enviar` via `pg_net` com o header `x-internal-key` (mesmo padrão da Saipos). A função lê as chaves `VAPID_*` do Vault
   (`integracao_segredos()`), converte para JWK e envia `{title, body, icon:'/img/icons/icon-192.png', badge:'/img/icons/badge-96.png',

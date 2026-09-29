@@ -251,8 +251,8 @@ form.addEventListener('submit', async (ev) => {
     location.href = `pedido.html?id=${pedido.id}&novo=1`;
   } catch (err) {
     enviando = false; btns.forEach((b) => { b.disabled = false; b.textContent = 'Confirmar pedido'; });
-    if (err.cashback && usarCashback) {
-      // PIN recusado / saldo mudou: mostra no bloco do cashback e pede o PIN de novo, sem perder o formulário
+    if ((err.cashback || err.pin || /cashback|\bPIN\b/i.test(err.message || '')) && fid.usar) {
+      // PIN recusado / saldo abaixo do mínimo / saldo mudou: o desconto some da tela e o bloco pede o PIN de novo, sem perder o formulário
       fid.saldo = null; fid.valor = 0; fid.pin = ''; fid.erro = err.message;
       renderCashback(); recalcular();
       qs('[data-painel-cashback]').scrollIntoView({ behavior: 'smooth', block: 'center' });

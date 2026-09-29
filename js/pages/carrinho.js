@@ -142,7 +142,8 @@ async function renderTotais() {
   const F = cfgFidelidade(CFG);
   const ganho = programaAtivo(CFG) ? calcularPrevisto(F, nivelBase(F).pct, sub - desconto) : 0;
   cb.hidden = !(ganho > 0);
-  if (ganho > 0) cb.innerHTML = `${icone('presente')} Este pedido dá pelo menos <b>${brl(ganho)}</b> de cashback (${esc(nivelBase(F).pct)}% · até ${esc(Math.max(...(F.niveis || []).map((n) => Number(n.pct) || 0), nivelBase(F).pct))}% para quem pede mais)`;
+  // texto num único <span>: a linha é flex e o <b> solto virava uma 3ª coluna
+  if (ganho > 0) cb.innerHTML = `${icone('presente')} <span>Este pedido dá pelo menos <b>${brl(ganho)}</b> de cashback (${esc(nivelBase(F).pct)}% · até ${esc(Math.max(...(F.niveis || []).map((n) => Number(n.pct) || 0), nivelBase(F).pct))}% para quem pede mais)</span>`;
   renderBarra();
 }
 

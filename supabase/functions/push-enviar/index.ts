@@ -47,6 +47,20 @@ function vapidParaJwk(pub: string, priv: string): webpush.ExportedVapidKeys {
   };
 }
 
+// comparação em tempo constante: SHA-256 dos dois lados e igualdade byte a byte (sem short-circuit)
+async function chaveConfere(recebida: string | null, esperada: string): Promise<boolean> {
+  if (!recebida || !esperada) return false;
+  const enc = new TextEncoder();
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(recebida)),
+    crypto.subtle.digest("SHA-256", enc.encode(esperada)),
+  ]);
+  const x = new Uint8Array(a), y = new Uint8Array(b);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
 let appServer: webpush.ApplicationServer | null = null;
 async function servidor(pub: string, priv: string) {
   if (appServer) return appServer;
@@ -59,7 +73,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ erro: "método" }, 405);
   const { data: s, error: errS } = await db.rpc("integracao_segredos");
   if (errS || !s) return json({ erro: "segredos" }, 500);
-  if (!s.SAIPOS_INTERNAL_KEY || req.headers.get("x-internal-key") !== s.SAIPOS_INTERNAL_KEY) return json({ erro: "não autorizado" }, 401);
+  if (!s.SAIPOS_INTERNAL_KEY || !(await chaveConfere(req.headers.get("x-internal-key"), s.SAIPOS_INTERNAL_KEY))) return json({ erro: "não autorizado" }, 401);
   if (!s.VAPID_PUBLIC_KEY || !s.VAPID_PRIVATE_KEY) return json({ erro: "VAPID não configurado" }, 500);
 
   const { pedido_id, status } = await req.json().catch(() => ({}));
@@ -94,12 +108,13 @@ Deno.serve(async (req) => {
       } else {
         const corpo = err instanceof webpush.PushMessageError ? await err.response.text().catch(() => "") : "";
         const msg = `${code ?? ""} ${String((err as Error)?.message || err)} ${corpo}`.trim().slice(0, 500);
-        console.error("push-enviar", a.id, msg);
+        // detalhe do erro fica só na tabela (ultimo_erro); o log tem apenas contagens
         await db.from("push_assinaturas").update({ ultimo_erro: msg }).eq("id", a.id); erros++;
       }
     }
   }));
   // último aviso do pedido: solta as assinaturas
   if (status === "entregue" || status === "cancelado") await db.from("push_assinaturas").delete().eq("pedido_id", pedido_id);
+  console.info("push-enviar", JSON.stringify({ status, assinaturas: subs.length, enviados, removidos, erros }));
   return json({ ok: true, enviados, removidos, erros });
 });

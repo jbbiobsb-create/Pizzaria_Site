@@ -237,7 +237,9 @@ function abrirDetalhe(id) {
   qs('[data-detalhe]').innerHTML = `<div class="detalhe">
     <h2>Pedido #${p.numero} <span class="tag">${esc(STATUS[p.status]?.rotulo)}</span></h2>
     <p class="small muted">${dataHoraBR(p.criado_em)} · ${p.tipo_entrega === 'entrega' ? 'Entrega' : 'Retirada'}${p.lojas ? ` · <b>Loja ${esc(p.lojas.nome)}</b>` : ''}${p.agendado_para ? ` · <b>agendado para ${dataHoraBR(p.agendado_para)}</b>` : ''}</p>
-    <div class="status-btns" style="margin:10px 0">${fluxo.map((s) => `<button class="btn btn-sm ${p.status === s ? '' : 'btn-outline'}" data-st="${s}" data-id="${p.id}">${icone(STATUS[s].icone)} ${STATUS[s].rotulo}</button>`).join('')}<button class="btn btn-sm btn-ghost" data-st="cancelado" data-id="${p.id}">${icone('x')} Cancelar</button></div>
+    ${p.status === 'cancelado'
+      ? `<p class="aviso aviso-ic" style="margin:10px 0">${icone('alerta')}<span>Pedido cancelado: não pode ser reaberto. Se o cliente ainda quiser, faça um novo pedido.</span></p>`
+      : `<div class="status-btns" style="margin:10px 0">${fluxo.map((s) => `<button class="btn btn-sm ${p.status === s ? '' : 'btn-outline'}" data-st="${s}" data-id="${p.id}">${icone(STATUS[s].icone)} ${STATUS[s].rotulo}</button>`).join('')}<button class="btn btn-sm btn-ghost" data-st="cancelado" data-id="${p.id}">${icone('x')} Cancelar</button></div>`}
     <div class="grid">
       <div class="bloco"><b>Cliente</b><br>${esc(p.cliente_nome)}<br>${mascaraTelefone(p.cliente_telefone)}<br><a class="btn btn-sm btn-wa no-print" style="margin-top:6px" target="_blank" href="${wa}">WhatsApp</a></div>
       <div class="bloco"><b>${p.tipo_entrega === 'entrega' ? 'Endereço' : 'Retirada na loja'}</b><br>${p.tipo_entrega === 'entrega' ? `${esc(e.rua)}, ${esc(e.numero)}${e.complemento ? ' - ' + esc(e.complemento) : ''}<br>${esc(e.bairro)} — ${esc(e.cidade)}/${esc(e.uf)}${e.referencia ? '<br>Ref.: ' + esc(e.referencia) : ''}${e.distancia_km ? `<br><small>${e.distancia_km} km${e.aprox ? ' (aprox.)' : ''}</small>` : ''}` : 'Cliente vem buscar'}</div>
@@ -364,9 +366,10 @@ function renderClienteFid() {
     </div>
     <form data-form-ajuste class="linha-campos tres" style="margin:10px 0">
       <div class="campo"><label>Ajustar saldo (R$, negativo debita)</label><input name="valor" type="number" step="0.01" required></div>
-      <div class="campo"><label>Motivo (obrigatório)</label><input name="motivo" required placeholder="ex.: cortesia pelo atraso"></div>
+      <div class="campo"><label>Motivo (obrigatório · <b>o cliente vê este texto</b> no extrato)</label><input name="motivo" required maxlength="120" placeholder="ex.: cortesia pelo atraso"></div>
       <div class="campo" style="align-self:flex-end"><button class="btn btn-sm" type="submit">Ajustar</button></div>
     </form>
+    <p class="small muted" style="margin:-4px 0 10px">${icone('alerta')} A descrição do ajuste aparece para o cliente em "Minha conta" — escreva como se fosse para ele.</p>
     <table><thead><tr><th>Quando</th><th>Tipo</th><th>Valor</th><th>Restante</th><th>Vence</th><th>Descrição</th></tr></thead><tbody>${(c.movimentos || []).map((m) => `<tr>
       <td>${dataHoraBR(m.criado_em)}</td><td>${esc(TIPO_MOV[m.tipo] || m.tipo)}${m.pedido_numero ? ` #${m.pedido_numero}` : ''}</td>
       <td style="color:${Number(m.valor) < 0 ? 'var(--erro)' : 'var(--verde-ok)'}">${Number(m.valor) < 0 ? '−' : '+'} ${brl(Math.abs(m.valor))}</td>
@@ -374,7 +377,8 @@ function renderClienteFid() {
   </div>`;
   qs('[data-form-ajuste]').addEventListener('submit', async (ev) => {
     ev.preventDefault(); const f = ev.target; const valor = Number(f.valor.value);
-    if (!valor || !confirm(`${valor > 0 ? 'Creditar' : 'Debitar'} ${brl(Math.abs(valor))} para ${mascaraTelefone(c.telefone)}?`)) return;
+    const motivo = f.motivo.value.trim();
+    if (!valor || !confirm(`${valor > 0 ? 'Creditar' : 'Debitar'} ${brl(Math.abs(valor))} para ${mascaraTelefone(c.telefone)}?\n\nO cliente vai ver no extrato: "${motivo}"`)) return;
     const { data, error } = await supabase.rpc('fidelidade_ajustar', { p_telefone: c.telefone, p_valor: valor, p_descricao: f.motivo.value.trim() });
     if (error) { toast('Erro: ' + error.message.replace(/^.*?exception:\s*/i, ''), 'erro'); return; }
     toast(`Saldo ajustado: ${brl(data.saldo)}`); buscarClienteFid(c.telefone);

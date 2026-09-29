@@ -25,11 +25,13 @@
   --sombra-2: 0 10px 30px rgba(43, 37, 33, 0.12);
   --fonte-titulo: "Playfair Display", Georgia, serif;
   --fonte: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --header-h: 66px;
+  --header-base: 66px;             /* altura do header sem a safe-area (o @media 760px troca só esta) */
+  --header-h: var(--header-base);  /* a seção PWA soma env(safe-area-inset-top) */
   --sub-h: 46px;
   --tab-h: 62px;
   --chips-h: 64px;   /* altura da faixa de chips (sticky) */
-  --barra-h: 76px;   /* altura das barras de CTA fixas */
+  --barra-h: 76px;   /* altura das barras de CTA fixas (js/ui.js mede a real e grava no body) */
+  --banner-h: 76px;  /* altura do banner "Instalar app" (idem) */
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
@@ -157,6 +159,11 @@ h3 { font-size: 1.15rem; }
 .pill-end span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pill-end .i { width: 16px; height: 16px; color: var(--tomate); }
 .pill-end:hover { border-color: var(--pedra-clara); }
+/* 36px só onde há mouse; em telas de toque (tablet em largura de desktop) o alvo vai a 44px */
+@media (pointer: coarse) {
+  :root { --sub-h: 50px; }
+  .seg button, .pill-end { min-height: 44px; }
+}
 .status-loja { margin-left: auto; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; flex: none; white-space: nowrap; }
 .status-loja i { width: 8px; height: 8px; border-radius: 50%; background: var(--pedra-clara); display: inline-block; }
 .status-loja.aberta i { background: var(--verde-ok); }
@@ -534,6 +541,8 @@ body.tem-barra, body.tem-sacola { padding-bottom: calc(var(--barra-h) + var(--sa
 .wa-flutuante { position: fixed; right: 16px; bottom: calc(16px + var(--safe-b)); z-index: 58; width: 54px; height: 54px; border-radius: 50%; background: #25d366; color: #fff; display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
 .wa-flutuante svg { width: 28px; height: 28px; }
 body.tem-barra .wa-flutuante, body.tem-sacola .wa-flutuante { display: none; }
+/* banner "Instalar app" na tela: o WhatsApp flutuante some para não ficar por cima do botão */
+body:has(.banner-instalar.show) .wa-flutuante { display: none; }
 .seg .curto { display: none; }
 
 /* toast: sempre acima das barras; com sheet aberto, vai para o topo */
@@ -573,7 +582,7 @@ body.modal-aberto .toast.show { transform: translate(-50%, 0); }
   .duas-colunas { padding-top: 16px; }
 }
 @media (max-width: 760px) {
-  :root { --header-h: 54px; --sub-h: 48px; --tab-h: 60px; --chips-h: 56px; }
+  :root { --header-base: 54px; --sub-h: 48px; --tab-h: 60px; --chips-h: 56px; }
   .nav, .header .btn-pedir { display: none; }
   .header .container { gap: 12px; }
   .logo img { width: 36px; height: 36px; }
@@ -653,7 +662,7 @@ body.modal-aberto .toast.show { transform: translate(-50%, 0); }
    PWA (js/pwa.js, sw.js, offline.html)
    ===================================================================== */
 /* app instalado no iPhone (status bar translúcida): o header cresce para não ficar embaixo do relógio */
-:root { --header-h: calc(66px + env(safe-area-inset-top, 0px)); }
+:root { --header-h: calc(var(--header-base) + env(safe-area-inset-top, 0px)); }   /* 66px no desktop, 54px no mobile (+ safe-area) */
 .header { padding-top: env(safe-area-inset-top, 0px); }
 
 /* banner "Instalar app": acima da tab bar no celular, cartão no canto no desktop */
@@ -669,7 +678,7 @@ body.modal-aberto .toast.show { transform: translate(-50%, 0); }
 .banner-instalar .txt b { display: block; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .banner-instalar .txt small { display: block; font-size: .76rem; color: var(--pedra-clara); }
 .banner-instalar .btn { white-space: nowrap; }
-.banner-instalar .fechar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--pedra-clara); }
+.banner-instalar .fechar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--pedra-clara); }
 .banner-instalar .fechar .i { width: 18px; height: 18px; }
 @media (min-width: 761px) { .banner-instalar { left: auto; right: 20px; bottom: 20px; max-width: 460px; } }
 @media (max-width: 760px) {
@@ -682,14 +691,23 @@ body.modal-aberto .toast.show { transform: translate(-50%, 0); }
 /* toast com ação ("Nova versão disponível — Atualizar"): fica até o cliente decidir */
 .toast-acao { display: flex; align-items: center; gap: 8px; pointer-events: auto; padding: 8px 6px 8px 16px; border-radius: 999px; font-size: .86rem; max-width: calc(100vw - 24px); }
 .toast-acao span { white-space: nowrap; }
-.toast-acao .btn { min-height: 36px; padding: 6px 14px; }
-.toast-acao .fechar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--pedra-clara); }
+.toast-acao .btn { min-height: 44px; padding: 6px 14px; }
+.toast-acao .fechar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--pedra-clara); }
 .toast-acao .fechar .i { width: 16px; height: 16px; }
+/* posição do toast de atualização: acima da tab bar → acima da barra fixa (altura real em --barra-h) →
+   acima do banner "Instalar app" (--banner-h). Nunca cobre o CTA nem o botão "Instalar". */
 #toast-atualizar { bottom: calc(var(--tab-h) + 16px + var(--safe-b)); }
-@media (min-width: 761px) { #toast-atualizar { bottom: calc(24px + var(--safe-b)); } }
-/* com o banner de instalação na tela, o toast sobe para não cobrir o botão "Instalar app" */
-body:has([data-banner-instalar]) #toast-atualizar { bottom: calc(var(--tab-h) + 100px + var(--safe-b)); }
-@media (min-width: 761px) { body:has([data-banner-instalar]) #toast-atualizar { bottom: calc(110px + var(--safe-b)); } }
+body.tem-barra #toast-atualizar, body.tem-sacola #toast-atualizar { bottom: calc(var(--tab-h) + var(--barra-h) + 12px + var(--safe-b)); }
+/* (vale para o toast comum #toast e para o #toast-atualizar) */
+body:has(.banner-instalar.show) .toast, body:has(.banner-instalar.show) #toast-atualizar { bottom: calc(var(--tab-h) + 10px + var(--banner-h) + 12px + var(--safe-b)); }
+body.tem-barra:has(.banner-instalar.show) .toast, body.tem-sacola:has(.banner-instalar.show) .toast,
+body.tem-barra:has(.banner-instalar.show) #toast-atualizar, body.tem-sacola:has(.banner-instalar.show) #toast-atualizar { bottom: calc(var(--tab-h) + var(--barra-h) + 8px + var(--banner-h) + 12px + var(--safe-b)); }
+@media (min-width: 761px) {
+  #toast-atualizar { bottom: calc(24px + var(--safe-b)); }
+  body.tem-barra #toast-atualizar, body.tem-sacola #toast-atualizar { bottom: calc(var(--barra-h) + 16px + var(--safe-b)); }
+  body:has(.banner-instalar.show) .toast, body:has(.banner-instalar.show) #toast-atualizar { bottom: calc(20px + var(--banner-h) + 12px + var(--safe-b)); }
+}
+body.modal-aberto #toast-atualizar { bottom: auto !important; top: calc(16px + env(safe-area-inset-top, 0px)); }
 
 /* passo a passo de instalação no iPhone */
 .passos-ios { list-style: none; display: grid; gap: 14px; margin: 6px 0 16px; }

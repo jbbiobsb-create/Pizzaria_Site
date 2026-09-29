@@ -11,7 +11,7 @@
  *    mas a versão maior "@2" pode avançar; SWR mantém o offline funcionando e atualiza em segundo plano).
  *  - Supabase, ViaCEP, Nominatim, Google Maps e /admin: NUNCA passam pelo cache (o SW nem intercepta).
  */
-const VERSAO = '2026-09-29-1';
+const VERSAO = '2026-09-29-2';
 const CACHE_APP = 'app-' + VERSAO;
 const CACHE_MIDIA = 'midia-v1';   // imagens e fontes (sobrevive à troca de versão)
 const CACHE_CDN = 'cdn-v1';       // esm.sh e Google Fonts
@@ -163,7 +163,10 @@ self.addEventListener('push', (ev) => {
 
 self.addEventListener('notificationclick', (ev) => {
   ev.notification.close();
-  const url = new URL((ev.notification.data && ev.notification.data.url) || '/pedido', self.location.origin).href;
+  // só abre URLs do próprio site (um payload malicioso não leva o cliente para outro domínio)
+  let url = new URL((ev.notification.data && ev.notification.data.url) || '/pedido', self.location.origin);
+  if (url.origin !== self.location.origin) url = new URL('/pedido', self.location.origin);
+  url = url.href;
   ev.waitUntil((async () => {
     const janelas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const mesma = janelas.find((w) => w.url.split('#')[0] === url) || janelas.find((w) => w.url.includes('/pedido')) || janelas[0];

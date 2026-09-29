@@ -1,6 +1,6 @@
 import { montarLayout, montarFooter, config } from '../ui.js';
 import { consultarPedido, pedidosPorTelefone, fidelidadeCriarPin } from '../api.js';
-import { qs, qsa, esc, brl, param, toast, lerLS, mascaraTelefone, STATUS, FLUXO_ENTREGA, FLUXO_RETIRADA, PAGAMENTOS, dataHoraBR, horaBR, whatsappLink, soDigitos } from '../util.js';
+import { qs, qsa, esc, brl, param, toast, lerLS, mascaraTelefone, STATUS, FLUXO_ENTREGA, FLUXO_RETIRADA, PAGAMENTOS, dataHoraBR, horaBR, whatsappLink, soDigitos, telefoneDiscavel } from '../util.js';
 import { LS } from '../config.js';
 import { icone } from '../icons.js';
 import { repetirItens, mensagemRepetir } from '../repetir.js';
@@ -23,7 +23,9 @@ async function carregar(pid) {
     const p = await consultarPedido(pid);
     if (!p) { raiz.innerHTML = '<div class="painel"><p class="aviso erro">Pedido não encontrado.</p><p style="margin-top:10px"><a href="pedido.html" class="link-acao">Buscar pelo celular</a></p></div>'; return; }
     ultimaAtualizacao = Date.now();
-    render(p);
+    // cliente digitando o PIN: não redesenha agora (perderia foco e teclado); a próxima atualização redesenha
+    if (document.activeElement && document.activeElement.closest('[data-form-pin]')) { /* mantém o DOM */ }
+    else render(p);
     clearTimeout(timer);
     if (!['entregue', 'cancelado'].includes(p.status)) timer = setTimeout(() => carregar(pid), 15000);
   } catch (e) {
@@ -48,7 +50,7 @@ function render(p) {
   const idx = p.status === 'cancelado' ? -1 : fluxo.indexOf(p.status);
   const hist = Object.fromEntries((p.status_historico || []).map((h) => [h.status, h.em]));
   const wa = whatsappLink(p.whatsapp, `Olá! Sou ${p.cliente_nome}, pedido #${p.numero} pelo site.`);
-  const tel = CFG.telefone || p.whatsapp; // telefone da loja (config); cai no WhatsApp se não houver
+  const tel = telefoneDiscavel(CFG.telefone, p.whatsapp); // telefone da loja com DDI 55; cai no WhatsApp se não houver
   const e = p.endereco || {};
   const andamento = idx >= 0 && idx < fluxo.length - 1;
   const et = andamento ? eta(p, hist) : null;
@@ -77,7 +79,7 @@ function render(p) {
       <p class="center small muted">Pedido <b>#${p.numero}</b> · ${dataHoraBR(p.criado_em)} · ${entrega ? 'Entrega' : 'Retirada na loja'}${p.loja?.nome ? ` · loja ${esc(p.loja.nome)}` : ''}</p>
       <div class="acoes-pedido">
         <a class="btn btn-wa" href="${wa}" target="_blank" rel="noopener">${icone('wa')} WhatsApp</a>
-        <a class="btn btn-ligar" href="tel:+${esc(soDigitos(tel))}">${icone('telefone')} Ligar</a>
+        <a class="btn btn-ligar" href="tel:+${esc(tel)}">${icone('telefone')} Ligar</a>
       </div>
       <!-- botão "Avisar quando sair pra entrega" (push): js/pwa.js monta aqui ao ouvir o evento ses:pedido -->
       <div data-push data-pedido-id="${esc(p.id)}" data-pedido-status="${esc(p.status)}" data-tipo-entrega="${esc(p.tipo_entrega)}"></div>
@@ -168,7 +170,10 @@ function renderFidelidade(p, pinDigitado = []) {
   }
 
   let pinHTML = '';
-  if (!temPin) {
+  if (!temPin && !entregue) {
+    // o servidor só aceita criar o PIN com pedido entregue e pago (prova de posse real)
+    pinHTML = `<div class="cb-pedido previsto" style="background:var(--creme);border-color:var(--linha);color:var(--texto-2)">${icone('cadeado')}<div><b style="color:var(--texto)">Depois que o pedido for entregue você cria seu PIN aqui.</b><small>Com o PIN você vê o saldo do celular ${esc(telefoneMascarado(tel))} e usa o cashback nos próximos pedidos.</small></div></div>`;
+  } else if (!temPin) {
     pinHTML = `
       <form class="criar-pin" data-form-pin novalidate>
         <h3>${icone('cadeado')} Crie seu PIN para usar o cashback</h3>
@@ -207,7 +212,12 @@ function renderFidelidade(p, pinDigitado = []) {
     btn.disabled = true; btn.textContent = 'Criando…';
     try {
       const r = await fidelidadeCriarPin(p.id, f.pin.value);
-      if (!r.ok) { erro.textContent = r.motivo || 'Não foi possível criar o PIN.'; erro.hidden = false; return; }
+      if (!r.ok) {
+        erro.textContent = r.motivo || 'Não foi possível criar o PIN.';
+        // saldo anterior sem outro pedido entregue: só pelo atendimento (antissequestro)
+        if (r.contato && p.whatsapp) erro.innerHTML += ` <a href="${whatsappLink(p.whatsapp, `Olá! Quero criar meu PIN do ${NOME_CLUBE} (pedido #${p.numero}, celular ${telefoneMascarado(tel)}).`)}" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline">Falar no WhatsApp</a>`;
+        erro.hidden = false; return;
+      }
       pinCriado = true; salvarTelefone(r.telefone || tel);
       toast('PIN criado! Você entrou no Clube.');
       form.outerHTML = `<div class="cb-pedido creditado">${icone('check-circulo')}<div><b>PIN criado! Você entrou no ${esc(NOME_CLUBE)}.</b><small>Seu saldo aparece em "Minha conta" com o celular ${esc(telefoneMascarado(tel))} e o PIN.</small><a class="btn btn-sm" href="${linkConta}">${icone('moeda')} Ver meu saldo</a></div></div>`;

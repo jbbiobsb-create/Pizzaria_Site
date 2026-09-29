@@ -109,9 +109,15 @@ export async function geocodificar(end) {
 
 // ---------- Web Push (aviso de status do pedido; ver js/pwa.js) ----------
 // A prova de posse é o UUID do pedido (só quem fez o pedido tem o link). Limite de 3 assinaturas por pedido.
+// O servidor pode recusar sem exceção ({ok:false, motivo}: pedido finalizado, limite de aparelhos, endpoint inválido) — vira erro aqui.
 export async function assinarPush(pedidoId, subscription) {
   const { data, error } = await supabase.rpc('push_assinar', { p_pedido: pedidoId, p_subscription: subscription });
   if (error) throw new Error(limparErro(error.message));
+  if (!data || data.ok === false) {
+    const e = new Error(data?.motivo || 'Não foi possível ligar os avisos.');
+    e.motivo = data?.motivo || null; e.recusado = true;
+    throw e;
+  }
   return data;
 }
 

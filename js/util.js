@@ -74,6 +74,13 @@ export const PAGAMENTOS = {
   dinheiro: { rotulo: 'Dinheiro', desc: 'Informe se precisa de troco', icone: 'dinheiro' },
 };
 
+// número para "tel:": telefone da loja com DDI 55 (config.telefone vem "(61) 9…"); sem ele, cai no WhatsApp (já com 55)
+export function telefoneDiscavel(telefone, whatsapp) {
+  const d = soDigitos(telefone);
+  if (d.length >= 10 && d.length <= 11) return '55' + d;
+  if (d.length > 11) return d;
+  return soDigitos(whatsapp);
+}
 export function whatsappLink(numero, msg) {
   return `https://wa.me/${soDigitos(numero)}?text=${encodeURIComponent(msg)}`;
 }

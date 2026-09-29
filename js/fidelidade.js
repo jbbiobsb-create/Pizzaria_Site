@@ -48,7 +48,7 @@ export function calcularPrevisto(cfg, nivelPct, base) {
 // quanto do saldo dá para usar num pedido: min(saldo, max_pct % dos produtos), só se saldo ≥ mínimo
 export function calcularUso(cfg, saldo, baseProdutos) {
   const s = Number(saldo || 0); const min = minResgate(cfg);
-  const teto = Math.round(Math.max(Number(baseProdutos || 0), 0) * maxPctPedido(cfg)) / 100;
+  const teto = truncar2(Math.max(Number(baseProdutos || 0), 0) * maxPctPedido(cfg) / 100);   // trunca no centavo, como o servidor (53,99 e não 54,00)
   if (s < min || s <= 0) return { valor: 0, teto, abaixoMinimo: s < min, faltam: Math.max(min - s, 0) };
   return { valor: Math.max(Math.min(s, teto), 0), teto, abaixoMinimo: false, faltam: 0 };
 }
@@ -89,10 +89,11 @@ export function textoVencimento(v) {
   return { texto: `${brl(v.valor)} ${quando} (${dataCurta(v.em)})`, urgente: d <= 3 };
 }
 
-// PIN: 4 dígitos, sem sequência nem repetição (mesma regra do servidor)
+// PIN: 4 dígitos, sem repetição (0000…9999) nem sequência óbvia — MESMA lista de fidelidade_pin_valido (SQL, migração 0009)
+export const PINS_PROIBIDOS = ['1234', '4321', '0123', '3210', '2580', '0852', '1212', '6969'];
 export function pinValido(pin) {
   const p = String(pin || '');
-  return /^\d{4}$/.test(p) && !/^(\d)\1{3}$/.test(p) && !['1234', '4321', '0123', '3210', '2580', '0852'].includes(p);
+  return /^\d{4}$/.test(p) && !/^(\d)\1{3}$/.test(p) && !PINS_PROIBIDOS.includes(p);
 }
 // campo de PIN: só dígitos, 4 no máximo
 export function ligarCampoPin(input) {

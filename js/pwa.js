@@ -187,7 +187,7 @@ export async function assinarPushDoPedido(pedidoId) {
   let sub = await reg.pushManager.getSubscription();
   if (sub && !mesmaChave(sub, chave)) { try { await sub.unsubscribe(); } catch {} sub = null; }
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chave });
-  await assinarPush(pedidoId, sub.toJSON());
+  await assinarPush(pedidoId, sub.toJSON());   // lança se o servidor recusar ({ok:false, motivo})
   lembrarPush(pedidoId);
   return 'ok';
 }
@@ -231,8 +231,10 @@ export function montarBotaoPush(pedido) {
       else { b.disabled = false; toast('Sem permissão para avisar. Tente de novo quando quiser.', 'erro'); }
     } catch (e) {
       console.warn('push:', e);
-      b.disabled = false;
-      toast('Não conseguimos ligar os avisos agora. Você pode acompanhar por aqui.', 'erro', 4000);
+      // servidor recusou (limite de aparelhos, pedido finalizado…): mostra o motivo e NÃO marca como ligado
+      pintar('botao', e.recusado ? e.motivo || e.message : '');
+      const nb = qs('[data-ativar-push]', box); if (nb && e.recusado) nb.disabled = true;
+      toast(e.recusado ? (e.motivo || e.message) : 'Não conseguimos ligar os avisos agora. Você pode acompanhar por aqui.', 'erro', 4000);
     }
   });
 }

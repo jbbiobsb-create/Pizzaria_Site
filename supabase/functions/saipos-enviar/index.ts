@@ -119,6 +119,17 @@ function pagamento(p: any) {
   return [{ code: "PARTNER_PAYMENT", amount: total, change_for: 0, complement: p.pagamento === "pix" ? "pix" : "", type: "ONLINE" }];
 }
 
+// comparação da x-internal-key em tempo constante (SHA-256 dos dois lados, igualdade byte a byte)
+async function chaveConfere(recebida: string | null, esperada: string): Promise<boolean> {
+  if (!recebida || !esperada) return false;
+  const enc = new TextEncoder();
+  const [a, b] = await Promise.all([crypto.subtle.digest("SHA-256", enc.encode(recebida)), crypto.subtle.digest("SHA-256", enc.encode(esperada))]);
+  const x = new Uint8Array(a), y = new Uint8Array(b);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
 // código da loja no canal Saipos: o da loja do pedido, senão o padrão do Vault
 function codLoja(p: any, s: Segredos) {
   return p.lojas?.saipos_cod_store || s.SAIPOS_COD_STORE;
@@ -196,7 +207,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ erro: "método" }, 405);
   const { data: s, error: errS } = await db.rpc("integracao_segredos");
   if (errS || !s) return json({ erro: "segredos" }, 500);
-  if (!s.SAIPOS_INTERNAL_KEY || req.headers.get("x-internal-key") !== s.SAIPOS_INTERNAL_KEY) return json({ erro: "não autorizado" }, 401);
+  if (!s.SAIPOS_INTERNAL_KEY || !(await chaveConfere(req.headers.get("x-internal-key"), s.SAIPOS_INTERNAL_KEY))) return json({ erro: "não autorizado" }, 401);
 
   const { pedido_id, acao = "enviar" } = await req.json().catch(() => ({}));
   if (!pedido_id) return json({ erro: "pedido_id" }, 400);
@@ -218,10 +229,15 @@ Deno.serve(async (req) => {
       saipos_erro: null,
       saipos_tentativas: tentativas,
     }).eq("id", p.id);
+    // rastro do envio (sem dados pessoais): pedido, valor e desconto enviados ao PDV
+    const c = corpo as Record<string, unknown>;
+    console.info("saipos-enviar ok", JSON.stringify({ pedido: p.numero, sale_number: j.sale_number ?? null, total_amount: c.total_amount, total_discount: c.total_discount }));
     return json({ ok: true, saipos: j });
   } catch (err) {
     const msg = String((err as Error)?.message || err).slice(0, 1000);
-    console.error("saipos-enviar", p.id, msg, JSON.stringify(corpo));
+    // no log de erro o pedido vai sem cliente/endereço (dados pessoais ficam só no banco)
+    const semPessoais = corpo ? { ...(corpo as Record<string, unknown>), customer: "[omitido]", delivery_address: "[omitido]" } : null;
+    console.error("saipos-enviar", p.id, msg, JSON.stringify(semPessoais));
     await db.from("pedidos").update({ saipos_status: "erro", saipos_erro: msg, saipos_tentativas: tentativas }).eq("id", p.id);
     return json({ ok: false, erro: msg }, 502);
   }
