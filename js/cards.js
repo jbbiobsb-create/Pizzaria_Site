@@ -32,7 +32,7 @@ export function tamanhosDoSabor(s) {
 export function cardSabor(s) {
   const tags = s.tags || [];
   const href = `produto.html?sabor=${esc(s.slug)}`;
-  const foto = s.imagem_url ? `<img class="foto" src="${esc(s.imagem_url)}" alt="" loading="lazy">` : `<div class="foto vazia">${icone(s.tipo === 'calzone' ? 'calzone' : 'pizza')}</div>`;
+  const foto = s.imagem_url ? `<img class="foto" src="${esc(s.imagem_url)}" alt="" loading="lazy" width="96" height="96">` : `<div class="foto vazia">${icone(s.tipo === 'calzone' ? 'calzone' : 'pizza')}</div>`;
   const tam = tamanhosDoSabor(s);
   // chips: cada um adiciona a pizza inteira em 1 toque; o corpo do card abre o configurador (meio a meio / observações)
   const chips = s.disponivel && tam.length
@@ -57,7 +57,9 @@ export function cardProduto(p) {
   const ic = FOTO_PADRAO[p.categoria?.replace(/s$/, '')] || 'pizza';
   const href = `produto.html?p=${esc(p.slug)}`;
   const simples = !(Array.isArray(p.passos) && p.passos.length);
-  const foto = p.imagem_url ? `<img class="foto" src="${esc(p.imagem_url)}" alt="" loading="lazy">` : `<div class="foto vazia">${icone(ic)}</div>`;
+  // latas, garrafas, combos: recorte em fundo branco → multiply sobre o papel (DESIGN.md §8)
+  const recorte = ['bebidas', 'cervejas', 'vinhos', 'combos', 'drinks'].includes(p.categoria) ? ' foto--recorte' : '';
+  const foto = p.imagem_url ? `<img class="foto${recorte}" src="${esc(p.imagem_url)}" alt="" loading="lazy" width="96" height="96">` : `<div class="foto vazia">${icone(ic)}</div>`;
   const acao = simples
     ? `<span data-rapido="${esc(p.slug)}"><button type="button" class="add" data-add-rapido="${esc(p.slug)}" aria-label="Adicionar ${esc(p.nome)}">${icone('mais')}</button></span>`
     : `<a class="add" href="${href}" aria-label="Montar ${esc(p.nome)}">${icone('mais')}</a>`;

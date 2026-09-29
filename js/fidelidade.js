@@ -187,7 +187,7 @@ export function abrirTrocarPin(telefone, onOk) {
       try {
         const r = await fidelidadeTrocarPin(form.dataset.tel, f.atual.value, f.novo.value);
         if (!r.ok) { erro.textContent = r.motivo || 'Não foi possível trocar o PIN.'; erro.hidden = false; return; }
-        toast('PIN trocado!'); fecharModal(el.id); form.reset();
+        toast('PIN trocado'); fecharModal(el.id); form.reset();
         if (typeof form._onOk === 'function') form._onOk();
       } catch (e) { erro.textContent = e.message || 'Não foi possível trocar o PIN agora.'; erro.hidden = false; }
       finally { btn.disabled = false; btn.textContent = 'Salvar novo PIN'; }

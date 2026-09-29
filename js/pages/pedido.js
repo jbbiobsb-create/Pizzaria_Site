@@ -79,7 +79,7 @@ function render(p) {
     </div>` : '';
 
   raiz.innerHTML = `
-    ${novo ? `<div class="aviso ok aviso-ic" style="margin-bottom:14px">${icone('brilho')}<span><b>Pedido #${esc(p.numero)} enviado!</b> Esta página atualiza sozinha. Guarde o link. <button type="button" class="link-acao" data-salvar-link style="text-decoration:underline;font-weight:600;padding:0 4px">${icone('compartilhar')} Guardar link do pedido</button></span></div>` : ''}
+    ${novo ? `<div class="aviso ok aviso-ic" style="margin-bottom:14px">${icone('brilho')}<span><b>Pedido #${esc(p.numero)} enviado.</b> Esta página atualiza sozinha. Guarde o link. <button type="button" class="link-acao" data-salvar-link style="text-decoration:underline;font-weight:600;padding:0 4px">${icone('compartilhar')} Guardar link do pedido</button></span></div>` : ''}
     ${pixHTML}
     <div class="painel">
       <div class="status-grande">
@@ -132,8 +132,8 @@ function render(p) {
     const url = location.href.replace(/[?&]novo=1/, '');
     try {
       if (navigator.share) await navigator.share({ title: `Pedido #${p.numero} · Sesconetto's`, url });
-      else { await navigator.clipboard.writeText(url); toast('Link copiado!'); }
-    } catch { try { await navigator.clipboard.writeText(url); toast('Link copiado!'); } catch { toast('Copie o endereço desta página', 'erro'); } }
+      else { await navigator.clipboard.writeText(url); toast('Link copiado'); }
+    } catch { try { await navigator.clipboard.writeText(url); toast('Link copiado'); } catch { toast('Copie o endereço desta página', 'erro'); } }
   });
   qs('[data-repetir]')?.addEventListener('click', async (ev) => {
     const b = ev.currentTarget; b.disabled = true;
@@ -169,7 +169,7 @@ function renderFidelidade(p, pinDigitado = []) {
 
   let banner = '';
   if (entregue && ganho > 0) {
-    banner = `<div class="cb-pedido creditado">${icone('presente')}<div><b>${brl(ganho)} de cashback creditados!</b><small>Válido por ${dias} dias para usar no site. ${selo}</small>${temPin ? `<a class="btn btn-sm" href="${linkConta}" data-ver-saldo>${icone('moeda')} Ver meu saldo</a>` : ''}</div></div>`;
+    banner = `<div class="cb-pedido creditado">${icone('presente')}<div><b>${brl(ganho)} de cashback creditados.</b><small>Válido por ${dias} dias para usar no site. ${selo}</small>${temPin ? `<a class="btn btn-sm" href="${linkConta}" data-ver-saldo>${icone('moeda')} Ver meu saldo</a>` : ''}</div></div>`;
   } else if (!entregue && previsto > 0) {
     banner = `<div class="cb-pedido previsto">${icone('presente')}<div><b>Você ganha ${brl(previsto)} de cashback quando o pedido for entregue.</b><small>Vale ${dias} dias para usar no site. ${selo}</small></div></div>`;
   } else if (entregue && ganho === 0 && Number(p.cashback_usado) > 0) {
@@ -226,8 +226,8 @@ function renderFidelidade(p, pinDigitado = []) {
         erro.hidden = false; return;
       }
       pinCriado = true; salvarTelefone(r.telefone || tel);
-      toast('PIN criado! Você entrou no Clube.');
-      form.outerHTML = `<div class="cb-pedido creditado">${icone('check-circulo')}<div><b>PIN criado! Você entrou no ${esc(NOME_CLUBE)}.</b><small>Seu saldo aparece em "Minha conta" com o celular ${esc(telefoneMascarado(tel))} e o PIN.</small><a class="btn btn-sm" href="${linkConta}">${icone('moeda')} Ver meu saldo</a></div></div>`;
+      toast('PIN criado. Você entrou no Clube.');
+      form.outerHTML = `<div class="cb-pedido creditado">${icone('check-circulo')}<div><b>PIN criado. Você entrou no ${esc(NOME_CLUBE)}.</b><small>Seu saldo aparece em "Minha conta" com o celular ${esc(telefoneMascarado(tel))} e o PIN.</small><a class="btn btn-sm" href="${linkConta}">${icone('moeda')} Ver meu saldo</a></div></div>`;
     } catch (e) { erro.textContent = e.message || 'Não foi possível criar o PIN agora.'; erro.hidden = false; }
     finally { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = `${icone('cadeado')} Criar PIN`; } }
   });

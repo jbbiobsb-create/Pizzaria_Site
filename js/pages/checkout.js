@@ -64,7 +64,7 @@ function renderItens() {
   }
   el.innerHTML = itens.map((i) => `
     <div class="item-carrinho">
-      ${i.imagem ? `<img src="${esc(i.imagem)}" alt="">` : `<div class="ph">${icone(i.tipo === 'pizza' ? 'pizza' : 'bebida')}</div>`}
+      ${i.imagem ? `<img src="${esc(i.imagem)}" alt="" width="56" height="56">` : `<div class="ph">${icone(i.tipo === 'pizza' ? 'pizza' : 'bebida')}</div>`}
       <div>
         <b>${esc(i.nome)}</b>
         ${i.descricao ? `<small>${esc(i.descricao)}</small>` : ''}
@@ -265,7 +265,7 @@ async function renderCompleta() {
     if (!lista.length) { el.hidden = true; return; }
     qs('[data-completa-lista]').innerHTML = lista.map((p) => `
       <div class="completa-item">
-        ${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="" loading="lazy">` : `<div class="ph">${icone(p.categoria === 'sobremesas' ? 'sobremesa' : p.categoria === 'molhos' ? 'molho' : 'bebida')}</div>`}
+        ${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="" loading="lazy" width="48" height="48">` : `<div class="ph">${icone(p.categoria === 'sobremesas' ? 'sobremesa' : p.categoria === 'molhos' ? 'molho' : 'bebida')}</div>`}
         <div class="txt"><b>${esc(nomeCurto(p.nome))}</b><span class="p">${brl(p.preco)}</span></div>
         <span data-rapido="${esc(p.slug)}"><button type="button" class="add" data-add-rapido="${esc(p.slug)}" aria-label="Adicionar ${esc(p.nome)}">${icone('mais')}</button></span>
       </div>`).join('');

@@ -5,7 +5,7 @@ import * as cart from '../cart.js';
 import { qs, qsa, esc, resumoHorario, whatsappLink, brl, toast, lerLS, faixaMin, rotuloPagamento, track } from '../util.js';
 import { LS } from '../config.js';
 import { icone } from '../icons.js';
-import { itensDoUltimoPedido, repetirItens, mensagemRepetir, resumoItens } from '../repetir.js';
+import { itensDoUltimoPedido, ultimoPedidoLocal, repetirItens, mensagemRepetir, resumoItens } from '../repetir.js';
 import { cfgFidelidade, programaAtivo, nivelBase, nivelTopo, telefoneSalvo, abrirRegulamento, calcularPrevisto } from '../fidelidade.js';
 
 // chamada do Clube Sesconetto's (cashback), quando o programa está ativo
@@ -34,9 +34,11 @@ qs('[data-ver-cardapio]')?.addEventListener('click', () => track('ver_cardapio',
 // "Pedir de novo": primeiro bloco da home quando há um pedido anterior salvo neste aparelho.
 // "Repetir e confirmar" reconstrói a sacola e vai direto para "Fechar pedido" (endereço, dados e pagamento já lembrados).
 (async () => {
-  const u = await itensDoUltimoPedido();
-  if (!u) return;
   const sec = qs('[data-pedir-de-novo]'); const el = qs('[data-repetir-card]');
+  // há pedido salvo: o bloco já aparece (com skeleton) antes de qualquer rede, para a home não pular
+  if (ultimoPedidoLocal()) { sec.hidden = false; el.innerHTML = '<div class="repetir repetir-completo" aria-busy="true"><div class="skeleton" style="min-height:56px"></div><div class="skeleton" style="min-height:52px;border-radius:var(--r-md)"></div></div>'; }
+  const u = await itensDoUltimoPedido();
+  if (!u) { sec.hidden = true; return; }
   const cli = lerLS(LS.cliente, {});
   const e = cart.entrega();
   const nome = (cli.nome || '').trim().split(' ')[0];
@@ -107,6 +109,9 @@ qs('[data-ver-cardapio]')?.addEventListener('click', () => track('ver_cardapio',
     const a = qs('[data-contato-wa]'); a.href = wa; a.textContent = c.telefone; a.classList.add('link-acao');
     qs('[data-contato-wa-btn]').href = wa;
     if (lojas.length) mapa(lojas.find((l) => l.principal) || lojas[0]);
+    // no celular o mapa não é carregado (iframe pesado): link "Abrir no mapa" para a loja principal
+    const abrirMapa = qs('[data-abrir-mapa]'); const lp = lojas.find((l) => l.principal) || lojas[0];
+    if (abrirMapa && lp) { const e = lp.endereco || {}; abrirMapa.href = `https://maps.google.com/maps?q=${encodeURIComponent(`${e.rua} ${e.numero || ''} - ${e.bairro}, ${e.cidade} - ${e.uf}`)}`; }
   } catch (err) {
     console.error(err);
     qs('[data-mais-pedidas]').innerHTML = '<p class="aviso erro">Não conseguimos carregar o cardápio agora. Tente recarregar a página.</p>';

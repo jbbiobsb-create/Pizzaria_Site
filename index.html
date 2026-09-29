@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Sesconetto's Pizzeria · Pizza napolitana em Brasília</title>
   <meta name="description" content="Pizza napolitana artesanal, massa de longa fermentação e forno a lenha. Lojas na Asa Sul, SIG e Vicente Pires: peça online para entrega ou retire na loja.">
-  <meta name="theme-color" content="#1f1b18">
+  <meta name="theme-color" content="#FFFFFF">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="/img/icons/favicon-48.png">
@@ -14,24 +14,23 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Sesconetto's">
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" href="/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="tem-sub">
   <main>
     <!-- recorrente: primeiro bloco da página (js/pages/home.js preenche quando há um pedido salvo neste aparelho) -->
-    <section class="secao pedir-de-novo" style="padding:16px 0 0" data-pedir-de-novo hidden>
+    <section class="secao pedir-de-novo" data-pedir-de-novo hidden>
       <div class="container">
-        <div class="secao-titulo" style="margin-bottom:10px"><h2 data-boas-vindas>Pedir de novo</h2><a href="pedido.html">Acompanhar <span class="ic-w" data-icone="chevron-dir"></span></a></div>
+        <div class="secao-titulo"><h2 data-boas-vindas>Pedir de novo</h2><a href="pedido.html">Acompanhar <span class="ic-w" data-icone="chevron-dir"></span></a></div>
         <div data-repetir-card></div>
       </div>
     </section>
 
     <section class="hero hero-curto">
-      <img class="bg" src="img/hero-pizza.jpg" alt="" fetchpriority="high">
+      <img class="bg" src="img/hero-pizza.jpg" alt="" fetchpriority="high" width="1800" height="1105">
       <div class="container">
-        <span class="eyebrow"><span class="ic-w" data-icone="fogo"></span>Forno a lenha · massa de 24 h · Asa Sul, SIG e Vicente Pires</span>
         <h1>Napolitana de verdade, na sua mesa em 40 minutos.</h1>
         <p>Massa aberta à mão, molho San Marzano, assada na hora. Peça sem cadastro: entrega ou retirada na loja mais perto de você.</p>
         <div class="hero-acoes">
@@ -46,14 +45,14 @@
     </section>
 
     <!-- novo cliente: "Mais pedidas" com chips de tamanho logo abaixo do hero (1 toque adiciona) -->
-    <section class="secao" style="padding-top:24px" id="mais-pedidas">
+    <section class="secao" id="mais-pedidas">
       <div class="container">
         <div class="secao-titulo"><h2>As mais pedidas</h2><a href="cardapio.html">Ver tudo <span class="ic-w" data-icone="chevron-dir"></span></a></div>
         <div class="grade grade--destaque" data-mais-pedidas aria-busy="true"></div>
       </div>
     </section>
 
-    <section class="secao" style="padding-top:28px">
+    <section class="secao secao-atalhos">
       <div class="container">
         <div class="atalhos">
           <a class="atalho" href="cardapio.html#pizzas"><div class="ic" data-icone="pizza"></div><b>Pizzas</b><small>salgadas</small></a>
@@ -67,21 +66,21 @@
     </section>
 
     <!-- Clube Sesconetto's (cashback): js/pages/home.js mostra quando o programa está ativo -->
-    <section class="secao" style="padding-top:0" data-clube hidden>
+    <section class="secao secao-clube" data-clube hidden>
       <div class="container"><div class="clube-banner" data-clube-banner></div></div>
     </section>
 
-    <section class="secao" style="padding-top:0">
+    <section class="secao secao-combos">
       <div class="container">
         <div class="secao-titulo"><h2>Combos que rendem</h2><a href="cardapio.html#combos">Ver todos <span class="ic-w" data-icone="chevron-dir"></span></a></div>
-        <p class="muted small" style="margin:-10px 0 14px">Pizza + bebida com preço fechado.</p>
+        <p class="muted small secao-sub">Pizza + bebida com preço fechado.</p>
         <div class="grade" data-combos></div>
       </div>
     </section>
 
-    <section class="secao secao-escura" id="sobre">
+    <section class="secao" id="sobre">
       <div class="container sobre">
-        <img src="img/chef.jpg" alt="Chef da Sesconetto's segurando uma pizza napolitana" loading="lazy">
+        <img src="img/chef.jpg" alt="Chef da Sesconetto's segurando uma pizza napolitana" loading="lazy" width="1058" height="887">
         <div>
           <h2>Nossa massa, nossa história</h2>
           <p>A Sesconetto's nasceu em 2022 em Vicente Pires com uma ideia simples: fazer a pizza napolitana do jeito que ela é feita na Itália, com calma e com as mãos.</p>
@@ -104,9 +103,10 @@
           <p><b>Horário:</b> <span data-contato-horario></span></p>
           <p><b>Entrega:</b> <span data-contato-entrega></span></p>
           <p><b>WhatsApp:</b> <a data-contato-wa href="#" target="_blank" rel="noopener" class="preco"></a></p>
-          <p style="margin-top:14px"><a class="btn btn-wa" data-contato-wa-btn href="#" target="_blank" rel="noopener">Falar no WhatsApp</a></p>
+          <p style="margin-top:14px"><a class="btn btn-wa" data-contato-wa-btn href="#" target="_blank" rel="noopener"><span class="ic-w" data-icone="wa"></span>Falar no WhatsApp</a></p>
+          <p class="link-mapa so-mobile"><a class="link-acao strong" data-abrir-mapa href="#" target="_blank" rel="noopener"><span class="ic-w" data-icone="pin"></span> Abrir no mapa</a></p>
         </div>
-        <iframe data-mapa title="Mapa da pizzaria" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <iframe class="esconder-mobile" data-mapa title="Mapa da pizzaria" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </section>
   </main>

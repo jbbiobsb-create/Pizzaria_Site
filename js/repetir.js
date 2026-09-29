@@ -79,6 +79,6 @@ export async function repetirItens(itens) {
 // mensagem curta para o toast depois de repetir
 export function mensagemRepetir(r) {
   if (!r.adicionados) return { msg: 'Nenhum item desse pedido está disponível hoje.', tipo: 'erro' };
-  if (r.ignorados.length) return { msg: `Adicionado! Fora do cardápio hoje: ${r.ignorados.join(', ')}.`, tipo: 'ok' };
+  if (r.ignorados.length) return { msg: `Adicionado. Fora do cardápio hoje: ${r.ignorados.join(', ')}.`, tipo: 'ok' };
   return { msg: `${r.adicionados} ${r.adicionados === 1 ? 'item adicionado' : 'itens adicionados'} à sacola · ${brl(cart.subtotal())}`, tipo: 'ok' };
 }

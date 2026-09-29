@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fechar pedido · Sesconetto's Pizzeria</title>
-  <meta name="theme-color" content="#1f1b18">
+  <meta name="theme-color" content="#FFFFFF">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="/img/icons/favicon-48.png">
@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Sesconetto's">
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" href="/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,7 +24,7 @@
         <h1 class="titulo-pagina">Fechar pedido</h1>
         <!-- 1. itens editáveis -->
         <div class="painel" data-painel-itens>
-          <div class="secao-titulo" style="margin-bottom:6px"><h2>Seu pedido</h2><button type="button" class="btn btn-ghost btn-sm" data-limpar hidden>Esvaziar</button></div>
+          <div class="secao-titulo" style="margin-bottom:4px"><h2>Seu pedido</h2><button type="button" class="btn btn-ghost btn-sm" data-limpar hidden>Esvaziar</button></div>
           <div data-itens></div>
           <a class="link-acao small link-mais-itens" href="cardapio.html" data-mais-itens hidden><span class="ic-w" data-icone="mais"></span> Adicionar mais itens</a>
         </div>
@@ -110,7 +110,7 @@
   <div class="barra-fixa so-mobile" data-barra-confirmar hidden>
     <div class="container">
       <div class="total"><small>Total</small><b data-total-barra>R$ 0,00</b></div>
-      <button type="button" class="btn btn-lg btn-light" data-confirmar-barra disabled>Confirmar pedido</button>
+      <button type="button" class="btn btn-lg" data-confirmar-barra disabled>Confirmar pedido</button>
     </div>
     <div class="container"><small class="falta" data-falta></small></div>
   </div>

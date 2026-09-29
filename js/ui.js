@@ -1,4 +1,4 @@
-// Componentes compartilhados: header, subheader, tab bar, barra "Ver sacola", footer,
+// Componentes compartilhados: header (com a pill de endereço), subheader, tab bar, barra "Fechar pedido", footer,
 // bottom sheets (entrega/retirada, upsell) com puxador, arraste para fechar e rodapé fixo.
 import * as cart from './cart.js';
 import { carregarCardapio, buscarCep, geocodificar, calcularEntrega } from './api.js';
@@ -11,6 +11,7 @@ import { iniciarPWA } from './pwa.js';
 export { icone, hidratarIcones };
 
 let CFG = null;
+let CFG_PRE = null; // config do cache local: pinta subheader/faixa antes da rede (sem salto de layout)
 let PAGINA = '';
 
 export async function config() {
@@ -35,21 +36,25 @@ export function enderecoLoja(l) {
 // ------------------------------------------------------------------
 let COM_SACOLA = true;
 export function montarLayout({ pagina = '', subheader = true, sacola = true } = {}) {
-  const c = lerLS(LS.cardapio)?.dados?.config || {};
+  const cache = lerLS(LS.cardapio)?.dados;
+  const c = cache?.config || {};
+  if (cache?.config && cache.aberta != null) CFG_PRE = { ...cache.config, aberta: cache.aberta, lojas: cache.lojas || [] };
   const nome = c.nome || "Sesconetto's Pizzeria";
   PAGINA = pagina; COM_SACOLA = sacola;
   document.body.classList.add('com-tabbar');
+  document.body.classList.toggle('tem-sub', !!subheader); // espaço do subheader fixo (o HTML já traz a classe: sem salto)
   document.body.dataset.pagina = pagina;
   const header = `
   <header class="header">
     <div class="container">
-      <a href="index.html" class="logo"><img src="img/logo.jpg" alt="${esc(nome)}"><span>${esc(nome)}<small>Napolitana · Brasília</small></span></a>
+      <a href="index.html" class="logo"><img src="img/logo.jpg" alt="${esc(nome)}" width="40" height="40"><span>${esc(nome)}</span></a>
       <nav class="nav">
         <a href="cardapio.html" class="${pagina === 'cardapio' ? 'ativo' : ''}">Cardápio</a>
         <a href="cardapio.html#combos" class="${pagina === 'combos' ? 'ativo' : ''}">Combos</a>
         <a href="index.html#sobre">Nossa massa</a>
         <a href="pedido.html" class="${pagina === 'pedido' ? 'ativo' : ''}">Acompanhar pedido</a>
       </nav>
+      ${subheader ? `<button type="button" class="pill-end" data-abrir-entrega>${icone('pin')}<span data-endereco-txt>Informar endereço</span>${icone('chevron-baixo', 'chevron')}</button>` : ''}
       <div class="header-right">
         <a href="cardapio.html" class="btn btn-sm btn-pedir">Pedir agora</a>
         <a href="checkout.html" class="btn-carrinho" aria-label="Sua sacola">${icone('sacola')}<span class="txt">Sacola</span><span class="badge" data-badge></span></a>
@@ -61,7 +66,6 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
         <button type="button" data-tipo="entrega">Entrega</button>
         <button type="button" data-tipo="retirada"><span class="longo">Retirar na loja</span><span class="curto">Retirada</span></button>
       </div>
-      <button type="button" class="pill-end" data-abrir-entrega>${icone('pin')}<span data-endereco-txt>Informar endereço</span></button>
       <div class="status-loja" data-status-loja><i></i><span>…</span></div>
   </div></div><div data-faixa-fechada></div>` : ''}`;
   const aba = (href, id, ic, rot, extra = '') => `<a href="${href}" class="${pagina === id ? 'ativo' : ''}" ${pagina === id ? 'aria-current="page"' : ''}>${icone(ic)}${rot}${extra}</a>`;
@@ -111,7 +115,6 @@ export function montarFooter() {
     const lojas = (c.lojas || []).map((l) => `<p><b>${esc(l.nome)}</b> · ${esc(enderecoLoja(l))}</p>`).join('');
     const nomes = (c.lojas || []).map((l) => l.nome);
     const html = `
-    <div class="xadrez"></div>
     <footer class="footer">
       <div class="container">
         <div>
@@ -206,18 +209,19 @@ export function atualizarSubheader() {
     else txt.textContent = `${e.endereco.rua}, ${e.endereco.numero}${e.taxa != null ? ` · ${brl(e.taxa)}` : ''}`;
   }
   const st = qs('[data-status-loja]');
-  if (st && CFG) {
-    const abre = proximaAbertura(CFG);
-    const hoje = horarioHoje(CFG);
-    st.classList.toggle('aberta', !!CFG.aberta);
-    st.classList.toggle('fechada', !CFG.aberta);
-    st.querySelector('span').textContent = CFG.aberta ? (hoje ? `Aberto · fecha ${hoje[1]}` : 'Aberto') : 'Fechado';
-    st.title = CFG.aberta ? (hoje ? `Aberto agora · fecha às ${hoje[1]}` : 'Aberto agora') : 'Fechado · abre às ' + abre;
+  const C = CFG || CFG_PRE;
+  if (st && C) {
+    const abre = proximaAbertura(C);
+    const hoje = horarioHoje(C);
+    st.classList.toggle('aberta', !!C.aberta);
+    st.classList.toggle('fechada', !C.aberta);
+    st.querySelector('span').textContent = C.aberta ? (hoje ? `Aberto · fecha ${hoje[1]}` : 'Aberto') : 'Fechado';
+    st.title = C.aberta ? (hoje ? `Aberto agora · fecha às ${hoje[1]}` : 'Aberto agora') : 'Fechado · abre às ' + abre;
     st.setAttribute('aria-label', st.title);
     const faixa = qs('[data-faixa-fechada]');
     if (faixa) {
-      const min = CFG.aberta ? minutosParaFechar(CFG) : null;
-      if (!CFG.aberta) faixa.innerHTML = `<div class="faixa-fechada"><div class="container">${icone('relogio')}<span>Ainda não abrimos, o forno acende às ${esc(abre)}. Agende que a gente assa na hora.</span><a href="cardapio.html">Agendar para hoje</a></div></div>`;
+      const min = C.aberta ? minutosParaFechar(C) : null;
+      if (!C.aberta) faixa.innerHTML = `<div class="faixa-fechada"><div class="container">${icone('relogio')}<span>Ainda não abrimos, o forno acende às ${esc(abre)}. Agende que a gente assa na hora.</span><a href="cardapio.html">Agendar para hoje</a></div></div>`;
       // urgência só quando é real: menos de 60 min para fechar
       else if (min != null && min > 0 && min < 60 && hoje) faixa.innerHTML = `<div class="faixa-fechada faixa-fechando"><div class="container">${icone('relogio')}<span>Fechamos às ${esc(hoje[1])} · pedidos até ${esc(horaMenos(hoje[1], 30))}</span><a href="cardapio.html">Pedir agora</a></div></div>`;
       else faixa.innerHTML = '';

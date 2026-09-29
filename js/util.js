@@ -41,9 +41,9 @@ export const DIAS_ORDEM = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 // "18:00 às 23:30, todos os dias" ou lista por dia
 export function resumoHorario(horario) {
   if (!horario) return '';
-  const vals = DIAS_ORDEM.map((d) => (horario[d] ? horario[d].join('–') : 'fechado'));
+  const vals = DIAS_ORDEM.map((d) => (horario[d] ? horario[d].join(' às ') : 'fechado'));
   if (vals.every((v) => v === vals[0]) && vals[0] !== 'fechado') return `Todos os dias, das ${horario.seg[0]} às ${horario.seg[1]}`;
-  return DIAS_ORDEM.map((d) => `${DIAS[d].slice(0, 3)}: ${horario[d] ? horario[d].join('–') : 'fechado'}`).join(' · ');
+  return DIAS_ORDEM.map((d) => `${DIAS[d].slice(0, 3)}: ${horario[d] ? horario[d].join(' às ') : 'fechado'}`).join(' · ');
 }
 
 export function dataHoraBR(iso) {

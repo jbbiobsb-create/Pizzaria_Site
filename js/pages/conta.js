@@ -58,7 +58,7 @@ function renderEntrar(telInicial = '', msgErro = '') {
         <p class="muted small">Pediu, ganhou. Parte do que você paga volta em cashback para a próxima pizza.</p>
       </div>
       <div class="beneficios">
-        <div class="beneficio"><b>${esc(b.pct)}–${esc(t.pct)}%</b>de cashback por pedido</div>
+        <div class="beneficio"><b>${esc(b.pct)} a ${esc(t.pct)}%</b>de cashback por pedido</div>
         <div class="beneficio"><b>${esc(validadeDias(FID))} dias</b>de validade</div>
         <div class="beneficio"><b>Sem app</b>é só pedir pelo site</div>
       </div>
@@ -161,7 +161,7 @@ function renderPainel() {
       <div class="tel">${icone('usuario')} ${esc(telefoneMascarado(sessao.tel))}</div>
       ${venc ? `<div class="venc ${venc.urgente ? 'urgente' : ''}">${icone('relogio')} ${esc(venc.texto)}</div>` : ''}
       <div class="progresso ${proxCfg ? '' : 'topo'}">
-        <div class="txt"><span>${esc(textoNivel(nome, pct))}</span><span>${txtProx ? esc(txtProx) : 'Nível máximo!'}</span></div>
+        <div class="txt"><span>${esc(textoNivel(nome, pct))}</span><span>${txtProx ? esc(txtProx) : 'Nível máximo'}</span></div>
         <div class="barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pctBarra)}" aria-label="Progresso para o próximo nível"><i style="width:${pctBarra}%"></i></div>
         <div class="txt" style="margin-top:6px;margin-bottom:0"><span>${n} ${n === 1 ? 'pedido' : 'pedidos'} nos últimos 90 dias</span></div>
       </div>

@@ -1,7 +1,7 @@
 // Ícones SVG em linha (traço único, cor herdada). Uso:
 //   import { icone } from './icons.js';  icone('moto')  -> string SVG
 //   No HTML estático: <span data-icone="moto"></span>  (hidratado por hidratarIcones)
-// Estilo: traço 2px, cantos arredondados, 24x24 — visual limpo como apps de delivery.
+// Estilo: traço único 1.75, cantos arredondados, 24x24 (DESIGN.md §7).
 
 const P = {
   // pedido / entrega
@@ -15,7 +15,7 @@ const P = {
   ampulheta: '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
 
   // cardápio
-  pizza: '<path d="M12 2 2 21h20z"/><path d="M4.5 16.5c5-3 10-3 15 0"/><circle cx="12" cy="13" r="1"/><circle cx="9" cy="17" r="1"/><circle cx="15" cy="17" r="1"/>',
+  pizza: '<circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.5 6.2"/><circle cx="8.5" cy="10" r="1"/><circle cx="9.5" cy="15.5" r="1"/><circle cx="15" cy="9" r="1"/>',
   meio: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><circle cx="8" cy="9.5" r="1"/><circle cx="8.5" cy="14.5" r="1"/><path d="M15 9h2M15 13h2M15 17h2"/>',
   doce: '<circle cx="9" cy="7" r="2"/><path d="M7.2 7.9 3 11v9c0 .6.4 1 1 1h16c.6 0 1-.4 1-1v-9c0-2-3-6-7-8l-3.6 2.6"/><path d="M16 13H3"/><path d="M16 17H3"/>',
   combo: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>',
@@ -56,6 +56,7 @@ const P = {
   'seta-dir': '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
   'seta-esq': '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
   'chevron-dir': '<path d="m9 6 6 6-6 6"/>',
+  'chevron-baixo': '<path d="m6 9 6 6 6-6"/>',
   mais: '<path d="M12 5v14M5 12h14"/>',
   menos: '<path d="M5 12h14"/>',
   busca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
@@ -78,7 +79,7 @@ export const NOMES_ICONES = Object.keys(P);
 // Gera o SVG. `cls` acrescenta classes além de "i".
 export function icone(nome, cls = '') {
   const d = P[nome] || P.pizza;
-  return `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}</svg>`;
+  return `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}</svg>`;
 }
 
 // Substitui <span data-icone="nome"> pelo SVG (mantém o span como wrapper).

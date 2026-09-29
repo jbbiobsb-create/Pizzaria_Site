@@ -23,7 +23,7 @@ export function iniciarPWA() {
   contarVisita();
   if (instalado()) document.documentElement.classList.add('standalone');
   window.addEventListener('beforeinstallprompt', (ev) => { ev.preventDefault(); promptInstalacao = ev; mostrarBannerSePuder(); });
-  window.addEventListener('appinstalled', () => { promptInstalacao = null; esconderBanner(); toast("App instalado! Procure o ícone da Sesconetto's na tela de início."); });
+  window.addEventListener('appinstalled', () => { promptInstalacao = null; esconderBanner(); toast("App instalado. Procure o ícone da Sesconetto's na tela de início."); });
   if (isIOS && !instalado()) setTimeout(mostrarBannerSePuder, 1500);
   // momento de maior boa vontade: logo depois do primeiro pedido (pedido.html?novo=1), não na home da 1ª visita
   if (/pedido(\.html)?$/.test(location.pathname) && /[?&]novo=1/.test(location.search)) setTimeout(mostrarBannerSePuder, 3000);
