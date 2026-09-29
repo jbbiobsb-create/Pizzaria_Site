@@ -1,0 +1,28 @@
+{
+  "id": "/",
+  "name": "Sesconetto's Pizzeria",
+  "short_name": "Sesconetto's",
+  "description": "Pizza napolitana em Brasília. Peça para entrega ou retirada e acompanhe o pedido.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "theme_color": "#1f1b18",
+  "background_color": "#f7f0e6",
+  "categories": ["food", "shopping"],
+  "icons": [
+    { "src": "/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/img/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Cardápio", "short_name": "Cardápio", "url": "/cardapio?source=pwa-shortcut", "icons": [{ "src": "/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Minha sacola", "short_name": "Sacola", "url": "/carrinho?source=pwa-shortcut", "icons": [{ "src": "/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Meu pedido", "short_name": "Pedido", "url": "/pedido?source=pwa-shortcut", "icons": [{ "src": "/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Conta", "short_name": "Conta", "url": "/conta?source=pwa-shortcut", "icons": [{ "src": "/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ]
+}

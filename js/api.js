@@ -100,3 +100,17 @@ export async function geocodificar(end) {
   }
   return null;
 }
+
+// ---------- Web Push (aviso de status do pedido; ver js/pwa.js) ----------
+// A prova de posse é o UUID do pedido (só quem fez o pedido tem o link). Limite de 3 assinaturas por pedido.
+export async function assinarPush(pedidoId, subscription) {
+  const { data, error } = await supabase.rpc('push_assinar', { p_pedido: pedidoId, p_subscription: subscription });
+  if (error) throw new Error(limparErro(error.message));
+  return data;
+}
+
+export async function cancelarPush(endpoint) {
+  const { error } = await supabase.rpc('push_cancelar', { p_endpoint: endpoint });
+  if (error) throw new Error(limparErro(error.message));
+  return true;
+}

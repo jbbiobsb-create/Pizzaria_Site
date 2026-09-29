@@ -5,6 +5,7 @@ import { carregarCardapio, buscarCep, geocodificar, calcularEntrega } from './ap
 import { brl, esc, qs, qsa, mascaraCep, resumoHorario, whatsappLink, toast, lerLS, gravarLS } from './util.js';
 import { LS } from './config.js';
 import { icone, hidratarIcones } from './icons.js';
+import { iniciarPWA } from './pwa.js';
 
 // Ícones: ver js/icons.js
 export { icone, hidratarIcones };
@@ -82,6 +83,7 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
   qsa('[data-seg] button').forEach((b) => b.addEventListener('click', () => abrirModalEntrega(b.dataset.tipo)));
   atualizarSubheader();
   config().then(atualizarSubheader).catch(() => {});
+  iniciarPWA(); // service worker, banner "Instalar app" e push (js/pwa.js)
 }
 
 export function montarFooter() {

@@ -75,7 +75,7 @@ function render(p) {
         <a class="btn btn-wa" href="${wa}" target="_blank" rel="noopener">${icone('wa')} WhatsApp</a>
         <a class="btn btn-ligar" href="tel:+${esc(soDigitos(tel))}">${icone('telefone')} Ligar</a>
       </div>
-      <!-- ponto de extensão: botão "Avisar quando sair pra entrega" (push) é montado aqui por js/push.js -->
+      <!-- botão "Avisar quando sair pra entrega" (push): js/pwa.js monta aqui ao ouvir o evento ses:pedido -->
       <div data-push data-pedido-id="${esc(p.id)}" data-pedido-status="${esc(p.status)}" data-tipo-entrega="${esc(p.tipo_entrega)}"></div>
       ${p.status !== 'cancelado' ? `<div class="timeline">${fluxo.map((s, i) => `
         <div class="passo ${i < idx ? 'feito' : i === idx ? 'atual' : ''}" ${i === idx ? 'aria-current="step"' : ''}>

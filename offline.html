@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sem internet — Sesconetto's Pizzeria</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1f1b18">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/img/icons/favicon-48.png">
+  <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sesconetto's">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="pagina-offline">
+  <main>
+    <section class="offline">
+      <div class="offline-card">
+        <div class="offline-logo"><img src="/img/logo.jpg" alt="Sesconetto's Pizzeria" width="88" height="88"><span class="offline-selo" aria-hidden="true"></span></div>
+        <p class="eyebrow">Sem internet</p>
+        <h1>O forno continua aceso, só a conexão que caiu</h1>
+        <p class="muted">Assim que a internet voltar esta página recarrega sozinha. Se estiver com pressa, dá para falar com a gente pelo telefone.</p>
+        <div class="offline-acoes">
+          <button type="button" class="btn btn-lg" data-tentar>Tentar de novo</button>
+          <a class="btn btn-lg btn-outline" data-ligar hidden href="#">Ligar para a pizzaria</a>
+        </div>
+        <p class="small muted" data-status><i class="dot fechada"></i> Você está sem conexão</p>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/js/pages/offline.js"></script>
+</body>
+</html>

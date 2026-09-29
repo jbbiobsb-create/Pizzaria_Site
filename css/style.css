@@ -648,3 +648,73 @@ body.modal-aberto .toast.show { transform: translate(-50%, 0); }
 .lojas-retirada { display: grid; gap: 8px; margin-bottom: 12px; }
 .lojas-retirada .opcao .i { width: 1em; height: 1em; vertical-align: -0.15em; }
 .link-loja .i { width: 1em; height: 1em; vertical-align: -0.15em; }
+
+/* =====================================================================
+   PWA (js/pwa.js, sw.js, offline.html)
+   ===================================================================== */
+/* app instalado no iPhone (status bar translúcida): o header cresce para não ficar embaixo do relógio */
+:root { --header-h: calc(66px + env(safe-area-inset-top, 0px)); }
+.header { padding-top: env(safe-area-inset-top, 0px); }
+
+/* banner "Instalar app": acima da tab bar no celular, cartão no canto no desktop */
+.banner-instalar {
+  position: fixed; left: 12px; right: 12px; bottom: calc(12px + var(--safe-b)); z-index: 58;
+  display: grid; grid-template-columns: 48px 1fr auto auto; align-items: center; gap: 12px;
+  background: var(--forno); color: #fff; padding: 12px 8px 12px 12px; border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.28); opacity: 0; transform: translateY(16px); transition: opacity .25s, transform .25s;
+}
+.banner-instalar.show { opacity: 1; transform: none; }
+.banner-instalar img { width: 48px; height: 48px; border-radius: 12px; }
+.banner-instalar .txt { min-width: 0; line-height: 1.3; }
+.banner-instalar .txt b { display: block; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banner-instalar .txt small { display: block; font-size: .76rem; color: var(--pedra-clara); }
+.banner-instalar .btn { white-space: nowrap; }
+.banner-instalar .fechar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--pedra-clara); }
+.banner-instalar .fechar .i { width: 18px; height: 18px; }
+@media (min-width: 761px) { .banner-instalar { left: auto; right: 20px; bottom: 20px; max-width: 460px; } }
+@media (max-width: 760px) {
+  .banner-instalar { bottom: calc(var(--tab-h) + 10px + var(--safe-b)); }
+  body.tem-barra .banner-instalar, body.tem-sacola .banner-instalar { bottom: calc(var(--tab-h) + var(--barra-h) + 8px + var(--safe-b)); }
+  .banner-instalar .txt small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+@media (max-width: 420px) { .banner-instalar { grid-template-columns: 44px 1fr auto auto; gap: 8px; padding: 10px 6px 10px 10px; } .banner-instalar img { width: 44px; height: 44px; } .banner-instalar .btn { padding-inline: 12px; } }
+
+/* toast com ação ("Nova versão disponível — Atualizar"): fica até o cliente decidir */
+.toast-acao { display: flex; align-items: center; gap: 8px; pointer-events: auto; padding: 8px 6px 8px 16px; border-radius: 999px; font-size: .86rem; max-width: calc(100vw - 24px); }
+.toast-acao span { white-space: nowrap; }
+.toast-acao .btn { min-height: 36px; padding: 6px 14px; }
+.toast-acao .fechar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--pedra-clara); }
+.toast-acao .fechar .i { width: 16px; height: 16px; }
+#toast-atualizar { bottom: calc(var(--tab-h) + 16px + var(--safe-b)); }
+@media (min-width: 761px) { #toast-atualizar { bottom: calc(24px + var(--safe-b)); } }
+/* com o banner de instalação na tela, o toast sobe para não cobrir o botão "Instalar app" */
+body:has([data-banner-instalar]) #toast-atualizar { bottom: calc(var(--tab-h) + 100px + var(--safe-b)); }
+@media (min-width: 761px) { body:has([data-banner-instalar]) #toast-atualizar { bottom: calc(110px + var(--safe-b)); } }
+
+/* passo a passo de instalação no iPhone */
+.passos-ios { list-style: none; display: grid; gap: 14px; margin: 6px 0 16px; }
+.passos-ios li { display: flex; gap: 12px; align-items: flex-start; font-size: .95rem; line-height: 1.4; }
+.passos-ios .n { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--tomate); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: .9rem; }
+.passos-ios .ios-ic { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--creme-2); color: #1e6fd9; vertical-align: middle; margin-left: 2px; }
+.passos-ios .ios-ic .i { width: 18px; height: 18px; }
+
+/* aviso por push na página do pedido */
+.btn-push { width: 100%; margin: 4px 0 10px; white-space: normal; line-height: 1.2; padding-inline: 14px; text-align: center; }
+.push-box { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: var(--raio-sm); margin: 4px 0 12px; font-size: .9rem; line-height: 1.3; }
+.push-box .i { width: 22px; height: 22px; flex: none; }
+.push-box b { display: block; }
+.push-box small { color: inherit; opacity: .85; }
+.push-box.ativo { background: #e9f4ea; color: #2b5e35; border: 1px solid #c4e0c8; }
+.push-box.negado { background: var(--creme-2); color: var(--texto-2); border: 1px solid var(--linha); }
+
+/* página offline */
+.pagina-offline main { display: grid; place-items: center; padding: 24px 16px; }
+.offline-card { max-width: 480px; text-align: center; background: #fff; border: 1px solid var(--linha); border-radius: 20px; padding: 32px 24px 26px; box-shadow: var(--sombra-2); }
+.offline-logo { position: relative; width: 88px; height: 88px; margin: 0 auto 16px; }
+.offline-logo img { width: 88px; height: 88px; border-radius: 50%; object-fit: cover; border: 3px solid var(--queijo); background: #fff; filter: grayscale(.35); }
+.offline-selo { position: absolute; right: -2px; bottom: 2px; width: 24px; height: 24px; border-radius: 50%; background: var(--pedra); border: 3px solid #fff; }
+.offline .eyebrow { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tomate); margin-bottom: 8px; }
+.offline-card h1 { font-size: clamp(1.4rem, 5vw, 1.8rem); margin-bottom: 10px; }
+.offline-card p.muted { font-size: .95rem; }
+.offline-acoes { display: grid; gap: 10px; margin: 20px 0 14px; }
+.offline-card [data-status] { display: inline-flex; align-items: center; gap: 6px; }

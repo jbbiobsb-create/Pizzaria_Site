@@ -35,6 +35,34 @@ pagamento → acompanhamento em tempo real. Sem cadastro para o cliente.
   revalidando cada item contra o cardápio atual (indisponível → aviso).
 - `pedido.html` tem um contêiner `[data-push]` (com `data-pedido-id`/`data-pedido-status`) reservado para o botão de aviso por push.
 
+## PWA (site como app)
+
+O site é instalável e funciona como um app "quase nativo": ícone na tela de início, abre sem a barra do
+navegador (`display: standalone`), cache offline e avisos por push do status do pedido.
+
+- **Arquivos**: `manifest.webmanifest` (nome, ícones `any` + `maskable` em `img/icons/`, atalhos Cardápio/Sacola/Pedido/Conta),
+  `sw.js` (service worker na raiz, escopo `/`), `offline.html` + `js/pages/offline.js` (página sem internet), `js/pwa.js`
+  (registro do SW, toast de atualização, banner de instalação, push). Os `<head>` de todas as páginas têm manifest, favicons,
+  `apple-touch-icon` e as metas da Apple (`black-translucent`: o header cresce com `env(safe-area-inset-top)` no app instalado).
+- **Cache** (`sw.js`): HTML/CSS/JS/manifest são *network-first* (cada visita busca a versão nova; sem rede cai no cache e, por fim,
+  em `/offline`); imagens e fontes locais *stale-while-revalidate*; `esm.sh` e Google Fonts SWR em cache próprio.
+  Supabase, ViaCEP, Nominatim, Google Maps e `/admin` **nunca** passam pelo cache.
+- **Como instalar**: Android/Chrome — banner "Instalar app" (aparece a partir da 2ª visita ou após um pedido; some por 14 dias
+  se dispensado) ou menu ⋮ → *Instalar app*. iPhone — Safari → Compartilhar → *Adicionar à Tela de Início* (o site mostra o
+  passo a passo). Desktop Chrome/Edge — ícone de instalar na barra de endereço.
+- **Push (avisos do pedido)**: na página do pedido, o botão "Avisar quando sair para entrega" (retirada: "quando estiver pronto")
+  pede a permissão em resposta ao toque, assina com a `VAPID_PUBLIC_KEY` de `js/config.js` e envia a subscription pela RPC
+  `push_assinar(p_pedido, p_subscription)` (prova de posse = UUID do pedido; máx. 3 aparelhos por pedido). O servidor manda
+  `{title, body, icon, badge, data:{url:'/pedido?id=…'}}`; o SW mostra a notificação e, ao tocar, foca/abre a página do pedido.
+  No iPhone o push só funciona com o app instalado (iOS 16.4+), então o botão mostra a dica de instalar.
+- **Testar push num celular**: publique (HTTPS é obrigatório), abra o site no celular, faça um pedido, toque em "Avisar quando…"
+  e aceite a permissão (no iPhone: instale antes e abra pelo ícone). Depois mude o status no painel `/admin` e veja a notificação
+  chegar com a tela bloqueada. No Chrome desktop, DevTools → Application → Service Workers → "Push" simula um envio.
+- **Publicar nova versão**: altere a constante `VERSAO` no topo de `sw.js` a cada deploy (ex.: `2026-09-29-2`). O navegador
+  instala o SW novo em silêncio e a página mostra o toast "Nova versão disponível — Atualizar"; só ao tocar é que o SW novo
+  assume (`SKIP_WAITING`) e a página recarrega. `sw.js` é servido com `Cache-Control: no-cache` (`vercel.json`).
+- **Checar instalabilidade**: Chrome → DevTools → Application → Manifest ("Installability") e Service Workers (testar "Offline").
+
 ## Painel da equipe
 
 Acesse `/admin` com o e-mail e senha cadastrados no Supabase (Authentication → Users).

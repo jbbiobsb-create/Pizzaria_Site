@@ -3,6 +3,15 @@
   "trailingSlash": false,
   "headers": [
     { "source": "/img/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
+    { "source": "/(.*)\\.(js|css)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=60, must-revalidate" }] },
+    { "source": "/sw.js", "headers": [
+      { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" },
+      { "key": "Service-Worker-Allowed", "value": "/" }
+    ] },
+    { "source": "/manifest.webmanifest", "headers": [
+      { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
+      { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
+    ] },
     { "source": "/admin(.*)", "headers": [
       { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
       { "key": "Cache-Control", "value": "no-store" }
@@ -13,7 +22,7 @@
       { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
       { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(self), payment=(self)" },
       { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
-      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data:; frame-src https://maps.google.com https://www.google.com; connect-src 'self' https://jifjovojwmlnsgoqdloh.supabase.co wss://jifjovojwmlnsgoqdloh.supabase.co https://esm.sh https://viacep.com.br https://nominatim.openstreetmap.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" }
+      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://esm.sh; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data:; frame-src https://maps.google.com https://www.google.com; connect-src 'self' https://jifjovojwmlnsgoqdloh.supabase.co wss://jifjovojwmlnsgoqdloh.supabase.co https://esm.sh https://viacep.com.br https://nominatim.openstreetmap.org https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" }
     ] }
   ]
 }

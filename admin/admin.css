@@ -1,7 +1,7 @@
 body.admin { background: #f1ede6; padding-bottom: 0 !important; }
 .login { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
 .login .painel { width: 100%; max-width: 380px; }
-.topo { position: sticky; top: 0; z-index: 20; background: var(--forno); color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 16px; height: 60px; flex-wrap: wrap; }
+.topo { position: sticky; top: 0; z-index: 20; background: var(--forno); color: #fff; display: flex; align-items: center; gap: 16px; padding: env(safe-area-inset-top, 0px) 16px 0; height: calc(60px + env(safe-area-inset-top, 0px)); flex-wrap: wrap; }
 .topo .logo img { width: 36px; height: 36px; }
 .topo .logo small { color: var(--pedra-clara); font-size: .7rem; }
 .abas { display: flex; gap: 4px; }
@@ -54,7 +54,7 @@ main { padding: 16px; }
 .faixas div { display: flex; gap: 6px; align-items: center; font-size: .85rem; }
 .faixas input { width: 90px; padding: 6px; border: 1.5px solid var(--linha); border-radius: 8px; }
 @media (max-width: 1000px) { .kanban { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 600px) { .kanban { grid-template-columns: 1fr; } .topo { height: auto; padding: 8px 12px; } .detalhe .grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .kanban { grid-template-columns: 1fr; } .topo { height: auto; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; } .detalhe .grid { grid-template-columns: 1fr; } }
 @media print { body * { visibility: hidden; } #modal-pedido, #modal-pedido * { visibility: visible; } #modal-pedido { position: absolute; inset: 0; background: #fff; } .modal .fechar, .status-btns, .no-print { display: none !important; } }
 
 /* integração Saipos */
