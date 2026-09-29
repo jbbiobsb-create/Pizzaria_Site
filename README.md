@@ -78,3 +78,12 @@ e as mudanças de status feitas no PDV voltam para o site.
 - **Privacidade**: a busca por celular mostra só status e resumo (sem link); os detalhes do pedido abrem só pelo link.
 - **Webhook Saipos**: exige a chave da URL e o `cod_store` da loja.
 - **Cabeçalhos** (`vercel.json`): CSP, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`; `/admin` sem cache e fora do Google.
+
+## Três lojas (Asa Sul, SIG, Vicente Pires)
+
+- Tabela `lojas` (migração `0005`): endereço, coordenadas, se faz entrega/retirada, se está ativa e o
+  `saipos_cod_store` (o "COD. LOJA" da loja no canal Saipos; vazio = PDV padrão com "LOJA: X" na observação).
+- **Entrega**: sai da loja ativa mais próxima do endereço; a taxa é pela distância até ela (faixas da `config`).
+- **Retirada**: o cliente escolhe a loja no modal (vem sugerida a mais perto do endereço salvo).
+- Horário, taxas, raio e tempos são os da `config`, iguais para as três por enquanto.
+- Painel: aba Loja → "Lojas" para ativar/desativar e cadastrar o código Saipos; filtro por loja nos pedidos.

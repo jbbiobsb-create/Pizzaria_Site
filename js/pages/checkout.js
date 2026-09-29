@@ -1,4 +1,4 @@
-import { montarLayout, montarFooter, config } from '../ui.js';
+import { montarLayout, montarFooter, config, lojaPorSlug, enderecoLoja } from '../ui.js';
 import { validarCupom, criarPedido } from '../api.js';
 import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, toast, lerLS, gravarLS, mascaraTelefone, PAGAMENTOS, dataHoraBR } from '../util.js';
@@ -27,7 +27,7 @@ form.elements.telefone.addEventListener('input', (e) => (e.target.value = mascar
   qs('[data-titulo-entrega]').textContent = e.tipo === 'entrega' ? 'Entrega' : 'Retirada na loja';
   qs('[data-resumo-entrega]').innerHTML = e.tipo === 'entrega'
     ? `${esc(e.endereco.rua)}, ${esc(e.endereco.numero)}${e.endereco.complemento ? ' - ' + esc(e.endereco.complemento) : ''}<br>${esc(e.endereco.bairro)} — ${esc(e.endereco.cidade)}/${esc(e.endereco.uf)}${e.endereco.referencia ? '<br>Ref.: ' + esc(e.endereco.referencia) : ''}<br><a href="carrinho.html" class="small">alterar</a>`
-    : `<b>${esc(CFG.nome)}</b><br>${esc(CFG.endereco.rua)}, ${esc(CFG.endereco.numero)} ${esc(CFG.endereco.complemento || '')} — ${esc(CFG.endereco.bairro)}<br><a href="carrinho.html" class="small">alterar</a>`;
+    : `<b>Loja ${esc(lojaPorSlug(CFG, e.loja)?.nome || '')}</b><br>${esc(enderecoLoja(lojaPorSlug(CFG, e.loja)))}<br><a href="carrinho.html" class="small">alterar</a>`;
 
   // pagamentos disponíveis
   const lista = qs('[data-pagamentos]');
@@ -71,6 +71,7 @@ form.addEventListener('submit', async (ev) => {
     cliente: { nome: f.nome.value.trim(), telefone: f.telefone.value, email: f.email.value.trim() || null },
     tipo_entrega: e.tipo,
     endereco: e.tipo === 'entrega' ? e.endereco : null,
+    loja: e.tipo === 'retirada' ? e.loja : null,  // na entrega o servidor escolhe a loja mais próxima
     agendado_para: sessao.quando === 'agendar' && sessao.agendado ? new Date(sessao.agendado).toISOString() : null,
     observacoes: f.observacoes.value.trim() || null,
     pagamento,

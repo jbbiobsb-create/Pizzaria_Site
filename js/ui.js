@@ -13,8 +13,18 @@ let CFG = null;
 export async function config() {
   if (CFG) return CFG;
   const d = await carregarCardapio();
-  CFG = d.config; CFG.aberta = d.aberta;
+  CFG = d.config; CFG.aberta = d.aberta; CFG.lojas = d.lojas || [];
   return CFG;
+}
+
+// loja pelo slug (ou a principal)
+export function lojaPorSlug(c, slug) {
+  const ls = c?.lojas || [];
+  return ls.find((l) => l.slug === slug) || ls.find((l) => l.principal) || ls[0] || null;
+}
+export function enderecoLoja(l) {
+  const e = l?.endereco || {};
+  return [e.rua, e.numero].filter(Boolean).join(', ') + (e.complemento ? ' - ' + e.complemento : '') + ` — ${e.bairro || ''}`;
 }
 
 // ------------------------------------------------------------------
@@ -27,7 +37,7 @@ export function montarLayout({ pagina = '', subheader = true } = {}) {
   const header = `
   <header class="header">
     <div class="container">
-      <a href="index.html" class="logo"><img src="img/logo.jpg" alt="${esc(nome)}"><span>${esc(nome)}<small>Napolitana · Vicente Pires</small></span></a>
+      <a href="index.html" class="logo"><img src="img/logo.jpg" alt="${esc(nome)}"><span>${esc(nome)}<small>Napolitana · Brasília</small></span></a>
       <nav class="nav">
         <a href="cardapio.html" class="${pagina === 'cardapio' ? 'ativo' : ''}">Cardápio</a>
         <a href="cardapio.html#combos" class="${pagina === 'combos' ? 'ativo' : ''}">Combos</a>
@@ -69,8 +79,8 @@ export function montarLayout({ pagina = '', subheader = true } = {}) {
 
 export function montarFooter() {
   config().then((c) => {
-    const e = c.endereco || {};
-    const end = `${e.rua || ''}${e.numero ? ', ' + e.numero : ''}${e.complemento ? ' - ' + e.complemento : ''} — ${e.bairro || ''}, ${e.cidade || ''}/${e.uf || ''}`;
+    const lojas = (c.lojas || []).map((l) => `<p><b>${esc(l.nome)}</b> · ${esc(enderecoLoja(l))}</p>`).join('');
+    const nomes = (c.lojas || []).map((l) => l.nome);
     const html = `
     <div class="xadrez"></div>
     <footer class="footer">
@@ -78,7 +88,7 @@ export function montarFooter() {
         <div>
           <h4>${esc(c.nome)}</h4>
           <p>${esc(c.slogan || '')} · desde ${c.fundacao || 2022}</p>
-          <p style="margin-top:8px">${esc(end)}</p>
+          <div style="margin-top:8px">${lojas}</div>
           <p>${esc(resumoHorario(c.horario))}</p>
         </div>
         <div>
@@ -94,7 +104,7 @@ export function montarFooter() {
           <a href="https://instagram.com/${esc(c.instagram || '')}" target="_blank" rel="noopener">Instagram @${esc(c.instagram || '')}</a>
           <a href="admin/index.html" class="muted small">Área da equipe</a>
         </div>
-        <div class="legal">Entregamos em Vicente Pires e região, conforme a área de entrega e o horário de funcionamento. Cobramos taxa de entrega calculada pela distância. Nossos produtos contêm glúten e podem conter leite, ovos e traços de castanhas. Imagens ilustrativas. Bebidas alcoólicas: venda proibida para menores de 18 anos.</div>
+        <div class="legal">Entregamos em Brasília a partir da loja mais próxima${nomes.length ? ' (' + esc(nomes.join(', ')) + ')' : ''}, conforme a área de entrega e o horário de funcionamento. Cobramos taxa de entrega calculada pela distância. Nossos produtos contêm glúten e podem conter leite, ovos e traços de castanhas. Imagens ilustrativas. Bebidas alcoólicas: venda proibida para menores de 18 anos.</div>
       </div>
     </footer>
     <a class="wa-flutuante" href="${whatsappLink(c.whatsapp, 'Olá! Quero fazer um pedido na ' + c.nome + '.')}" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">${icone('wa')}</a>`;
@@ -113,7 +123,7 @@ export function atualizarSubheader() {
   const txt = qs('[data-endereco-txt]');
   if (txt) {
     if (!e) txt.textContent = 'Onde você está?';
-    else if (e.tipo === 'retirada') txt.textContent = 'Retirar em Vicente Pires';
+    else if (e.tipo === 'retirada') txt.textContent = 'Retirar na loja ' + (e.loja_nome || lojaPorSlug(CFG, e.loja)?.nome || '');
     else txt.textContent = `${e.endereco.rua}, ${e.endereco.numero}`;
   }
   const st = qs('[data-status-loja]');
@@ -168,6 +178,8 @@ function modalEntregaHTML() {
         <div class="acoes"><button class="btn btn-lg" type="submit" data-salvar>Calcular taxa e salvar</button></div>
       </form>
       <div id="bloco-retirada" hidden>
+        <p class="small muted" style="margin-bottom:8px">Escolha a loja onde vai buscar:</p>
+        <div class="lojas-retirada" data-lojas-retirada></div>
         <div class="resumo-entrega" data-resumo-retirada></div>
         <div class="acoes"><button class="btn btn-lg" type="button" data-salvar-retirada>Vou retirar na loja</button></div>
       </div>
@@ -176,6 +188,9 @@ function modalEntregaHTML() {
 }
 
 let tipoModal = 'entrega';
+let lojaRetirada = null;
+// distância aproximada em km (só para sugerir a loja de retirada)
+function dist(l, e) { const r = Math.PI / 180, x = (e.lng - l.lng) * r * Math.cos(((e.lat + l.lat) / 2) * r), y = (e.lat - l.lat) * r; return Math.hypot(x, y) * 6371; }
 export function abrirModalEntrega(tipo) {
   const m = qs('#modal-entrega');
   const atual = cart.entrega();
@@ -191,9 +206,18 @@ export function abrirModalEntrega(tipo) {
     for (const [k, v] of Object.entries(atual.endereco)) if (form.elements[k]) form.elements[k].value = v ?? '';
   }
   config().then((c) => {
-    const e = c.endereco || {};
-    qs('[data-resumo-retirada]', ret).innerHTML = `<b>${esc(c.nome)}</b><br>${esc(e.rua)}, ${esc(e.numero)} ${esc(e.complemento || '')} — ${esc(e.bairro)}, ${esc(e.cidade)}/${esc(e.uf)}<br>
-      <span class="muted">${esc(resumoHorario(c.horario))}</span><br>Fica pronto em <b>${c.tempo_retirada_min}–${c.tempo_retirada_max} min</b> · sem taxa`;
+    // loja sugerida: a já escolhida, senão a mais perto do endereço salvo, senão a principal
+    const lojas = (c.lojas || []).filter((l) => l.aceita_retirada);
+    let escolhida = atual?.tipo === 'retirada' ? atual.loja : null;
+    if (!escolhida && atual?.endereco?.lat) escolhida = [...lojas].sort((a, b) => dist(a, atual.endereco) - dist(b, atual.endereco))[0]?.slug;
+    lojaRetirada = lojaPorSlug({ lojas }, escolhida)?.slug;
+    const lista = qs('[data-lojas-retirada]', ret);
+    const pintar = () => {
+      lista.innerHTML = lojas.map((l) => `<button type="button" class="opcao ${l.slug === lojaRetirada ? 'ativo' : ''}" data-loja="${esc(l.slug)}"><b>${icone('loja')} ${esc(l.nome)}</b><small>${esc(enderecoLoja(l))}</small></button>`).join('');
+      qsa('[data-loja]', lista).forEach((b) => b.addEventListener('click', () => { lojaRetirada = b.dataset.loja; pintar(); }));
+    };
+    pintar();
+    qs('[data-resumo-retirada]', ret).innerHTML = `<span class="muted">${esc(resumoHorario(c.horario))}</span><br>Fica pronto em <b>${c.tempo_retirada_min}–${c.tempo_retirada_max} min</b> · sem taxa`;
     qsa('.escolha-entrega button', m)[0].disabled = c.aceita_entrega === false;
     qsa('.escolha-entrega button', m)[1].disabled = c.aceita_retirada === false;
   });
@@ -223,14 +247,15 @@ function ligarFormEntrega() {
       let calc;
       if (geo) { end.lat = geo.lat; end.lng = geo.lng; end.aprox = !!geo.aprox; calc = await calcularEntrega(geo.lat, geo.lng); if (geo.aprox) calc.a_confirmar = true; }
       else { calc = await calcularEntrega(null, null); }
+      if (!calc.ok && calc.motivo === 'sem_loja') { erro.textContent = 'No momento nenhuma loja está fazendo entregas. Você pode retirar na loja ou falar com a gente pelo WhatsApp.'; erro.hidden = false; return; }
       if (!calc.ok) {
-        erro.innerHTML = `Esse endereço fica a <b>${calc.distancia_km} km</b> da pizzaria, fora da nossa área de entrega (até ${calc.raio_km} km). Você pode <b>retirar na loja</b> ou falar com a gente pelo WhatsApp.`;
+        erro.innerHTML = `Esse endereço fica a <b>${calc.distancia_km} km</b> da loja mais próxima, fora da nossa área de entrega (até ${calc.raio_km} km). Você pode <b>retirar na loja</b> ou falar com a gente pelo WhatsApp.`;
         erro.hidden = false; return;
       }
       const c = await config();
       end.distancia_km = calc.distancia_km;
-      cart.salvarEntrega({ tipo: 'entrega', endereco: end, taxa: Number(calc.taxa), a_confirmar: !!calc.a_confirmar, distancia_km: calc.distancia_km });
-      resumo.innerHTML = `Taxa de entrega: <b>${brl(calc.taxa)}</b>${calc.a_confirmar ? ' <span class="muted">(a confirmar pela pizzaria)</span>' : ` · ${calc.distancia_km} km`}<br>Chega em <b>${c.tempo_entrega_min}–${c.tempo_entrega_max} min</b> depois de confirmado.`;
+      cart.salvarEntrega({ tipo: 'entrega', endereco: end, taxa: Number(calc.taxa), a_confirmar: !!calc.a_confirmar, distancia_km: calc.distancia_km, loja: calc.loja?.slug, loja_nome: calc.loja?.nome });
+      resumo.innerHTML = `Taxa de entrega: <b>${brl(calc.taxa)}</b>${calc.a_confirmar ? ' <span class="muted">(a confirmar pela pizzaria)</span>' : ` · ${calc.distancia_km} km`}${calc.loja ? `<br>Sai da loja <b>${esc(calc.loja.nome)}</b>` : ''}<br>Chega em <b>${c.tempo_entrega_min}–${c.tempo_entrega_max} min</b> depois de confirmado.`;
       resumo.hidden = false;
       toast('Endereço salvo!');
       setTimeout(() => fecharModal('modal-entrega'), 900);
@@ -239,8 +264,9 @@ function ligarFormEntrega() {
     } finally { btn.disabled = false; btn.textContent = 'Calcular taxa e salvar'; }
   });
   qs('[data-salvar-retirada]', m).addEventListener('click', () => {
-    cart.salvarEntrega({ tipo: 'retirada', taxa: 0 });
-    toast('Retirada na loja selecionada');
+    const l = lojaPorSlug(CFG, lojaRetirada);
+    cart.salvarEntrega({ tipo: 'retirada', taxa: 0, loja: l?.slug, loja_nome: l?.nome });
+    toast(l ? `Retirada na loja ${l.nome}` : 'Retirada na loja selecionada');
     fecharModal('modal-entrega');
   });
 }

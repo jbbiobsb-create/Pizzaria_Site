@@ -1,4 +1,4 @@
-import { montarLayout, montarFooter, abrirModalEntrega, config } from '../ui.js';
+import { montarLayout, montarFooter, abrirModalEntrega, config, lojaPorSlug, enderecoLoja } from '../ui.js';
 import { validarCupom } from '../api.js';
 import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, toast, lerLS, gravarLS, DIAS } from '../util.js';
@@ -42,8 +42,8 @@ function renderEntrega() {
   qsa('[data-tipo-entrega] button').forEach((b) => b.classList.toggle('ativo', !!e && b.dataset.tipo === e.tipo));
   const r = qs('[data-resumo-entrega]');
   if (!e) r.innerHTML = 'Escolha entrega ou retirada para calcular a taxa.';
-  else if (e.tipo === 'retirada') r.innerHTML = `<b>Retirada na loja</b> · ${esc(CFG?.endereco?.rua || '')}, ${esc(CFG?.endereco?.numero || '')} — ${esc(CFG?.endereco?.bairro || '')}. <button class="btn btn-ghost btn-sm" data-trocar>trocar</button>`;
-  else r.innerHTML = `<b>Entrega em:</b> ${esc(e.endereco.rua)}, ${esc(e.endereco.numero)}${e.endereco.complemento ? ' - ' + esc(e.endereco.complemento) : ''} — ${esc(e.endereco.bairro)}<br>Taxa <b>${brl(e.taxa)}</b>${e.a_confirmar ? ' (a confirmar)' : e.distancia_km ? ` · ${e.distancia_km} km` : ''} <button class="btn btn-ghost btn-sm" data-trocar>trocar</button>`;
+  else if (e.tipo === 'retirada') { const l = lojaPorSlug(CFG, e.loja); r.innerHTML = `<b>Retirada na loja ${esc(l?.nome || '')}</b> · ${esc(enderecoLoja(l))}. <button class="btn btn-ghost btn-sm" data-trocar>trocar</button>`; }
+  else r.innerHTML = `<b>Entrega em:</b> ${esc(e.endereco.rua)}, ${esc(e.endereco.numero)}${e.endereco.complemento ? ' - ' + esc(e.endereco.complemento) : ''} — ${esc(e.endereco.bairro)}<br>Taxa <b>${brl(e.taxa)}</b>${e.a_confirmar ? ' (a confirmar)' : e.distancia_km ? ` · ${e.distancia_km} km` : ''}${e.loja_nome ? ` · sai da loja ${esc(e.loja_nome)}` : ''} <button class="btn btn-ghost btn-sm" data-trocar>trocar</button>`;
   qsa('[data-trocar]', r).forEach((b) => b.addEventListener('click', () => abrirModalEntrega(e?.tipo)));
   if (CFG) {
     qs('[data-tempo-entrega]').textContent = `${CFG.tempo_entrega_min}–${CFG.tempo_entrega_max} min`;

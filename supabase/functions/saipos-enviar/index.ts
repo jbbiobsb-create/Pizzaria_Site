@@ -119,11 +119,18 @@ function pagamento(p: any) {
   return [{ code: "PARTNER_PAYMENT", amount: total, change_for: 0, complement: p.pagamento === "pix" ? "pix" : "", type: "ONLINE" }];
 }
 
+// código da loja no canal Saipos: o da loja do pedido, senão o padrão do Vault
+function codLoja(p: any, s: Segredos) {
+  return p.lojas?.saipos_cod_store || s.SAIPOS_COD_STORE;
+}
+
 async function montarPedido(p: any, s: Segredos) {
   const e = p.endereco || {};
   const entrega = p.tipo_entrega === "entrega";
   const previsao = p.agendado_para || new Date(new Date(p.criado_em).getTime() + (p.tempo_max || 60) * 60000).toISOString();
   const notas = [
+    // sem código próprio na Saipos, o pedido cai no PDV padrão: avisa qual loja atende
+    p.lojas?.nome && !p.lojas?.saipos_cod_store ? `LOJA: ${p.lojas.nome.toUpperCase()}` : null,
     p.observacoes,
     p.taxa_a_confirmar ? "ATENÇÃO: taxa de entrega a confirmar (endereço aproximado)." : null,
     p.cupom_codigo ? `Cupom: ${p.cupom_codigo}` : null,
@@ -131,7 +138,7 @@ async function montarPedido(p: any, s: Segredos) {
   const pedido: Record<string, unknown> = {
     order_id: p.id,
     display_id: String(p.numero),
-    cod_store: s.SAIPOS_COD_STORE,
+    cod_store: codLoja(p, s),
     created_at: new Date(p.criado_em).toISOString(),
     notes: notas,
     total_increase: 0,
@@ -171,7 +178,7 @@ async function montarPedido(p: any, s: Segredos) {
 
 async function cancelar(p: any, s: Segredos) {
   try {
-    const { r, j } = await saiposPost(s, "/cancel-order", { order_id: p.id, cod_store: s.SAIPOS_COD_STORE });
+    const { r, j } = await saiposPost(s, "/cancel-order", { order_id: p.id, cod_store: codLoja(p, s) });
     if (!r.ok || j.status === false) throw new Error(`Saipos ${r.status}: ${j.errorMessage || JSON.stringify(j)}`);
     await db.from("pedidos").update({ saipos_erro: null }).eq("id", p.id);
     return json({ ok: true, cancelado: true });
@@ -191,7 +198,7 @@ Deno.serve(async (req) => {
 
   const { pedido_id, acao = "enviar" } = await req.json().catch(() => ({}));
   if (!pedido_id) return json({ erro: "pedido_id" }, 400);
-  const { data: p, error } = await db.from("pedidos").select("*, pedido_itens(*)").eq("id", pedido_id).single();
+  const { data: p, error } = await db.from("pedidos").select("*, pedido_itens(*), lojas(nome, saipos_cod_store)").eq("id", pedido_id).single();
   if (error || !p) return json({ erro: "pedido não encontrado" }, 404);
   if (acao === "cancelar") return cancelar(p, s);
   if (p.saipos_status === "enviado") return json({ ok: true, ja_enviado: true });

@@ -33,6 +33,7 @@ async function entrar(sessao) {
   $login.hidden = true; $app.hidden = false;
   qs('[data-usuario]').textContent = sessao.user.email;
   await carregarConfig();
+  await carregarLojasFiltro();
   await carregarPedidos(true);
   assinar();
   timerPoll = setInterval(() => carregarPedidos(), 30000);
@@ -65,7 +66,30 @@ qs('[data-forcar-fechada]').addEventListener('change', async (ev) => {
   if (error) toast('Erro ao salvar', 'erro'); else { toast(fechar ? 'Loja fechada para novos pedidos' : 'Loja reaberta'); await carregarConfig(); }
 });
 
+// lojas: ativa, entrega, retirada e código Saipos
+async function carregarLojasAdmin() {
+  const { data, error } = await supabase.from('lojas').select('*').order('ordem');
+  if (error) { toast('Erro ao carregar lojas', 'erro'); return; }
+  qs('[data-lojas-admin]').innerHTML = `<table><thead><tr><th>Loja</th><th>Ativa</th><th>Entrega</th><th>Retirada</th><th>Código Saipos</th><th></th></tr></thead><tbody>${data.map((l) => `<tr data-loja-id="${l.id}">
+    <td><b>${esc(l.nome)}</b><br><small class="muted">${esc([l.endereco?.rua, l.endereco?.numero].filter(Boolean).join(', '))}</small></td>
+    <td><input type="checkbox" data-campo="ativo" ${l.ativo ? 'checked' : ''}></td>
+    <td><input type="checkbox" data-campo="aceita_entrega" ${l.aceita_entrega ? 'checked' : ''}></td>
+    <td><input type="checkbox" data-campo="aceita_retirada" ${l.aceita_retirada ? 'checked' : ''}></td>
+    <td><input data-campo="saipos_cod_store" value="${esc(l.saipos_cod_store || '')}" placeholder="padrão" style="min-width:220px"></td>
+    <td><button class="btn btn-sm" data-salvar-loja>Salvar</button></td></tr>`).join('')}</tbody></table>`;
+  qsa('[data-salvar-loja]').forEach((b) => b.addEventListener('click', async () => {
+    const tr = b.closest('tr'); const v = (c) => qs(`[data-campo="${c}"]`, tr);
+    const { error: e } = await supabase.from('lojas').update({
+      ativo: v('ativo').checked, aceita_entrega: v('aceita_entrega').checked, aceita_retirada: v('aceita_retirada').checked,
+      saipos_cod_store: v('saipos_cod_store').value.trim() || null,
+    }).eq('id', Number(tr.dataset.lojaId));
+    toast(e ? 'Erro: ' + e.message : 'Loja salva', e ? 'erro' : undefined);
+    localStorage.removeItem('ses_cardapio_cache');
+  }));
+}
+
 function preencherLoja() {
+  carregarLojasAdmin();
   const f = qs('[data-form-loja]'); if (!config) return;
   for (const k of ['nome', 'telefone', 'whatsapp', 'instagram', 'tempo_entrega_min', 'tempo_entrega_max', 'tempo_retirada_min', 'tempo_retirada_max', 'raio_entrega_km', 'taxa_padrao', 'pedido_minimo', 'chave_pix', 'pix_nome', 'sobre_massa', 'aviso_preparo']) if (f.elements[k]) f.elements[k].value = config[k] ?? '';
   f.elements.aceita_entrega.checked = !!config.aceita_entrega; f.elements.aceita_retirada.checked = !!config.aceita_retirada;
@@ -103,7 +127,7 @@ const PROXIMO = { recebido: 'confirmado', confirmado: 'preparando', preparando: 
 
 async function carregarPedidos(primeira = false) {
   const desde = new Date(); desde.setHours(0, 0, 0, 0); desde.setDate(desde.getDate() - 1);
-  const { data, error } = await supabase.from('pedidos').select('*, pedido_itens(*)').gte('criado_em', desde.toISOString()).order('criado_em', { ascending: false }).limit(200);
+  const { data, error } = await supabase.from('pedidos').select('*, pedido_itens(*), lojas(nome, slug)').gte('criado_em', desde.toISOString()).order('criado_em', { ascending: false }).limit(200);
   if (error) { toast('Erro ao carregar pedidos', 'erro'); return; }
   const novos = data.filter((p) => p.status === 'recebido' && !vistos.has(p.id));
   if (!primeira && novos.length) { tocar(); toast(`${novos.length} novo(s) pedido(s)!`); }
@@ -113,6 +137,14 @@ async function carregarPedidos(primeira = false) {
 }
 qs('[data-recarregar]').addEventListener('click', () => carregarPedidos());
 qs('[data-agendados]').addEventListener('change', renderKanban);
+// lojas no filtro (cada funcionário pode deixar só a loja dele)
+async function carregarLojasFiltro() {
+  const { data } = await supabase.from('lojas').select('slug, nome').eq('ativo', true).order('ordem');
+  const sel = qs('[data-filtro-loja]'); const salvo = localStorage.getItem('ses_admin_loja') || '';
+  sel.innerHTML = '<option value="">todas</option>' + (data || []).map((l) => `<option value="${esc(l.slug)}">${esc(l.nome)}</option>`).join('');
+  sel.value = salvo;
+  sel.onchange = () => { localStorage.setItem('ses_admin_loja', sel.value); renderKanban(); };
+}
 
 function assinar() {
   canal = supabase.channel('pedidos-admin').on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => carregarPedidos()).subscribe();
@@ -122,7 +154,8 @@ function renderKanban() {
   const hoje = new Date().toDateString();
   const mostrarAg = qs('[data-agendados]').checked;
   for (const [col, sts] of Object.entries(COLUNAS)) {
-    let lista = pedidos.filter((p) => sts.includes(p.status));
+    const loja = qs('[data-filtro-loja]').value;
+    let lista = pedidos.filter((p) => sts.includes(p.status) && (!loja || p.lojas?.slug === loja));
     if (col === 'finalizados') lista = lista.filter((p) => new Date(p.atualizado_em).toDateString() === hoje);
     if (!mostrarAg && col !== 'novos') lista = lista.filter((p) => !p.agendado_para || new Date(p.agendado_para).toDateString() === hoje || col === 'finalizados');
     if (col !== 'finalizados') lista = lista.sort((a, b) => new Date(a.agendado_para || a.criado_em) - new Date(b.agendado_para || b.criado_em));
@@ -144,6 +177,7 @@ function cardPedido(p) {
     <div class="cab"><span>#${p.numero} ${esc(p.cliente_nome)}</span><small>${horaBR(p.criado_em)}</small></div>
     <div class="itens">${esc(itens)}</div>
     <div class="meta"><span>${p.tipo_entrega === 'entrega' ? icone('moto') + ' Entrega' : icone('loja') + ' Retirada'}</span><span>${PAGAMENTOS[p.pagamento]?.rotulo.split(' ')[0] || p.pagamento}</span><span><b>${brl(p.total)}</b></span>${ag}</div>
+    ${p.lojas ? `<div class="small muted">${icone('loja')} Loja ${esc(p.lojas.nome)}</div>` : ''}
     ${etiquetasIntegracao(p)}
     <div class="acoes">
       ${p.pagamento_status === 'pendente' && p.status !== 'cancelado' ? `<button class="btn btn-outline" data-pago="${p.id}">${icone('check')} Pix recebido</button>` : ''}
@@ -197,7 +231,7 @@ function abrirDetalhe(id) {
   const fluxo = p.tipo_entrega === 'entrega' ? ['recebido', 'confirmado', 'preparando', 'no_forno', 'saiu_entrega', 'entregue'] : ['recebido', 'confirmado', 'preparando', 'no_forno', 'pronto_retirada', 'entregue'];
   qs('[data-detalhe]').innerHTML = `<div class="detalhe">
     <h2>Pedido #${p.numero} <span class="tag">${esc(STATUS[p.status]?.rotulo)}</span></h2>
-    <p class="small muted">${dataHoraBR(p.criado_em)} · ${p.tipo_entrega === 'entrega' ? 'Entrega' : 'Retirada'}${p.agendado_para ? ` · <b>agendado para ${dataHoraBR(p.agendado_para)}</b>` : ''}</p>
+    <p class="small muted">${dataHoraBR(p.criado_em)} · ${p.tipo_entrega === 'entrega' ? 'Entrega' : 'Retirada'}${p.lojas ? ` · <b>Loja ${esc(p.lojas.nome)}</b>` : ''}${p.agendado_para ? ` · <b>agendado para ${dataHoraBR(p.agendado_para)}</b>` : ''}</p>
     <div class="status-btns" style="margin:10px 0">${fluxo.map((s) => `<button class="btn btn-sm ${p.status === s ? '' : 'btn-outline'}" data-st="${s}" data-id="${p.id}">${icone(STATUS[s].icone)} ${STATUS[s].rotulo}</button>`).join('')}<button class="btn btn-sm btn-ghost" data-st="cancelado" data-id="${p.id}">${icone('x')} Cancelar</button></div>
     <div class="grid">
       <div class="bloco"><b>Cliente</b><br>${esc(p.cliente_nome)}<br>${mascaraTelefone(p.cliente_telefone)}<br><a class="btn btn-sm btn-wa no-print" style="margin-top:6px" target="_blank" href="${wa}">WhatsApp</a></div>

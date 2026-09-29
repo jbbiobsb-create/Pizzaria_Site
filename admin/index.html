@@ -47,7 +47,7 @@
           <div class="coluna" data-col="saida"><h3><span><span class="ic-w" data-icone="moto"></span>Saiu / pronto</span><span data-cnt></span></h3><div class="cards"></div></div>
           <div class="coluna" data-col="finalizados"><h3><span><span class="ic-w" data-icone="check-circulo"></span>Finalizados hoje</span><span data-cnt></span></h3><div class="cards"></div></div>
         </div>
-        <p class="small muted" style="margin-top:10px">Atualiza em tempo real. Última atualização: <span data-ultima>—</span> · <button class="btn btn-sm btn-ghost" data-recarregar>Recarregar</button> · <label class="small"><input type="checkbox" data-agendados> mostrar agendados de outros dias</label></p>
+        <p class="small muted" style="margin-top:10px">Atualiza em tempo real. Última atualização: <span data-ultima>—</span> · <button class="btn btn-sm btn-ghost" data-recarregar>Recarregar</button> · <label class="small"><input type="checkbox" data-agendados> mostrar agendados de outros dias</label> · <label class="small">Loja: <select data-filtro-loja><option value="">todas</option></select></label></p>
       </section>
 
       <section data-secao="loja" hidden>
@@ -95,6 +95,12 @@
           <div class="aviso ok" data-ok hidden>Salvo!</div>
           <button class="btn btn-lg" type="submit">Salvar configurações</button>
         </form>
+        <div class="painel" style="max-width:760px;margin-top:16px">
+          <h2>Lojas</h2>
+          <p class="small muted">A entrega sai da loja ativa mais próxima do cliente. Na retirada o cliente escolhe a loja.
+            O <b>código Saipos</b> é o "COD. LOJA" de cada loja no canal de integração (vazio = PDV padrão, com o nome da loja na observação).</p>
+          <div class="tabela" data-lojas-admin style="margin-top:10px"></div>
+        </div>
       </section>
 
       <section data-secao="cardapio" hidden>

@@ -451,3 +451,8 @@ body.tem-barra .wa-flutuante { display: none; }
 @media print {
   .header, .subheader, .tabbar, .footer, .wa-flutuante, .barra-fixa { display: none !important; }
 }
+
+/* lojas */
+.lojas-retirada { display: grid; gap: 8px; margin-bottom: 12px; }
+.lojas-retirada .opcao .i { width: 1em; height: 1em; vertical-align: -0.15em; }
+.link-loja .i { width: 1em; height: 1em; vertical-align: -0.15em; }

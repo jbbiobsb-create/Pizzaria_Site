@@ -13,7 +13,7 @@
       { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
       { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(self), payment=(self)" },
       { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
-      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data:;connect-src 'self' https://jifjovojwmlnsgoqdloh.supabase.co wss://jifjovojwmlnsgoqdloh.supabase.co https://esm.sh https://viacep.com.br https://nominatim.openstreetmap.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" }
+      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data:; frame-src https://maps.google.com https://www.google.com; connect-src 'self' https://jifjovojwmlnsgoqdloh.supabase.co wss://jifjovojwmlnsgoqdloh.supabase.co https://esm.sh https://viacep.com.br https://nominatim.openstreetmap.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" }
     ] }
   ]
 }

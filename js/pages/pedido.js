@@ -70,7 +70,7 @@ function render(p) {
         <div class="total"><span>Total</span><span>${brl(p.total)}</span></div>
       </div>
       <h3>${p.tipo_entrega === 'entrega' ? 'Endereço de entrega' : 'Retirada'}</h3>
-      <p class="small">${p.tipo_entrega === 'entrega' ? `${esc(e.rua)}, ${esc(e.numero)}${e.complemento ? ' - ' + esc(e.complemento) : ''} — ${esc(e.bairro)}, ${esc(e.cidade)}/${esc(e.uf)}${e.referencia ? '<br>Ref.: ' + esc(e.referencia) : ''}` : 'Na loja em Vicente Pires. Avise no WhatsApp quando estiver chegando.'}</p>
+      <p class="small">${p.tipo_entrega === 'entrega' ? `${esc(e.rua)}, ${esc(e.numero)}${e.complemento ? ' - ' + esc(e.complemento) : ''} — ${esc(e.bairro)}, ${esc(e.cidade)}/${esc(e.uf)}${e.referencia ? '<br>Ref.: ' + esc(e.referencia) : ''}` : `Na loja ${esc(p.loja?.nome || '')}${p.loja?.endereco ? ' (' + esc([p.loja.endereco.rua, p.loja.endereco.numero].filter(Boolean).join(', ')) + ')' : ''}. Avise no WhatsApp quando estiver chegando.`}${p.tipo_entrega === 'entrega' && p.loja ? `<br><span class="muted">Sai da loja ${esc(p.loja.nome)}</span>` : ''}</p>
       <h3>Pagamento</h3>
       <p class="small">${esc(PAGAMENTOS[p.pagamento]?.rotulo || p.pagamento)}${p.troco_para ? ` · troco para ${brl(p.troco_para)}` : ''}</p>
       ${p.observacoes ? `<h3>Observações</h3><p class="small">${esc(p.observacoes)}</p>` : ''}
