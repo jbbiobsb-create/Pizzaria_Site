@@ -4,6 +4,7 @@ import { LS, VAPID_PUBLIC_KEY } from './config.js';
 import { qs, esc, toast, lerLS, gravarLS } from './util.js';
 import { icone } from './icons.js';
 import { assinarPush } from './api.js';
+import { abrirModal } from './ui.js'; // ciclo ui ↔ pwa: só funções, usadas depois da avaliação dos módulos
 
 const DIAS_DISPENSA = 14;
 const FINALIZADOS = ['entregue', 'cancelado'];
@@ -154,9 +155,7 @@ function abrirSheetIOS(motivo = '') {
     m = qs('#modal-instalar-ios');
   }
   qs('[data-motivo-ios]', m).textContent = motivo || 'No iPhone a instalação é feita pelo Safari, em três toques:';
-  m.classList.add('aberto');
-  document.body.style.overflow = 'hidden'; document.body.classList.add('modal-aberto');
-  const h = qs('h2', m); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+  abrirModal('modal-instalar-ios'); // mesmo sheet do site: transição, inert no fundo, Esc, retorno de foco
 }
 
 // ------------------------------------------------------------------ push

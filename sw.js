@@ -7,11 +7,11 @@
  * Estratégias:
  *  - Navegação (HTML), CSS, JS e manifest: network-first, cache como reserva; sem rede → /offline.
  *  - Imagens e fontes locais: stale-while-revalidate.
- *  - esm.sh (supabase-js): stale-while-revalidate em cache próprio (URLs versionadas,
- *    mas a versão maior "@2" pode avançar; SWR mantém o offline funcionando e atualiza em segundo plano).
+ *  - esm.sh (supabase-js, só o painel /admin usa; o site público fala com o Supabase por fetch em js/supabase.js):
+ *    stale-while-revalidate em cache próprio.
  *  - Supabase, ViaCEP, Nominatim, Google Maps e /admin: NUNCA passam pelo cache (o SW nem intercepta).
  */
-const VERSAO = '2026-09-30-1';
+const VERSAO = '2026-09-30-2';
 const CACHE_APP = 'app-' + VERSAO;
 const CACHE_MIDIA = 'midia-v1';   // imagens e fontes (sobrevive à troca de versão)
 const CACHE_CDN = 'cdn-v1';       // esm.sh (supabase-js)
@@ -23,7 +23,7 @@ const ARQUIVOS = [
   '/js/pre.js', '/js/config.js', '/js/util.js', '/js/icons.js', '/js/supabase.js', '/js/api.js', '/js/cart.js', '/js/cards.js', '/js/repetir.js', '/js/ui.js', '/js/pwa.js',
   '/js/pages/home.js', '/js/pages/cardapio.js', '/js/pages/produto.js', '/js/pages/carrinho.js', '/js/pages/checkout.js', '/js/pages/pedido.js', '/js/pages/conta.js', '/js/pages/offline.js',
 ];
-const MIDIA_INICIAL = ['/fonts/instrument-sans-var.woff2', '/fonts/young-serif.woff2', '/img/logo.jpg', '/img/icons/icon-192.png', '/img/icons/icon-512.png', '/img/icons/badge-96.png', '/img/icons/apple-touch-icon.png', '/img/icons/favicon-32.png'];
+const MIDIA_INICIAL = ['/fonts/instrument-sans-var.woff2', '/fonts/young-serif.woff2', '/img/logo-96.webp', '/img/icons/icon-192.png', '/img/icons/badge-96.png', '/img/icons/apple-touch-icon.png', '/img/icons/favicon-32.png'];
 
 // Hosts/caminhos que o SW deixa passar direto (dados, geolocalização, mapa, painel da equipe)
 const NAO_INTERCEPTAR = [/supabase\.(co|in)/, /viacep\.com\.br/, /nominatim\.openstreetmap\.org/, /maps\.google/, /google\.com\/maps/, /^\/admin(\/|$)/];

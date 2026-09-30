@@ -1,7 +1,7 @@
 import { montarLayout, montarFooter, skeletonCards } from '../ui.js';
 import { carregarCardapio } from '../api.js';
 import { cardSabor, cardProduto, cardMonte, ativarAddRapido, atualizarSteppers, normalizar } from '../cards.js';
-import { qs, qsa, esc, debounce, param, track } from '../util.js';
+import { qs, qsa, esc, debounce, param, track, rolarAte } from '../util.js';
 import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'cardapio' });
@@ -22,7 +22,7 @@ if (!qs('[data-secoes] .skeleton-card')) qs('[data-secoes]').innerHTML = `<div c
     const d = await carregarCardapio();
     const secoes = [];
     const maisPedidas = [...d.sabores.filter((s) => s.tags?.includes('mais-pedida')), ...d.produtos.filter((p) => p.tags?.includes('mais-pedida'))];
-    if (maisPedidas.length) secoes.push({ slug: 'mais-pedidas', nome: 'Mais pedidas', icone: 'mais-pedidas', html: maisPedidas.map((x) => (x.precos ? cardSabor(x) : cardProduto(x))).join(''), n: maisPedidas.length });
+    if (maisPedidas.length) secoes.push({ slug: 'mais-pedidas', nome: 'Mais pedidas', icone: 'mais-pedidas', html: maisPedidas.map((x, i) => (x.precos ? cardSabor(x, i) : cardProduto(x, i))).join(''), n: maisPedidas.length });
 
     for (const c of d.categorias) {
       let html = ''; let n = 0;
@@ -30,10 +30,11 @@ if (!qs('[data-secoes] .skeleton-card')) qs('[data-secoes]').innerHTML = `<div c
         const tipo = c.grupo || (c.slug === 'pizzas-doces' ? 'doce' : 'salgada');
         const lista = d.sabores.filter((s) => s.tipo === tipo).sort((a, b) => (b.disponivel - a.disponivel) || a.ordem - b.ordem);
         const monte = c.slug === 'pizzas' ? cardMonte(d.tamanhos.filter((t) => t.grupo !== 'calzone').map((t) => ({ ...t, precoMin: Math.min(...d.sabores.filter((s) => s.disponivel && s.precos[t.slug]).map((s) => Number(s.precos[t.slug]))) }))) : '';
-        html = monte + lista.map(cardSabor).join(''); n = lista.length + (monte ? 1 : 0);
+        const primeira = !secoes.length; // sem "mais pedidas": as 3 primeiras fotos desta seção são as candidatas a LCP
+        html = monte + lista.map((s, i) => cardSabor(s, primeira ? i : 99)).join(''); n = lista.length + (monte ? 1 : 0);
       } else {
         const lista = d.produtos.filter((p) => p.categoria === c.slug).sort((a, b) => (b.disponivel - a.disponivel) || a.ordem - b.ordem);
-        html = lista.map(cardProduto).join(''); n = lista.length;
+        html = lista.map((p, i) => cardProduto(p, !secoes.length ? i : 99)).join(''); n = lista.length;
       }
       if (html) secoes.push({ slug: c.slug, nome: c.nome, icone: c.icone, html, n });
     }
@@ -54,7 +55,7 @@ if (!qs('[data-secoes] .skeleton-card')) qs('[data-secoes]').innerHTML = `<div c
 
     ligarChips();
     ligarBusca(d, secoes);
-    if (location.hash && !SO_CAT) setTimeout(() => { try { qs(location.hash)?.scrollIntoView({ behavior: 'smooth' }); } catch {} }, 100);
+    if (location.hash && !SO_CAT) setTimeout(() => { try { qs(location.hash)?.scrollIntoView({ behavior: 'instant', block: 'start' }); } catch {} }, 100);
   } catch (err) {
     console.error(err);
     qs('[data-secoes]').innerHTML = '<p class="aviso erro">Não conseguimos carregar o cardápio agora. Tente recarregar a página.</p>';
@@ -75,7 +76,7 @@ function ligarChips() {
 
   const ativar = (slug) => {
     let at = null;
-    chips.forEach((ch) => { const on = ch.dataset.chip === slug; ch.classList.toggle('ativo', on); if (on) at = ch; });
+    chips.forEach((ch) => { const on = ch.dataset.chip === slug; ch.classList.toggle('ativo', on); if (on) { at = ch; ch.setAttribute('aria-current', 'true'); } else ch.removeAttribute('aria-current'); });
     if (at) trilho.scrollTo({ left: at.offsetLeft - trilho.clientWidth / 2 + at.offsetWidth / 2, behavior: 'smooth' });
   };
   const spy = () => {
@@ -95,7 +96,9 @@ function ligarChips() {
     ev.preventDefault();
     rolando = true; ativar(ch.dataset.chip);
     history.replaceState(null, '', '#' + ch.dataset.chip);
-    alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // longe (> 2 telas): rolagem instantânea, senão parece lento; perto: suave
+    const longe = Math.abs(alvo.getBoundingClientRect().top) > 2 * innerHeight;
+    rolarAte(alvo, longe ? { behavior: 'instant' } : {});
     clearTimeout(timerRolando); timerRolando = setTimeout(fimRolagem, 1200); // fallback sem scrollend
   }));
   spy();

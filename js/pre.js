@@ -4,6 +4,8 @@
 (function () {
   // home: o bloco "Pedir de novo" (antes do hero) já aparece com skeleton quando há pedido salvo neste aparelho
   try { if (localStorage.getItem('ses_ultimo_pedido')) document.documentElement.classList.add('tem-repetir'); } catch (e) {}
+  // pedido.html?id=…: a página do pedido é alta (status, Pix, itens); o skeleton ocupa a tela toda para o rodapé não subir e descer
+  try { if (/pedido(\.html)?$/.test(location.pathname) && /[?&]id=/.test(location.search)) document.documentElement.classList.add('pedido-detalhe'); } catch (e) {}
   try {
     var c = JSON.parse(localStorage.getItem('ses_cardapio_cache') || 'null');
     var d = c && c.dados; if (!d || !d.config) return;

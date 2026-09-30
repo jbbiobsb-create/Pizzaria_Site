@@ -90,13 +90,18 @@ export function whatsappLink(numero, msg) {
   return `https://wa.me/${soDigitos(numero)}?text=${encodeURIComponent(msg)}`;
 }
 
-// toast(msg, tipo, ms, acao?) — acao = {rotulo, href} vira um botão dentro do toast ("Ver sacola")
+// toast(msg, tipo, ms, acao?) — acao = {rotulo, href} vira um link dentro do toast ("Ver sacola");
+// acao = {rotulo, onClick} vira um botão ("Desfazer") e fecha o toast ao tocar.
 export function toast(msg, tipo = 'ok', ms = 3200, acao = null) {
   let el = qs('#toast');
   if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
   if (acao && acao.href) {
     el.innerHTML = `<span>${esc(msg)}</span><a class="btn btn-sm btn-light" href="${esc(acao.href)}">${esc(acao.rotulo)}</a>`;
     el.className = `toast toast-${tipo} toast-acao show`;
+  } else if (acao && typeof acao.onClick === 'function') {
+    el.innerHTML = `<span>${esc(msg)}</span><button type="button" class="btn btn-sm btn-light">${esc(acao.rotulo)}</button>`;
+    el.className = `toast toast-${tipo} toast-acao show`;
+    qs('button', el).addEventListener('click', () => { clearTimeout(el._t); el.classList.remove('show'); acao.onClick(); });
   } else {
     el.textContent = msg;
     el.className = `toast toast-${tipo} show`;
@@ -117,6 +122,10 @@ export function track(evento, dados = {}) {
   } catch {}
   try { console.debug('[ses]', evento, dados); } catch {}
 }
+
+// rolagem programática que respeita "reduzir movimento"
+export const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+export const rolarAte = (el, opts = {}) => { try { el?.scrollIntoView({ behavior: RM() ? 'auto' : 'smooth', block: 'start', ...opts }); } catch {} };
 
 // "40 a 60 min" (sem travessão nos textos visíveis)
 export const faixaMin = (a, b) => `${a} a ${b} min`;

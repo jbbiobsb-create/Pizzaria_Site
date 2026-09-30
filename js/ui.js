@@ -47,7 +47,7 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
   const header = `
   <header class="header">
     <div class="container">
-      <a href="index.html" class="logo"><img src="img/logo.jpg" alt="${esc(nome)}" width="40" height="40"><span>${esc(nome)}</span></a>
+      <a href="index.html" class="logo"><picture><source type="image/webp" srcset="img/logo-96.webp"><img src="img/logo.jpg" alt="${esc(nome)}" width="40" height="40" decoding="async"></picture><span>${esc(nome)}</span></a>
       <nav class="nav">
         <a href="cardapio.html" class="${pagina === 'cardapio' ? 'ativo' : ''}">Cardápio</a>
         <a href="cardapio.html#combos" class="${pagina === 'combos' ? 'ativo' : ''}">Combos</a>
@@ -63,10 +63,10 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
   </header>
   ${subheader ? `<div class="subheader"><div class="container">
       <div class="seg" data-seg>
-        <button type="button" data-tipo="entrega">Entrega</button>
-        <button type="button" data-tipo="retirada"><span class="longo">Retirar na loja</span><span class="curto">Retirada</span></button>
+        <button type="button" data-tipo="entrega" aria-pressed="false">Entrega</button>
+        <button type="button" data-tipo="retirada" aria-pressed="false"><span class="longo">Retirar na loja</span><span class="curto">Retirada</span></button>
       </div>
-      <div class="status-loja" data-status-loja><i></i><span>…</span></div>
+      <div class="status-loja" data-status-loja role="status"><i aria-hidden="true"></i><span>…</span></div>
   </div></div><div data-faixa-fechada></div>` : ''}`;
   const aba = (href, id, ic, rot, extra = '') => `<a href="${href}" class="${pagina === id ? 'ativo' : ''}" ${pagina === id ? 'aria-current="page"' : ''}>${icone(ic)}${rot}${extra}</a>`;
   const tabbar = `
@@ -77,6 +77,7 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
     ${aba('conta.html', 'conta', 'usuario', 'Conta')}
   </nav>`;
   document.body.insertAdjacentHTML('afterbegin', header);
+  const skip = qs('.skip-link'); if (skip) document.body.prepend(skip);
   document.body.insertAdjacentHTML('beforeend', tabbar + barraSacolaHTML() + modalEntregaHTML());
   hidratarIcones();
   atualizarBadge();
@@ -118,13 +119,13 @@ export function montarFooter() {
     <footer class="footer">
       <div class="container">
         <div>
-          <h4>${esc(c.nome)}</h4>
+          <h2 class="footer-titulo">${esc(c.nome)}</h2>
           <p>${esc(c.slogan || '')} · desde ${c.fundacao || 2022}</p>
           <div style="margin-top:8px">${lojas}</div>
           <p>${esc(resumoHorario(c.horario))}</p>
         </div>
         <div>
-          <h4>Pedidos</h4>
+          <h2 class="footer-titulo">Pedidos</h2>
           <a href="cardapio.html">Cardápio</a>
           <a href="cardapio.html#combos">Combos</a>
           <a href="pedido.html">Acompanhar pedido</a>
@@ -132,7 +133,7 @@ export function montarFooter() {
           <a href="conta.html">Minha conta</a>
         </div>
         <div>
-          <h4>Fale com a gente</h4>
+          <h2 class="footer-titulo">Fale com a gente</h2>
           <a href="${whatsappLink(c.whatsapp, 'Olá! Vim pelo site da ' + c.nome + '.')}" target="_blank" rel="noopener">WhatsApp ${esc(c.telefone || '')}</a>
           <a href="https://instagram.com/${esc(c.instagram || '')}" target="_blank" rel="noopener">Instagram @${esc(c.instagram || '')}</a>
           <a href="admin/index.html" class="muted small">Área da equipe</a>
@@ -145,11 +146,13 @@ export function montarFooter() {
   }).catch(() => {});
 }
 
+let nBadge = -1;
 function atualizarBadge(animar = false) {
   const n = cart.quantidadeTotal();
+  const cresceu = nBadge >= 0 && n > nBadge; nBadge = n;
   qsa('[data-badge]').forEach((b) => {
     b.textContent = n ? n : '';
-    if (animar && n) { b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); }
+    if (animar && cresceu) { b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); }
   });
 }
 
@@ -200,7 +203,7 @@ export function proximaAbertura(c) {
 
 export function atualizarSubheader() {
   const e = cart.entrega();
-  qsa('[data-seg] button').forEach((b) => b.classList.toggle('ativo', !!e && b.dataset.tipo === e.tipo));
+  qsa('[data-seg] button').forEach((b) => { const on = !!e && b.dataset.tipo === e.tipo; b.classList.toggle('ativo', on); b.setAttribute('aria-pressed', String(on)); });
   const txt = qs('[data-endereco-txt]');
   if (txt) {
     // o pill é um status (não uma pergunta): endereço + taxa, ou loja de retirada
@@ -217,7 +220,6 @@ export function atualizarSubheader() {
     st.classList.toggle('fechada', !C.aberta);
     st.querySelector('span').textContent = C.aberta ? (hoje ? `Aberto · fecha ${hoje[1]}` : 'Aberto') : 'Fechado';
     st.title = C.aberta ? (hoje ? `Aberto agora · fecha às ${hoje[1]}` : 'Aberto agora') : 'Fechado · abre às ' + abre;
-    st.setAttribute('aria-label', st.title);
     const faixa = qs('[data-faixa-fechada]');
     if (faixa) {
       const min = C.aberta ? minutosParaFechar(C) : null;
@@ -240,12 +242,21 @@ function horaMenos(hhmm, min) {
 // Modal genérico (bottom sheet no mobile, central no desktop)
 // ------------------------------------------------------------------
 let ultimoFoco = null;
+// tudo fora do sheet fica inerte (leitor de tela e Tab não saem do diálogo); desfeito ao fechar o último sheet
+function inerteFundo(ligar) {
+  qsa('body > :not(.modal-bg):not(#toast):not(.toast):not(script)').forEach((el) => {
+    if (ligar) { if (!el.inert) { el.inert = true; el.dataset.inerte = '1'; } }
+    else if (el.dataset.inerte) { el.inert = false; delete el.dataset.inerte; }
+  });
+}
+const FOCAVEIS = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 export function abrirModal(id) {
   const m = qs('#' + id); if (!m) return;
   ultimoFoco = document.activeElement;
   m.classList.add('aberto');
   document.body.style.overflow = 'hidden';
   document.body.classList.add('modal-aberto');
+  inerteFundo(true);
   const corpo = qs('.modal-corpo', m); if (corpo) corpo.scrollTop = 0;
   const sheet = qs('.modal', m); if (sheet) sheet.style.transform = '';
   // foco inicial: título do sheet (leitores de tela anunciam) sem abrir teclado
@@ -254,9 +265,31 @@ export function abrirModal(id) {
 export function fecharModal(id) {
   const m = qs('#' + id); if (!m) return;
   m.classList.remove('aberto');
-  if (!qs('.modal-bg.aberto')) { document.body.style.overflow = ''; document.body.classList.remove('modal-aberto'); }
+  m.style.removeProperty('--teclado');
+  if (!qs('.modal-bg.aberto')) { document.body.style.overflow = ''; document.body.classList.remove('modal-aberto'); inerteFundo(false); }
   if (ultimoFoco && typeof ultimoFoco.focus === 'function') { try { ultimoFoco.focus({ preventScroll: true }); } catch {} }
   ultimoFoco = null;
+}
+// Tab preso dentro do sheet aberto (o fundo já é inert; isto evita o foco ir para a barra do navegador)
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Tab') return;
+  const m = qs('.modal-bg.aberto'); if (!m) return;
+  const f = qsa(FOCAVEIS, m).filter((el) => el.offsetParent !== null || el === document.activeElement);
+  if (!f.length) { ev.preventDefault(); return; }
+  const primeiro = f[0], ultimo = f[f.length - 1];
+  if (ev.shiftKey && (document.activeElement === primeiro || !m.contains(document.activeElement))) { ev.preventDefault(); ultimo.focus(); }
+  else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); primeiro.focus(); }
+});
+// teclado aberto (iOS não encolhe o viewport): o sheet sobe o equivalente ao teclado para o rodapé continuar visível
+if (window.visualViewport) {
+  const ajustar = () => {
+    const m = qs('.modal-bg.aberto'); if (!m) return;
+    const vv = window.visualViewport;
+    const dif = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    if (dif > 60) m.style.setProperty('--teclado', dif + 'px'); else m.style.removeProperty('--teclado');
+  };
+  window.visualViewport.addEventListener('resize', ajustar);
+  window.visualViewport.addEventListener('scroll', ajustar);
 }
 document.addEventListener('click', (ev) => {
   const bg = ev.target.closest('.modal-bg');
@@ -274,19 +307,23 @@ function habilitarArraste(bg) {
   alca.addEventListener('pointerdown', (e) => {
     if (matchMedia('(min-width: 640px)').matches || e.target.closest('button')) return;
     ativo = true; y0 = e.clientY; t0 = performance.now(); dy = 0;
-    sheet.classList.add('arrastando');
+    sheet.classList.add('arrastando'); bg.classList.add('arrastando');
     try { alca.setPointerCapture(e.pointerId); } catch {}
   });
   alca.addEventListener('pointermove', (e) => {
-    if (!ativo) return; dy = Math.max(0, e.clientY - y0);
-    sheet.style.transform = `translateY(${dy}px)`;
+    if (!ativo) return; dy = e.clientY - y0;
+    // para cima: atrito (resiste em vez de parede); para baixo: 1:1 e o fundo clareia junto
+    const vis = dy < 0 ? -Math.pow(-dy, .65) : dy;
+    sheet.style.transform = `translateY(${vis}px)`;
+    bg.style.opacity = dy > 0 ? String(Math.max(.25, 1 - dy / Math.max(240, sheet.offsetHeight))) : '';
   });
   const soltar = () => {
     if (!ativo) return; ativo = false;
     const v = dy / Math.max(1, performance.now() - t0);
-    sheet.classList.remove('arrastando');
-    if (dy > 100 || v > 0.5) { sheet.style.transform = ''; fecharModal(bg.id); }
-    else { sheet.style.transition = 'transform .18s ease-out'; sheet.style.transform = ''; setTimeout(() => (sheet.style.transition = ''), 200); }
+    // tirar "arrastando" e a transformação inline no mesmo tick: a transição parte de onde o dedo soltou (sem piscar)
+    sheet.classList.remove('arrastando'); bg.classList.remove('arrastando');
+    sheet.style.transform = ''; bg.style.opacity = '';
+    if (dy > 100 || v > 0.4) fecharModal(bg.id);
     dy = 0;
   };
   alca.addEventListener('pointerup', soltar);
@@ -341,9 +378,9 @@ let seqEntrega = 0;
 export function entregaHTML(idp = 'ent') {
   return `
   <div class="entrega" data-entrega>
-    <div class="escolha-entrega" data-tipo-entrega>
-      <button type="button" data-tipo="entrega"><div class="ic">${icone('moto')}</div><div><b>Entrega</b><small data-sub-entrega>chega em 40 a 60 min</small></div></button>
-      <button type="button" data-tipo="retirada"><div class="ic">${icone('loja')}</div><div><b>Retirar na loja</b><small data-sub-retirada>pronta em 30 a 50 min · sem taxa</small></div></button>
+    <div class="escolha-entrega" data-tipo-entrega role="radiogroup" aria-label="Como você recebe">
+      <button type="button" role="radio" aria-checked="false" data-tipo="entrega"><div class="ic">${icone('moto')}</div><div><b>Entrega</b><small data-sub-entrega>chega em 40 a 60 min</small></div></button>
+      <button type="button" role="radio" aria-checked="false" data-tipo="retirada"><div class="ic">${icone('loja')}</div><div><b>Retirar na loja</b><small data-sub-retirada>pronta em 30 a 50 min · sem taxa</small></div></button>
     </div>
     <div data-bloco-entrega hidden>
       <div class="endereco-lembrado" data-endereco-lembrado hidden></div>
@@ -367,15 +404,15 @@ export function entregaHTML(idp = 'ent') {
             <div class="campo"><label for="${idp}-uf">UF</label><input id="${idp}-uf" name="uf" value="DF" maxlength="2"></div>
           </div>
         </details>
-        <div class="aviso erro" data-erro hidden></div>
+        <div class="aviso erro" data-erro role="alert" hidden></div>
         <div class="acoes-entrega"><button type="button" class="btn btn-block" data-salvar>Ver taxa e continuar</button></div>
       </div>
-      <div class="resumo-entrega" data-resumo hidden></div>
+      <div class="resumo-entrega" data-resumo role="status" hidden></div>
     </div>
     <div data-bloco-retirada hidden>
       <p class="small muted" style="margin:10px 0 8px">Em qual loja você busca?</p>
-      <div class="lojas-retirada" data-lojas-retirada></div>
-      <div class="resumo-entrega" data-resumo-retirada hidden></div>
+      <div class="lojas-retirada" data-lojas-retirada role="radiogroup" aria-label="Loja para retirada"></div>
+      <div class="resumo-entrega" data-resumo-retirada role="status" hidden></div>
     </div>
   </div>`;
 }
@@ -386,6 +423,7 @@ export function montarEntrega(raiz, opts = {}) {
   const S = { tipo: opts.tipo || cart.entrega()?.tipo || 'entrega', calculando: false, ultimaChave: '' };
   const $ = (sel) => qs(sel, raiz);
   const form = $('[data-form-entrega]');
+  const idp = (qs('[name="cep"]', form)?.id || 'ent-cep').replace(/-cep$/, '');
   // não é um <form> (pode estar dentro do #form-checkout): campos acessados por name
   const campo = (k) => qs(`[name="${k}"]`, form);
   form.elements = new Proxy({}, { get: (_, k) => campo(k) });
@@ -395,7 +433,7 @@ export function montarEntrega(raiz, opts = {}) {
   // ---- estado visual ----
   function pintar() {
     const e = salvo();
-    chips.forEach((b) => b.classList.toggle('ativo', b.dataset.tipo === S.tipo));
+    chips.forEach((b) => { const on = b.dataset.tipo === S.tipo; b.classList.toggle('ativo', on); b.setAttribute('aria-checked', String(on)); });
     $('[data-bloco-entrega]').hidden = S.tipo !== 'entrega';
     $('[data-bloco-retirada]').hidden = S.tipo !== 'retirada';
     if (S.tipo === 'entrega') pintarEntrega(e);
@@ -447,7 +485,7 @@ export function montarEntrega(raiz, opts = {}) {
       const lojas = (c.lojas || []).filter((l) => l.aceita_retirada);
       const atual = e?.tipo === 'retirada' ? lojaPorSlug({ lojas }, e.loja) : lojaSugerida(c, e);
       const perto = !!(e?.endereco?.lat || enderecoLembrado()?.lat);
-      lista.innerHTML = lojas.map((l) => `<button type="button" class="opcao ${l.slug === atual?.slug ? 'ativo' : ''}" data-loja="${esc(l.slug)}"><b>${icone('loja')} ${esc(l.nome)}</b><small>${esc(enderecoLoja(l))}${l.slug === atual?.slug && perto ? ' · a mais perto de você' : l.principal && l.slug === atual?.slug ? ' · loja principal' : ''}</small></button>`).join('');
+      lista.innerHTML = lojas.map((l) => `<button type="button" role="radio" aria-checked="${l.slug === atual?.slug}" class="opcao ${l.slug === atual?.slug ? 'ativo' : ''}" data-loja="${esc(l.slug)}"><b>${icone('loja')} ${esc(l.nome)}</b><small>${esc(enderecoLoja(l))}${l.slug === atual?.slug && perto ? ' · a mais perto de você' : l.principal && l.slug === atual?.slug ? ' · loja principal' : ''}</small></button>`).join('');
       qsa('[data-loja]', lista).forEach((b) => b.addEventListener('click', () => escolherLoja(lojaPorSlug({ lojas }, b.dataset.loja))));
       resumo.hidden = false;
       resumo.innerHTML = `Fica pronta em <b>${faixaMin(c.tempo_retirada_min, c.tempo_retirada_max)}</b> · sem taxa<br><span class="muted">${esc(resumoHorario(c.horario))}</span>`;
@@ -456,7 +494,7 @@ export function montarEntrega(raiz, opts = {}) {
   function escolherLoja(l) {
     if (!l) return;
     cart.salvarEntrega({ tipo: 'retirada', taxa: 0, loja: l.slug, loja_nome: l.nome });
-    qsa('[data-loja]', raiz).forEach((b) => b.classList.toggle('ativo', b.dataset.loja === l.slug));
+    qsa('[data-loja]', raiz).forEach((b) => { const on = b.dataset.loja === l.slug; b.classList.toggle('ativo', on); b.setAttribute('aria-checked', String(on)); });
     track('endereco_ok', { tipo: 'retirada', loja: l.slug });
     opts.aoSalvar?.(cart.entrega());
   }
@@ -489,7 +527,14 @@ export function montarEntrega(raiz, opts = {}) {
   function validar(mostrar = true) {
     const end = Object.fromEntries(['cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'referencia'].map((k) => [k, form.elements[k].value.trim()]));
     let ok = true;
-    for (const k of ['rua', 'numero', 'bairro']) { const falta = !end[k]; const el = qs(`[data-erro-campo="${k}"]`, form); if (el && mostrar) el.hidden = !falta; if (falta) ok = false; }
+    for (const k of ['rua', 'numero', 'bairro']) {
+      const falta = !end[k]; const el = qs(`[data-erro-campo="${k}"]`, form);
+      if (el && mostrar) {
+        el.hidden = !falta; if (!el.id) el.id = `${idp}-erro-${k}`;
+        const inp = form.elements[k]; if (falta) { inp.setAttribute('aria-invalid', 'true'); inp.setAttribute('aria-describedby', el.id); } else { inp.removeAttribute('aria-invalid'); inp.removeAttribute('aria-describedby'); }
+      }
+      if (falta) ok = false;
+    }
     if (!end.cidade) { end.cidade = 'Brasília'; }
     return ok ? end : null;
   }
@@ -520,7 +565,8 @@ export function montarEntrega(raiz, opts = {}) {
       erro.textContent = 'Não conseguimos calcular a taxa agora. Tente de novo em instantes, o pedido continua salvo.'; erro.hidden = false;
     } finally { S.calculando = false; btn.disabled = false; btn.textContent = 'Ver taxa e continuar'; if (!erro.hidden && foco) erro.scrollIntoView({ block: 'nearest' }); }
   }
-  const enviar = () => { const end = validar(true); if (!end) { qs('[data-erro-campo]:not([hidden])', form)?.previousElementSibling?.focus(); return; } calcular(end); };
+  const enviar = () => { const end = validar(true); if (!end) { qs('[aria-invalid="true"]', form)?.focus(); return; } calcular(end); };
+  ['rua', 'numero', 'bairro'].forEach((k) => form.elements[k].addEventListener('input', () => { if (form.elements[k].value.trim()) { form.elements[k].removeAttribute('aria-invalid'); const el = qs(`[data-erro-campo="${k}"]`, form); if (el) el.hidden = true; } }));
   $('[data-salvar]').addEventListener('click', enviar);
   form.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && ev.target.tagName === 'INPUT') { ev.preventDefault(); enviar(); } });
   // taxa calculada sozinha quando rua, número e bairro estão preenchidos (sem toque extra)

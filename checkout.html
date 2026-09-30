@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Fechar pedido · Sesconetto's Pizzeria</title>
   <meta name="theme-color" content="#FFFFFF">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -16,9 +16,21 @@
   <link rel="preload" href="/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/api.js">
+  <link rel="modulepreload" href="js/supabase.js">
+  <link rel="modulepreload" href="js/util.js">
+  <link rel="modulepreload" href="js/icons.js">
+  <link rel="modulepreload" href="js/cart.js">
+  <link rel="modulepreload" href="js/config.js">
+  <link rel="modulepreload" href="js/pwa.js">
+  <link rel="modulepreload" href="js/cards.js">
+  <link rel="modulepreload" href="js/repetir.js">
+  <link rel="modulepreload" href="js/fidelidade.js">
 </head>
 <body>
-  <main>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <main id="conteudo" tabindex="-1">
     <form class="container duas-colunas fechar-pedido" id="form-checkout" novalidate>
       <div>
         <h1 class="titulo-pagina">Fechar pedido</h1>
@@ -49,18 +61,18 @@
         <div class="painel" data-painel-cliente hidden>
           <h2>Quem recebe</h2>
           <p class="muted small" style="margin-bottom:12px">Sem cadastro. O celular serve para você acompanhar o pedido e falar com a gente.</p>
-          <div class="campo"><label for="ck-nome">Nome</label><input id="ck-nome" name="nome" autocomplete="name" placeholder="Como devemos te chamar?" required></div>
-          <div class="campo"><label for="ck-tel">Celular (WhatsApp)</label><input id="ck-tel" name="telefone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(61) 99999-9999" required></div>
+          <div class="campo"><label for="ck-nome">Nome</label><input id="ck-nome" name="nome" autocomplete="name" enterkeyhint="next" placeholder="Como devemos te chamar?" required></div>
+          <div class="campo"><label for="ck-tel">Celular (WhatsApp)</label><input id="ck-tel" name="telefone" type="tel" inputmode="tel" autocomplete="tel-national" enterkeyhint="next" placeholder="(61) 99999-9999" required></div>
           <details class="detalhe" data-email-detalhe>
             <summary><span class="ic-w" data-icone="mais"></span> E-mail (recibo)</summary>
-            <div class="campo"><label for="ck-email">E-mail <span class="muted">opcional</span></label><input id="ck-email" name="email" type="email" autocomplete="email" autocapitalize="off" placeholder="voce@email.com"></div>
+            <div class="campo"><label for="ck-email">E-mail <span class="muted">opcional</span></label><input id="ck-email" name="email" type="email" autocomplete="email" autocapitalize="off" autocorrect="off" enterkeyhint="done" placeholder="voce@email.com"></div>
           </details>
         </div>
         <!-- 4. como paga (3 opções grandes; a última escolha vem marcada) -->
         <div class="painel" data-painel-pagamento hidden>
           <h2>Como você paga</h2>
           <div class="radio-lista pagamento-opcoes" data-pagamentos></div>
-          <div class="campo" data-troco hidden style="margin-top:12px"><label for="ck-troco">Troco para quanto?</label><input id="ck-troco" name="troco_para" inputmode="decimal" placeholder="Ex.: 100"><span class="small muted">Deixe em branco se não precisar de troco.</span></div>
+          <div class="campo" data-troco hidden style="margin-top:12px"><label for="ck-troco">Troco para quanto?</label><input id="ck-troco" name="troco_para" inputmode="decimal" enterkeyhint="done" placeholder="Ex.: 100"><span class="small muted">Deixe em branco se não precisar de troco.</span></div>
           <p class="aviso" data-aviso-pix hidden style="margin-top:12px">Pix: a chave aparece assim que você confirmar. Pague e mande o comprovante no WhatsApp, o pedido entra no forno quando a gente confirma.</p>
         </div>
         <!-- Clube Sesconetto's: aparece quando o programa está ativo e o celular foi preenchido (js/pages/checkout.js) -->
@@ -76,7 +88,7 @@
           </details>
           <details class="detalhe" data-cupom-detalhe>
             <summary><span class="ic-w" data-icone="mais"></span> Tem cupom?</summary>
-            <div class="cupom"><input placeholder="Digite o cupom" data-cupom-input maxlength="30" aria-label="Cupom de desconto"><button type="button" class="btn btn-outline btn-sm" data-cupom-btn>Aplicar</button></div>
+            <div class="cupom"><input placeholder="Digite o cupom" data-cupom-input maxlength="30" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Cupom de desconto"><button type="button" class="btn btn-outline btn-sm" data-cupom-btn>Aplicar</button></div>
             <p class="small" data-cupom-msg style="margin-top:6px"></p>
           </details>
         </div>
@@ -99,7 +111,7 @@
           </div>
           <p class="small muted" data-quando style="margin-top:8px"></p>
           <p class="small muted" data-aviso-minimo></p>
-          <div class="aviso erro" data-erro hidden style="margin-top:12px"></div>
+          <div class="aviso erro" data-erro role="alert" hidden style="margin-top:12px"></div>
           <button class="btn btn-lg btn-block esconder-mobile" type="submit" data-confirmar style="margin-top:14px">Confirmar pedido</button>
           <p class="small muted reasseguro" style="margin-top:10px">Deu algo errado? É só chamar no WhatsApp: a gente ajusta. Ao confirmar, você aceita o horário e a área de entrega.</p>
         </div>

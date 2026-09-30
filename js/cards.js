@@ -7,6 +7,23 @@ import { icone } from './icons.js';
 import * as cart from './cart.js';
 import { carregarCardapio } from './api.js';
 
+// Foto de card/lista: WebP responsivo por convenção (foo.jpg → foo-240.webp, foo-480.webp) com o JPG do banco como
+// fallback. Se a variante não existir (foto nova sem conversão), o listener de erro abaixo remove os <source> e recarrega o JPG.
+export function fotoHTML(url, { w = 96, cls = 'foto', eager = false, alt = '' } = {}) {
+  const base = String(url).replace(/\.(jpe?g|png)$/i, '');
+  const temVariante = base !== String(url) && /^img\//.test(url);
+  const img = `<img class="${cls}" src="${esc(url)}" alt="${esc(alt)}" width="${w}" height="${w}" loading="${eager ? 'eager' : 'lazy'}" decoding="async"${eager ? ' fetchpriority="high"' : ''}>`;
+  if (!temVariante) return img;
+  return `<picture><source type="image/webp" srcset="${esc(base)}-240.webp 240w, ${esc(base)}-480.webp 480w" sizes="${w}px">${img}</picture>`;
+}
+document.addEventListener('error', (ev) => {
+  const img = ev.target;
+  if (!(img instanceof HTMLImageElement) || img.dataset.fb) return;
+  const pic = img.closest('picture'); if (!pic) return;
+  img.dataset.fb = '1'; qsa('source', pic).forEach((s) => s.remove());
+  const src = img.getAttribute('src'); img.removeAttribute('srcset'); img.src = src; // força nova tentativa com o JPG
+}, true);
+
 const FOTO_PADRAO = { pizza: 'pizza', bebida: 'bebida', combo: 'combo', molho: 'molho', sanduiche: 'sanduiche', entrada: 'entrada', sobremesa: 'sobremesa', cerveja: 'cerveja', vinho: 'vinho', drink: 'drink' };
 
 // texto usado pela busca do cardápio (sem acento, minúsculo)
@@ -29,10 +46,11 @@ export function tamanhosDoSabor(s) {
   return Object.entries(s.precos || {}).filter(([, v]) => Number(v) > 0).sort((a, b) => ORDEM_TAM.indexOf(a[0]) - ORDEM_TAM.indexOf(b[0]));
 }
 
-export function cardSabor(s) {
+// i = posição na lista (os 3 primeiros cards da página carregam a foto sem lazy: são candidatos a LCP)
+export function cardSabor(s, i = 99) {
   const tags = s.tags || [];
   const href = `produto.html?sabor=${esc(s.slug)}`;
-  const foto = s.imagem_url ? `<img class="foto" src="${esc(s.imagem_url)}" alt="" loading="lazy" width="96" height="96">` : `<div class="foto vazia">${icone(s.tipo === 'calzone' ? 'calzone' : 'pizza')}</div>`;
+  const foto = s.imagem_url ? fotoHTML(s.imagem_url, { eager: i < 3 }) : `<div class="foto vazia">${icone(s.tipo === 'calzone' ? 'calzone' : 'pizza')}</div>`;
   const tam = tamanhosDoSabor(s);
   // chips: cada um adiciona a pizza inteira em 1 toque; o corpo do card abre o configurador (meio a meio / observações)
   const chips = s.disponivel && tam.length
@@ -53,13 +71,13 @@ export function cardSabor(s) {
   </article>`;
 }
 
-export function cardProduto(p) {
+export function cardProduto(p, i = 99) {
   const ic = FOTO_PADRAO[p.categoria?.replace(/s$/, '')] || 'pizza';
   const href = `produto.html?p=${esc(p.slug)}`;
   const simples = !(Array.isArray(p.passos) && p.passos.length);
   // latas, garrafas, combos: recorte em fundo branco → multiply sobre o papel (DESIGN.md §8)
   const recorte = ['bebidas', 'cervejas', 'vinhos', 'combos', 'drinks'].includes(p.categoria) ? ' foto--recorte' : '';
-  const foto = p.imagem_url ? `<img class="foto${recorte}" src="${esc(p.imagem_url)}" alt="" loading="lazy" width="96" height="96">` : `<div class="foto vazia">${icone(ic)}</div>`;
+  const foto = p.imagem_url ? fotoHTML(p.imagem_url, { cls: 'foto' + recorte, eager: i < 3 }) : `<div class="foto vazia">${icone(ic)}</div>`;
   const acao = simples
     ? `<span data-rapido="${esc(p.slug)}"><button type="button" class="add" data-add-rapido="${esc(p.slug)}" aria-label="Adicionar ${esc(p.nome)}">${icone('mais')}</button></span>`
     : `<a class="add" href="${href}" aria-label="Montar ${esc(p.nome)}">${icone('mais')}</a>`;
@@ -91,18 +109,23 @@ export function cardMonte(tamanhos) {
 
 // ---------- adicionar rápido + stepper ----------
 // quantidade de um produto simples na sacola (só itens sem escolhas/observação, que são os do card)
-function qtdNaSacola(slug) {
-  return cart.itens().filter((i) => i.tipo === 'produto' && i.slug === slug && !(i.escolhas || []).length && !i.observacao).reduce((n, i) => n + i.quantidade, 0);
-}
 function uidNaSacola(slug) {
   return cart.itens().find((i) => i.tipo === 'produto' && i.slug === slug && !(i.escolhas || []).length && !i.observacao)?.uid;
 }
 
+// quantidades por slug em um passe só (uma leitura do localStorage por atualização, não uma por card)
+function mapaQtd() {
+  const m = new Map();
+  for (const i of cart.itens()) if (i.tipo === 'produto' && !(i.escolhas || []).length && !i.observacao) m.set(i.slug, (m.get(i.slug) || 0) + i.quantidade);
+  return m;
+}
 // redesenha o "+" ou o stepper de cada card conforme a sacola
 export function atualizarSteppers(raiz = document) {
+  const qtd = mapaQtd();
   qsa('[data-rapido]', raiz).forEach((el) => {
-    const slug = el.dataset.rapido; const n = qtdNaSacola(slug);
-    const nome = el.closest('.card')?.querySelector('h3')?.textContent || '';
+    if (el.dataset.ok) return; // "✓" de confirmação em curso: vira stepper daqui a pouco (ver ativarAddRapido)
+    const slug = el.dataset.rapido; const n = qtd.get(slug) || 0;
+    const nome = el.closest('.card, .completa-item')?.querySelector('h3, b')?.textContent || '';
     if (!n) {
       if (!qs('[data-add-rapido]', el)) el.innerHTML = `<button type="button" class="add" data-add-rapido="${esc(slug)}" aria-label="Adicionar ${esc(nome)}">${icone('mais')}</button>`;
       return;
@@ -117,7 +140,7 @@ export function atualizarSteppers(raiz = document) {
   });
   // ícone do "−" vira lixeira quando resta 1
   qsa('[data-stepper]', raiz).forEach((st) => {
-    const n = qtdNaSacola(st.dataset.stepper);
+    const n = qtd.get(st.dataset.stepper) || 0;
     const menos = qs('[data-step="-1"]', st); if (menos) menos.innerHTML = icone(n === 1 ? 'lixeira' : 'menos');
   });
 }
@@ -155,8 +178,11 @@ export function ativarAddRapido() {
     if (add) {
       const p = d.produtosPorSlug[add.dataset.addRapido];
       if (!p || !p.disponivel) { toast('Esse item acabou por hoje.', 'erro'); return; }
+      // o botão vira ✓ ANTES de mudar a sacola (o onChange redesenharia o botão no mesmo tick) e só depois vira stepper
+      const wrap = add.closest('[data-rapido]');
+      add.classList.add('ok'); add.innerHTML = icone('check'); add.setAttribute('aria-label', `${p.nome} adicionado`);
+      if (wrap) { wrap.dataset.ok = '1'; setTimeout(() => { delete wrap.dataset.ok; atualizarSteppers(wrap.parentElement || document); }, 500); }
       cart.adicionar({ tipo: 'produto', slug: p.slug, escolhas: [], nome: p.nome, imagem: p.imagem_url, preco: Number(p.preco), quantidade: 1 });
-      add.classList.add('ok'); add.innerHTML = icone('check');
       toast(`${p.nome} na sacola`, 'ok', 3200, acaoSacola());
       track('add_item', { origem: add.closest('[data-completa]') ? 'faixa' : 'card', tipo: 'produto', slug: p.slug });
       try { navigator.vibrate?.(10); } catch {}

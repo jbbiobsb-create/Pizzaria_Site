@@ -1,5 +1,5 @@
 // Painel da equipe: pedidos em tempo real, loja, cardápio e cupons
-import { supabase } from '../js/supabase.js';
+import { supabase } from './supabase.js';
 import { qs, qsa, esc, brl, toast, STATUS, PAGAMENTOS, dataHoraBR, horaBR, whatsappLink, DIAS, DIAS_ORDEM, mascaraTelefone } from '../js/util.js';
 import { icone, hidratarIcones } from '../js/icons.js';
 

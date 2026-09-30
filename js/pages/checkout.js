@@ -3,8 +3,8 @@
 import { montarLayout, montarFooter, config, lojaPorSlug, enderecoLoja, hidratarIcones, entregaHTML, montarEntrega, sugestoesCompleta, proximaAbertura } from '../ui.js';
 import { validarCupom, criarPedido, fidelidadeResumo, fidelidadeSaldo } from '../api.js';
 import * as cart from '../cart.js';
-import { ativarAddRapido, atualizarSteppers, nomeCurto } from '../cards.js';
-import { qs, qsa, esc, brl, toast, lerLS, gravarLS, mascaraTelefone, soDigitos, debounce, PAGAMENTOS, rotuloPagamento, dataHoraBR, DIAS, faixaMin, track } from '../util.js';
+import { ativarAddRapido, atualizarSteppers, nomeCurto, fotoHTML } from '../cards.js';
+import { qs, qsa, esc, brl, toast, lerLS, gravarLS, mascaraTelefone, soDigitos, debounce, PAGAMENTOS, rotuloPagamento, dataHoraBR, DIAS, faixaMin, track, rolarAte } from '../util.js';
 import { LS } from '../config.js';
 import { icone } from '../icons.js';
 import { resumoItens, ultimoPedidoLocal, itensDoUltimoPedido, repetirItens, mensagemRepetir } from '../repetir.js';
@@ -64,7 +64,7 @@ function renderItens() {
   }
   el.innerHTML = itens.map((i) => `
     <div class="item-carrinho">
-      ${i.imagem ? `<img src="${esc(i.imagem)}" alt="" width="56" height="56">` : `<div class="ph">${icone(i.tipo === 'pizza' ? 'pizza' : 'bebida')}</div>`}
+      ${i.imagem ? fotoHTML(i.imagem, { w: 56, cls: '' }) : `<div class="ph">${icone(i.tipo === 'pizza' ? 'pizza' : 'bebida')}</div>`}
       <div>
         <b>${esc(i.nome)}</b>
         ${i.descricao ? `<small>${esc(i.descricao)}</small>` : ''}
@@ -74,9 +74,18 @@ function renderItens() {
       <div class="acoes"><span class="p">${brl(i.preco * i.quantidade)}</span><button type="button" class="remover" data-rm="${i.uid}" aria-label="Remover ${esc(i.nome)}">${icone('lixeira')}</button></div>
     </div>`).join('');
   qsa('[data-q]', el).forEach((b) => b.addEventListener('click', () => cart.alterarQtd(b.dataset.q, Number(b.dataset.d))));
-  qsa('[data-rm]', el).forEach((b) => b.addEventListener('click', () => { cart.remover(b.dataset.rm); toast('Item removido'); }));
+  qsa('[data-rm]', el).forEach((b) => b.addEventListener('click', () => {
+    const antes = cart.itens(); const linha = b.closest('.item-carrinho');
+    // saída curta antes de sumir; "Desfazer" devolve a sacola como estava
+    if (linha && !matchMedia('(prefers-reduced-motion: reduce)').matches) { linha.style.transition = 'opacity 160ms, transform 160ms'; linha.style.opacity = '0'; linha.style.transform = 'translateX(-12px)'; }
+    setTimeout(() => { cart.remover(b.dataset.rm); toast('Item removido', 'ok', 5000, { rotulo: 'Desfazer', onClick: () => cart.restaurar(antes) }); }, linha ? 150 : 0);
+  }));
 }
-qs('[data-limpar]').addEventListener('click', () => { if (confirm('Esvaziar a sacola?')) cart.limpar(); });
+qs('[data-limpar]').addEventListener('click', () => {
+  const antes = cart.itens(); if (!antes.length) return;
+  cart.limpar();
+  toast('Sacola esvaziada', 'ok', 6000, { rotulo: 'Desfazer', onClick: () => cart.restaurar(antes) });
+});
 
 // ---------------------------------------------------------------
 // 2. Como recebe (componente inline) + quando (agora / agendar)
@@ -157,12 +166,13 @@ function renderQuando() {
 function renderPagamentos() {
   const lista = qs('[data-pagamentos]');
   const e = cart.entrega();
-  lista.innerHTML = (CFG.pagamentos || []).map((p) => PAGAMENTOS[p] ? `<button type="button" class="opcao ${pagamento === p ? 'ativo' : ''}" data-pg="${p}"><b>${icone(PAGAMENTOS[p].icone)} ${esc(rotuloPagamento(p, e?.tipo))}</b><small>${esc(PAGAMENTOS[p].desc)}</small></button>` : '').join('');
+  lista.setAttribute('role', 'radiogroup'); lista.setAttribute('aria-label', 'Como você paga');
+  lista.innerHTML = (CFG.pagamentos || []).map((p) => PAGAMENTOS[p] ? `<button type="button" role="radio" aria-checked="${pagamento === p}" class="opcao ${pagamento === p ? 'ativo' : ''}" data-pg="${p}"><b>${icone(PAGAMENTOS[p].icone)} ${esc(rotuloPagamento(p, e?.tipo))}</b><small>${esc(PAGAMENTOS[p].desc)}</small></button>` : '').join('');
   qsa('[data-pg]', lista).forEach((b) => b.addEventListener('click', () => escolherPagamento(b.dataset.pg)));
 }
 function escolherPagamento(p) {
   pagamento = p;
-  qsa('[data-pg]').forEach((x) => x.classList.toggle('ativo', x.dataset.pg === p));
+  qsa('[data-pg]').forEach((x) => { const on = x.dataset.pg === p; x.classList.toggle('ativo', on); x.setAttribute('aria-checked', String(on)); });
   qs('[data-troco]').hidden = p !== 'dinheiro';
   qs('[data-aviso-pix]').hidden = p !== 'pix';
   track('pagamento_escolhido', { pagamento: p });
@@ -265,7 +275,7 @@ async function renderCompleta() {
     if (!lista.length) { el.hidden = true; return; }
     qs('[data-completa-lista]').innerHTML = lista.map((p) => `
       <div class="completa-item">
-        ${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="" loading="lazy" width="48" height="48">` : `<div class="ph">${icone(p.categoria === 'sobremesas' ? 'sobremesa' : p.categoria === 'molhos' ? 'molho' : 'bebida')}</div>`}
+        ${p.imagem_url ? fotoHTML(p.imagem_url, { w: 48, cls: '' }) : `<div class="ph">${icone(p.categoria === 'sobremesas' ? 'sobremesa' : p.categoria === 'molhos' ? 'molho' : 'bebida')}</div>`}
         <div class="txt"><b>${esc(nomeCurto(p.nome))}</b><span class="p">${brl(p.preco)}</span></div>
         <span data-rapido="${esc(p.slug)}"><button type="button" class="add" data-add-rapido="${esc(p.slug)}" aria-label="Adicionar ${esc(p.nome)}">${icone('mais')}</button></span>
       </div>`).join('');
@@ -324,7 +334,7 @@ function renderCashback() {
             <div class="campo"><label for="ck-pin">PIN do Clube (4 dígitos)</label><input id="ck-pin" name="pin_cashback" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="••••" value="${esc(fid.pin)}"></div>
             <button type="button" class="btn" data-cb-confirmar>Confirmar</button>
           </div>
-          <div class="aviso erro" data-cb-erro ${fid.erro ? '' : 'hidden'}>${esc(fid.erro)}</div>
+          <div class="aviso erro" role="alert" data-cb-erro ${fid.erro ? '' : 'hidden'}>${esc(fid.erro)}</div>
           <div class="rodape"><button type="button" data-esqueci>Esqueci meu PIN</button></div>`}
       </div>
       ${rodape}</div>`;
@@ -380,15 +390,22 @@ form.addEventListener('submit', async (ev) => {
   if (enviando) return;
   const erro = qs('[data-erro]'); erro.hidden = true;
   const f = form.elements; const e = cart.entrega();
-  const falhas = [];
+  const falhas = []; const invalidos = [];
+  ['nome', 'telefone'].forEach((k) => { f[k].removeAttribute('aria-invalid'); f[k].removeAttribute('aria-describedby'); });
   if (vazio()) falhas.push('Sua sacola está vazia.');
   if (!e) falhas.push('Escolha entrega ou retirada.');
   if (CFG && !CFG.aberta && !sessao.agendado) falhas.push(`Fechamos por hoje. Agende para a partir das ${proximaAbertura(CFG)} e a gente assa na hora.`);
-  if (f.nome.value.trim().length < 2) falhas.push('Falta seu nome. Como devemos te chamar?');
-  if (soDigitos(f.telefone.value).length < 10) falhas.push('Confere o celular? Precisa do DDD, ex.: (61) 99999-9999.');
+  if (f.nome.value.trim().length < 2) { falhas.push('Falta seu nome. Como devemos te chamar?'); invalidos.push(f.nome); }
+  if (soDigitos(f.telefone.value).length < 10) { falhas.push('Confere o celular? Precisa do DDD, ex.: (61) 99999-9999.'); invalidos.push(f.telefone); }
   if (!pagamento) falhas.push('Escolha como você paga.');
   if (fid.usar && !fid.saldo) falhas.push('Confirme o PIN do cashback ou desligue "Usar meu cashback".');
-  if (falhas.length) { erro.innerHTML = falhas.map(esc).join('<br>'); erro.hidden = false; erro.scrollIntoView({ behavior: 'smooth', block: 'center' }); toast(falhas[0], 'erro'); return; }
+  if (falhas.length) {
+    erro.id = erro.id || 'ck-erro'; erro.innerHTML = falhas.map(esc).join('<br>'); erro.hidden = false;
+    invalidos.forEach((c) => { c.setAttribute('aria-invalid', 'true'); c.setAttribute('aria-describedby', erro.id); });
+    if (invalidos[0]) { rolarAte(invalidos[0], { block: 'center' }); invalidos[0].focus({ preventScroll: true }); }
+    else rolarAte(erro, { block: 'center' });
+    toast(falhas[0], 'erro'); return;
+  }
 
   const usarCashback = !!(fid.usar && fid.saldo && fid.valor > 0);
   const payload = {
@@ -427,7 +444,7 @@ form.addEventListener('submit', async (ev) => {
     if ((err.cashback || err.pin || /cashback|\bPIN\b/i.test(err.message || '')) && fid.usar) {
       fid.saldo = null; fid.valor = 0; fid.pin = ''; fid.erro = err.message;
       renderCashback(); recalcular();
-      qs('[data-painel-cashback]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      rolarAte(qs('[data-painel-cashback]'), { block: 'center' });
       toast(err.message, 'erro');
       return;
     }
@@ -435,7 +452,7 @@ form.addEventListener('submit', async (ev) => {
     erro.textContent = /15 min|muitos pedidos|limite|aguard/i.test(m) ? 'Já recebemos pedidos deste celular há pouco. Espera uns minutos ou fala com a gente no WhatsApp.'
       : /fechad/i.test(m) ? `Fechamos por hoje. Agende para a partir das ${proximaAbertura(CFG)} e a gente assa na hora.`
       : (m && !/failed to fetch|network|load/i.test(m) ? m : 'Não deu para enviar o pedido agora. Tente de novo em alguns segundos. Se continuar, manda no WhatsApp que a gente anota.');
-    erro.hidden = false; erro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    erro.hidden = false; rolarAte(erro, { block: 'center' });
     toast(erro.textContent, 'erro');
     atualizarBarra();
   }

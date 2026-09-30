@@ -3,18 +3,23 @@ import { supabase } from './supabase.js';
 import { LS } from './config.js';
 import { lerLS, gravarLS, soDigitos } from './util.js';
 
-let _cardapio = null;
+let _cardapio = null; let _emVoo = null;
 
-// Cardápio inteiro em uma chamada. Cache curto na sessão para navegação rápida.
-export async function carregarCardapio(forcar = false) {
-  if (_cardapio && !forcar) return _cardapio;
+// Cardápio inteiro em uma chamada. Cache curto na sessão para navegação rápida; uma só requisição em voo
+// (home/cardápio/checkout chamam carregarCardapio várias vezes no mesmo carregamento).
+export function carregarCardapio(forcar = false) {
+  if (_cardapio && !forcar) return Promise.resolve(_cardapio);
   const cache = lerLS(LS.cardapio);
-  if (cache && !forcar && Date.now() - cache.em < 2 * 60 * 1000) { _cardapio = cache.dados; return _cardapio; }
-  const { data, error } = await supabase.rpc('cardapio');
-  if (error) throw error;
-  _cardapio = indexar(data);
-  gravarLS(LS.cardapio, { em: Date.now(), dados: _cardapio });
-  return _cardapio;
+  if (cache && !forcar && Date.now() - cache.em < 2 * 60 * 1000) { _cardapio = cache.dados; return Promise.resolve(_cardapio); }
+  if (_emVoo && !forcar) return _emVoo;
+  _emVoo = supabase.rpc('cardapio').then(({ data, error }) => {
+    _emVoo = null;
+    if (error) throw error;
+    _cardapio = indexar(data);
+    gravarLS(LS.cardapio, { em: Date.now(), dados: _cardapio });
+    return _cardapio;
+  }, (e) => { _emVoo = null; throw e; });
+  return _emVoo;
 }
 
 function indexar(d) {

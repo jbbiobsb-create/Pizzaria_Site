@@ -12,7 +12,7 @@ montarFooter();
 const raiz = qs('[data-raiz]');
 const id = param('id');
 const novo = param('novo') === '1';
-let timer; let ultimaAtualizacao = 0; let timerRelogio;
+let timer; let ultimaAtualizacao = 0; let timerRelogio; let chaveRender = '';
 let CFG = {};
 config().then((c) => { CFG = c; }).catch(() => {});
 
@@ -24,8 +24,11 @@ async function carregar(pid) {
     if (!p) { raiz.innerHTML = '<div class="painel"><p class="aviso erro">Pedido não encontrado.</p><p style="margin-top:10px"><a href="pedido.html" class="link-acao">Buscar pelo celular</a></p></div>'; return; }
     ultimaAtualizacao = Date.now();
     // cliente digitando o PIN: não redesenha agora (perderia foco e teclado); a próxima atualização redesenha
+    const hist = Object.fromEntries((p.status_historico || []).map((h) => [h.status, h.em]));
+    const et = eta(p, hist);
+    const chave = JSON.stringify(p) + '|' + (et ? et.atrasado : '') + '|' + !!qs('[data-form-pin]');
     if (document.activeElement && document.activeElement.closest('[data-form-pin]')) { /* mantém o DOM */ }
-    else render(p);
+    else if (chave !== chaveRender || !raiz.querySelector('.painel')) { chaveRender = chave; render(p); }
     clearTimeout(timer);
     if (!['entregue', 'cancelado'].includes(p.status)) timer = setTimeout(() => carregar(pid), 15000);
   } catch (e) {
@@ -81,7 +84,7 @@ function render(p) {
   raiz.innerHTML = `
     ${novo ? `<div class="aviso ok aviso-ic" style="margin-bottom:14px">${icone('brilho')}<span><b>Pedido #${esc(p.numero)} enviado.</b> Esta página atualiza sozinha. Guarde o link. <button type="button" class="link-acao" data-salvar-link style="text-decoration:underline;font-weight:600;padding:0 4px">${icone('compartilhar')} Guardar link do pedido</button></span></div>` : ''}
     ${pixHTML}
-    <div class="painel">
+    <div class="painel" role="status" aria-live="polite">
       <div class="status-grande">
         <div class="ic">${icone(st.icone)}</div>
         <h2>${esc(st.rotulo)}</h2>
@@ -126,6 +129,8 @@ function render(p) {
         ${p.loja?.nome ? `<p class="small muted center">Feita hoje por Sesconetto's ${esc(p.loja.nome)}.</p>` : ''}
       </div>
     </div>`;
+  if (statusAnterior && statusAnterior !== p.status) { try { navigator.vibrate?.([30, 40, 30]); } catch {} }
+  statusAnterior = p.status;
   renderFidelidade(p, pinDigitado);
   qs('[data-copiar]')?.addEventListener('click', async () => { track('pix_copiado', { numero: p.numero }); try { await navigator.clipboard.writeText(p.pix.chave); toast('Chave Pix copiada'); } catch { toast('Selecione e copie a chave', 'erro'); } });
   qs('[data-salvar-link]')?.addEventListener('click', async () => {
@@ -153,7 +158,7 @@ function render(p) {
 //   - cashback previsto (antes de entregar) ou creditado (entregue) + "Ver meu saldo"
 //   - sem PIN: card "Crie seu PIN" (prova de posse = o link deste pedido)
 // ---------------------------------------------------------------
-let pinCriado = false;
+let pinCriado = false; let statusAnterior = '';
 function renderFidelidade(p, pinDigitado = []) {
   const el = qs('[data-fidelidade]'); if (!el) return;
   const F = cfgFidelidade(CFG);
@@ -190,7 +195,7 @@ function renderFidelidade(p, pinDigitado = []) {
           <div class="campo"><label for="pin-2">Confirmar PIN</label><input id="pin-2" name="conf" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••" value="${esc(pinDigitado[1] || '')}"></div>
         </div>
         <label class="check" style="padding-top:0"><input type="checkbox" name="aceite" ${pinDigitado[2] === 'on' ? 'checked' : ''}> Li e aceito o regulamento do ${esc(NOME_CLUBE)}.</label>
-        <div class="aviso erro" data-pin-erro hidden style="margin-bottom:10px"></div>
+        <div class="aviso erro" role="alert" data-pin-erro hidden style="margin-bottom:10px"></div>
         <button type="submit" class="btn btn-block" data-criar-pin>${icone('cadeado')} Criar PIN</button>
       </form>`;
   } else if (!banner || !(entregue && ganho > 0)) {

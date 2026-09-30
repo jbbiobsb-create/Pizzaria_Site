@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Cardápio · Sesconetto's Pizzeria</title>
   <meta name="description" content="Cardápio completo: pizzas napolitanas salgadas e doces, combos, sanduíche, molhos e bebidas.">
   <meta name="theme-color" content="#FFFFFF">
@@ -18,9 +18,20 @@
   <link rel="preload" href="/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
   <script src="js/pre.js"></script>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/api.js">
+  <link rel="modulepreload" href="js/supabase.js">
+  <link rel="modulepreload" href="js/util.js">
+  <link rel="modulepreload" href="js/icons.js">
+  <link rel="modulepreload" href="js/cart.js">
+  <link rel="modulepreload" href="js/config.js">
+  <link rel="modulepreload" href="js/pwa.js">
+  <link rel="modulepreload" href="js/cards.js">
 </head>
 <body class="tem-sub">
-  <main>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <main id="conteudo" tabindex="-1">
+    <h1 class="sr">Cardápio</h1>
     <div class="chips-wrap"><div class="container">
       <div class="chips-linha" data-chips-linha>
         <button type="button" class="chip chip-busca" data-abrir-busca aria-label="Buscar no cardápio"><span data-icone="busca"></span></button>

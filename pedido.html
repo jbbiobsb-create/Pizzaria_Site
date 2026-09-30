@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Ver meu pedido · Sesconetto's Pizzeria</title>
   <meta name="theme-color" content="#FFFFFF">
   <meta name="robots" content="noindex">
@@ -17,9 +17,21 @@
   <link rel="preload" href="/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/api.js">
+  <link rel="modulepreload" href="js/supabase.js">
+  <link rel="modulepreload" href="js/util.js">
+  <link rel="modulepreload" href="js/icons.js">
+  <link rel="modulepreload" href="js/cart.js">
+  <link rel="modulepreload" href="js/config.js">
+  <link rel="modulepreload" href="js/pwa.js">
+  <link rel="modulepreload" href="js/repetir.js">
+  <link rel="modulepreload" href="js/fidelidade.js">
 </head>
 <body>
-  <main>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <main id="conteudo" tabindex="-1">
+    <h1 class="sr">Acompanhar pedido</h1>
     <div class="container" style="max-width:720px;padding:24px 16px 100px" data-raiz>
       <div class="painel"><div class="skeleton" style="min-height:220px"></div></div>
     </div>

@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Sesconetto's Pizzeria · Pizza napolitana em Brasília</title>
   <meta name="description" content="Pizza napolitana artesanal, massa de longa fermentação e forno a lenha. Lojas na Asa Sul, SIG e Vicente Pires: peça online para entrega ou retire na loja.">
   <meta name="theme-color" content="#FFFFFF">
@@ -18,9 +18,21 @@
   <link rel="preload" href="/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
   <script src="js/pre.js"></script>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/api.js">
+  <link rel="modulepreload" href="js/supabase.js">
+  <link rel="modulepreload" href="js/util.js">
+  <link rel="modulepreload" href="js/icons.js">
+  <link rel="modulepreload" href="js/cart.js">
+  <link rel="modulepreload" href="js/config.js">
+  <link rel="modulepreload" href="js/pwa.js">
+  <link rel="modulepreload" href="js/cards.js">
+  <link rel="modulepreload" href="js/repetir.js">
+  <link rel="modulepreload" href="js/fidelidade.js">
 </head>
 <body class="tem-sub">
-  <main>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <main id="conteudo" tabindex="-1">
     <!-- recorrente: primeiro bloco da página (js/pages/home.js preenche quando há um pedido salvo neste aparelho) -->
     <section class="secao pedir-de-novo" data-pedir-de-novo hidden>
       <div class="container">
@@ -30,7 +42,10 @@
     </section>
 
     <section class="hero hero-curto">
-      <img class="bg" src="img/hero-pizza.jpg" alt="" fetchpriority="high" width="1800" height="1105">
+      <picture>
+        <source type="image/webp" sizes="100vw" srcset="img/hero-pizza-480.webp 480w, img/hero-pizza-800.webp 800w, img/hero-pizza-1200.webp 1200w, img/hero-pizza-1600.webp 1600w">
+        <img class="bg" src="img/hero-pizza.jpg" alt="" fetchpriority="high" decoding="async" width="1800" height="1105">
+      </picture>
       <div class="container">
         <h1>Napolitana de verdade, na sua mesa em 40 minutos.</h1>
         <p>Massa aberta à mão, molho San Marzano, assada na hora. Peça sem cadastro: entrega ou retirada.</p>
@@ -82,7 +97,10 @@
 
     <section class="secao" id="sobre">
       <div class="container sobre">
-        <img src="img/chef.jpg" alt="Chef da Sesconetto's segurando uma pizza napolitana" loading="lazy" width="1058" height="887">
+        <picture>
+          <source type="image/webp" sizes="(min-width: 900px) 40vw, 100vw" srcset="img/chef-480.webp 480w, img/chef-800.webp 800w">
+          <img src="img/chef.jpg" alt="Chef da Sesconetto's segurando uma pizza napolitana" loading="lazy" decoding="async" width="1058" height="887">
+        </picture>
         <div>
           <h2>Nossa massa, nossa história</h2>
           <p>A Sesconetto's nasceu em 2022 em Vicente Pires com uma ideia simples: fazer a pizza napolitana do jeito que ela é feita na Itália, com calma e com as mãos.</p>

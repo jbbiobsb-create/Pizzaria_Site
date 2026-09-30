@@ -81,7 +81,7 @@ qs('[data-ver-cardapio]')?.addEventListener('click', () => track('ver_cardapio',
     const mais = d.sabores.filter((s) => s.tags?.includes('mais-pedida') && s.disponivel).slice(0, 6);
     const maisProd = d.produtos.filter((p) => p.tags?.includes('mais-pedida') && p.disponivel && p.categoria !== 'combos').slice(0, 2);
     const grade = qs('[data-mais-pedidas]');
-    grade.innerHTML = mais.map(cardSabor).join('') + maisProd.map(cardProduto).join('');
+    grade.innerHTML = mais.map((s, i) => cardSabor(s, i)).join('') + maisProd.map((p) => cardProduto(p)).join('');
     grade.removeAttribute('aria-busy');
     const combos = d.produtos.filter((p) => p.categoria === 'combos');
     qs('[data-combos]').innerHTML = combos.length ? combos.map(cardProduto).join('') : '<p class="muted">Em breve novos combos.</p>';

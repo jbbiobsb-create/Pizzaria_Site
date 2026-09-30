@@ -37,6 +37,8 @@ export function alterarQtd(uid, delta) {
 
 export function remover(uid) { salvar(itens().filter((i) => i.uid !== uid)); }
 export function limpar() { salvar([]); }
+// volta uma lista guardada antes de remover/esvaziar ("Desfazer" do toast)
+export function restaurar(lista) { salvar(Array.isArray(lista) ? lista : []); }
 
 export function quantidadeTotal() { return itens().reduce((n, i) => n + i.quantidade, 0); }
 export function subtotal() { return itens().reduce((n, i) => n + i.preco * i.quantidade, 0); }

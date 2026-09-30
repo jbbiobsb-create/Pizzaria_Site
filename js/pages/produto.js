@@ -3,7 +3,7 @@ import { montarLayout, montarFooter, tagHTML } from '../ui.js';
 import { carregarCardapio } from '../api.js';
 import * as cart from '../cart.js';
 import { qs, qsa, esc, brl, param, toast, track } from '../util.js';
-import { nomeCurto } from '../cards.js';
+import { nomeCurto, fotoHTML } from '../cards.js'; // fotoHTML: lista de sabores (48px); o fallback de <picture> mora em cards.js
 import { icone } from '../icons.js';
 
 montarLayout({ pagina: 'cardapio', sacola: false }); // a página tem a própria barra fixa
@@ -46,7 +46,7 @@ function montarPizza(saborInicial) {
   raiz.removeAttribute('aria-busy');
   raiz.innerHTML = `
     <div>
-      <div class="foto-grande ${sab?.imagem_url ? '' : 'vazia'}" data-foto>${sab?.imagem_url ? `<img src="${esc(sab.imagem_url)}" alt="${esc(sab.nome)}" width="1200" height="900">` : icone('pizza')}</div>
+      <div class="foto-grande ${sab?.imagem_url ? '' : 'vazia'}" data-foto>${sab?.imagem_url ? fotoGrande(sab.imagem_url) : icone('pizza')}</div>
     </div>
     <div class="produto-corpo">
       <div class="tags" style="margin-bottom:6px">${(sab?.tags || []).map(tagHTML).join('')}</div>
@@ -56,19 +56,19 @@ function montarPizza(saborInicial) {
       <div class="bloco">
         <h3>1. Tamanho</h3>
         <p class="ajuda">${CZ ? 'Individual serve 1 pessoa; Família serve 2 ou mais.' : 'Grande já vem marcada: é a mais pedida, 8 fatias, serve 2 a 3 e aceita meio a meio. Bambina (4 fatias) serve 1.'}</p>
-        <div class="opcoes tamanho-chips-config" data-tamanhos></div>
+        <div class="opcoes tamanho-chips-config" data-tamanhos role="radiogroup" aria-label="Tamanho"></div>
       </div>
 
       <div class="bloco">
         <h3>2. ${CZ ? 'Recheio' : 'Sabores'} <span class="muted small" data-contagem></span></h3>
         <p class="ajuda" data-ajuda-sabor></p>
         <div class="metades" data-metades></div>
-        <input class="busca" placeholder="Buscar sabor…" data-busca>
-        <div class="filtros-sabor" data-filtros ${CZ ? 'hidden' : ''}>
-          <button data-f="todos" class="ativo">Todos</button>
-          <button data-f="salgada">Salgadas</button>
-          <button data-f="doce">Doces</button>
-          <button data-f="vegetariana">Vegetarianas</button>
+        <input class="busca" type="search" placeholder="Buscar sabor…" aria-label="Buscar sabor" autocomplete="off" enterkeyhint="search" data-busca>
+        <div class="filtros-sabor" data-filtros role="group" aria-label="Filtrar sabores" ${CZ ? 'hidden' : ''}>
+          <button type="button" data-f="todos" class="ativo" aria-pressed="true">Todos</button>
+          <button type="button" data-f="salgada" aria-pressed="false">Salgadas</button>
+          <button type="button" data-f="doce" aria-pressed="false">Doces</button>
+          <button type="button" data-f="vegetariana" aria-pressed="false">Vegetarianas</button>
         </div>
         <div class="lista-sabores" data-lista-sabores></div>
       </div>
@@ -90,7 +90,7 @@ function montarPizza(saborInicial) {
   renderSabores();
   renderMetades();
   qs('[data-busca]').addEventListener('input', renderSabores);
-  qsa('[data-filtros] button').forEach((b) => b.addEventListener('click', () => { qsa('[data-filtros] button').forEach((x) => x.classList.remove('ativo')); b.classList.add('ativo'); renderSabores(); }));
+  qsa('[data-filtros] button').forEach((b) => b.addEventListener('click', () => { qsa('[data-filtros] button').forEach((x) => { x.classList.remove('ativo'); x.setAttribute('aria-pressed', 'false'); }); b.classList.add('ativo'); b.setAttribute('aria-pressed', 'true'); renderSabores(); }));
   qs('[data-obs]').addEventListener('input', (e) => (estado.observacao = e.target.value));
   qsa('[data-qtd]').forEach((b) => b.addEventListener('click', () => { estado.quantidade = Math.max(1, Math.min(10, estado.quantidade + Number(b.dataset.qtd))); qs('[data-qtd-v]').textContent = estado.quantidade; atualizarTotal(); }));
   btnAdd.addEventListener('click', adicionarPizza);
@@ -99,6 +99,13 @@ function montarPizza(saborInicial) {
 }
 
 function tamanhoAtual() { return D.tamanhosPorSlug[estado.tamanho]; }
+// foto 4:3 no topo (LCP da página): sem lazy, fetchpriority alto, WebP 480 com o JPG do banco como fallback
+function fotoGrande(url) {
+  const base = String(url).replace(/\.(jpe?g|png)$/i, '');
+  const img = `<img src="${esc(url)}" alt="" width="600" height="600" fetchpriority="high" decoding="async">`;
+  if (base === String(url) || !/^img\//.test(url)) return img;
+  return `<picture><source type="image/webp" srcset="${esc(base)}-480.webp 480w, ${esc(base)}-600.webp 600w" sizes="(min-width: 900px) 560px, 100vw">${img}</picture>`;
+}
 
 function renderTamanhos() {
   const el = qs('[data-tamanhos]');
@@ -110,7 +117,7 @@ function renderTamanhos() {
     // se já há sabor escolhido, mostra o preço dele nesse tamanho
     const escolhido = estado.sabores.length ? Math.max(...estado.sabores.map((sl) => Number(D.saboresPorSlug[sl].precos[t.slug] || 0))) : 0;
     const semPreco = estado.sabores.some((sl) => !D.saboresPorSlug[sl].precos[t.slug]);
-    return `<button type="button" class="opcao ${estado.tamanho === t.slug ? 'ativo' : ''}" data-t="${esc(t.slug)}" ${semPreco ? 'disabled' : ''}>
+    return `<button type="button" role="radio" aria-checked="${estado.tamanho === t.slug}" class="opcao ${estado.tamanho === t.slug ? 'ativo' : ''}" data-t="${esc(t.slug)}" ${semPreco ? 'disabled' : ''}>
       <b>${esc(t.nome)}${t.slug === 'grande' ? ' <span class="tag mais-pedida">Mais pedida</span>' : ''}</b><small>${t.grupo === 'calzone' ? '1 recheio' : `${t.fatias} fatias · ${t.slug === 'grande' ? 'serve 2 a 3' : 'serve 1'} · ${t.max_sabores > 1 ? `até ${t.max_sabores} sabores` : '1 sabor'}`}</small>
       <span class="p">${semPreco ? 'indisponível p/ este sabor' : (escolhido ? brl(escolhido) : (minimo ? 'a partir de ' + brl(minimo) : ''))}</span></button>`;
   }).join('');
@@ -144,7 +151,7 @@ function renderMetades() {
   qs('[data-titulo]').textContent = s0 ? (s1 ? `${s0.nome.split(' (')[0]} + ${s1.nome.split(' (')[0]}` : (estado.grupo === 'calzone' ? 'Calzone ' : '') + s0.nome) : 'Monte sua pizza';
   qs('[data-desc]').textContent = s0 ? (s1 ? `Meio ${s0.nome.split(' (')[0]}: ${s0.descricao} Meio ${s1.nome.split(' (')[0]}: ${s1.descricao}` : s0.descricao) : 'Escolha o tamanho e até dois sabores na mesma pizza.';
   const foto = qs('[data-foto]');
-  if (s0?.imagem_url) { foto.classList.remove('vazia'); foto.innerHTML = `<img src="${esc(s0.imagem_url)}" alt="${esc(s0.nome)}" width="1200" height="900">`; }
+  if (s0?.imagem_url) { foto.classList.remove('vazia'); if (foto.dataset.src !== s0.imagem_url) { foto.dataset.src = s0.imagem_url; foto.innerHTML = fotoGrande(s0.imagem_url); } }
   else { foto.classList.add('vazia'); foto.innerHTML = icone('pizza'); }
 }
 
@@ -164,8 +171,8 @@ function renderSabores() {
     const preco = s.precos[t.slug];
     const ativo = estado.sabores.includes(s.slug);
     const off = !s.disponivel || !preco || (cheio && !ativo);
-    return `<button type="button" class="sabor-item ${ativo ? 'ativo' : ''}" data-s="${esc(s.slug)}" ${off ? 'disabled' : ''}>
-      ${s.imagem_url ? `<img src="${esc(s.imagem_url)}" alt="" loading="lazy" width="48" height="48">` : `<div class="ph">${icone('pizza')}</div>`}
+    return `<button type="button" aria-pressed="${ativo}" class="sabor-item ${ativo ? 'ativo' : ''}" data-s="${esc(s.slug)}" ${off ? 'disabled' : ''}>
+      ${s.imagem_url ? fotoHTML(s.imagem_url, { w: 48, cls: '' }) : `<div class="ph">${icone('pizza')}</div>`}
       <div><b>${esc(s.nome)} ${s.tipo === 'doce' ? '<span class="tag">doce</span>' : ''}${!s.disponivel ? '<span class="tag esgotado">esgotado</span>' : ''}</b><small>${esc(s.descricao || '')}</small></div>
       <span class="p">${preco ? brl(preco) : ''}</span></button>`;
   }).join('') || '<p class="muted small">Nenhum sabor encontrado.</p>';
@@ -235,7 +242,7 @@ function montarProduto(p) {
   const passos = Array.isArray(p.passos) ? p.passos : [];
   raiz.removeAttribute('aria-busy');
   raiz.innerHTML = `
-    <div><div class="foto-grande ${p.imagem_url ? '' : 'vazia'}">${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="${esc(p.nome)}" width="1200" height="900">` : icone('pizza')}</div></div>
+    <div><div class="foto-grande ${p.imagem_url ? '' : 'vazia'}">${p.imagem_url ? fotoGrande(p.imagem_url) : icone('pizza')}</div></div>
     <div class="produto-corpo">
       <div class="tags" style="margin-bottom:6px">${(p.tags || []).map(tagHTML).join('')}${p.disponivel ? '' : tagHTML('esgotado')}</div>
       <h1>${esc(p.nome)}</h1>
@@ -244,13 +251,13 @@ function montarProduto(p) {
       ${passos.map((ps, i) => `
       <div class="bloco">
         <h3>${i + 1}. ${esc(ps.titulo)} <span class="muted small">${ps.min > 0 ? 'obrigatório' : 'opcional'}</span></h3>
-        <div class="radio-lista" data-passo="${i}">
-          ${(ps.opcoes || []).map((slug) => { const o = D.produtosPorSlug[slug]; if (!o) return ''; return `<button type="button" class="opcao" data-op="${esc(slug)}" ${o.disponivel ? '' : 'disabled'}><b>${esc(o.nome)}</b>${o.disponivel ? '' : '<small>esgotado</small>'}</button>`; }).join('')}
+        <div class="radio-lista" data-passo="${i}" ${ps.max === 1 ? `role="radiogroup" aria-label="${esc(ps.titulo)}"` : `role="group" aria-label="${esc(ps.titulo)}"`}>
+          ${(ps.opcoes || []).map((slug) => { const o = D.produtosPorSlug[slug]; if (!o) return ''; return `<button type="button" ${ps.max === 1 ? 'role="radio" aria-checked="false"' : 'aria-pressed="false"'} class="opcao ${ps.max === 1 ? '' : 'check'}" data-op="${esc(slug)}" ${o.disponivel ? '' : 'disabled'}><b>${esc(o.nome)}</b>${o.disponivel ? '' : '<small>esgotado</small>'}</button>`; }).join('')}
         </div>
       </div>`).join('')}
       <div class="bloco">
         <h3>Observações <span class="muted small">opcional</span></h3>
-        <textarea class="obs" placeholder="Alguma observação?" data-obs maxlength="200"></textarea>
+        <textarea class="obs" placeholder="Alguma observação?" data-obs maxlength="200" aria-label="Observações"></textarea>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
           <span class="strong">Quantidade</span>
           <div class="qtd"><button type="button" data-qtd="-1" aria-label="Diminuir quantidade">${icone('menos')}</button><span data-qtd-v aria-live="polite">1</span><button type="button" data-qtd="1" aria-label="Aumentar quantidade">${icone('mais')}</button></div>
@@ -264,7 +271,7 @@ function montarProduto(p) {
       if (ps.max === 1) estado.escolhas[i] = [b.dataset.op];
       else if (sel.includes(b.dataset.op)) estado.escolhas[i] = sel.filter((x) => x !== b.dataset.op);
       else if (sel.length < ps.max) estado.escolhas[i] = [...sel, b.dataset.op];
-      qsa('[data-op]', grupo).forEach((x) => x.classList.toggle('ativo', (estado.escolhas[i] || []).includes(x.dataset.op)));
+      qsa('[data-op]', grupo).forEach((x) => { const on = (estado.escolhas[i] || []).includes(x.dataset.op); x.classList.toggle('ativo', on); x.setAttribute(ps.max === 1 ? 'aria-checked' : 'aria-pressed', String(on)); });
       atualizarTotal();
     }));
   });
