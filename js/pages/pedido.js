@@ -17,6 +17,8 @@ let CFG = {};
 config().then((c) => { CFG = c; }).catch(() => {});
 
 if (id) carregar(id); else montarBusca();
+// voltou para a aba/app: atualiza na hora (o celular pausa os timers em segundo plano)
+document.addEventListener('visibilitychange', () => { if (id && document.visibilityState === 'visible') carregar(id); });
 
 async function carregar(pid) {
   try {
@@ -30,15 +32,34 @@ async function carregar(pid) {
     if (document.activeElement && document.activeElement.closest('[data-form-pin]')) { /* mantém o DOM */ }
     else if (chave !== chaveRender || !raiz.querySelector('.painel')) { chaveRender = chave; render(p); }
     clearTimeout(timer);
-    if (!['entregue', 'cancelado'].includes(p.status)) timer = setTimeout(() => carregar(pid), 15000);
+    if (!['entregue', 'cancelado'].includes(p.status)) timer = setTimeout(() => carregar(pid), ['saiu_entrega', 'pronto_retirada'].includes(p.status) ? 10000 : 15000);
   } catch (e) {
     console.error(e);
     raiz.innerHTML = '<div class="painel"><p class="aviso erro">Não conseguimos carregar o pedido. <a href="">Tentar de novo</a></p></div>';
   }
 }
 
+// distância da loja até o cliente (km em linha reta): a gravada no pedido, senão pelas coordenadas
+function kmAteCliente(p) {
+  const e = p.endereco || {}; const l = p.loja || {};
+  if (Number(e.distancia_km) > 0) return Number(e.distancia_km);
+  if (e.lat == null || l.lat == null) return null;
+  const r = (x) => x * Math.PI / 180; const dLat = r(e.lat - l.lat); const dLng = r(e.lng - l.lng);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(r(l.lat)) * Math.cos(r(e.lat)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(a));
+}
+// depois que a Saipos avisa que saiu: chegada = horário de saída + trajeto (ruas ~1,35× a reta, moto ~25 km/h, +4 min para estacionar/subir)
+function etaSaida(p, saiu) {
+  const km = kmAteCliente(p);
+  const ida = km ? Math.round(4 + km * 1.35 * 2.4) : 12;
+  const ini = new Date(new Date(saiu).getTime() + Math.max(6, ida - 3) * 60000);
+  const fim = new Date(new Date(saiu).getTime() + (Math.max(6, ida - 3) + 10) * 60000);
+  return { ini, fim, atrasado: Date.now() > fim.getTime(), saiu: new Date(saiu), km };
+}
+
 // ETA em horário: base = agendamento, senão confirmação, senão criação; janela = tempo_min..tempo_max
 function eta(p, hist) {
+  if (p.status === 'saiu_entrega' && hist.saiu_entrega) return etaSaida(p, hist.saiu_entrega);
   const base = p.agendado_para ? new Date(p.agendado_para) : new Date(hist.confirmado || p.criado_em);
   if (isNaN(base) || !p.tempo_max) return null;
   const ini = new Date(base.getTime() + Number(p.tempo_min || 0) * 60000);
@@ -63,7 +84,14 @@ function render(p) {
   const pinDigitado = fp ? [fp.elements.pin.value, fp.elements.conf.value, fp.elements.aceite.checked ? 'on' : ''] : [];
 
   let etaHTML = '';
-  if (et) {
+  if (et?.saiu) {
+    // rastreio em tempo real: a Saipos avisou a saída; a previsão passa a contar do horário real de saída
+    etaHTML = et.atrasado
+      ? `<div class="eta"><small>Saiu da loja às ${horaBR(et.saiu)}</small><b>Deve chegar a qualquer momento</b><small>O entregador está a caminho. Qualquer dúvida, fale com a gente abaixo.</small></div>`
+      : `<div class="eta"><small>Saiu da loja às ${horaBR(et.saiu)}</small><b>Chega entre ${horaBR(et.ini)} e ${horaBR(et.fim)}</b><small>${et.km ? `Cerca de ${String(Math.max(1, Math.round(et.km * 1.35 * 10) / 10)).replace('.', ',')} km até você · ` : ''}deixe o celular por perto</small></div>`;
+  } else if (!entrega && p.status === 'pronto_retirada' && hist.pronto_retirada) {
+    etaHTML = `<div class="eta"><small>Pronta desde ${horaBR(hist.pronto_retirada)}</small><b>Pode vir buscar</b><small>${p.loja?.nome ? `Na loja ${esc(p.loja.nome)}. ` : ''}Chame no WhatsApp quando estiver chegando.</small></div>`;
+  } else if (et) {
     const verbo = entrega ? 'Chega' : 'Fica pronta';
     etaHTML = et.atrasado
       ? `<div class="eta"><small>Está demorando mais que o previsto</small><b>Deve ${entrega ? 'chegar' : 'ficar pronta'} a qualquer momento</b><small>Qualquer dúvida, fale com a gente abaixo.</small></div>`

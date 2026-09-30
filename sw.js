@@ -11,7 +11,7 @@
  *    stale-while-revalidate em cache próprio.
  *  - Supabase, ViaCEP, Nominatim, Google Maps e /admin: NUNCA passam pelo cache (o SW nem intercepta).
  */
-const VERSAO = '2026-09-30-5';
+const VERSAO = '2026-09-30-6';
 const CACHE_APP = 'app-' + VERSAO;
 const CACHE_MIDIA = 'midia-v1';   // imagens e fontes (sobrevive à troca de versão)
 const CACHE_CDN = 'cdn-v1';       // esm.sh (supabase-js)

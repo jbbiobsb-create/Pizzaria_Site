@@ -165,7 +165,8 @@ function renderKanban() {
     qs('.cards', el).innerHTML = lista.map(cardPedido).join('') || '<p class="small muted center" style="padding:20px 0">nenhum</p>';
   }
   qs('[data-badge-novos]').textContent = pedidos.filter((p) => p.status === 'recebido').length || '';
-  document.title = (pedidos.filter((p) => p.status === 'recebido').length ? '● ' : '') + "Painel — Sesconetto's";
+  const trav = renderTravados();
+  document.title = (trav ? '⚠ ' : pedidos.filter((p) => p.status === 'recebido').length ? '● ' : '') + "Painel — Sesconetto's";
   qsa('[data-abrir]').forEach((c) => c.addEventListener('click', (ev) => { if (ev.target.closest('button')) return; abrirDetalhe(c.dataset.abrir); }));
   qsa('[data-st]').forEach((b) => b.addEventListener('click', () => mudarStatus(b.dataset.id, b.dataset.st)));
 }
@@ -186,6 +187,39 @@ function cardPedido(p) {
       ${['entregue', 'cancelado'].includes(p.status) ? '' : `<button class="btn btn-ghost" data-st="cancelado" data-id="${p.id}">Cancelar</button>`}
     </div></div>`;
 }
+// ---- pedidos travados (o banco já tenta reenviar sozinho; aqui a equipe vê o que continua parado)
+const minDesde = (t) => (Date.now() - new Date(t).getTime()) / 60000;
+function motivoTravado(p) {
+  if (['cancelado', 'entregue'].includes(p.status)) return null;
+  if (p.agendado_para && new Date(p.agendado_para) - Date.now() > 60 * 60000) return null; // agendado para daqui a mais de 1 h
+  if (p.pagamento_status === 'pendente' && p.pagamento === 'pix' && minDesde(p.criado_em) >= 10)
+    return { msg: `Pix sem confirmação há ${Math.round(minDesde(p.criado_em))} min. Enquanto isso o pedido não vai para a Saipos.`, acao: 'pago' };
+  if (['pago', 'na_entrega'].includes(p.pagamento_status) && p.saipos_status !== 'enviado') {
+    const desde = p.pago_em || p.criado_em;
+    if (p.saipos_status === 'erro' && (p.saipos_tentativas || 0) >= 3) return { msg: `Não entrou na Saipos depois de 3 tentativas${p.saipos_erro ? ': ' + p.saipos_erro : ''}. Lance no PDV ou reenvie.`, acao: 'reenviar' };
+    if (minDesde(desde) >= 3) return { msg: `Ainda não entrou na Saipos (${Math.round(minDesde(desde))} min). O sistema está tentando de novo.`, acao: 'reenviar' };
+  }
+  if (p.saipos_status === 'enviado' && p.status === 'recebido' && p.saipos_enviado_em && minDesde(p.saipos_enviado_em) >= 8)
+    return { msg: `Está na Saipos há ${Math.round(minDesde(p.saipos_enviado_em))} min e a loja ainda não aceitou no PDV.` };
+  return null;
+}
+const travadosAvisados = new Set();
+function renderTravados() {
+  const loja = qs('[data-filtro-loja]').value;
+  const lista = pedidos.map((p) => ({ p, m: motivoTravado(p) })).filter((x) => x.m && (!loja || x.p.lojas?.slug === loja));
+  const box = qs('[data-travados]');
+  box.hidden = !lista.length;
+  box.innerHTML = lista.length ? `<b>${icone('alerta')} ${lista.length === 1 ? '1 pedido travado' : lista.length + ' pedidos travados'}</b>` + lista.map(({ p, m }) => `
+    <div class="travado"><span><b>#${esc(p.numero)}</b> ${esc(p.cliente_nome || '')}${p.lojas ? ' · ' + esc(p.lojas.nome) : ''} · ${esc(m.msg)}</span>
+      <span class="acoes">${m.acao === 'reenviar' ? `<button class="btn btn-sm" data-reenviar="${p.id}">Reenviar à Saipos</button>` : m.acao === 'pago' ? `<button class="btn btn-sm btn-outline" data-pago="${p.id}">Pix recebido</button>` : ''}<button class="btn btn-sm btn-ghost" data-abrir-travado="${p.id}">Ver</button></span></div>`).join('') : '';
+  qsa('[data-abrir-travado]', box).forEach((b) => b.addEventListener('click', () => abrirDetalhe(b.dataset.abrirTravado)));
+  const novos = lista.filter(({ p }) => !travadosAvisados.has(p.id));
+  if (novos.length) { novos.forEach(({ p }) => travadosAvisados.add(p.id)); tocar(); toast(`Atenção: ${novos.length} pedido(s) travado(s)`, 'erro'); }
+  return lista.length;
+}
+// a cada minuto reavalia o tempo parado mesmo sem mudança no banco
+setInterval(() => { if (pedidos.length) renderTravados(); }, 60000);
+
 // situação do pagamento e do envio ao PDV Saipos
 function etiquetasIntegracao(p) {
   const pg = { pendente: ['aguardando pagamento', 'alerta'], pago: ['pago', 'ok'], na_entrega: ['cobrar na entrega', ''], estornado: ['estornado', 'alerta'] }[p.pagamento_status] || [p.pagamento_status, ''];

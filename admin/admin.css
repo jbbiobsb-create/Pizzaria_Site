@@ -61,3 +61,9 @@ main { padding: 16px; }
 .etiquetas { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
 .tag.ok { background: var(--manjericao-tint); color: var(--manjericao-2); }
 .tag.alerta { background: var(--erro-tint); color: var(--erro); }
+/* pedidos travados (Saipos/Pix): faixa de alerta acima do kanban */
+.travados { display: grid; gap: 8px; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: var(--erro-tint); color: var(--erro); border: 1px solid currentColor; }
+.travados > b { display: flex; align-items: center; gap: 6px; }
+.travados .i { width: 18px; height: 18px; }
+.travado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); color: var(--tinta, #1A1A1A); font-size: 14px; }
+.travado .acoes { display: flex; gap: 6px; }
