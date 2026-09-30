@@ -343,7 +343,8 @@ html.tem-repetir .pedir-de-novo[hidden] { display: block !important; }
 .card .foto.vazia { display: grid; place-items: center; color: var(--tinta-4); }
 .card .foto.vazia .i { width: var(--ic-xl); height: var(--ic-xl); }
 .card .corpo { display: contents; }
-.card .tags { grid-column: 1; grid-row: 1; }
+.card picture { display: contents; }
+.card .tags { grid-column: 1; grid-row: 1; align-self: start; align-items: flex-start; }
 .card h3 { grid-column: 1; grid-row: 2; }
 .card p { grid-column: 1; grid-row: 3; align-self: start; }
 .card .rodape { grid-column: 1 / -1; grid-row: 4; }
@@ -381,7 +382,7 @@ html.tem-repetir .pedir-de-novo[hidden] { display: block !important; }
 .stepper output { min-width: 24px; text-align: center; font-weight: 700; font-size: 15px; }
 @keyframes aparece { from { opacity: 0; } to { opacity: 1; } }
 /* tags */
-.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; }
 .tags:empty { display: none; }
 .tag { font-size: 12px; font-weight: 600; line-height: 1.3; padding: 2px 8px; border-radius: var(--r-xs); background: var(--papel-2); color: var(--tinta-2); display: inline-flex; align-items: center; gap: 4px; }
 .tag .i { width: 14px; height: 14px; stroke-width: 2; }
