@@ -45,7 +45,9 @@ qs('[data-ver-cardapio]')?.addEventListener('click', () => track('ver_cardapio',
   const nome = (cli.nome || '').trim().split(' ')[0];
   qs('[data-boas-vindas]').textContent = nome ? `Bem-vindo de volta, ${nome}.` : 'Pedir de novo';
   const canal = e ? (e.tipo === 'retirada' ? `Retirar na loja ${e.loja_nome || ''}` : `Entrega em ${e.endereco.rua}, ${e.endereco.numero}`) : (u.endereco_txt ? (u.tipo_entrega === 'retirada' ? `Retirar na loja ${u.endereco_txt}` : `Entrega em ${u.endereco_txt}`) : '');
-  const pag = cli.pagamento ? rotuloPagamento(cli.pagamento, e?.tipo || u.tipo_entrega) : '';
+  // só mostra a forma de pagamento lembrada se a loja ainda aceita (ex.: dinheiro foi desligado)
+  const aceitas = await config().then((c) => c.pagamentos || []).catch(() => []);
+  const pag = cli.pagamento && aceitas.includes(cli.pagamento) ? rotuloPagamento(cli.pagamento, e?.tipo || u.tipo_entrega) : '';
   const linha2 = [canal, pag].filter(Boolean).join(' · ');
   let cb = '';
   try {
