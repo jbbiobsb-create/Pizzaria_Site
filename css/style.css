@@ -205,11 +205,13 @@ p { text-wrap: pretty; }
 .btn-wa .i { color: var(--wa-ink); }
 .btn-lg { min-height: 52px; padding-inline: 24px; font-size: 16px; }
 .btn-sm { min-height: 40px; padding-inline: 14px; font-size: 14px; }
+.btn-pedir.vazio { background: var(--papel-2); color: var(--tinta); }
 .btn-block { width: 100%; }
 .btn-icone { width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; display: inline-grid; place-items: center; background: var(--papel-2); color: var(--tinta); border: 0; }
 .btn-icone .i { width: var(--ic-md); height: var(--ic-md); }
 @media (hover: hover) {
   .btn:hover { background: var(--tomate-2); }
+  .btn-pedir.vazio:hover { background: var(--linha); }
   .btn:disabled:hover { background: var(--papel-2); }
   .btn-outline:hover, .btn-light:hover, .btn-wa:hover { background: var(--papel-2); border-color: var(--linha-2); }
   .btn-ghost:hover { background: var(--papel-2); color: var(--tinta); }

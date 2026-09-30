@@ -56,7 +56,7 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
       </nav>
       ${subheader ? `<button type="button" class="pill-end" data-abrir-entrega>${icone('pin')}<span data-endereco-txt>Informar endereço</span>${icone('chevron-baixo', 'chevron')}</button>` : ''}
       <div class="header-right">
-        <a href="cardapio.html" class="btn btn-sm btn-pedir">Pedir agora</a>
+        <a href="cardapio.html" class="btn btn-sm btn-pedir vazio" data-btn-pedir>Pedir agora</a>
         <a href="checkout.html" class="btn-carrinho" aria-label="Sua sacola">${icone('sacola')}<span class="txt">Sacola</span><span class="badge" data-badge></span></a>
       </div>
     </div>
@@ -154,6 +154,8 @@ function atualizarBadge(animar = false) {
     b.textContent = n ? n : '';
     if (animar && cresceu) { b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); }
   });
+  // "Pedir agora": com itens vai direto ao checkout (vermelho); vazio leva ao cardápio (neutro)
+  qsa('[data-btn-pedir]').forEach((a) => { a.href = n ? 'checkout.html' : 'cardapio.html'; a.classList.toggle('vazio', !n); });
 }
 
 // barra "1 item · R$ X · Fechar pedido" acima da tab bar (cardápio, home, conta…)
