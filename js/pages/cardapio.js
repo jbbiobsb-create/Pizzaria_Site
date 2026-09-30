@@ -14,7 +14,8 @@ const SO_CAT = param('cat');
 const ICONES = { pizza: 'pizza', doce: 'doce', calzone: 'calzone', combo: 'combo', entrada: 'entrada', sanduiche: 'sanduiche', sobremesa: 'sobremesa', molho: 'molho', bebida: 'bebida', cerveja: 'cerveja', vinho: 'vinho', drink: 'drink', 'mais-pedidas': 'estrela' };
 const LIMITE_COLAPSO = 12; // categorias maiores que isso mostram "ver todos"
 
-qs('[data-secoes]').innerHTML = `<div class="grade" aria-busy="true">${skeletonCards(6)}</div>`;
+// o skeleton inicial já vem no cardapio.html (antes do JS); aqui só garante quando a página é reaproveitada
+if (!qs('[data-secoes] .skeleton-card')) qs('[data-secoes]').innerHTML = `<div class="grade" aria-busy="true">${skeletonCards(6, true)}</div>`;
 
 (async () => {
   try {

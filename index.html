@@ -16,6 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="Sesconetto's">
   <link rel="preload" href="/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/young-serif.woff2" as="font" type="font/woff2" crossorigin>
+  <script src="js/pre.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="tem-sub">
@@ -24,7 +25,7 @@
     <section class="secao pedir-de-novo" data-pedir-de-novo hidden>
       <div class="container">
         <div class="secao-titulo"><h2 data-boas-vindas>Pedir de novo</h2><a href="pedido.html">Acompanhar <span class="ic-w" data-icone="chevron-dir"></span></a></div>
-        <div data-repetir-card></div>
+        <div data-repetir-card><div class="repetir repetir-completo" aria-busy="true"><div class="skeleton" style="min-height:84px"></div><div class="skeleton" style="min-height:52px;border-radius:var(--r-md)"></div><div class="skeleton" style="min-height:22px;width:62%;margin:0 auto;border-radius:var(--r-xs)"></div></div></div>
       </div>
     </section>
 
@@ -32,7 +33,7 @@
       <img class="bg" src="img/hero-pizza.jpg" alt="" fetchpriority="high" width="1800" height="1105">
       <div class="container">
         <h1>Napolitana de verdade, na sua mesa em 40 minutos.</h1>
-        <p>Massa aberta à mão, molho San Marzano, assada na hora. Peça sem cadastro: entrega ou retirada na loja mais perto de você.</p>
+        <p>Massa aberta à mão, molho San Marzano, assada na hora. Peça sem cadastro: entrega ou retirada.</p>
         <div class="hero-acoes">
           <a class="btn btn-lg" href="cardapio.html#mais-pedidas" data-ver-cardapio><span class="ic-w" data-icone="pizza"></span>Ver cardápio e pedir</a>
         </div>
@@ -48,7 +49,8 @@
     <section class="secao" id="mais-pedidas">
       <div class="container">
         <div class="secao-titulo"><h2>As mais pedidas</h2><a href="cardapio.html">Ver tudo <span class="ic-w" data-icone="chevron-dir"></span></a></div>
-        <div class="grade grade--destaque" data-mais-pedidas aria-busy="true"></div>
+        <!-- skeleton já no HTML (mesma geometria dos cards): o conteúdo entra no lugar, sem empurrar a página -->
+        <div class="grade grade--destaque" data-mais-pedidas aria-busy="true"><div class="skeleton-card skeleton-card--pizza" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div><div class="c"><span class="skeleton"></span><span class="skeleton"></span></div></div><div class="skeleton-card skeleton-card--pizza" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div><div class="c"><span class="skeleton"></span><span class="skeleton"></span></div></div><div class="skeleton-card skeleton-card--pizza" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div><div class="c"><span class="skeleton"></span><span class="skeleton"></span></div></div><div class="skeleton-card skeleton-card--pizza" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div><div class="c"><span class="skeleton"></span><span class="skeleton"></span></div></div><div class="skeleton-card skeleton-card--pizza" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div><div class="c"><span class="skeleton"></span><span class="skeleton"></span></div></div><div class="skeleton-card skeleton-card--pizza" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div><div class="c"><span class="skeleton"></span><span class="skeleton"></span></div></div><div class="skeleton-card" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div></div><div class="skeleton-card" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div></div></div>
       </div>
     </section>
 

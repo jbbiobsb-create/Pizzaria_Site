@@ -1,4 +1,4 @@
-import { montarLayout, montarFooter, config, enderecoLoja, skeletonCards, horarioHoje, proximaAbertura } from '../ui.js';
+import { montarLayout, montarFooter, config, enderecoLoja, horarioHoje, proximaAbertura } from '../ui.js';
 import { carregarCardapio } from '../api.js';
 import { cardSabor, cardProduto, ativarAddRapido, atualizarSteppers } from '../cards.js';
 import * as cart from '../cart.js';
@@ -27,7 +27,7 @@ function montarClube(c) {
 montarLayout({ pagina: 'home' });
 montarFooter();
 ativarAddRapido();
-qs('[data-mais-pedidas]').innerHTML = skeletonCards(4);
+// o skeleton de "Mais pedidas" já vem no index.html (mesma geometria dos cards), antes do JS
 
 qs('[data-ver-cardapio]')?.addEventListener('click', () => track('ver_cardapio', { origem: 'hero' }));
 
@@ -36,7 +36,8 @@ qs('[data-ver-cardapio]')?.addEventListener('click', () => track('ver_cardapio',
 (async () => {
   const sec = qs('[data-pedir-de-novo]'); const el = qs('[data-repetir-card]');
   // há pedido salvo: o bloco já aparece (com skeleton) antes de qualquer rede, para a home não pular
-  if (ultimoPedidoLocal()) { sec.hidden = false; el.innerHTML = '<div class="repetir repetir-completo" aria-busy="true"><div class="skeleton" style="min-height:56px"></div><div class="skeleton" style="min-height:52px;border-radius:var(--r-md)"></div></div>'; }
+  // (js/pre.js já marca html.tem-repetir antes do 1º paint e o CSS mostra a seção com o skeleton do index.html)
+  if (ultimoPedidoLocal()) sec.hidden = false;
   const u = await itensDoUltimoPedido();
   if (!u) { sec.hidden = true; return; }
   const cli = lerLS(LS.cliente, {});
@@ -89,11 +90,12 @@ qs('[data-ver-cardapio]')?.addEventListener('click', () => track('ver_cardapio',
     // infos
     // linha de prova (dados reais: horário, tempos, lojas, ano de fundação)
     const hoje = horarioHoje(c);
-    qs('[data-info-status]').innerHTML = d.aberta ? `<i class="dot aberta"></i> Aberto agora${hoje ? ` · fecha às ${esc(hoje[1])}` : ''}` : `<i class="dot fechada"></i> Ainda não abrimos, o forno acende às ${esc(proximaAbertura(c))}. <a href="cardapio.html" style="text-decoration:underline">Agendar para hoje</a>`;
-    qs('[data-info-tempo]').innerHTML = `${icone('moto')} Chega em ${esc(faixaMin(c.tempo_entrega_min, c.tempo_entrega_max))} · retirada em ${esc(faixaMin(c.tempo_retirada_min, c.tempo_retirada_max))}, sem taxa`;
+    qs('[data-info-status]').innerHTML = d.aberta ? `<i class="dot aberta"></i> Aberto agora${hoje ? ` · fecha às ${esc(hoje[1])}` : ''}` : `<i class="dot fechada"></i> Abre às ${esc(proximaAbertura(c))} · <a href="cardapio.html" style="text-decoration:underline">Agendar para hoje</a>`;
+    // cabe em 1 linha em 358px (o ticket reserva 3 linhas no CSS: sem salto quando preenche)
+    qs('[data-info-tempo]').innerHTML = `${icone('moto')} Entrega em ${esc(faixaMin(c.tempo_entrega_min, c.tempo_entrega_max))} · retirada em ${esc(faixaMin(c.tempo_retirada_min, c.tempo_retirada_max))}`;
     const lojas = d.lojas || [];
     qs('[data-info-endereco]').innerHTML = `${icone('pin')} ${lojas.length > 1 ? `${lojas.length} lojas: ${esc(lojas.map((l) => l.nome).join(', '))}` : esc(c.endereco?.bairro + ', ' + c.endereco?.cidade)} · desde ${esc(c.fundacao || 2022)}`;
-    if (!d.aberta) qs('.hero h1').textContent = `Ainda não abrimos, o forno acende às ${proximaAbertura(c)}. Agende que a gente assa na hora.`;
+    if (!d.aberta) { qs('.hero h1').textContent = `O forno acende às ${proximaAbertura(c)}. Agende a sua pizza.`; qs('.hero p').textContent = 'Escolha o horário e a gente assa na hora combinada. Sem cadastro: entrega ou retirada.'; }
     if (!d.aberta) { const cta = qs('[data-ver-cardapio]'); cta.innerHTML = `${icone('calendario')} Agendar para hoje`; }
     if (c.sobre_massa) qs('[data-sobre-massa]').textContent = c.sobre_massa;
     if (c.aviso_preparo) qs('[data-aviso-preparo]').innerHTML = `${icone('ampulheta')} ${esc(c.aviso_preparo)}`;

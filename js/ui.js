@@ -52,7 +52,7 @@ export function montarLayout({ pagina = '', subheader = true, sacola = true } = 
         <a href="cardapio.html" class="${pagina === 'cardapio' ? 'ativo' : ''}">Cardápio</a>
         <a href="cardapio.html#combos" class="${pagina === 'combos' ? 'ativo' : ''}">Combos</a>
         <a href="index.html#sobre">Nossa massa</a>
-        <a href="pedido.html" class="${pagina === 'pedido' ? 'ativo' : ''}">Acompanhar pedido</a>
+        <a href="pedido.html" class="${pagina === 'pedido' ? 'ativo' : ''}">Meu pedido</a>
       </nav>
       ${subheader ? `<button type="button" class="pill-end" data-abrir-entrega>${icone('pin')}<span data-endereco-txt>Informar endereço</span>${icone('chevron-baixo', 'chevron')}</button>` : ''}
       <div class="header-right">
@@ -221,10 +221,13 @@ export function atualizarSubheader() {
     const faixa = qs('[data-faixa-fechada]');
     if (faixa) {
       const min = C.aberta ? minutosParaFechar(C) : null;
-      if (!C.aberta) faixa.innerHTML = `<div class="faixa-fechada"><div class="container">${icone('relogio')}<span>Ainda não abrimos, o forno acende às ${esc(abre)}. Agende que a gente assa na hora.</span><a href="cardapio.html">Agendar para hoje</a></div></div>`;
+      // uma linha só (a faixa é fixa, 40px): o detalhe está no hero e no ticket da home
+      if (!C.aberta) faixa.innerHTML = `<div class="faixa-fechada"><div class="container">${icone('relogio')}<span>Fechado agora · abre às ${esc(abre)}</span><a href="cardapio.html">Agendar para hoje</a></div></div>`;
       // urgência só quando é real: menos de 60 min para fechar
       else if (min != null && min > 0 && min < 60 && hoje) faixa.innerHTML = `<div class="faixa-fechada faixa-fechando"><div class="container">${icone('relogio')}<span>Fechamos às ${esc(hoje[1])} · pedidos até ${esc(horaMenos(hoje[1], 30))}</span><a href="cardapio.html">Pedir agora</a></div></div>`;
       else faixa.innerHTML = '';
+      // o CSS reserva a altura da faixa (--faixa-h) por esta classe; js/pre.js já a marca antes do 1º paint quando há cache
+      document.documentElement.classList.toggle('tem-faixa', !!faixa.firstChild);
     }
   }
 }
@@ -585,6 +588,8 @@ export function tagHTML(t) {
 }
 
 // skeleton com a forma dos cards (usado enquanto o cardápio carrega)
-export function skeletonCards(n = 6) {
-  return Array.from({ length: n }, () => `<div class="skeleton-card" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div><div class="f skeleton"></div></div>`).join('');
+// pizza = true: geometria do card de sabor (chips de tamanho embaixo), para o conteúdo real não empurrar a página
+export function skeletonCards(n = 6, pizza = false) {
+  const chips = pizza ? '<div class="c"><span class="skeleton"></span><span class="skeleton"></span></div>' : '';
+  return Array.from({ length: n }, () => `<div class="skeleton-card${pizza ? ' skeleton-card--pizza' : ''}" aria-hidden="true"><div class="l"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span>${pizza ? '' : '<span class="skeleton"></span>'}</div><div class="f skeleton"></div>${chips}</div>`).join('');
 }
