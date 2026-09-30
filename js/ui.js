@@ -486,6 +486,9 @@ export function montarEntrega(raiz, opts = {}) {
     config().then((c) => {
       const lojas = (c.lojas || []).filter((l) => l.aceita_retirada);
       const atual = e?.tipo === 'retirada' ? lojaPorSlug({ lojas }, e.loja) : lojaSugerida(c, e);
+      // a loja marcada na lista é sempre a salva: retirada gravada sem loja (versão antiga do site) ou com
+      // loja que não aceita mais retirada mostrava a principal marcada, mas o checkout pedia "Escolha a loja"
+      if (atual && S.tipo === 'retirada' && e?.tipo === 'retirada' && e.loja !== atual.slug) cart.salvarEntrega({ ...e, taxa: 0, loja: atual.slug, loja_nome: atual.nome });
       const perto = !!(e?.endereco?.lat || enderecoLembrado()?.lat);
       lista.innerHTML = lojas.map((l) => `<button type="button" role="radio" aria-checked="${l.slug === atual?.slug}" class="opcao ${l.slug === atual?.slug ? 'ativo' : ''}" data-loja="${esc(l.slug)}"><b>${icone('loja')} ${esc(l.nome)}</b><small>${esc(enderecoLoja(l))}${l.slug === atual?.slug && perto ? ' · a mais perto de você' : l.principal && l.slug === atual?.slug ? ' · loja principal' : ''}</small></button>`).join('');
       qsa('[data-loja]', lista).forEach((b) => b.addEventListener('click', () => escolherLoja(lojaPorSlug({ lojas }, b.dataset.loja))));
