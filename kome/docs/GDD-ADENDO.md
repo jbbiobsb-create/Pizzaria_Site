@@ -29,3 +29,33 @@ Cortados/adiados por enquanto: gfx.js (pós-processamento WebGL), demo do lago d
 - Ele recua e despeja pra TRÁS, num montinho que os ajudantes/barraquinha recolhem; o ¥ cai no despejo.
 - De vez em quando (≈1 em 8) a avalanche é grande demais e enterra o Kome até o chapéu por meio segundo (ele sai sacudindo):
   conta como "carga coroada" com bônus pequeno.
+
+## 5. Escala no cenário: "a régua do mundo" (pedido do dono)
+O jogador tem que SENTIR que cada ferramenta nova é maior. Regras:
+- **Objetos de referência fixos no pé da montanha**, sempre os mesmos, que a câmera vai deixando pequenos a cada degrau:
+  a casinha de cachorro do Kome (≈ altura dele) → barraquinha → cerejeira → torii → poste de luz com fios → casa de dois
+  andares da vila → torre de transmissão → prédio/fábrica de onigiri de 6 andares → Monte Fuji ao fundo.
+  A cada zoom-out, o objeto que parecia grande vira miniatura e um maior entra no quadro.
+- **As ferramentas antigas ficam estacionadas/trabalhando ao lado da nova**: o trator que parecia enorme fica do tamanho do
+  pneu do caminhão; o caminhão cabe embaixo da lança da Bagger. É a comparação mais forte, porque o jogador já usou cada uma.
+- **Vida em escala**: shibas minúsculos, pick-up, kei-truck, passarinhos, trem passando ao fundo, sempre perto da máquina atual.
+- **Cartão "tamanho real" na compra**: silhuetas lado a lado (Kome, ferramenta anterior, ferramenta nova) com números
+  ("96 m de altura · 14.200 t · 1 shiba") por 2 s, antes de devolver o controle.
+- **Sombra**: máquinas gigantes projetam sombra que cobre casas e árvores quando passam.
+
+## 6. O momento da compra (banho de dopamina) — escala cresce com o preço
+Toda compra de ferramenta: câmera trava no Kome → caixa/caminhão de entrega → olhos brilhando → zoom-out de 1,5 s revelando
+a ferramenta e os objetos de referência encolhendo → nome batendo na tela com som próprio → 3 s de "modo estreia" (x2 de
+velocidade, grãos dourados) pra pessoa sentir o poder na hora.
+
+**Bagger 293 (a mais cara do jogo): a maior celebração.**
+1. Antecipação longa: as 3 partes foram montadas no pátio ao longo de minutos (o jogador viu crescer). Ao pagar a última,
+   tudo para: música corta, tela escurece nas bordas, 1 s de silêncio.
+2. Cutscene `bagger_reveal`: Kome sobe a escada sem fim → close do capacete por cima do chapéu → pata na alavanca.
+3. BUZINA grave + as luzes acendem em cascata da esteira até o topo dos mastros → a roda começa a girar devagar e acelera.
+4. Zoom-out contínuo de 3 s (o maior do jogo) com a vila, o prédio e os caminhões virando formiga; hit-stop e flash no fim.
+5. Título carimbado "BAGGER 293" + "96 m. 14.200 t. 1 shiba." + confete, fogos, todos os shibas ajudantes pulando (pose cheer),
+   taiko e fanfarra; o contador de ¥/s dá um salto visível com o número antigo riscado.
+6. Primeira mordida garantida "MORDIDA PERFEITA" com chuva de grãos dourados e a tela tremendo: o jogador segura o clique e
+   vê a montanha, que mal arranhou em uma hora, perder um pedaço enorme em segundos.
+7. Conquista + entrada no álbum + a barra da montanha, que estava parada, despenca visivelmente.

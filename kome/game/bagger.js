@@ -30,21 +30,21 @@
   function sh(c, k) { const key = c + '|' + k; let v = shc.get(key); if (v === undefined) { v = U.shade(c, k); shc.set(key, v); } return v; }
 
   /* ---------------- geometria (modelo: x pra frente, y negativo = pra cima) ---------------- */
-  const TH = 46, TW = 80;                         // esteira principal
+  const TH = 52, TW = 88;                         // esteira principal
   const RING = -142;                              // topo do anel de giro (tudo acima balança junto)
   const PX = 60, PY = -310;                       // pino da lança da roda
   const BL = 560, WR = 110, NB = 18, STEP = TAU / NB;
   const LMIN = -18 * DEG, LMAX = 32 * DEG;
-  const M1B = [66, -318], M1T = [222, -584];      // mastro inclinado pra frente
-  const M2B = [-34, -292], M2T = [-34, -608];     // torre vertical
+  const M1B = [66, -318], M1T = [244, -636];      // mastro inclinado pra frente
+  const M2B = [-34, -292], M2T = [-34, -664];     // torre vertical
   const K0 = [-44, -326], K1 = [-340, -388];      // lança do contrapeso
-  const NEAR_TR = [-196, -112, 32, 116], FAR_TR = [-84, 4]; // x das esteiras (2 grupos na frente, 1 atrás)
+  const NEAR_TR = [-212, -122, 34, 124], FAR_TR = [-90, 2]; // x das esteiras (2 grupos na frente, 1 atrás)
   const LD_TR = [-694, -610], LTH = 40;           // esteiras da unidade de carregamento
   const BR_A = [-112, -206], BR_B = [-594, -218]; // ponte de descarga
   const LB_A = [-650, -184], LB_B = [-752, -132]; // lança de descarga da unidade
   const DECKS = [                                 // conveses: x0, x1, topo, base, cor
-    [-176, 156, -204, -142, 'grayD'], [-146, 124, -256, -204, 'gray'], [-106, 84, -298, -256, 'grayD']];
-  const C_LAT = PAL.steel, C_LATF = sh(PAL.steel, 0.42), C_HOUSE = PAL.steelL, C_RAIL = PAL.yel;
+    [-194, 174, -204, -142, 'grayD'], [-162, 140, -256, -204, 'gray'], [-118, 98, -298, -256, 'grayD']];
+  const C_LAT = PAL.steel, C_LATF = sh(PAL.steel, 0.3), C_HOUSE = PAL.steelL, C_RAIL = PAL.yel, C_WEB = PAL.steelD;
   const C_WARM = PAL.goldL, C_RICE = PAL.rice;
   const P2 = [[0, 0], [0, 0]], PA = [0, 0], PB = [0, 0], TMP = { x: 0, y: 0 };
   function ln(a, b, c, d) { P2[0][0] = a; P2[0][1] = b; P2[1][0] = c; P2[1][1] = d; return P2; }
@@ -52,7 +52,7 @@
   function pb(x, y) { PB[0] = x; PB[1] = y; return PB; }
   const pitchOf = (w, h) => { const gh = h * 0.07, R = h / 2 - gh, per = 2 * (w - h) + TAU * R; return per / Math.max(8, Math.round(per / (h * 0.24))); };
   const PITCH = pitchOf(TW, TH), LPITCH = pitchOf(TW, LTH), TRK_N = 6;
-  const topChord = lx => -33 + lx * 13 / 530, botChord = lx => 33 - lx * 13 / 530;
+  const topChord = lx => -40 + lx * 15.2 / 530, botChord = lx => 40 - lx * 15.2 / 530;
 
   /* ---------------- sprites pré-renderizados (por nível de detalhe) ---------------- */
   const sprites = new Map();
@@ -72,9 +72,9 @@
   }
   function blit(g, s) { g.drawImage(s.cv, s.x, s.y, s.w, s.h); }
 
-  const BOX_UNDER = [-290, -160, 262, 4], BOX_UPPER = [-420, -640, 262, -132], BOX_BOOM = [-36, -132, 572, 62];
+  const BOX_UNDER = [-296, -160, 270, 4], BOX_UPPER = [-420, -712, 290, -132], BOX_BOOM = [-36, -132, 572, 62];
   const BOX_WHEEL = [-124, -124, 124, 124], BOX_GUARD = [430, -76, 566, 40], BOX_BRIDGE = [-776, -366, -84, 4];
-  const BOX_SCAF = [-200, -348, 200, -132], BOX_SCAF2 = [16, -384, 124, -292], BOX_TRK = [-200, -62, 200, 2], BOX_LTRK = [-700, -42, -524, 2];
+  const BOX_SCAF = [-200, -348, 200, -132], BOX_SCAF2 = [16, -384, 124, -292], BOX_TRK = [-216, -70, 216, 2], BOX_LTRK = [-700, -42, -524, 2];
 
   function yoke(g, cx, half, top, col) {
     Draw.poly(g, [[cx - half, -TH + 6], [cx + half, -TH + 6], [cx + 24, top], [cx - 24, top]], col, { shade: sh(col, -0.2) });
@@ -83,26 +83,26 @@
   }
   function drawUnder(g) {
     // grupo de trás (mais claro), colunas, travessa
-    yoke(g, 0, 78, -96, sh(PAL.gray, 0.3));
+    yoke(g, 0, 86, -98, sh(PAL.gray, 0.3));
     Draw.box(g, -22, -104, 44, 20, sh(PAL.gray, 0.3));
     // subestrutura: caixão trapezoidal
-    Draw.poly(g, [[-214, -86], [214, -86], [168, -130], [-168, -130]], PAL.gray, { shade: PAL.grayD, hi: PAL.grayL });
+    Draw.poly(g, [[-228, -88], [228, -88], [176, -130], [-176, -130]], PAL.gray, { shade: PAL.grayD, hi: PAL.grayL });
     Draw.box(g, -150, -128, 300, 40, PAL.gray, { panels: 10, rivets: true });
     for (let i = -3; i <= 3; i++) Draw.box(g, i * 46 - 3, -128, 6, 40, PAL.grayD, { ol: 1, top: false });
-    Draw.box(g, -222, -92, 444, 9, PAL.grayD, { rivets: 12 });
-    yoke(g, -114, 82, -88, PAL.grayD); yoke(g, 114, 82, -88, PAL.grayD);
+    Draw.box(g, -236, -94, 472, 10, PAL.grayD, { rivets: 12 });
+    yoke(g, -123, 90, -90, PAL.grayD); yoke(g, 123, 90, -90, PAL.grayD);
     // anel de giro (engrenagem escura com graxa)
     Draw.box(g, -122, RING - 2, 244, 16, PAL.blkL, { r: 2 });
     g.fillStyle = PAL.blk; for (let x = -116; x < 118; x += 9) g.fillRect(x, RING + 3, 4, 8);
     Draw.box(g, -132, RING - 4, 264, 5, PAL.steelD, { ol: 1.4 });
     // escada de acesso do chão, com patamar
-    Draw.stairs(g, [-282, 0], [-226, -86], 12, { railCol: C_RAIL, lw: 2.2 });
-    Draw.stairs(g, [-222, -92], [-182, RING], 8, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [-290, 0], [-238, -88], 12, { railCol: C_RAIL, lw: 2.2 });
+    Draw.stairs(g, [-234, -94], [-196, RING], 8, { railCol: C_RAIL, lw: 2 });
     // carretel do cabo de força (a máquina liga na tomada)
-    Draw.box(g, 176, -122, 44, 34, PAL.steelD, { r: 2 });
-    Draw.circle(g, 198, -106, 19, PAL.red); Draw.ring(g, 198, -106, 13, 5, PAL.blk, { hi: false }); Draw.circle(g, 198, -106, 4, PAL.steelL, { ol: 1 });
-    Draw.cable(g, [212, -94], [258, -1], { sag: 10, lw: 3 });
-    Draw.hazard(g, -214, -84, 428, 4);
+    Draw.box(g, 188, -124, 44, 34, PAL.steelD, { r: 2 });
+    Draw.circle(g, 210, -108, 19, PAL.red); Draw.ring(g, 210, -108, 13, 5, PAL.blk, { hi: false }); Draw.circle(g, 210, -108, 4, PAL.steelL, { ol: 1 });
+    Draw.cable(g, [224, -96], [266, -1], { sag: 10, lw: 3 });
+    Draw.hazard(g, -228, -84, 456, 4);
   }
 
   function deckWindows(fn) {
@@ -112,7 +112,7 @@
     }
   }
   function mastPair(g, a, b, depth, w, o) {
-    Draw.truss(g, [a[0] + 12, a[1] - 5], [b[0] + 12, b[1] - 5], depth, w * 0.85, C_LATF, o);
+    Draw.truss(g, [a[0] + 12, a[1] - 5], [b[0] + 12, b[1] - 5], depth, w * 0.85, C_LATF, { taper: o.taper, cross: o.cross });
     Draw.truss(g, a, b, depth, w, C_LAT, o);
   }
   function sheaves(g, x, y, r) {
@@ -121,11 +121,11 @@
     Draw.circle(g, x - r * 0.8, y - r * 0.3, r * 0.35, PAL.steelL, { ol: 1 }); Draw.circle(g, x + r * 0.8, y - r * 0.3, r * 0.35, PAL.steelL, { ol: 1 });
   }
   function drawUpper(g) {
-    const X = { taper: 0.55, cross: true }, WAR = { taper: 0.8 };
+    const X = { taper: 0.55, cross: true, web: C_WEB }, WAR = { taper: 0.8 }, WARN = { taper: 0.8, web: C_WEB };
     // lança do contrapeso + escora de trás
     Draw.truss(g, [K0[0] + 10, K0[1] - 6], [K1[0] + 10, K1[1] - 6], 54, 5, C_LATF, WAR);
-    Draw.truss(g, [-34, -548], [-248, -404], 20, 4.5, C_LATF, { taper: 1 });
-    Draw.truss(g, K0, K1, 54, 6, C_LAT, WAR);
+    Draw.truss(g, [-24, -596], [-252, -406], 22, 4.5, C_LATF, { taper: 1 });
+    Draw.truss(g, K0, K1, 62, 7, C_LAT, WARN);
     Draw.rail(g, [K0[0], K0[1] - 27], [K1[0] + 40, K1[1] - 20], { posts: 16, h: 9, col: C_RAIL });
     // lastro: caixão escuro pendurado na ponta, com lajes
     Draw.box(g, -372, -396, 132, 92, PAL.grayD, { r: 3, rivets: true, panels: 4 });
@@ -143,10 +143,11 @@
     // mastros: torre vertical, mastro inclinado, travamentos
     Draw.truss(g, [M2T[0], M2T[1] + 18], [M1T[0], M1T[1] + 12], 16, 3.6, C_LATF, { taper: 1, cross: true });
     Draw.truss(g, [-34, -446], [138, -446], 14, 3.6, C_LATF, { taper: 1 });
-    Draw.truss(g, [-34, -548], [-248, -404], 20, 5, C_LAT, { taper: 1 });
-    mastPair(g, M2B, M2T, 46, 6.5, X);
-    mastPair(g, M1B, M1T, 44, 6.5, X);
-    Draw.truss(g, [84, -300], [150, -452], 18, 4.5, C_LAT, { taper: 0.8 });           // escora grossa do pé do mastro
+    Draw.truss(g, [-34, -600], [-262, -410], 26, 6, C_LAT, { taper: 1 });
+    Draw.truss(g, [-34, -552], [196, -552], 14, 3.6, C_LATF, { taper: 1 });
+    mastPair(g, M2B, M2T, 60, 7.5, X);
+    mastPair(g, M1B, M1T, 58, 7.5, X);
+    Draw.truss(g, [96, -300], [164, -452], 20, 5, C_LAT, { taper: 0.8 });           // escora grossa do pé do mastro
     Draw.box(g, M2T[0] - 28, M2T[1] - 4, 56, 7, PAL.steelD, { r: 2 });
     Draw.rail(g, [M2T[0] - 28, M2T[1] - 4], [M2T[0] + 28, M2T[1] - 4], { posts: 5, h: 8, col: C_RAIL });
     sheaves(g, M2T[0], M2T[1] - 12, 9); sheaves(g, M1T[0], M1T[1] - 6, 10);
@@ -167,48 +168,46 @@
       Draw.box(g, D[0] - 12, D[3] - 5, D[1] - D[0] + 24, 6, PAL.blkL, { ol: 1.4, r: 1 });   // passarela
       Draw.rail(g, [D[0] - 12, D[3] - 5], [D[1] + 12, D[3] - 5], { posts: Math.round((D[1] - D[0]) / 18), h: 11, col: C_RAIL, lw: 1.5 });
     }
-    Draw.stairs(g, [150, -147], [124, -209], 8, { railCol: C_RAIL, lw: 2 });
-    Draw.stairs(g, [-170, -147], [-146, -209], 8, { railCol: C_RAIL, lw: 2 });
-    Draw.stairs(g, [118, -209], [90, -261], 7, { railCol: C_RAIL, lw: 2 });
-    Draw.stairs(g, [-140, -209], [-112, -261], 7, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [168, -147], [140, -209], 8, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [-188, -147], [-162, -209], 8, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [134, -209], [104, -261], 7, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [-156, -209], [-124, -261], 7, { railCol: C_RAIL, lw: 2 });
     // casas elétricas, dutos e chaminés no teto
     Draw.box(g, -104, -330, 60, 32, C_HOUSE, { r: 2, panels: 3 }); Draw.box(g, -108, -335, 68, 7, PAL.steelD, { r: 2 });
     Draw.box(g, -6, -322, 34, 24, PAL.steelD, { r: 2, panels: 2 });
     Draw.box(g, -92, -350, 8, 20, PAL.blkL, { r: 1 }); Draw.box(g, -74, -356, 8, 26, PAL.blkL, { r: 1 });
     Draw.window(g, -96, -322, 12, 9); Draw.window(g, -64, -322, 12, 9);
     // cabine secundária laranja no canto da frente
-    Draw.box(g, 124, -250, 40, 42, PAL.ora, { r: 4 }); Draw.window(g, 132, -244, 28, 18); Draw.box(g, 120, -254, 48, 6, PAL.oraD, { r: 2 });
+    Draw.box(g, 140, -252, 44, 44, PAL.ora, { r: 4 }); Draw.window(g, 150, -246, 30, 20); Draw.box(g, 136, -256, 52, 6, PAL.oraD, { r: 2 });
     // pórtico do pino da lança
     Draw.poly(g, [[22, -298], [102, -298], [84, -334], [38, -334]], PAL.gray, { shade: PAL.grayD });
     Draw.circle(g, PX, PY, 15, PAL.steelD); Draw.circle(g, PX, PY, 6, PAL.blk, { hi: false });
     // caixas de holofote
-    const L = [[156, -210], [-176, -210], [124, -262], [-146, -262], [-140, -456]];
+    const L = [[174, -210], [-194, -210], [140, -262], [-162, -262], [-140, -456]];
     for (const p of L) Draw.box(g, p[0] - 4, p[1] - 4, 8, 8, PAL.blk, { ol: 1.2, r: 1 });
   }
 
   function drawBoom(g) {
-    Draw.truss(g, [10, -8], [540, -8], 66, 5, C_LATF, { taper: 0.6, bays: 15 });
+    Draw.truss(g, [12, -10], [542, -10], 80, 5.5, C_LATF, { taper: 0.62, bays: 14 });
     Draw.beam(g, [[384, -30], [418, -112]], 6, C_LATF);
-    Draw.truss(g, [0, 0], [530, 0], 66, 6.5, C_LAT, { taper: 0.6, bays: 15, cross: true });
-    Draw.beam(g, ln(0, -33, 530, -20), 3, PAL.blkL, { ol: 1.2, hi: false });               // calha da correia
-    Draw.rail(g, [6, 33], [470, 22], { posts: 30, h: 12, col: C_RAIL, lw: 1.6 });            // passarela no banzo de baixo
-    Draw.box(g, 4, 33 - 2, 470, 3.2, PAL.blkL, { ol: 1, top: false, shade: false });
-    // cavalete dos estais (pórtico em A na cabeça da lança)
-    Draw.beam(g, [[366, -24], [410, -112], [452, -22]], 7, C_LAT);
+    Draw.truss(g, [0, 0], [530, 0], 80, 7.5, C_LAT, { taper: 0.62, bays: 14, cross: true, web: C_WEB });
+    Draw.beam(g, ln(0, topChord(0), 530, topChord(530)), 3, PAL.blkL, { ol: 1.2, hi: false });               // calha da correia
+    Draw.rail(g, [6, botChord(6)], [470, botChord(470)], { posts: 30, h: 12, col: C_RAIL, lw: 1.6 });            // passarela no banzo de baixo
+        // cavalete dos estais (pórtico em A na cabeça da lança)
+    Draw.beam(g, [[366, topChord(366)], [410, -112], [452, topChord(452)]], 8, C_LAT);
     Draw.beam(g, ln(388, -68, 432, -66), 4, C_LAT);
     sheaves(g, 410, -114, 8);
     // pé da lança e braço que segura o eixo da roda
-    Draw.circle(g, 0, 0, 20, PAL.gray); Draw.circle(g, 0, 0, 8, PAL.blkL, { hi: false });
+    Draw.circle(g, 0, 0, 24, PAL.gray); Draw.circle(g, 0, 0, 8, PAL.blkL, { hi: false });
     Draw.poly(g, [[486, -30], [560, -16], [566, 0], [560, 16], [486, 28]], PAL.steelD, { shade: sh(PAL.steelD, -0.2) });
     for (let x = 60; x < 470; x += 82) Draw.box(g, x - 3, botChord(x) + 2, 6, 6, PAL.blk, { ol: 1, r: 1 });
   }
   function drawGuard(g) {
     // caixa chapeada do acionamento + calha que cobre o quadrante de trás-de-cima da roda
-    Draw.poly(g, [[438, -22], [452, -66], [520, -70], [546, -40], [528, -14], [500, 30], [444, 30]], C_HOUSE, { shade: PAL.steel, hi: PAL.white });
-    Draw.box(g, 448, -18, 46, 40, PAL.steel, { r: 2, rivets: true, panels: 2 });
-    Draw.box(g, 456, -8, 14, 12, PAL.blkL, { ol: 1.2, r: 1 });
-    Draw.rail(g, [440, -68], [520, -72], { posts: 6, h: 9, col: C_RAIL });
-    Draw.box(g, 500, -44, 30, 6, PAL.red, { ol: 1.2, r: 1 });
+    Draw.poly(g, [[434, -20], [446, -66], [498, -70], [514, -46], [504, -10], [490, 32], [438, 32]], C_HOUSE, { shade: PAL.steel, hi: PAL.white });
+    Draw.box(g, 444, -14, 42, 40, PAL.steel, { r: 2, rivets: true, panels: 2 });
+    Draw.rail(g, [438, -68], [498, -72], { posts: 5, h: 9, col: C_RAIL });
+    Draw.box(g, 462, -50, 30, 6, PAL.red, { ol: 1.2, r: 1 });
   }
 
   function drawWheel(g) {
@@ -254,7 +253,7 @@
     Draw.truss(g, [-655, -170], [-750, -122], 28, 5, C_LAT, { taper: 0.6 });                   // lança de descarga
     Draw.truss(g, [-610, -176], [-610, -344], 26, 5.5, C_LAT, { taper: 0.7, cross: true });
     sheaves(g, -610, -350, 7);
-    Draw.truss(g, BR_A, BR_B, 46, 6, C_LAT, { taper: 0.85, bays: 13, cross: true });
+    Draw.truss(g, BR_A, BR_B, 46, 6, C_LAT, { taper: 0.85, bays: 13, cross: true, web: C_WEB });
     Draw.beam(g, ln(BR_A[0], BR_A[1] - 23, BR_B[0], BR_B[1] - 19.5), 3, PAL.blkL, { ol: 1.2, hi: false });
     Draw.rail(g, [BR_A[0], BR_A[1] + 23], [BR_B[0], BR_B[1] + 19.5], { posts: 30, h: 11, col: C_RAIL, lw: 1.5 });
     const S = [[-470, -238], [-350, -235], [-748, -134], [-560, -226]];
@@ -331,11 +330,11 @@
 
   /* ---------------- estado ---------------- */
   const WALK = [  // shibas nas passarelas: quadro ('b' corpo, 'o' lança, 'r' ponte), x0, x1, y, velocidade, fase, paleta
-    ['b', -180, 160, -147, 15, 0, 'goma'], ['b', -150, 128, -209, 12, 90, 'kuro'], ['b', -110, 80, -261, 10, 30, 'shiro'],
-    ['b', -170, 150, -147, 18, 200, 'cha'], ['o', 20, 450, 0, 16, 60, 'goma'], ['r', -560, -130, 0, 14, 10, 'kuro'],
+    ['b', -198, 178, -147, 15, 0, 'goma'], ['b', -166, 144, -209, 12, 90, 'kuro'], ['b', -122, 100, -261, 10, 30, 'shiro'],
+    ['b', -190, 170, -147, 18, 200, 'cha'], ['o', 20, 450, 0, 16, 60, 'goma'], ['r', -560, -130, 0, 14, 10, 'kuro'],
     ['b', -360, -250, -402, 8, 5, 'aka'], ['u', -200, 200, -92, 13, 44, 'shiro']];
   const GRAIN = { shape: 'grain', c: [PAL.rice, PAL.rice, PAL.riceS], land: true, w: [5, 8], life: 1.6, ol: true, speed: [30, 120], spread: 0.6, dir: PI / 2 };
-  const shO = { scale: 0.22, shadow: false, pal: 'goma', face: 1 }, komeO = { scale: 0.62, shadow: false, pal: 'kome', face: 1 };
+  const shO = { scale: 0.27, shadow: false, pal: 'goma', face: 1 }, komeO = { scale: 1.05, shadow: false, pal: 'kome', face: 1 };
 
   function create(opts) {
     opts = opts || {};
@@ -449,7 +448,7 @@
   function cabinPt(m, out) { boomPt(m, 392, botChord(392) + 2, out); return out; }
   function seat(m) {
     const o = m.seatO; cabinPt(m, TMP);
-    toWorld(m, TMP.x - Math.sin(m.cabS.x) * 46, TMP.y + Math.cos(m.cabS.x) * 46, o); return o;
+    toWorld(m, TMP.x - Math.sin(m.cabS.x) * 52, TMP.y + Math.cos(m.cabS.x) * 52, o); return o;
   }
 
   /* ---------------- desenho ---------------- */
@@ -505,7 +504,7 @@
       // estais de trás: torre -> contrapeso / guincho; topo -> topo
       for (let i = 0; i < 3; i++) stay(g, M2T[0] - 6 + i * 6, M2T[1] - 16, K1[0] - 20 + i * 14, K1[1] - 18, 7 + sw + i, i > 0);
       for (let i = 0; i < 4; i++) stay(g, M2T[0] - 8 + i * 4, M2T[1] - 16, -204 + i * 8, -452, 2 + sw * 0.5, true);
-      stay(g, M2T[0], -470, -150, K0[1] - 62, 4 + sw, true);
+      stay(g, M2T[0], -500, -150, K0[1] - 62, 4 + sw, true);
       stay(g, M2T[0] + 8, M2T[1] - 18, M1T[0] - 8, M1T[1] - 12, 5 + sw, false); stay(g, M2T[0] + 8, M2T[1] - 12, M1T[0] - 8, M1T[1] - 6, 6 - sw, true);
     }
     if (st === 2) {
@@ -536,27 +535,27 @@
       }
       g.restore();
       blit(g, sprite('guard', rs, BOX_GUARD, drawGuard));
-      g.save(); g.translate(474, 2); g.rotate(m.luff); if (m.face < 0) g.scale(-1, 1); Draw.sign(g, -17, -8, 34, 16, '293', SIGN_R); g.restore();
+      g.save(); g.translate(465, 6); g.rotate(m.luff); if (m.face < 0) g.scale(-1, 1); Draw.sign(g, -16, -8, 32, 16, '293', SIGN_R); g.restore();
       g.restore();
       // cabine pendurada (fica no prumo, balança) com o Kome dentro
       cabinPt(m, TMP);
       g.save(); g.translate(TMP.x, TMP.y); g.rotate(m.cabS.x);
       Draw.beam(g, ln(-12, -2, -18, 24), 3, PAL.steelD, { ol: 1.4 }); Draw.beam(g, ln(12, -2, 18, 24), 3, PAL.steelD, { ol: 1.4 });
-      Draw.box(g, -29, 22, 58, 48, PAL.ora, { r: 5 });
-      Draw.box(g, -33, 18, 66, 7, PAL.oraD, { r: 2 });
-      Draw.window(g, -23, 29, 46, 27, { col: m.night > 0.3 ? C_WARM : PAL.skyL, glare: false });
-      komeO.pal = m.pilot; E.drawShiba(g, -2, 67, 'drive', t, komeO);
-      Draw.box(g, -29, 56, 58, 14, PAL.ora, { ol: 0, top: false, r: 3 });
-      g.fillStyle = PAL.oraD; g.fillRect(-27, 66, 54, 3);
-      g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.moveTo(8, 29); g.lineTo(16, 29); g.lineTo(4, 56); g.lineTo(-4, 56); g.closePath(); g.fill();
-      g.strokeStyle = LINE; g.lineWidth = Math.max(1.6, Draw.minPx / Draw.zoom); g.strokeRect(-23, 29, 46, 27);
+      Draw.box(g, -34, 22, 68, 58, PAL.ora, { r: 6 });
+      Draw.box(g, -38, 18, 76, 8, PAL.oraD, { r: 2 });
+      Draw.window(g, -28, 30, 56, 36, { col: m.night > 0.3 ? C_WARM : PAL.skyL, glare: false });
+      komeO.pal = m.pilot; E.drawShiba(g, -4, 80, 'drive', t, komeO);
+      Draw.box(g, -34, 66, 68, 14, PAL.ora, { ol: 0, top: false, r: 4 });
+      g.fillStyle = PAL.oraD; g.fillRect(-31, 76, 62, 3);
+      g.fillStyle = 'rgba(255,255,255,.3)'; g.beginPath(); g.moveTo(14, 30); g.lineTo(22, 30); g.lineTo(8, 66); g.lineTo(0, 66); g.closePath(); g.fill();
+      g.strokeStyle = LINE; g.lineWidth = Math.max(1.6, Draw.minPx / Draw.zoom); g.strokeRect(-28, 30, 56, 36);
       g.restore();
       // estais da frente: leque do mastro até a cabeça da lança
       boomPt(m, 410, -118, TMP); const hx = TMP.x, hy = TMP.y;
       for (let i = 0; i < 4; i++) stay(g, M1T[0] - 8 + i * 5, M1T[1] - 8, hx - 6 + i * 4, hy, 6 + sw + i * 1.5, i > 0);
       boomPt(m, 250, topChord(250), TMP); stay(g, M1T[0], M1T[1] - 4, TMP.x, TMP.y, 5 - sw, true);
       boomPt(m, 505, -62, TMP); stay(g, M1T[0] + 6, M1T[1] - 8, TMP.x, TMP.y, 9 + sw, true);
-      boomPt(m, 130, topChord(130), TMP); stay(g, M2T[0] + 6, -470, TMP.x, TMP.y, 4 + sw, true);
+      boomPt(m, 130, topChord(130), TMP); stay(g, M2T[0] + 6, -500, TMP.x, TMP.y, 4 + sw, true);
       boomPt(m, BL, 0, TMP); wxm = TMP.x; wym = TMP.y;
     }
     // 4) shibas minúsculos nas passarelas
@@ -571,7 +570,7 @@
       else E.drawShiba(g, x, y, 'walk', t + i, shO);
     }
     // 5) placas (nunca espelhadas)
-    if (st >= 2) { signAt(g, m, -306, -366, 112, 40, 'KOME-293', SIGN_O); signAt(g, m, 24, -230, 74, 24, 'KOME', SIGN_O); }
+    if (st >= 2) { signAt(g, m, -306, -366, 112, 40, 'KOME-293', SIGN_O); signAt(g, m, 30, -230, 80, 26, 'KOME', SIGN_O); }
     g.restore();
     if (st === 1) signAt(g, m, 0, -250, 120, 34, 'EM MONTAGEM', SIGN_O);
     g.restore();
@@ -581,7 +580,7 @@
   }
 
   /* ---------------- luzes ---------------- */
-  const FLOOD = [[156, -212, 7], [-176, -212, 7], [124, -264, 6], [-146, -264, 6], [-140, -458, 6], [-34, -470, 6], [-610, -300, 6], [-560, -182, 6], [-250, -410, 6]];
+  const FLOOD = [[174, -212, 7], [-194, -212, 7], [140, -264, 6], [-162, -264, 6], [-140, -458, 6], [-34, -500, 6], [-610, -300, 6], [-560, -182, 6], [-250, -410, 6]];
   const BEACON = [[M2T[0], M2T[1] - 38, 0], [M1T[0], M1T[1] - 22, 0.5], [-610, -362, 0.25], [-352, -500, 0.75]];
   const LT = { halo: 5.5, ol: 1.2 }, LTB = { halo: 7, ol: 1.2 }, LTS = { halo: 4, ol: 0 };
   function glow(g, m) { const z0 = Draw.zoom, m0 = Draw.minPx; Draw.lod(m.zoom, Math.max(m0, 0.62)); glowIn(g, m); Draw.lod(z0, m0); }
@@ -596,7 +595,7 @@
       if (n > 0.05) {
         g.globalAlpha = n; g.fillStyle = C_WARM;
         deckWindows((x, y, w, h, d, i) => { if ((i + d) % 4 !== 2 && (i * 5 + d) % 3 !== 0) g.fillRect(x + 1, y + 1, w - 2, h - 2); });
-        g.fillRect(133, -243, 26, 16); g.fillRect(-225, -437, 14, 10); g.fillRect(-167, -437, 14, 10);
+        g.fillRect(151, -245, 28, 18); g.fillRect(-225, -437, 14, 10); g.fillRect(-167, -437, 14, 10);
         g.globalAlpha = 1;
         for (let i = 0; i < 6; i++) Draw.light(g, FLOOD[i][0], FLOOD[i][1], FLOOD[i][2], C_WARM, n, LT);
         Draw.light(g, FLOOD[8][0], FLOOD[8][1], FLOOD[8][2], C_WARM, n, LT);
@@ -611,11 +610,11 @@
         Draw.light(g, lx, ly, 8, C_WARM, n, LTB);
         for (let x = 60; x < 470; x += 82) { boomPt(m, x, botChord(x) + 6, TMP); Draw.light(g, TMP.x, TMP.y, 4, C_WARM, n, LTS); }
         cabinPt(m, TMP);
-        const hr = 60, pa0 = g.globalAlpha; g.globalAlpha = 0.5 * n; Draw.light(g, TMP.x, TMP.y + 44, 16, C_WARM, 1, { halo: 4.5, ol: 0 }); g.globalAlpha = pa0;
+        const hr = 60, pa0 = g.globalAlpha; g.globalAlpha = 0.5 * n; Draw.light(g, TMP.x, TMP.y + 50, 16, C_WARM, 1, { halo: 4.5, ol: 0 }); g.globalAlpha = pa0;
         g.save(); g.translate(TMP.x, TMP.y); g.rotate(m.cabS.x);
-        g.globalAlpha = 0.35 * n; g.fillStyle = C_WARM; g.fillRect(-23, 29, 46, 27); g.globalAlpha = 1;
-        komeO.pal = m.pilot; E.drawShiba(g, -2, 67, 'drive', t, komeO);
-        Draw.box(g, -29, 56, 58, 14, PAL.ora, { ol: 0, top: false, r: 3 });
+        g.globalAlpha = 0.35 * n; g.fillStyle = C_WARM; g.fillRect(-28, 30, 56, 36); g.globalAlpha = 1;
+        komeO.pal = m.pilot; E.drawShiba(g, -4, 80, 'drive', t, komeO);
+        Draw.box(g, -34, 66, 68, 14, PAL.ora, { ol: 0, top: false, r: 4 });
         g.restore();
       }
       boomPt(m, 410, -128, TMP); Draw.light(g, TMP.x, TMP.y, 5, PAL.red, (t * 0.9 + 0.6) % 1 < 0.5 ? 1 : 0, LTB);
@@ -648,7 +647,7 @@
   }
 
   G.Tools.bagger = {
-    id: 'bagger', name: 'Bagger 293', kind: 'bagger', w: 1460, h: 624,
+    id: 'bagger', name: 'Bagger 293', kind: 'bagger', w: 1500, h: 700,
     meta: { zoom: 0.26, shake: 1, cycle: 1 / (0.33 * NB), boom: BL, wheelR: WR, pivot: [PX, PY], luffMin: LMIN, luffMax: LMAX, maxCrawl: 40 },
     create, update, draw, glow, bite, dump, seat,
   };
