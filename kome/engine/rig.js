@@ -387,8 +387,9 @@
         const q = pts[i + 1], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy);
         if (L < 1e-6) continue;
         const r2 = q[2] + grow, nx = -dy / L, ny = dx / L;
-        g.moveTo(p[0] + nx * r, p[1] + ny * r); g.lineTo(q[0] + nx * r2, q[1] + ny * r2);
-        g.lineTo(q[0] - nx * r2, q[1] - ny * r2); g.lineTo(p[0] - nx * r, p[1] - ny * r); g.closePath();
+        // mesmo sentido dos arcos (horário), senão a regra nonzero abre um buraco onde eles se cruzam
+        g.moveTo(p[0] - nx * r, p[1] - ny * r); g.lineTo(q[0] - nx * r2, q[1] - ny * r2);
+        g.lineTo(q[0] + nx * r2, q[1] + ny * r2); g.lineTo(p[0] + nx * r, p[1] + ny * r); g.closePath();
       }
     }
   }
@@ -442,7 +443,7 @@
     }
   };
 
-  const BK_LOADER = [[-5, -21], [7, -24], [11, -20], [34, 4], [31, 8], [4, 8], [-6, 1]];
+  const BK_LOADER = [[-7, -22], [5, -27], [10, -23], [34, 3], [31, 8], [5, 9], [-4, 6], [-8, -2]];
   const BK_EXC = [[-5, -3], [-1, -12], [9, -17], [20, -14], [27, -5], [29, 2], [22, 3], [5, 4], [-3, 3]];
   const bkPts = [];
   // Rig.bucket(g, s, {kind='loader'|'excavator', col, load=0..1, teeth=true, cargo=cor, ol}): caçamba de perfil com o pino em (0,0)
@@ -456,7 +457,7 @@
     for (let i = 0; i < src.length; i++) { bkPts[i][0] = src[i][0] * k; bkPts[i][1] = src[i][1] * k; }
     // carga aparecendo pela boca (atrás da chapa lateral)
     if (load > 0.02) {
-      const a = exc ? src[7] : src[2], b = exc ? src[5] : src[3];
+      const a = exc ? src[7] : src[2], b = exc ? src[5] : src[3];   // boca: do fundo/topo até o dente
       const ax = a[0] * k, ay = a[1] * k, bx = b[0] * k, by = b[1] * k, L = Math.hypot(bx - ax, by - ay);
       let nx = (by - ay) / L, ny = -(bx - ax) / L;
       if (exc) { nx = -nx; ny = -ny; }
@@ -492,9 +493,9 @@
       g.beginPath(); g.moveTo(-3 * k, 2.4 * k); g.lineTo(26 * k, 2 * k); g.stroke();
     } else {
       g.strokeStyle = sh(col, -0.24); g.lineWidth = 6 * k;
-      g.beginPath(); g.moveTo(-7 * k, 0); g.quadraticCurveTo(-2 * k, 8 * k, 6 * k, 8 * k); g.lineTo(32 * k, 8 * k); g.stroke();
+      g.beginPath(); g.moveTo(-9 * k, -4 * k); g.quadraticCurveTo(-6 * k, 8.5 * k, 6 * k, 8.5 * k); g.lineTo(32 * k, 8 * k); g.stroke();
       g.strokeStyle = sh(col, 0.3); g.lineWidth = 3 * k;
-      g.beginPath(); g.moveTo(8 * k, -22.5 * k); g.lineTo(11.5 * k, -19 * k); g.lineTo(34 * k, 5 * k); g.stroke();
+      g.beginPath(); g.moveTo(-7 * k, -21 * k); g.lineTo(5 * k, -26 * k); g.lineTo(10.5 * k, -22 * k); g.lineTo(34 * k, 4 * k); g.stroke();
     }
     g.restore();
   };
@@ -683,6 +684,7 @@
   //   Saída: ch.x, ch.y, ch.tilt (use em rig.draw(g, ch.x, ch.y, {rot: ch.tilt, face})), ch.vx, ch.ax,
   //          ch.wheels[i] = {lx, ly (posição no MODELO pra peça da roda), rot, comp (>0 comprimida), wx, wy (mundo)}
   //   squat: quanto a aceleração empina/mergulha a carroceria; ch.load = peso extra (afunda 'load' unidades);
+  //   ch.bias = inclinação extra em rad (>0 = nariz pra baixo: carga pendurada na frente);
   //   bump(v) tranco vertical, nod(v) tranco de inclinação (ex.: caçamba bateu no monte)
   function Chassis(o) {
     o = o || NO;
@@ -692,7 +694,7 @@
     let iL = 0, iR = 0;
     for (let i = 0; i < wheels.length; i++) { if (wheels[i].x < wheels[iL].x) iL = i; if (wheels[i].x > wheels[iR].x) iR = i; }
     const ch = {
-      wheels, floor: floorF, x: 0, y: 0, tilt: 0, vx: 0, ax: 0, face: o.face || 1, load: 0,
+      wheels, floor: floorF, x: 0, y: 0, tilt: 0, vx: 0, ax: 0, face: o.face || 1, load: 0, bias: 0,
       squat: o.squat !== undefined ? o.squat : 0.0016,
       heave: Spring(0, { k: o.k !== undefined ? o.k : 150, d: o.d !== undefined ? o.d : 13 }),
       lean: Spring(0, { k: o.tiltK !== undefined ? o.tiltK : 110, d: o.tiltD !== undefined ? o.tiltD : 11 }),
@@ -727,6 +729,7 @@
           if (span > 1e-3) { T = Math.atan2(yb - ya, span); Y = ya + (x - a.wx) * (yb - ya) / span; }
           else Y = ya;
         }
+                T += f * ch.bias;
         if (!ch.started) { ch.heave.snap(Y + ch.load); ch.lean.snap(T); ch.started = true; }
         ch.heave.target = Y + ch.load; ch.lean.target = T;
         ch.lean.kick(-ch.ax * ch.squat * dt);
