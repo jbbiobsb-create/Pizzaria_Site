@@ -973,6 +973,8 @@
      ===================================================================== */
   const anchorTmp = { x: 0, y: 0 };
   const drawOpts = { face: 1, scale: 1, squash: 0, rot: 0, pal: 'kome', hat: true, mouth: null, eyes: null, alpha: 1, shadow: true, fast: 0 };
+  const bubbleOpts = { k: 1, side: 1 };                  // reaproveitados: nada de alocar por frame
+  const anchorOpts = { hat: true, fast: 0, pal: 'kome' };
 
   /* Actor(opts) -> shiba com estado.
      campos: x,y,face,pose,t,pal,scale,squash,rot,vx,vy,hat,alpha,eyes,mouth,fast,shadow,visible,timeScale,
@@ -1010,9 +1012,10 @@
         const B = a.bubble;
         if (B) { B.age += dt; B.shown += B.cps * dt; if (B.age > B.dur) a.bubble = null; }
       },
-      // anchor(nome, out?) -> {x,y} em coordenadas de mundo (considera face, escala, squash e rot)
+      // anchor(nome, out?) -> {x,y} em coordenadas de mundo (considera face, escala, squash e rot), no mesmo t do frame desenhado
       anchor(name, out) {
-        out = shibaAnchor(a.pose, a.t, name, out);
+        const ao = anchorOpts; ao.hat = a.hat; ao.fast = a.fast; ao.pal = a.pal;
+        out = shibaAnchor(a.pose, frameT(a.t, ao), name, out, ao);
         const lx = out.x * a.face * a.scale * (1 + a.squash * 0.6), ly = out.y * a.scale * (1 - a.squash);
         const c = Math.cos(a.rot), sn = Math.sin(a.rot);
         out.x = a.x + lx * c - ly * sn; out.y = a.y - a.z + lx * sn + ly * c;
@@ -1036,7 +1039,9 @@
       },
       // drawHold(g, hold, y): desenha o sprite preso à âncora (padrão 'hold' = pata)
       drawHold(g, h, y) {
-        const cv = h.cv || h, p = shibaAnchor(a.pose, a.t, h.anchor || 'hold', anchorTmp), hs = h.scale || 1;
+        const ao = anchorOpts; ao.hat = a.hat; ao.fast = a.fast; ao.pal = a.pal;
+        // âncora no t do frame que o cache desenha (senão o objeto treme 1px em relação à pata)
+        const cv = h.cv || h, p = shibaAnchor(a.pose, frameT(a.t, ao), h.anchor || 'hold', anchorTmp, ao), hs = h.scale || 1;
         g.save(); g.translate(a.x, y); if (a.rot) g.rotate(a.rot);
         g.scale(a.face * a.scale * (1 + a.squash * 0.6), a.scale * (1 - a.squash));
         g.translate(p.x + (h.dx || 0), p.y + (h.dy || 0)); if (h.rot) g.rotate(h.rot);
@@ -1050,7 +1055,8 @@
         const p = a.anchor('hatTop', anchorTmp);
         const kin = Math.min(1, B.age / 0.18), kout = Math.min(1, (B.dur - B.age) / 0.12);
         const k = kout < 1 ? Math.max(0, kout) : (U.ease && U.ease.back ? U.ease.back(kin) : kin);
-        drawBubble(g, p.x + a.face * 4 * a.scale, p.y - 3 * a.scale, B, { k, side: a.face });
+        bubbleOpts.k = k; bubbleOpts.side = a.face;
+        drawBubble(g, p.x + a.face * 4 * a.scale, p.y - 3 * a.scale, B, bubbleOpts);
       },
     };
     if (opts) for (const k in opts) a[k] = opts[k];
