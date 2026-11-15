@@ -92,7 +92,7 @@
     for (let i = 0; i < 7; i++) { const a = E.hash(i * 5.3 + 9), b = E.hash(i * 2.9 + 4); const px = (a - 0.75) * hw * 1.1, top = h * (1 - Math.pow(Math.abs(px) / hw, 1.7)) * 0.9; g.fillRect(px, -(0.45 + b * 0.5) * top, 3.4, 1.3); }
     g.restore();
   }
-  const GRAIN = { shape: 'grain', c: [PAL.rice, PAL.rice, PAL.riceS], land: true, w: 2.6, life: 1.6, ol: true, speed: [20, 70], spread: 0.7, dir: PI / 2 };
+  const GRAIN = { shape: 'grain', c: [PAL.rice, PAL.rice, PAL.riceS], land: true, w: 1.9, life: 1.6, ol: true, speed: [20, 70], spread: 0.7, dir: PI / 2 };
 
   /* ======================================================================
      1) TRATOR COM CARREGADEIRA
@@ -103,12 +103,12 @@
     const rig = Rig();
     const ch = E.Chassis({ wheels: [{ x: -26, r: 24, travel: 4 }, { x: 34, r: 14, travel: 4 }], floor, k: 130, d: 9, tiltK: 90, tiltD: 8, squat: 0.0026 });
     const J = {
-      boom: E.Joint(0, { k: 24, d: 7.4, min: -1.05, max: 0.04, speed: 1.0 }),       // pesado: demora a sair e passa um pouco do ponto
+      boom: E.Joint(0.06, { k: 24, d: 7.4, min: -1.05, max: 0.1, speed: 1.0 }),       // pesado: demora a sair e passa um pouco do ponto
       bucket: E.Joint(0.05, { k: 70, d: 11, min: -1.0, max: 2.05, speed: 3.2 }),    // leve e rápido
     };
     const antenna = E.Spring(0, { k: 70, d: 3.2 }), flap = E.Spring(0, { k: 220, d: 9 }), pile = E.Spring(0, { k: 180, d: 9 });
     const exhaust = E.Exhaust({ size: 2.6, rate: 4.5, rise: 30, wind: -6 });
-    const ps = E.Particles(500);
+    const ps = E.Particles(500), psBin = E.Particles(300);
     const S = { x: -40, v: 0, vT: 0, face: 1, turn: 0, turnTo: 1, st: 0, st_t: 0, t: 0, load: 0, abs: 0.05, power: 0, binFill: 0.25, idle: 0 };
     const PILE_X = 205, BIN_X = -212, X_DIG = 62, X_DUMP = -112;
     const BOOM = [[0, 0, 5.5], [46, 9, 7.5], [62, 50, 4.6]];
@@ -183,10 +183,10 @@
     }
     function drawFender(gg) {
       gg.lineCap = 'round';
-      gg.beginPath(); gg.arc(-26, -24, 28.5, PI * 1.02, PI * 1.9);
+      gg.beginPath(); gg.arc(-26, -21, 28.5, PI * 1.02, PI * 1.9);
       gg.strokeStyle = LINE; gg.lineWidth = 9; gg.stroke();
       gg.strokeStyle = BODY; gg.lineWidth = 5; gg.stroke();
-      gg.beginPath(); gg.arc(-26, -24, 29.6, PI * 1.08, PI * 1.84);
+      gg.beginPath(); gg.arc(-26, -21, 29.6, PI * 1.08, PI * 1.84);
       gg.strokeStyle = shade(BODY, 0.3); gg.lineWidth = 1.6; gg.stroke();
     }
 
@@ -198,7 +198,7 @@
       S.vT = 0;
       switch (S.st) {
         case 0: // vai pro monte com a caçamba no chão
-          J.boom.set(0.02); S.abs = 0.06;
+          J.boom.set(0.065); S.abs = 0.06;
           S.vT = S.x < X_DIG - 26 ? 54 : 16;
           if (S.x >= X_DIG) { go(1); ch.nod(0.5); pile.kick(1.6); exhaust.burst(4, 1); ps.spray(S.x + 96, floor(S.x + 96) - 6, 14, Object.assign({}, GRAIN, { dir: -PI * 0.6, speed: [60, 150] })); }
           break;
@@ -223,14 +223,14 @@
             if (J.bucket.x + J.boom.x > 0.25 && S.load > 0) {
               S.load = Math.max(0, S.load - dt * 1.5); S.binFill = Math.min(1, S.binFill + dt * 0.3);
               rig.world('bucket', 36, 2, tmp);
-              ps.spray(tmp.x, tmp.y, 3, GRAIN);
+              psBin.spray(tmp.x, tmp.y, 5, GRAIN);
             }
           }
           if (t > 2.3) { go(6); ch.nod(0.35); }
           break;
         case 6: // recua, nivela e abaixa
           S.abs = 0.06; S.vT = 40;
-          if (t > 0.5) J.boom.set(0.02);
+          if (t > 0.5) J.boom.set(0.065);
           if (S.x >= -62) go(7);
           break;
         case 7: if (turnDone(1, t)) go(0); break;
@@ -263,7 +263,7 @@
       const want = U.clamp(Math.abs(S.v) / 70 + Math.abs(J.boom.v) * 1.2 + Math.abs(J.bucket.v) * 0.25 + Math.max(0, S.vT * S.v > 0 ? Math.abs(S.vT - S.v) / 50 : 0), 0, 1);
       S.power = U.damp(S.power, want, 5, dt);
       const body = rig.get('body');
-      body.y = Math.sin(S.t * 41) * (0.22 + S.power * 0.3);
+      body.y = -3 + Math.sin(S.t * 41) * (0.22 + S.power * 0.3);
       rig.get('hood').y = Math.sin(S.t * 41 + 1.3) * (0.25 + S.power * 0.4) - exhaust.pulse * 0.5;
       rig.get('boomF').rot = J.boom.x;
       for (const n of ['wRear', 'wFront']) { const p = rig.get(n), w = p.data; p.x = w.lx; p.y = w.ly; const f = rig.get(n + 'F'); f.x = w.lx + 4; f.y = w.ly - 2.5; }
@@ -275,7 +275,8 @@
       rig.world('hood', 18, -82, tmp);
       exhaust.update(dt, tmp.x, tmp.y, S.power, -S.v * 0.004, -1);
       if (Math.abs(S.v) > 20 && Math.random() < dt * 9) { const w = ch.wheels[0]; ps.puff(w.wx - U.sign(S.v) * 16, w.wy + w.r - 2, 1, 4.5, { c: PAL.sand }); }
-      ps.update(dt, x => (x > BIN_X - 26 && x < BIN_X + 26 ? floor(BIN_X) - 8 - S.binFill * 26 : floor(x)));
+      ps.update(dt, floor);
+      psBin.update(dt, x => (x > BIN_X - 30 && x < BIN_X + 30 ? floor(BIN_X) - 8 - S.binFill * 26 : floor(x)));
       S.binFill = Math.max(0.12, S.binFill - dt * 0.012);
     }
 
@@ -289,6 +290,7 @@
       Rig.mound(gg, BIN_X, by - 6 - S.binFill * 28, 30, 12 + S.binFill * 8);
       gg.fillStyle = PAL.rice; gg.fillRect(BIN_X - 26, by - 7 - S.binFill * 28, 52, 40);
       gg.restore();
+      psBin.draw(gg);
       Draw.box(gg, BIN_X - 30, by - 36, 60, 36, PAL.wood, { panels: 5, rivets: true });
       Draw.box(gg, BIN_X - 32, by - 40, 64, 5, PAL.woodL);
       ricePile(gg, PILE_X, floor(PILE_X) + 2, 66, 58, Math.max(-0.1, pile.x * 0.06));
