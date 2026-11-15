@@ -21,3 +21,11 @@ Aprovada a direção "dá pra ver os grãos" (terrain.js). Manter.
 
 ## 3. Orçamento curto: prioridade é o JOGO
 Cortados/adiados por enquanto: gfx.js (pós-processamento WebGL), demo do lago de carpas, revisões separadas por módulo.
+
+## 4. Carrinho de mão: a trombada (aprovado pelo dono)
+- O Kome pega embalo e bate o carrinho de frente no barranco (aríete). A batida derruba um pedaço do barranco: o arroz de
+  cima desliza em avalanche pra DENTRO da caçamba (usar heap.digRect/dig na face + grãos caindo com E.Grains na caçamba),
+  enchendo de uma vez. Pequeno hit-stop + shake na batida, Kome quica pra trás, chapéu pula.
+- Ele recua e despeja pra TRÁS, num montinho que os ajudantes/barraquinha recolhem; o ¥ cai no despejo.
+- De vez em quando (≈1 em 8) a avalanche é grande demais e enterra o Kome até o chapéu por meio segundo (ele sai sacudindo):
+  conta como "carga coroada" com bônus pequeno.
