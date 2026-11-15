@@ -33,14 +33,17 @@
     x = Math.round(x); y = Math.round(y + BOY);
     if (x >= 0 && y >= 0 && x < BW && y < BH && c) buf[y * BW + x] = c;
   }
+  // ell/tri varrem pixels inteiros, então escrevem direto no buffer (mesmo resultado de set(), sem arredondar)
   function ell(cx, cy, rx, ry, c) {
     if (dry) return;
-    const y1 = Math.ceil(cy + ry), x0 = Math.floor(cx - rx), x1 = Math.ceil(cx + rx);
-    for (let y = Math.floor(cy - ry); y <= y1; y++) {
-      const dy = (y + 0.5 - cy) / ry, dy2 = dy * dy;
+    let y0 = Math.floor(cy - ry), y1 = Math.ceil(cy + ry), x0 = Math.floor(cx - rx), x1 = Math.ceil(cx + rx);
+    if (y0 < -BOY) y0 = -BOY; if (y1 > BH - 1 - BOY) y1 = BH - 1 - BOY;
+    if (x0 < 0) x0 = 0; if (x1 > BW - 1) x1 = BW - 1;
+    for (let y = y0; y <= y1; y++) {
+      const dy = (y + 0.5 - cy) / ry, dy2 = dy * dy, row = (y + BOY) * BW;
       for (let x = x0; x <= x1; x++) {
         const dx = (x + 0.5 - cx) / rx;
-        if (dx * dx + dy2 <= 1) set(x, y, c);
+        if (dx * dx + dy2 <= 1) buf[row + x] = c;
       }
     }
   }
@@ -51,13 +54,18 @@
   function triSide(px, py, qx, qy, rx, ry) { return (px - rx) * (qy - ry) - (qx - rx) * (py - ry); }
   function tri(ax, ay, bx, by, cx, cy, c) {
     if (dry) return;
-    const minX = Math.floor(Math.min(ax, bx, cx)), maxX = Math.ceil(Math.max(ax, bx, cx));
-    const minY = Math.floor(Math.min(ay, by, cy)), maxY = Math.ceil(Math.max(ay, by, cy));
-    for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
-      const px = x + 0.5, py = y + 0.5;
-      const d1 = triSide(px, py, ax, ay, bx, by), d2 = triSide(px, py, bx, by, cx, cy), d3 = triSide(px, py, cx, cy, ax, ay);
-      const neg = d1 < 0 || d2 < 0 || d3 < 0, pos = d1 > 0 || d2 > 0 || d3 > 0;
-      if (!(neg && pos)) set(x, y, c);
+    let minX = Math.floor(Math.min(ax, bx, cx)), maxX = Math.ceil(Math.max(ax, bx, cx));
+    let minY = Math.floor(Math.min(ay, by, cy)), maxY = Math.ceil(Math.max(ay, by, cy));
+    if (minY < -BOY) minY = -BOY; if (maxY > BH - 1 - BOY) maxY = BH - 1 - BOY;
+    if (minX < 0) minX = 0; if (maxX > BW - 1) maxX = BW - 1;
+    for (let y = minY; y <= maxY; y++) {
+      const row = (y + BOY) * BW;
+      for (let x = minX; x <= maxX; x++) {
+        const px = x + 0.5, py = y + 0.5;
+        const d1 = triSide(px, py, ax, ay, bx, by), d2 = triSide(px, py, bx, by, cx, cy), d3 = triSide(px, py, cx, cy, ax, ay);
+        const neg = d1 < 0 || d2 < 0 || d3 < 0, pos = d1 > 0 || d2 > 0 || d3 > 0;
+        if (!(neg && pos)) buf[row + x] = c;
+      }
     }
   }
   function line(x0, y0, x1, y1, w, c) {
@@ -663,7 +671,8 @@
   /* Chave numérica: (t quantizado a 1/30 s) * 2^25 + bits de opções. A "vida ociosa" depende só de t,
      então dois shibas com a mesma paleta/pose/opções no mesmo t quantizado dividem o canvas.
      Anel FIFO de canvases 48x44: as chaves antigas (t passado) saem sozinhas. */
-  const CACHE_FPS = 30, CACHE_N = 640, KEY_MUL = 33554432;
+  const CACHE_N = 640, KEY_MUL = 33554432;
+  let CACHE_FPS = 30;
   const slotKey = new Float64Array(CACHE_N).fill(NaN), slotCv = new Array(CACHE_N).fill(null), slotG = new Array(CACHE_N).fill(null);
   const cacheMap = new Map();
   let cacheCur = 0;
@@ -721,6 +730,8 @@
   // drawShiba.clear(): esvazia o cache de frames ; drawShiba.stats -> {hits, misses, exact}
   drawShiba.clear = function () { cacheMap.clear(); slotKey.fill(NaN); };
   drawShiba.stats = stats;
+  // drawShiba.fps (get/set): quadros de animação por segundo guardados no cache (padrão 30; 20 economiza mais)
+  Object.defineProperty(drawShiba, 'fps', { get() { return CACHE_FPS; }, set(v) { v = Math.max(1, Math.min(120, v | 0)); if (v !== CACHE_FPS) { CACHE_FPS = v; drawShiba.clear(); } } });
 
   // shibaCanvas(pose,t,opts) -> canvas 48x44 NOVO (cópia), pra ícones/sprites que você quer guardar
   function shibaCanvas(mode, t, o) {

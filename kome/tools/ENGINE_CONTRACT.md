@@ -291,3 +291,19 @@ Cada máquina é `{ id, w, h, draw(g, x, y, state), anchors, update?(state,dt) }
 `{t, face, digging, power (0..1), target:{x,y}, wheelA, armT, tilt, load (0..1), lights}` e `anchors` dá pontos
 locais (`seat`, `cab`, `bucket`, `dump`, `exhaust`). `draw` desenha com os pés/esteiras em (x,y), virado pra `face`.
 Sempre com shibas minúsculos (`scale` .2–.3) e/ou pick-up quando a graça é a escala.
+
+## gfx.js (pós-processamento na placa de vídeo, opcional)
+
+Carrega depois de fx.js. O mundo continua sendo desenhado em canvas 2D; `Gfx` pega o canvas pronto como textura e
+aplica um passe WebGL por cima. Se WebGL não existir, tudo vira no-op e o jogo roda igual (só sem os efeitos).
+
+```js
+E.Gfx(stage, opts) -> gfx | null
+  /* opts: {bloom=.6, bloomThreshold=.75, vignette=.25, grade:{tint,contrast,saturation}, grain=0, quality:'low'|'med'|'high'} */
+  /* gfx.enabled, gfx.set(opts), gfx.render(time) (chamar no fim do frame), gfx.resize(),
+     gfx.lights: add({x,y,r,col,intensity}) em coords de tela -> luz aditiva com halo (faróis, lanternas, solda, ouro),
+     gfx.heat(x,y,w,h,amount) (distorção de calor: escapamento, onsen), gfx.water(rect,{t}) (ondulação/reflexo),
+     gfx.grade(tod) (correção de cor por hora do dia), gfx.shockwave(x,y) (anel de distorção em impacto grande),
+     gfx.godrays(x,y,amount) */
+```
+Regras: efeito sutil por padrão; opção de qualidade e de desligar no menu; nunca depender dele pra legibilidade.
