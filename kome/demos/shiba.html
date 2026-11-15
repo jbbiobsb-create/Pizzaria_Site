@@ -36,7 +36,7 @@
   function bg(title, sub) {
     g.fillStyle = '#BFE3F2'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#D8EFF7'; g.fillRect(0, 0, W, 60);
-    label('Kome Engine · shiba.js — ' + title, 16, 26, 18, INK, 'left');
+    label('shiba.js — ' + title, 16, 26, 16, INK, 'left');
     label(sub || '', 16, 46, 12, '#6B4A2E', 'left');
     // abas
     PAGES.forEach((p, i) => {
@@ -63,7 +63,7 @@
 
   /* ---------- 2. poses novas em zoom ---------- */
   function pageNew(t) {
-    bg('poses novas em zoom 4x (e 1x embaixo)', 'drive push carry cheer point think gasp cry proud climb wave + drive{fast}');
+    bg('poses novas (4x e 1x)', 'drive push carry cheer point think gasp cry proud climb wave + drive{fast}');
     const list = NEW.concat(['drive*']);
     list.forEach((p, i) => {
       const x = 24 + (i % 6) * 156 + 78, y = 262 + Math.floor(i / 6) * 232;
@@ -112,20 +112,19 @@
     bg('E.drawShibaHead — closes de rosto', 'expr: ' + ex.join(' · ') + ' · olhos/bocas avulsos embaixo');
     const pals = ['kome', 'kome', 'kome', 'kome', 'kome', 'kome', 'kome', 'kuro', 'sakura', 'shiro'];
     ex.forEach((e, i) => {
-      const x = 96 + (i % 5) * 192, y = 150 + Math.floor(i / 5) * 172;
-      g.fillStyle = i % 2 ? '#F7D9A0' : '#FBE7B8'; g.fillRect(x - 90, y - 76, 180, 150);
-      g.strokeStyle = '#2a1a10'; g.lineWidth = 2; g.strokeRect(x - 90, y - 76, 180, 150);
-      g.save(); g.beginPath(); g.rect(x - 89, y - 75, 178, 148); g.clip();
-      E.drawShibaHead(g, x - 10, y, t, { expr: e, scale: 4, pal: pals[i], face: 1 });
+      const x = 96 + (i % 5) * 192, y = 142 + Math.floor(i / 5) * 162;
+      g.fillStyle = i % 2 ? '#F7D9A0' : '#FBE7B8'; g.fillRect(x - 90, y - 74, 180, 148);
+      g.strokeStyle = '#2a1a10'; g.lineWidth = 2; g.strokeRect(x - 90, y - 74, 180, 148);
+      g.save(); g.beginPath(); g.rect(x - 89, y - 73, 178, 146); g.clip();
+      E.drawShibaHead(g, x - 14, y + 4, t, { expr: e, scale: 4.5, pal: pals[i], face: 1 });
       g.restore();
-      label(e, x, y + 68, 13);
+      label(e, x - 86, y - 58, 13, INK, 'left');
     });
     // olhos e bocas via opts do drawShiba
     const eyes = E.SHIBA_EYES, mouths = E.SHIBA_MOUTHS;
-    label("drawShiba(...,{eyes})", 14, 434, 11, '#6B4A2E', 'left');
-    eyes.forEach((e, i) => { const x = 40 + i * 71; E.drawShiba(g, x, 480, 'sit', 0.5, { scale: 1.5, eyes: e, shadow: false }); label(e, x, 494, 10); });
-    label("{mouth}", 14, 506, 11, '#6B4A2E', 'left');
-    mouths.forEach((m, i) => { const x = 90 + i * 80; E.drawShiba(g, x, 560, 'sit', 0.5, { scale: 1.5, mouth: m, shadow: false }); label(m, x, 536, 10); });
+    eyes.forEach((e, i) => { const x = 40 + i * 73; E.drawShiba(g, x, 446, 'sit', 0.5, { scale: 1.5, eyes: e, shadow: false }); label(e, x, 460, 10); });
+    mouths.forEach((m, i) => { const x = 40 + i * 73; E.drawShiba(g, x, 518, 'sit', 0.5, { scale: 1.5, mouth: m, shadow: false }); label(m, x, 532, 10); });
+    label('{eyes}', 946, 440, 11, '#6B4A2E', 'right'); label('{mouth}', 946, 512, 11, '#6B4A2E', 'right');
   }
 
   /* ---------- 5. âncoras ---------- */
@@ -157,7 +156,7 @@
     E.Actor({ x: 120, y: 250, vx: 46, pose: 'walk', scale: 2.4, autoPose: true }),
     E.Actor({ x: 700, y: 250, vx: -160, pose: 'run', scale: 2.4, pal: 'kuro', autoPose: true }),
     E.Actor({ x: 150, y: 430, pose: 'carry', scale: 2.4, pal: 'goma', vx: 30, hold: { cv: sack, ay: 15, scale: 1 } }),
-    E.Actor({ x: 420, y: 430, pose: 'sword', scale: 2.4, pal: 'aka', hold: { cv: shovel, ax: 4, ay: 4, rot: 0.5 } }),
+    E.Actor({ x: 420, y: 430, pose: 'sword', scale: 2.4, pal: 'aka', hold: { cv: shovel, ax: 4, ay: 12, rot: 0.9 } }),
     E.Actor({ x: 600, y: 430, pose: 'drive', scale: 2.4, pal: 'shiro', hold: { cv: wheel, ax: 4, ay: 6 } }),
     E.Actor({ x: 800, y: 430, pose: 'sit', scale: 2.4, pal: 'sakura', face: -1 }),
   ];

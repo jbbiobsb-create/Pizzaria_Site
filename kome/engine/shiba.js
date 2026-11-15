@@ -317,11 +317,11 @@
     leg(26, 31 + by, 27 + s(ph) * 2.6, 37 - Math.max(0, Math.cos(ph)) * 2.2, false);
     ell(23.5, 26 + by, 6.6, 7.8, FUR); ell(25.5, 28 + by, 3.4, 5.2, CREAM);
     back(18, 22 + by);
-    const py = 5.5 + by;
-    leg(20, 22 + by, 14.5, py + 1, true);
-    leg(29, 22 + by, 36.5, py + 1, false);
-    head(25, 13.5 + by, eyesO, 'smile', 'up', true, 0, 0);
-    A.pawX = 36.5; A.pawY = py; hold(25, 13.5 + by - 15);
+    const hy = 15 + by, py = 1.5 + by * 0.5;
+    leg(20, 23 + by, 13.5, py + 1, true);
+    leg(29, 23 + by, 37, py + 1, false);
+    head(25, hy, eyesO, 'smile', 'up', true, 0, 0);
+    A.pawX = 37; A.pawY = py; hold(25, py - 1.5);
   }
 
   // cheer: pulinho de comemoração com as duas patas pra cima
@@ -379,8 +379,8 @@
     sitBase(t, br, s(t * 3) * 0.7);
     lookArr[0] = 1; lookArr[1] = -1;
     head(30, hy, shut ? 'closed' : 'open', 'closed', 'up', true, 1, 0, lookArr);
-    arm(29, 28, 33.5, 29.5, 36, hy + 9, false);
-    A.pawX = 36; A.pawY = hy + 8;
+    leg(28.5, 29, 35.5, hy + 9, false);
+    A.pawX = 35.5; A.pawY = hy + 8;
     if (extra) {
       const n = Math.floor(t * 2.2) % 4;
       if (n > 0) set(41, 9, WHITE);
@@ -800,7 +800,7 @@
       drop(hx + 13, hy - 9 + f4); line(hx + 17, hy - 3, hx + 21, hy - 5, 1, WHITE); line(hx + 17, hy + 2, hx + 22, hy + 2, 1, WHITE); line(hx + 16, hy + 7, hx + 20, hy + 9, 1, WHITE);
     } else if (expr === 'determined') {
       star(hx + 14, hy - 8, f2 === 0);
-      rect(hx + 17, hy + 6, 4 + f2 * 2, 1, WHITE); rect(hx + 16, hy + 9, 6 - f2 * 2, 1, WHITE);   // bufada pelo focinho
+      ell(hx + 15.5 + f2, hy + 6.5, 1.6 + f2 * 0.5, 1.2, WHITE); if (f4 > 1) set(hx + 19 + f2, hy + 5, WHITE);   // bufada pelo focinho
     } else if (expr === 'cry') {
       const tx = hx + 1;
       rect(tx, hy + 2, 1, 5, TEAR); set(tx, hy + 2 + f4, TEARL); rect(tx - 1, hy + 7, 2, 2, TEAR); set(tx - 1, hy + 7, TEARL);
