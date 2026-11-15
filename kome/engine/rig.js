@@ -13,7 +13,20 @@
      6. Telescope           mastro/cilindro telescópico em estágios
      7. Chassis             rodas num chão f(x): inclinação da carroceria + compressão da suspensão
      8. Exhaust             fumaça de escapamento em pulsos
-     9. Conveyor            esteira transportadora em polilinha com roletes, marcas e montinhos de carga */
+     9. Conveyor            esteira transportadora em polilinha com roletes, marcas e montinhos de carga
+
+   Receita de um braço articulado (ver demos/rig.html pras máquinas completas):
+     const rig = E.Rig(), J = { boom: E.Joint(-.6, {k:22, d:7.5, min:-1.3, max:0, speed:1.3}), stick: E.Joint(1.5, {k:34, d:9}) };
+     rig.part('casa',  { draw: g => Draw.box(g, -40, -40, 80, 40, PAL.yel, {r:5}) });
+     rig.part('lanca', { parent:'casa',  x:30, y:-12, z:2, joint:J.boom,  draw: g => { Rig.plate(g, [[0,0,6],[30,-13,10],[80,0,5]], PAL.yel); Rig.pin(g,0,0,3); } });
+     rig.part('braco', { parent:'lanca', x:80, y:0,   z:3, joint:J.stick, draw: g => Rig.plate(g, [[-12,-2,4],[3,-1,7],[50,0,4]], PAL.yel) });
+     rig.piston('p1', { a:['casa',44,-4],   b:['lanca',32,-6],  w:6, z:2.5 });  rig.calibrate('p1', [['lanca', J.boom.min, J.boom.max]]);
+     rig.piston('p2', { a:['lanca',31,-21], b:['braco',-12,-2], w:5, z:3.5 });  rig.calibrate('p2', [['braco', .4, 2.5]]);
+     // por frame: alvo no espaço do modelo -> IK -> alvos das juntas (as molas dão o peso e o atraso entre elas)
+     const ik = E.ik2(30, -12, alvoX, alvoY, 80, 50, 1, tmp);  J.boom.set(ik.a1);  J.stick.set(ik.rel);
+     rig.update(dt);  rig.draw(g, x, y, { face, rot: chassi.tilt });
+   Regras de ouro: pino (Rig.pin) em toda junta; braço = Rig.plate afinado, nunca um Draw.beam só; todo movimento passa por
+   E.Joint/E.Spring (rigidez diferente por junta = atraso entre elas); o "segundo braço" é a mesma peça mais escura com z atrás. */
 (function () {
   'use strict';
   const E = (window.KomeEngine = window.KomeEngine || {});
@@ -445,7 +458,7 @@
 
   const BK_LOADER = [[-7, -22], [5, -27], [10, -23], [34, 3], [31, 8], [5, 9], [-4, 6], [-8, -2]];
   const BK_EXC = [[-5, -3], [-1, -12], [9, -17], [20, -14], [27, -5], [29, 2], [22, 3], [5, 4], [-3, 3]];
-  const bkPts = [];
+  const bkPts = [], bkO = { ol: undefined }, moundO = { col: null, shade: null, ol: undefined }, pulO = { col: null };
   // Rig.bucket(g, s, {kind='loader'|'excavator', col, load=0..1, teeth=true, cargo=cor, ol}): caçamba de perfil com o pino em (0,0)
   //   loader: comprimento ~s, boca pra cima/frente (+x); excavator: eixo x = pino -> dente (comprimento s), boca do lado +y
   Rig.bucket = function (g, s, o) {
@@ -480,7 +493,7 @@
       g.lineJoin = 'round'; g.strokeStyle = LINE; g.lineWidth = ol * 2; g.stroke();
       g.fillStyle = PAL.steel; g.fill();
     }
-    Draw.poly(g, bkPts, col, { ol: o.ol });
+    bkO.ol = o.ol; Draw.poly(g, bkPts, col, bkO);
     // volume: sombra na barriga, luz na borda de cima, reforço da boca
     g.save();
     g.beginPath(); for (let i = 0; i < bkPts.length; i++) { if (i) g.lineTo(bkPts[i][0], bkPts[i][1]); else g.moveTo(bkPts[0][0], bkPts[0][1]); }
@@ -527,7 +540,8 @@
      ====================================================================== */
   // E.Rope({pts:[{x,y,r=0,over=1,sag}], lw=1.5, col=LINE, sag=0, pulleys=true, pulleyCol, fixed='end'|'start'}) -> rope
   //   pts: primeiro e último são as pontas (r=0) ou tambores (r>0); os do meio são polias de raio r.
-  //   over=1: o cabo passa por CIMA da polia quando vai da esquerda pra direita (lado esquerdo de quem anda); -1 por baixo.
+  //   over=1: o cabo passa por CIMA da polia quando vai da esquerda pra direita; -1 por baixo.
+  //   (indo da direita pra esquerda inverte: over=-1 passa por cima.)
   //   Mexa em rope.pts[i].x/.y a cada frame e chame update(dt): calcula as tangentes, o comprimento (rope.length),
   //   o cabo pago desde o início (rope.payout) e gira cada polia pelo cabo que passou nela (pts[i].rot).
   //   fixed='end': o cabo corre a partir do tambor (pts[0]) e a ponta final está presa na carga; 'start' é o contrário.
@@ -615,7 +629,7 @@
         }
         if (rope.ol > 0) { g.strokeStyle = LINE; g.lineWidth = lw + rope.ol * 2; g.stroke(); }
         g.strokeStyle = rope.col; g.lineWidth = lw; g.stroke();
-        if (rope.pulleys) for (let i = 0; i < n; i++) { const p = pts[i]; if (p.r > 0 && p.draw !== false) Rig.pulley(g, p.x, p.y, p.r + lw * 0.9, p.rot, { col: p.col || rope.pulleyCol }); }
+        if (rope.pulleys) for (let i = 0; i < n; i++) { const p = pts[i]; if (p.r > 0 && p.draw !== false) { pulO.col = p.col || rope.pulleyCol; Rig.pulley(g, p.x, p.y, p.r + lw * 0.9, p.rot, pulO); } }
       },
     };
     rope.solve();
@@ -854,7 +868,7 @@
       const s = segs[Math.min(i, segs.length - 1)], s2 = segs[Math.max(0, i - 1)];
       let nx = -(s.uy + s2.uy), ny = s.ux + s2.ux; const L = Math.hypot(nx, ny) || 1; nx /= L; ny /= L;
       if (ny < 0) { nx = -nx; ny = -ny; }
-      return [p[0] + nx * R * 0.55, p[1] + ny * R * 0.55];
+      return [p[0] + nx * R * 1.3, p[1] + ny * R * 1.3];
     });
     const legs = [];
     if (o.legs !== false && floorF) {
@@ -864,7 +878,7 @@
         for (let j = i === 0 ? 0 : 1; j <= k; j++) {
           const d = s.len * j / k, edge = (i === 0 && j === 0) || (i === segs.length - 1 && j === k);
           const d2 = edge ? (j === 0 ? Math.min(R * 1.6, s.len / 2) : s.len - Math.min(R * 1.6, s.len / 2)) : d;
-          legs.push([s.x + s.ux * d2, s.y + s.uy * d2 + R * 0.55]);
+          legs.push([s.x + s.ux * d2, s.y + s.uy * d2 + R * 1.2]);
         }
       }
     }
@@ -972,7 +986,7 @@
             if (fy - l[1] > w * 2.4) Draw.box(g, l[0] - w * 0.3, l[1] + (fy - l[1]) * 0.45, w * 0.6, 2, PAL.grayD, legO);
           }
         }
-        Draw.beam(g, framePts, R * 1.1, frame, o);
+        Draw.beam(g, framePts, R, frame, o);
       },
       // drawBelt(g): correia (laço), roletes, tambores e marcas andando
       drawBelt(g) {
@@ -1028,7 +1042,7 @@
           if (cv.drawItem) { cv.drawItem(g, x, y, it.v, cvP.ang, it); continue; }
           const hw = Math.min(w * 1.25, w * 0.62 * k) * (0.6 + 0.4 * e), h = hw * 0.8 * e * (1 + j * 0.05);
           g.save(); g.translate(x, y); g.rotate(cvP.ang * 0.55 * (Math.abs(cvP.ang) > PI / 2 ? 0 : 1));
-          Rig.mound(g, 0, 0, hw, h, { col: cv.cargo, shade: cv.cargoShade, ol: o.ol });
+          moundO.col = cv.cargo; moundO.shade = cv.cargoShade; moundO.ol = o.ol; Rig.mound(g, 0, 0, hw, h, moundO);
           g.restore();
         }
       },

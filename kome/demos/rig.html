@@ -301,7 +301,7 @@
       ps.draw(gg);
     }
     const faceOf = u => { const f = Math.sin(u * PI / 2); return Math.abs(f) < 0.1 ? (u >= 0 ? 0.1 : -0.1) : f; };
-    return { rig, ch, J, S, update, draw, floor, cam: { x: 0, y: -52, z: 2 }, follow(dt, cam) { cam.x = U.damp(cam.x, U.clamp(S.x + S.face * 34, -110, 100), 2.2, dt); }, title: 'Trator com carregadeira', sub: 'E.Chassis + E.Joint + rig.piston + E.Exhaust' };
+    return { rig, ch, J, S, update, draw, floor, cam: { x: 0, y: 0, z: 1, span: 292, tall: 176 }, follow(dt, cam) { cam.x = U.damp(cam.x, U.clamp(S.x + S.face * 34, -110, 100), 2.2, dt); }, title: 'Trator com carregadeira', sub: 'E.Chassis + E.Joint + rig.piston + E.Exhaust' };
   }
 
   /* ======================================================================
@@ -310,7 +310,7 @@
   function makeExcavator() {
     const floor = x => -(1.6 * Math.sin(x * 0.03 + 1) + 0.8 * Math.sin(x * 0.09));
     const BODY = PAL.yel, CYL = PAL.blkL;
-    const L1 = 80, L2 = 50, L3 = 25, FX = 30, FY = -12, HY = -31;      // pino da lança no espaço da casa; casa em (0,HY)
+    const L1 = 80, L2 = 50, L3 = 30, FX = 30, FY = -12, HY = -31;      // pino da lança no espaço da casa; casa em (0,HY)
     const rig = Rig();
     const J = {
       slew: E.Joint(0, { k: 9, d: 5.2, min: 0, max: PI }),
@@ -323,8 +323,8 @@
     const ps = E.Particles(400);
     const S = { x: 0, v: 0, phase: 0, t: 0, tx: 110, ty: -30, curl: 0, load: 0, manual: 0, auto_t: 0, power: 0, aimX: 110, aimY: -30, aimC: 0, heap: 0 };
     const ik = {}, tmp = {};
-    const BOOM = [[0, 0, 6], [30, -13, 9.5], [80, 0, 5]];
-    const STICK = [[-12, -2, 3.6], [0, 0, 6], [50, 0, 3.8]];
+    const BOOM = [[0, 0, 6.5], [30, -13, 10.5], [80, 0, 5.4]];
+    const STICK = [[-12, -2, 4], [3, -1.5, 7.2], [50, 0, 4.2]];
 
     rig.part('tracks', { z: 0, draw: gg => {
       Draw.track(gg, -46, -25, 92, 25, S.phase, { col: PAL.grayD });
@@ -333,7 +333,7 @@
     rig.part('house', { z: 2, y: HY, draw: drawHouse });
     rig.part('boom', { parent: 'house', z: 4, x: FX, y: FY, joint: J.boom, draw: gg => {
       Rig.plate(gg, BOOM, BODY);
-      Rig.plate(gg, [[26, -19.5, 3.2], [36, -19, 3.2]], shade(BODY, -0.18), { hi: false, shade: false });   // orelha do cilindro do braço
+      Rig.plate(gg, [[26, -20.5, 3.4], [36, -20, 3.4]], shade(BODY, -0.18), { hi: false, shade: false });   // orelha do cilindro do braço
       Rig.pin(gg, 0, 0, 3.2); Rig.pin(gg, 80, 0, 2.8); Rig.pin(gg, 32, -6, 2.2);
     } });
     rig.part('stick', { parent: 'boom', z: 5, x: L1, y: 0, joint: J.stick, draw: gg => {
@@ -345,8 +345,8 @@
     rig.part('cabfront', { parent: 'house', z: 6, draw: drawCab });
     rig.piston('pBoomF', { a: ['house', 46, -5], b: ['boom', 32, -6], w: 5.4, z: 3.5, dx: 3, dy: -2, col: shade(CYL, -0.2) });
     rig.piston('pBoom', { a: ['house', 44, -4], b: ['boom', 32, -6], w: 6, z: 4.6, col: CYL });
-    rig.piston('pStick', { a: ['boom', 31, -20], b: ['stick', -12, -2], w: 5.2, z: 5.5, col: CYL });
-    rig.piston('pBucket', { a: ['stick', 9, -5], b: ['bucket', -1, -11], w: 4.2, z: 5.6, col: CYL });
+    rig.piston('pStick', { a: ['boom', 31, -21], b: ['stick', -12, -2], w: 5.2, z: 5.5, col: CYL });
+    rig.piston('pBucket', { a: ['stick', 9, -5], b: ['bucket', -1, -12.5], w: 4.2, z: 5.6, col: CYL });
     rig.calibrate('pBoom', [['boom', J.boom.min, J.boom.max]]);
     rig.calibrate('pBoomF', [['boom', J.boom.min, J.boom.max]]);
     rig.calibrate('pStick', [['stick', J.stick.min, J.stick.max]]);
@@ -403,6 +403,7 @@
       S.x += S.v * dt; S.phase += S.v * dt;
       // giro: a casa vira pro lado do alvo
       if (S.aimX < -14) J.slew.set(PI); else if (S.aimX > 14) J.slew.set(0);
+      J.slew.update(dt);
       const cs = Math.cos(J.slew.x), side = cs >= 0 ? 1 : -1, mid = 1 - Math.abs(cs);
       const house = rig.get('house');
       house.sx = Math.abs(cs) < 0.1 ? 0.1 * side : cs;
@@ -416,11 +417,11 @@
       rig.update(dt);
       // reação na carroceria: inclina com o alcance/carga e sacode quando as juntas aceleram ou batem no batente
       pitch.target = (0.012 + 0.03 * U.clamp((ik.reach - 0.55) * 2, 0, 1) + S.load * 0.012) * (1 - mid);
-      pitch.kick(((J.boom.v - bv) * 0.07 + (J.stick.v - sv) * 0.03));
-      if (J.boom.hit > 0.2 || J.stick.hit > 0.3) { pitch.kick(0.25); heave.kick(14); }
+      pitch.kick(((J.boom.v - bv) * 0.035 + (J.stick.v - sv) * 0.015));
+      if (J.boom.hit > 0.2 || J.stick.hit > 0.3) { pitch.kick(0.12); heave.kick(12); }
       pitch.update(dt); heave.update(dt);
       S.power = U.damp(S.power, U.clamp(Math.abs(J.boom.v) * 1.2 + Math.abs(J.stick.v) * 0.6 + Math.abs(J.bucket.v) * 0.25 + Math.abs(J.slew.v) * 0.7 + Math.abs(S.v) / 30, 0, 1), 5, dt);
-      house.rot = pitch.x * side; house.y = HY + heave.x + Math.sin(S.t * 38) * (0.2 + S.power * 0.3);
+      house.rot = U.clamp(pitch.x, -0.05, 0.07) * side; house.y = HY + heave.x + Math.sin(S.t * 38) * (0.2 + S.power * 0.3);
       rig.get('tracks').y = heave.x * 0.3;
       // carga: enche quando fecha a caçamba dentro do chão/monte; esvazia quando abre no alto
       rig.solve(S.x, floor(S.x), 1, 1, 0);
@@ -457,7 +458,7 @@
         gg.strokeStyle = PAL.cream; gg.lineWidth = 1.2; gg.beginPath(); gg.arc(mx, my, 5 + Math.sin(S.t * 6), 0, TAU); gg.moveTo(mx - 8, my); gg.lineTo(mx + 8, my); gg.moveTo(mx, my - 8); gg.lineTo(mx, my + 8); gg.stroke();
       }
     }
-    return { rig, J, S, update, draw, floor, ik, cam: { x: 4, y: -58, z: 1.72 }, follow(dt, cam) { cam.x = U.damp(cam.x, S.x + 4, 2, dt); }, title: 'Escavadeira hidráulica', sub: 'E.ik3 + 3 pistões · mova o mouse, segure pra fechar a caçamba' };
+    return { rig, J, S, update, draw, floor, ik, cam: { x: 4, y: 0, z: 1, span: 310, tall: 172 }, follow(dt, cam) { cam.x = U.damp(cam.x, S.x + 4, 2, dt); }, title: 'Escavadeira hidráulica', sub: 'E.ik3 + 3 pistões · mova o mouse, segure pra fechar a caçamba' };
   }
 
   /* ======================================================================
@@ -468,7 +469,7 @@
     const belt = E.Conveyor([[-250, -18], [-150, -18], [0, -86], [62, -86]], { w: 12, speed: 46, floor: 0, legGap: 64 });
     const ps = E.Particles(500);
     const S = { t: 0, feed: 0, bin: 0.2, shake: 0, sacks: 0, st: 0, st_t: 0, hold: false, pop: 0 };
-    const BIN_X = 92, STACK_X = 252, MAST_X = 176;
+    const BIN_X = 92, STACK_X = 244, MAST_X = 176;
     const binS = E.Spring(0, { k: 260, d: 10 }), hopS = E.Spring(0, { k: 300, d: 9 });
     belt.onDrop((vol, x, y, vx, vy) => {
       ps.spray(x, y, 5 + vol * 5, Object.assign({}, GRAIN, { dir: Math.atan2(40, vx), speed: [30, 90], spread: 0.5 }));
@@ -486,7 +487,7 @@
     function go(st) { S.st = st; S.st_t = 0; }
     function crane(dt) {
       S.st_t += dt;
-      const t = S.st_t, binTop = -34, slot = S.sacks, stackTop = -8 - Math.floor(slot / 2) * 13 - 8;
+      const t = S.st_t, binTop = -34, slot = S.sacks, stackTop = -11 - Math.floor(slot / 2) * 13 - 8;
       const sx = STACK_X + (slot % 2 ? 11 : -11) + (Math.floor(slot / 2) % 2 ? 5 : 0);
       switch (S.st) {
         case 0: M.trolley.target = BIN_X + 10; M.ext.target = 0.3; M.hook.target = -56; if (t > 1.4 && S.bin > 0.45) go(1); break;
@@ -517,7 +518,7 @@
       belt.update(dt);
       binS.update(dt); hopS.update(dt);
       crane(dt);
-      ps.update(dt, x => (x > BIN_X - 26 && x < BIN_X + 26 ? -10 - S.bin * 22 : x < -150 && x > -250 ? -25 : 0));
+      ps.update(dt, x => (x > BIN_X - 30 && x < BIN_X + 30 ? -12 - S.bin * 26 : x < -150 && x > -250 ? -25 : 0));
     }
 
     function draw(gg, v, cam) {
@@ -554,19 +555,19 @@
       gg.save(); gg.translate(BIN_X, 0); gg.scale(1 + bs, 1 - bs);
       Draw.shadow(gg, 0, 2, 36, 4);
       gg.save(); gg.beginPath(); gg.rect(-27, -70, 54, 68); gg.clip();
-      Rig.mound(gg, -6, -8 - S.bin * 22, 30, 9 + S.bin * 9);
-      gg.fillStyle = PAL.rice; gg.fillRect(-27, -9 - S.bin * 22, 54, 40);
+      Rig.mound(gg, -6, -10 - S.bin * 26, 30, 9 + S.bin * 9);
+      gg.fillStyle = PAL.rice; gg.fillRect(-27, -11 - S.bin * 26, 54, 40);
       gg.restore();
       Draw.box(gg, -30, -30, 60, 30, PAL.wood, { panels: 5, rivets: true });
       Draw.box(gg, -32, -34, 64, 5, PAL.woodL);
       gg.restore();
       // ---- sacos empilhados ----
+      Draw.box(gg, STACK_X - 30, -3, 64, 3, PAL.woodD);
       for (let i = 0; i < S.sacks; i++) {
         const row = Math.floor(i / 2), x = STACK_X + (i % 2 ? 11 : -11) + (row % 2 ? 5 : 0), sq = i === S.sacks - 1 ? S.pop * 0.25 : 0;
-        E.drawSprite(gg, sack, x, -row * 13, { sx: 1.3 * (1 + sq), sy: 1.3 * (1 - sq) });
+        E.drawSprite(gg, sack, x, -3 - row * 13, { sx: 1.3 * (1 + sq), sy: 1.3 * (1 - sq) });
       }
-      Draw.box(gg, STACK_X - 30, -3, 64, 3, PAL.woodD);
-      E.drawShiba(gg, STACK_X + 52, 0, S.pop > 0 || S.st === 4 ? 'cheer' : 'sit', S.t, { scale: 0.8, face: -1, pal: 'kuro' });
+      E.drawShiba(gg, STACK_X + 40, 0, S.pop > 0 || S.st === 4 ? 'cheer' : 'sit', S.t, { scale: 0.8, face: -1, pal: 'kuro' });
       E.drawShiba(gg, -196, 0, 'wag', S.t, { scale: 0.8, face: -1 });
       // ---- cabo, gancho e carga (na frente) ----
       rope.draw(gg);
@@ -579,7 +580,7 @@
       gg.restore();
       ps.draw(gg);
     }
-    return { belt, rope, mast, M, S, update, draw, floor, cam: { x: 8, y: -52, z: 1.6 }, follow() {}, title: 'Esteira + guincho telescópico', sub: 'E.Conveyor + E.Telescope + E.Rope' };
+    return { belt, rope, mast, M, S, update, draw, floor, cam: { x: 16, y: 0, z: 1, span: 580, tall: 138 }, follow() {}, title: 'Esteira + guincho telescópico', sub: 'E.Conveyor + E.Telescope + E.Rope' };
   }
 
   /* ======================================================================
@@ -589,8 +590,12 @@
   const all = [tr, ex, ln];
   const panels = ONLY ? [{ s: all[ONLY - 1], x: 0, y: 0, w: W, h: H, full: true }]
     : [{ s: tr, x: 0, y: 0, w: 478, h: 298 }, { s: ex, x: 482, y: 0, w: 478, h: 298 }, { s: ln, x: 0, y: 302, w: 960, h: 238 }];
-  if (ONLY) { const s = all[ONLY - 1]; s.cam.z *= q.has('z') ? 1 : ONLY === 3 ? 1.02 : 1.55; if (q.has('z')) s.cam.z = +q.get('z'); s.cam.y += ONLY === 3 ? -14 : -14; }
-  else { ln.cam.z = 1.72; ln.cam.y = -50; }
+  // zoom pra caber a largura útil da cena no painel; chão a ~85% da altura
+  for (const p of panels) {
+    const c = p.s.cam;
+    c.z = q.has('z') && ONLY ? +q.get('z') : Math.min(p.w / c.span, p.h / c.tall);
+    c.y = -(0.85 - 0.5) * p.h / c.z;
+  }
   const view = { x0: 0, x1: 0, y0: 0, y1: 0 }, mouse = { x: 0, y: 0, down: false, active: false };
   let moved = 0;
   input.on('move', () => { moved = 2.5; });

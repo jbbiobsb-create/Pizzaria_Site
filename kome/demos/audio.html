@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kome Engine · audio.js</title>
+<style>
+  :root { --line: #3B2818; --ink: #2A1A10; --paper: #F6EBD2; --card: #FFFAEE; --shade: #E6D6B4; --gold: #F3C94A; --red: #C8423A; --leaf: #6B8A4B; --ora: #E2742E; --water: #3F7FA6; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--line); }
+  body { font: 13px/1.35 "Trebuchet MS", "Verdana", system-ui, sans-serif; color: var(--ink); -webkit-user-select: none; user-select: none; }
+  #page { max-width: 1280px; margin: 0 auto; padding: 14px 16px 30px; background: var(--paper);
+    background-image: radial-gradient(rgba(59,40,24,.05) 1px, transparent 1.2px); background-size: 9px 9px; min-height: 100vh; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: .5px; }
+  h1 small { font-size: 12px; font-weight: normal; opacity: .7; margin-left: 8px; }
+  h2 { margin: 18px 0 8px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  h2::before { content: ""; width: 10px; height: 10px; background: var(--red); border: 2px solid var(--line); border-radius: 50%; }
+  h2 span { font-weight: normal; opacity: .65; font-size: 12px; }
+  #top { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .pill { border: 2px solid var(--line); border-radius: 999px; padding: 2px 10px; background: var(--card); font-size: 12px; white-space: nowrap; }
+  .pill.ok { background: #DDEBC4; } .pill.bad { background: #F3C3B8; } .pill.wait { background: #F8E7A8; }
+  .ctl { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 84px; height: 12px; border: 2px solid var(--line); border-radius: 8px; background: var(--card); margin: 0; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 20px; border: 2px solid var(--line); border-radius: 6px; background: var(--gold); cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 18px; border: 2px solid var(--line); border-radius: 6px; background: var(--gold); cursor: pointer; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .btn { border: 2px solid var(--line); border-radius: 9px; background: var(--card); padding: 4px 10px; box-shadow: 0 3px 0 var(--line); transition: transform .06s, box-shadow .06s, background .15s; }
+  .btn:active, .btn.hit { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+  .btn.on { background: var(--gold); }
+  #scope { display: block; width: 100%; height: 150px; border: 2px solid var(--line); border-radius: 12px; background: #FFF6DF; margin-top: 10px; box-shadow: 0 4px 0 var(--line); image-rendering: pixelated; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 9px 8px; }
+  .grid.wide { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+  .grid.music { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+  .card { position: relative; display: block; width: 100%; text-align: left; border: 2px solid var(--line); border-radius: 10px; background: var(--card); padding: 5px 6px 4px; box-shadow: 0 3px 0 var(--line);
+    transition: transform .07s cubic-bezier(.3,1.6,.5,1), box-shadow .07s, background .2s; }
+  .card:hover { background: #FFF3CF; }
+  .card:active, .card.hit { transform: translateY(3px) scale(.985); box-shadow: 0 0 0 var(--line); }
+  .card.on { background: #FBE9A6; }
+  .card canvas { display: block; width: 100%; height: 40px; border-radius: 5px; background: #F3E6C6; }
+  .card.music canvas { height: 92px; }
+  .card b { display: block; margin-top: 3px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card i { display: block; font-style: normal; font-size: 10.5px; opacity: .72; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .card .dot { position: absolute; right: 6px; bottom: 7px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--line); background: var(--shade); }
+  .card .dot.ok { background: #8DB65C; } .card .dot.bad { background: var(--red); animation: blink .5s steps(2) infinite; } .card .dot.warn { background: var(--gold); }
+  .card .tier { position: absolute; left: 9px; top: 8px; font-size: 10px; font-weight: bold; background: var(--line); color: var(--card); border-radius: 6px; padding: 0 5px; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 0 0 8px; }
+  #summary { margin-top: 16px; border: 2px dashed var(--line); border-radius: 10px; padding: 8px 12px; background: var(--card); font-size: 12px; white-space: pre-wrap; font-variant-numeric: tabular-nums; }
+  #layers { display: flex; gap: 5px; flex-wrap: wrap; }
+  #layers .pill { transition: background .3s, transform .3s cubic-bezier(.3,1.6,.5,1); opacity: .55; padding: 1px 8px; }
+  #layers .pill.live { background: var(--gold); opacity: 1; transform: translateY(-2px); }
+</style>
+</head>
+<body>
+<div id="page">
+  <div id="top">
+    <h1>Kome Engine <small>audio.js · tudo sintetizado, zero arquivos</small></h1>
+    <span id="status" class="pill wait">toque em qualquer lugar para ligar o som</span>
+    <span class="ctl">geral <input id="vMaster" type="range" min="0" max="1" step="0.01"></span>
+    <span class="ctl">efeitos <input id="vSfx" type="range" min="0" max="1" step="0.01"></span>
+    <span class="ctl">música <input id="vMusic" type="range" min="0" max="1" step="0.01"></span>
+    <button id="mute" class="btn">mudo</button>
+  </div>
+  <canvas id="scope" width="1244" height="150"></canvas>
+
+  <h2>Ferramentas <span>os 12 degraus do GDD · o grave desce de 200 Hz até 35 Hz</span></h2>
+  <div class="row">
+    <span class="ctl">pitch <input id="pitch" type="range" min="0.6" max="1.6" step="0.01" value="1"> <b id="pitchV">1.00</b></span>
+    <span class="ctl">peso do grave <input id="weight" type="range" min="-0.01" max="1.5" step="0.01" value="-0.01"> <b id="weightV">padrão</b></span>
+  </div>
+  <div id="gTools" class="grid"></div>
+
+  <h2>Recompensas <span>afinadas com a escala da trilha · a "skin" troca o timbre a cada fase (rotação do GDD §14)</span></h2>
+  <div class="row" id="skins"></div>
+  <div id="gReward" class="grid"></div>
+
+  <h2>Impactos e máquinas</h2><div id="gMach" class="grid"></div>
+  <h2>Interface, sacos e eventos</h2><div id="gUi" class="grid"></div>
+  <h2>Vozes <span>Kome e a bicharada</span></h2><div id="gVox" class="grid"></div>
+
+  <h2>Loops <span>motores e ambiências contínuos · clique liga/desliga</span></h2>
+  <div class="row">
+    <span class="ctl">regime <input id="rate" type="range" min="0" max="1" step="0.01" value="0.4"> <b id="rateV">0.40</b></span>
+    <button id="stopLoops" class="btn">parar todos</button>
+  </div>
+  <div id="gLoops" class="grid wide"></div>
+
+  <h2>Música generativa <span>espectrograma de 20 s com a intensidade subindo de 0,1 a 1 (as camadas entrando)</span></h2>
+  <div class="row">
+    <span class="ctl">intensidade <input id="inten" type="range" min="0" max="1" step="0.01" value="0.35" style="width:220px"> <b id="intenV">0.35</b></span>
+    <button id="stopMusic" class="btn">parar</button>
+    <span class="pill" id="mInfo">parada</span>
+    <span id="layers"></span>
+  </div>
+  <div id="gMusic" class="grid music"></div>
+
+  <div id="summary">verificando os sons (render offline)...</div>
+</div>
+
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/audio.js"></script>
+<script>
+/* Demo do audio.js: mesa de som.
+   Cada cartão toca um som; a miniatura é a forma de onda (ou espectrograma) do render offline pela cadeia master.
+   A verificação roda sozinha ao carregar: window.__audit é uma Promise com o resumo; ?audit=0 pula; ?fast=1 música de 8 s. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, A = E.Audio, S = E.Sfx, Lp = E.Loops, M = E.Music, PAL = E.PAL || {};
+  const q = new URLSearchParams(location.search);
+  const $ = id => document.getElementById(id);
+  const LINE = '#3B2818';
+  function el(tag, cls, parent, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+
+  /* ---------- catálogo ---------- */
+  const TOOL_LABEL = ['Pata', 'Hashi', 'Tigela', 'Pá', 'Duas Pás', 'Carrinho', 'Trator', 'Empilhadeira', 'Escavadeira', 'Pá de Cabo', 'Caminhão', 'Bagger 293'];
+  const CATS = {
+    gReward: ['coin', 'coins', 'combo', 'pling', 'fanfare', 'levelup', 'gold', 'shing', 'sparkle', 'buy', 'unlock', 'kaching'],
+    gMach: ['thud', 'clank', 'metal', 'hydraulic', 'steam', 'horn', 'hornBig', 'beep', 'reverse', 'engineStart', 'squeak', 'cart', 'dump', 'groan', 'zip', 'crash', 'stomp', 'rumble'],
+    gUi: ['click', 'hover', 'typing', 'error', 'sack', 'shake', 'pop', 'knock', 'hanko', 'whoosh', 'splash', 'drip', 'boing', 'taiko', 'taikoRoll', 'bell', 'chime', 'chirin', 'trill', 'whistle'],
+    gVox: ['bark', 'bark2', 'yip', 'whine', 'howl', 'yawn', 'caw'],
+  };
+  const tools = S.tools().map(t => t.id), listed = new Set(tools);
+  Object.keys(CATS).forEach(k => CATS[k].forEach(n => listed.add(n)));
+  S.names().forEach(n => { if (!listed.has(n)) CATS.gUi.push(n); });           // som novo sem categoria aparece aqui
+  const cards = {};        // id -> {el, cv, info, dot}
+  const POSE = { bark: 'cheer', bark2: 'cheer', yip: 'jump', howl: 'howl', yawn: 'yawn', whine: 'cry', levelup: 'cheer', fanfare: 'cheer', gold: 'surprise', stomp: 'jump', crash: 'gasp', error: 'dizzy', coin: 'wag', buy: 'proud' };
+
+  function card(grid, id, label, onClick, cls) {
+    const b = el('button', 'card' + (cls ? ' ' + cls : ''), $(grid));
+    const cv = el('canvas', '', b); cv.width = cls === 'music' ? 640 : 300; cv.height = cls === 'music' ? 184 : 80;
+    el('b', '', b, label); const info = el('i', '', b, '...'); const dot = el('span', 'dot', b);
+    b.addEventListener('click', () => { b.classList.add('hit'); setTimeout(() => b.classList.remove('hit'), 90); onClick(b); });
+    b.addEventListener('pointerenter', () => S.play('hover'));
+    cards[id] = { el: b, cv, info, dot };
+    return b;
+  }
+  const playOpts = { pitch: 1, weight: undefined };
+  function playSfx(name) {
+    playOpts.pitch = +$('pitch').value; const w = +$('weight').value; playOpts.weight = w < 0 ? undefined : w;
+    const isTool = tools.indexOf(name) >= 0;
+    S.play(name, isTool ? playOpts : name === 'combo' ? { n: comboN = (comboN + 2) % 32 } : undefined);
+    if (POSE[name]) react(POSE[name], 0.9); else kome.hop(60);
+  }
+  let comboN = 0;
+  tools.forEach((id, i) => { const b = card('gTools', 'sfx:' + id, TOOL_LABEL[i], () => { S.setTool(i); playSfx(id); react('dig', 0.5); }); el('span', 'tier', b, String(i + 1)); });
+  Object.keys(CATS).forEach(g => CATS[g].forEach(n => card(g, 'sfx:' + n, n, () => playSfx(n))));
+
+  S.skins().forEach((sk, i) => {
+    const b = el('button', 'btn' + (i === S.getSkin() ? ' on' : ''), $('skins'), sk.id + ' · ' + sk.label);
+    b.addEventListener('click', () => { S.setSkin(i); [...$('skins').children].forEach((c, j) => c.classList.toggle('on', j === i)); S.play('coin'); drawSkinThumbs(i); });
+  });
+
+  /* loops */
+  const loopH = {};
+  Lp.names().forEach(n => card('gLoops', 'loop:' + n, n, b => {
+    if (loopH[n]) { loopH[n].stop(0.5); loopH[n] = null; b.classList.remove('on'); }
+    else { loopH[n] = Lp.start(n, { rate: +$('rate').value, vol: 1 }); b.classList.add('on'); }
+  }));
+  $('rate').addEventListener('input', () => { const r = +$('rate').value; $('rateV').textContent = r.toFixed(2); for (const n in loopH) if (loopH[n]) loopH[n].set({ rate: r }); });
+  $('stopLoops').addEventListener('click', () => { Lp.stopAll(0.5); for (const n in loopH) { loopH[n] = null; cards['loop:' + n].el.classList.remove('on'); } });
+
+  /* música */
+  M.themes().forEach(n => card('gMusic', 'music:' + n, M.get(n).label + ' · ' + n, () => { M.setIntensity(+$('inten').value); M.start(n); markTheme(); }, 'music'));
+  function markTheme() { M.themes().forEach(n => cards['music:' + n].el.classList.toggle('on', M.playing && M.theme === n)); }
+  $('inten').addEventListener('input', () => { $('intenV').textContent = (+$('inten').value).toFixed(2); M.setIntensity(+$('inten').value); });
+  $('stopMusic').addEventListener('click', () => { M.stop(1.2); markTheme(); });
+  const LAYERS = ['pad', 'koto', 'furin', 'drip', 'bass', 'shaku', 'shime', 'clap', 'don', 'anvil', 'shami', 'kane'], layerEl = {};
+  LAYERS.forEach(n => { layerEl[n] = el('span', 'pill', $('layers'), n); });
+
+  /* volumes */
+  $('vMaster').value = A.volume; $('vSfx').value = A.sfxVol; $('vMusic').value = A.musicVol;
+  $('vMaster').addEventListener('input', e => { A.volume = +e.target.value; });
+  $('vSfx').addEventListener('input', e => { A.sfxVol = +e.target.value; });
+  $('vMusic').addEventListener('input', e => { A.musicVol = +e.target.value; });
+  $('mute').addEventListener('click', () => { A.muted = !A.muted; $('mute').classList.toggle('on', A.muted); });
+  $('pitch').addEventListener('input', () => { $('pitchV').textContent = (+$('pitch').value).toFixed(2); });
+  $('weight').addEventListener('input', () => { const w = +$('weight').value; $('weightV').textContent = w < 0 ? 'padrão' : w.toFixed(2); });
+
+  /* ---------- miniaturas ---------- */
+  // forma de onda: envelope min/max por coluna, com sombra (3 tons, como tudo no estilo Kome)
+  function drawWave(cv, m, sr, dur, col) {
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height, n = Math.min(m.length, Math.ceil((dur + 0.03) * sr)), mid = H / 2;
+    g.clearRect(0, 0, W, H); g.fillStyle = '#F3E6C6'; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(59,40,24,.12)'; g.fillRect(0, mid, W, 1);
+    let pk = 0; for (let i = 0; i < n; i++) { const a = Math.abs(m[i]); if (a > pk) pk = a; }
+    const k = (H / 2 - 4) / Math.max(pk, 0.05);
+    for (let pass = 0; pass < 2; pass++) {
+      g.fillStyle = pass ? col : U.shade ? U.shade(col, -0.45) : LINE;
+      for (let x = 0; x < W; x++) {
+        const i0 = Math.floor(x / W * n), i1 = Math.max(i0 + 1, Math.floor((x + 1) / W * n)); let lo = 1, hi = -1;
+        for (let i = i0; i < i1; i++) { const v = m[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+        const y0 = mid - hi * k, y1 = mid - lo * k;
+        if (pass) g.fillRect(x, y0, 1, Math.max(1, y1 - y0)); else g.fillRect(x, y0 - 1, 1, Math.max(3, y1 - y0 + 3));
+      }
+    }
+    g.fillStyle = 'rgba(255,250,230,.55)';                                   // brilho na crista
+    for (let x = 0; x < W; x += 1) { const i0 = Math.floor(x / W * n), i1 = Math.max(i0 + 1, Math.floor((x + 1) / W * n)); let hi = -1; for (let i = i0; i < i1; i++) if (m[i] > hi) hi = m[i]; if (hi * k > 3) g.fillRect(x, mid - hi * k, 1, 1); }
+  }
+  // espectrograma log-frequência (50 Hz..12 kHz), tinta laranja -> marrom sobre papel
+  const RAMP = [[243, 230, 198], [248, 220, 124], [226, 116, 46], [147, 48, 42], [59, 40, 24]];
+  function ramp(v, out, o) { v = U.clamp(v, 0, 1) * (RAMP.length - 1); const i = Math.min(RAMP.length - 2, Math.floor(v)), u = v - i; for (let c = 0; c < 3; c++) out[o + c] = RAMP[i][c] + (RAMP[i + 1][c] - RAMP[i][c]) * u; out[o + 3] = 255; }
+  function drawSpec(cv, m, sr) {
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height, N = 2048, img = g.createImageData(W, H), re = new Float32Array(N), im = new Float32Array(N), mag = new Float32Array(N / 2);
+    const f0 = 50, f1 = 12000, lr = Math.log(f1 / f0);
+    for (let x = 0; x < W; x++) {
+      const o = Math.floor(x / W * Math.max(1, m.length - N));
+      for (let i = 0; i < N; i++) { re[i] = (m[o + i] || 0) * (0.5 - 0.5 * Math.cos(U.TAU * i / N)); im[i] = 0; }
+      A.fft(re, im);
+      for (let k = 0; k < N / 2; k++) mag[k] = Math.sqrt(re[k] * re[k] + im[k] * im[k]) / (N / 4);
+      for (let y = 0; y < H; y++) {
+        const f = f0 * Math.exp(lr * (1 - y / H)), fb = f0 * Math.exp(lr * (1 - (y + 1) / H)), k0 = Math.max(1, Math.floor(fb * N / sr)), k1 = Math.max(k0 + 1, Math.ceil(f * N / sr)); let v = 0;
+        for (let k = k0; k < k1 && k < N / 2; k++) if (mag[k] > v) v = mag[k];
+        ramp((20 * Math.log10(v + 1e-7) + 78) / 60, img.data, (y * W + x) * 4);
+      }
+    }
+    g.putImageData(img, 0, 0);
+    g.fillStyle = 'rgba(59,40,24,.55)'; g.font = '16px sans-serif';
+    [100, 1000, 10000].forEach(f => { const y = H * (1 - Math.log(f / f0) / lr); g.fillRect(0, y, 8, 2); g.fillText(f >= 1000 ? f / 1000 + 'k' : f, 11, y + 5); });
+  }
+  const fmtHz = f => f >= 1000 ? (f / 1000).toFixed(1) + ' kHz' : Math.round(f) + ' Hz';
+
+  /* ---------- verificação offline ---------- */
+  const results = [];
+  function judge(id, r, kind) {
+    const bad = r.nan > 0 || r.clipped || r.silent || r.dur < 0.02 || Math.abs(r.dc) > 0.02;
+    const warn = !bad && (r.peak > 0.92 || r.peak < (kind === 'music' ? 0.08 : 0.04));
+    results.push({ id, bad, warn, r });
+    console.log('[kome] audio check: ' + id.padEnd(22) + ' peak ' + r.peak.toFixed(3) + ' rms ' + r.rms.toFixed(3) + ' dur ' + r.dur.toFixed(2) + 's cent ' + Math.round(r.centroid) + 'Hz' + (bad ? '  <-- FALHA' + (r.nan ? ' nan' : '') + (r.clipped ? ' clip' : '') + (r.silent ? ' silêncio' : '') : warn ? '  (nível fora do alvo)' : ''));
+    const c = cards[id];
+    if (c) { c.dot.className = 'dot ' + (bad ? 'bad' : warn ? 'warn' : 'ok'); c.info.textContent = 'pico ' + r.peak.toFixed(2) + ' · ' + r.dur.toFixed(2) + ' s · ' + fmtHz(r.centroid); }
+    return !bad;
+  }
+  const COL = { gTools: PAL.ora || '#E2742E', gReward: PAL.goldD || '#B4852A', gMach: PAL.steelD || '#808A96', gUi: PAL.leaf || '#6B8A4B', gVox: PAL.pink || '#D95763' };
+  async function auditSfx(name, grid, opts) {
+    const ab = await A.renderSfx(name, opts), r = A.analyze(ab);
+    judge('sfx:' + name, r, 'sfx');
+    if (ab && cards['sfx:' + name]) drawWave(cards['sfx:' + name].cv, A.mono(ab), ab.sampleRate, r.dur, COL[grid]);
+  }
+  async function drawSkinThumbs(i) {
+    for (const n of ['coin', 'coins', 'combo', 'pling', 'fanfare']) { const ab = await A.renderSfx(n, { skin: i, n: 8 }); if (ab) drawWave(cards['sfx:' + n].cv, A.mono(ab), ab.sampleRate, A.analyze(ab).dur, COL.gReward); }
+  }
+  async function audit() {
+    const t0 = performance.now(), secs = q.get('fast') ? 8 : 20;
+    if (!window.OfflineAudioContext && !window.webkitOfflineAudioContext) { $('summary').textContent = 'sem OfflineAudioContext neste navegador: verificação pulada'; return { ok: 0, fail: 0, skipped: true }; }
+    for (const id of tools) await auditSfx(id, 'gTools');
+    for (const g of Object.keys(CATS)) for (const n of CATS[g]) await auditSfx(n, g, n === 'combo' ? { n: 8 } : undefined);
+    for (let i = 0; i < S.skins().length; i++) for (const n of ['coin', 'fanfare']) { const ab = await A.renderSfx(n, { skin: i }); judge('skin' + S.skins()[i].id + ':' + n, A.analyze(ab), 'sfx'); }
+    { const ab = await A.renderSfx('combo', { n: 30 }); judge('sfx:combo(30)', A.analyze(ab), 'sfx'); }
+    for (let i = 3; i < 12; i++) { const ab = await A.renderSfx(tools[i], { weight: 1.5, pitch: 0.8 }); judge('heavy:' + tools[i], A.analyze(ab), 'sfx'); }
+    for (const n of Lp.names()) {
+      const ab = await A.renderLoop(n, 4, { rate: 0.6 }), r = A.analyze(ab); judge('loop:' + n, r, 'loop');
+      if (ab) drawWave(cards['loop:' + n].cv, A.mono(ab), ab.sampleRate, 4, PAL.waterD || '#3F7FA6');
+    }
+    for (const n of M.themes()) {
+      const ab = await A.renderMusic(n, secs, { intensity: t => 0.1 + 0.9 * t / (secs * 0.8), seed: 7 }), r = A.analyze(ab);
+      judge('music:' + n, r, 'music');
+      if (ab) {
+        drawSpec(cards['music:' + n].cv, A.mono(ab), ab.sampleRate);
+        const th = M.get(n); cards['music:' + n].info.textContent = th.bpm + ' bpm · ' + th.keys.map(k => k[0]).join(' / ') + ' · pico ' + r.peak.toFixed(2) + ' · rms ' + r.rms.toFixed(3) + ' · ' + fmtHz(r.centroid);
+      }
+    }
+    // a mesma seed tem que dar a mesma música; seeds diferentes, músicas diferentes
+    const a1 = await A.renderMusic('campo', 6, { seed: 3 }), a2 = await A.renderMusic('campo', 6, { seed: 3 }), a3 = await A.renderMusic('campo', 6, { seed: 4 });
+    let same = 0, diff = 0; if (a1 && a2 && a3) { const x = a1.getChannelData(0), y = a2.getChannelData(0), z = a3.getChannelData(0); for (let i = 0; i < x.length; i += 7) { same += Math.abs(x[i] - y[i]); diff += Math.abs(x[i] - z[i]); } }
+    const fail = results.filter(r => r.bad), warn = results.filter(r => r.warn);
+    const sum = { total: results.length, ok: results.length - fail.length, fail: fail.map(r => r.id), warn: warn.map(r => r.id), seedStable: same < 1e-3, seedVaries: diff > 1, ms: Math.round(performance.now() - t0) };
+    console.log('[kome] audio check: RESUMO ' + sum.ok + '/' + sum.total + ' ok, ' + fail.length + ' falha(s), ' + warn.length + ' aviso(s), seed estável=' + sum.seedStable + ', seed varia=' + sum.seedVaries + ', ' + sum.ms + ' ms');
+    $('summary').textContent = 'Verificação offline: ' + sum.ok + ' de ' + sum.total + ' renders ok (sem NaN, sem clip, sem silêncio) · ' + fail.length + ' falha(s)' + (fail.length ? ': ' + sum.fail.join(', ') : '') +
+      ' · ' + warn.length + ' aviso(s) de nível' + (warn.length ? ': ' + sum.warn.join(', ') : '') + '\nMesma seed = mesma música: ' + (sum.seedStable ? 'sim' : 'NÃO') + ' · seed diferente = música diferente: ' + (sum.seedVaries ? 'sim' : 'NÃO') + ' · ' + (sum.ms / 1000).toFixed(1) + ' s';
+    return sum;
+  }
+  window.__audit = q.get('audit') === '0' ? Promise.resolve({ skipped: true }) : new Promise(res => setTimeout(() => audit().then(res, e => { console.error(e); res({ error: String(e) }); }), 50));
+
+  /* ---------- palco: Kome + osciloscópio ao vivo ---------- */
+  const sc = $('scope'), g = sc.getContext('2d'), SW = sc.width, SH = sc.height;
+  const kome = E.Actor ? E.Actor({ x: 0, y: 0, pose: 'sit', pal: 'kome' }) : { update() {}, draw() {}, hop() {} };
+  let poseT = 0, beatPulse = 0, barPulse = 0, lampI = -1, time = 0;
+  function react(pose, sec) { kome.pose = pose; poseT = sec; }
+  M.on('beat', b => { beatPulse = 1; lampI = b; if (kome.hop && b % 2 === 0 && poseT <= 0) kome.hop(45); });
+  M.on('bar', () => { barPulse = 1; });
+  const td = new Float32Array(2048), fd = new Uint8Array(1024), bars = new Float32Array(48);
+  let rmsLive = 0, peakLive = 0;
+  function frame(dt) {
+    time += dt; beatPulse = Math.max(0, beatPulse - dt * 4); barPulse = Math.max(0, barPulse - dt * 1.5);
+    if (poseT > 0) { poseT -= dt; if (poseT <= 0) kome.pose = M.playing ? 'dance' : 'sit'; }
+    else kome.pose = M.playing && A.ready ? (M.intensity > 0.6 ? 'dance2' : 'dance') : (A.ready ? 'wag' : 'sit');
+    kome.update(dt);
+    const an = A.analyser;
+    if (an) {
+      an.getFloatTimeDomainData(td); an.getByteFrequencyData(fd);
+      let s = 0, p = 0; for (let i = 0; i < td.length; i++) { s += td[i] * td[i]; const a = Math.abs(td[i]); if (a > p) p = a; }
+      rmsLive = Math.sqrt(s / td.length); peakLive = Math.max(p, peakLive - dt * 0.6);
+    }
+    g.clearRect(0, 0, SW, SH);
+    // fundo: papel com faixa de chão e sol que pulsa no compasso
+    g.fillStyle = '#FFF6DF'; g.fillRect(0, 0, SW, SH);
+    g.fillStyle = U.mixCss ? U.mixCss('#F8DC7C', '#F3A566', barPulse * 0.6) : '#F8DC7C';
+    g.beginPath(); g.arc(92, 62, 44 + 5 * beatPulse, 0, U.TAU); g.fill();
+    g.fillStyle = '#E9D3A8'; g.fillRect(0, SH - 26, SW, 26); g.fillStyle = LINE; g.fillRect(0, SH - 27, SW, 2);
+    // lanternas = tempos do compasso
+    for (let i = 0; i < 4; i++) {
+      const x = 196 + i * 30, on = i === lampI ? beatPulse : 0, sway = Math.sin(time * 2 + i) * 2;
+      g.fillStyle = LINE; g.fillRect(x - 1 + sway * 0.3, 0, 2, 14);
+      g.fillStyle = U.mixCss ? U.mixCss('#C8423A', '#FFE68A', on) : '#C8423A'; g.strokeStyle = LINE; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(x + sway, 24, 9 + on * 2, 11 + on * 2, 0, 0, U.TAU); g.fill(); g.stroke();
+      if (on > 0.05) { g.fillStyle = 'rgba(255,230,138,' + (0.35 * on) + ')'; g.beginPath(); g.arc(x + sway, 24, 20, 0, U.TAU); g.fill(); }
+    }
+    // espectro (barras gordinhas, 3 tons) e onda
+    const x0 = 330, w = SW - x0 - 16, nb = bars.length, bw = w / nb;
+    for (let i = 0; i < nb; i++) {
+      const k0 = Math.floor(Math.pow(i / nb, 2.1) * 700) + 1, k1 = Math.floor(Math.pow((i + 1) / nb, 2.1) * 700) + 2; let v = 0;
+      if (an) for (let k = k0; k < k1; k++) if (fd[k] > v) v = fd[k];
+      v = v / 255; bars[i] = v > bars[i] ? v : Math.max(v, bars[i] - dt * 1.4);
+      const h = 4 + bars[i] * (SH - 50), x = x0 + i * bw, y = SH - 27 - h, c = i / nb;
+      g.fillStyle = LINE; g.fillRect(x + 1, y - 2, bw - 3, h + 2);
+      g.fillStyle = U.mixCss ? U.mixCss('#E2742E', '#F3C94A', c) : '#E2742E'; g.fillRect(x + 3, y, bw - 7, h);
+      g.fillStyle = 'rgba(255,250,230,.55)'; g.fillRect(x + 3, y, 3, h); g.fillStyle = 'rgba(40,20,8,.22)'; g.fillRect(x + bw - 8, y, 4, h);
+    }
+    g.strokeStyle = LINE; g.lineWidth = 3; g.lineJoin = 'round'; g.beginPath();
+    for (let x = 0; x <= w; x += 3) { const v = an ? td[Math.floor(x / w * 1023)] : 0, y = 42 - v * 60 + Math.sin(time * 3 + x * 0.02) * (an ? 0 : 2); if (x === 0) g.moveTo(x0 + x, y); else g.lineTo(x0 + x, y); }
+    g.stroke(); g.strokeStyle = '#C8423A'; g.lineWidth = 1.2; g.stroke();
+    // Kome dançando
+    g.save(); g.translate(92, SH - 28); g.scale(2.2, 2.2); g.imageSmoothingEnabled = false; kome.draw(g); g.restore();
+    // VU
+    g.fillStyle = LINE; g.fillRect(180, SH - 20, 124, 12); g.fillStyle = '#FFFAEE'; g.fillRect(182, SH - 18, 120, 8);
+    g.fillStyle = peakLive > 0.9 ? '#C8423A' : '#8DB65C'; g.fillRect(182, SH - 18, 120 * Math.min(1, rmsLive * 3.3), 8);
+    g.fillStyle = LINE; g.fillRect(182 + 118 * Math.min(1, peakLive), SH - 18, 2, 8);
+    // leituras
+    const st = $('status');
+    if (!A.available) { st.textContent = 'sem Web Audio neste navegador (tudo vira no-op)'; st.className = 'pill bad'; }
+    else if (A.ready) { st.textContent = 'som ligado · ' + A.ctx.sampleRate + ' Hz · ' + A.voices + ' voz(es)'; st.className = 'pill ok'; }
+    else { st.textContent = 'toque em qualquer lugar para ligar o som'; st.className = 'pill wait'; }
+    $('mInfo').textContent = M.playing ? M.theme + ' · ' + M.bpm.toFixed(0) + ' bpm · compasso ' + (M.bar + 1) + ' · ' + M.key + ' · intensidade ' + M.intensity.toFixed(2) : 'parada';
+    for (let i = 0; i < LAYERS.length; i++) layerEl[LAYERS[i]].classList.toggle('live', M.layerOn(LAYERS[i]));
+  }
+  if (E.Loop) E.Loop({ update: frame, render() {} }).start(); else setInterval(() => frame(1 / 60), 16);
+
+  // ganchos pra automação/teste
+  window.__demo = { play: playSfx, level: () => ({ rms: rmsLive, peak: peakLive, voices: A.voices, state: A.ctx && A.ctx.state }), cards };
+  if (q.get('theme')) { A.unlock(); M.setIntensity(+(q.get('i') || 0.6)); M.start(q.get('theme')); markTheme(); }
+})();
+</script>
+</body>
+</html>
