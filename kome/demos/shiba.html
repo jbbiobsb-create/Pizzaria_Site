@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome Engine · shiba.js</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
+  canvas { display: block; margin: 0 auto; width: min(100vw, 177.78vh); height: auto; image-rendering: pixelated; touch-action: none; }
+</style>
+</head>
+<body>
+<canvas id="cv" width="960" height="540"></canvas>
+<script src="../engine/core.js"></script>
+<script src="../engine/shiba.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U;
+  const cv = document.getElementById('cv'), g = cv.getContext('2d');
+  const W = 960, H = 540;
+  const INK = '#3B2818', CREAM = '#FFF6DC', PAPER = '#FFFAE6', GOLD = '#E3BC62', GREEN = '#9CC76B', GREEND = '#6FA84B';
+  const FONT = "'Zen Maru Gothic','Trebuchet MS',system-ui,sans-serif";
+  const q = new URLSearchParams(location.search);
+  const PAGES = ['poses', 'novas', 'paletas', 'rostos', 'ancoras', 'actor', 'bench'];
+  const DEMO = window.DEMO = { page: Math.max(0, PAGES.indexOf(q.get('page') || 'poses')), t: 0, fixed: q.has('t') ? +q.get('t') : null, zoom: q.get('zoom') || null };
+  const OLD_N = E.SHIBA_POSES.indexOf('drive');
+  const NEW = E.SHIBA_POSES.slice(OLD_N);
+
+  /* ---------- helpers de página ---------- */
+  function label(txt, x, y, size, col, align) {
+    g.font = '900 ' + (size || 12) + 'px ' + FONT; g.textAlign = align || 'center'; g.textBaseline = 'alphabetic';
+    g.lineWidth = 3; g.strokeStyle = PAPER; g.lineJoin = 'round'; g.strokeText(txt, x, y);
+    g.fillStyle = col || INK; g.fillText(txt, x, y);
+  }
+  function bg(title, sub) {
+    g.fillStyle = '#BFE3F2'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#D8EFF7'; g.fillRect(0, 0, W, 60);
+    label('Kome Engine · shiba.js — ' + title, 16, 26, 18, INK, 'left');
+    label(sub || '', 16, 46, 12, '#6B4A2E', 'left');
+    // abas
+    PAGES.forEach((p, i) => {
+      const x = W - 14 - (PAGES.length - i) * 78, on = i === DEMO.page;
+      g.fillStyle = '#2a1a10'; g.fillRect(x, 13, 72, 24); g.fillStyle = on ? GOLD : PAPER; g.fillRect(x + 2, 13, 68, 20);
+      g.font = '900 11px ' + FONT; g.textAlign = 'center'; g.fillStyle = INK; g.fillText((i + 1) + ' ' + p, x + 36, 27);
+    });
+  }
+  function ground(y, x0, x1) {
+    g.fillStyle = GREEND; g.fillRect(x0, y, x1 - x0, 3); g.fillStyle = GREEN; g.fillRect(x0, y + 3, x1 - x0, 5);
+  }
+
+  /* ---------- 1. todas as poses ---------- */
+  function pagePoses(t) {
+    bg('todas as poses (' + E.SHIBA_POSES.length + ')', 'as ' + OLD_N + ' do rascunho (pixel a pixel iguais) + ' + NEW.length + ' novas (rótulo dourado)');
+    const cols = 10, cw = 94, ch = 118, sc = 1.75;
+    E.SHIBA_POSES.forEach((p, i) => {
+      const x = 14 + (i % cols) * cw + cw / 2, y = 150 + Math.floor(i / cols) * ch;
+      ground(y, x - 42, x + 42);
+      E.drawShiba(g, x, y, p, t + i * 0.37, { scale: sc });
+      label(p, x, y + 22, 12, i >= OLD_N ? '#A8650A' : INK);
+    });
+  }
+
+  /* ---------- 2. poses novas em zoom ---------- */
+  function pageNew(t) {
+    bg('poses novas em zoom 4x (e 1x embaixo)', 'drive push carry cheer point think gasp cry proud climb wave + drive{fast}');
+    const list = NEW.concat(['drive*']);
+    list.forEach((p, i) => {
+      const x = 24 + (i % 6) * 156 + 78, y = 262 + Math.floor(i / 6) * 232;
+      const fast = p === 'drive*', name = fast ? 'drive' : p;
+      g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x - 74, y - 180, 148, 212);
+      ground(y, x - 74, x + 74);
+      E.drawShiba(g, x - 4, y, name, t + i * 0.21, { scale: 4, fast });
+      E.drawShiba(g, x + 56, y - 150, name, t + i * 0.21, { scale: 1, fast });
+      label(fast ? 'drive {fast:1}' : p, x, y + 24, 13, '#A8650A');
+    });
+  }
+  // zoom 6x de uma pose em vários instantes (pra inspecionar pixels): ?page=novas&zoom=push
+  function pageZoom(t) {
+    const p = DEMO.zoom.replace('*', ''), fast = DEMO.zoom.endsWith('*');
+    bg('zoom 6x: ' + DEMO.zoom, '6 instantes da animação');
+    for (let i = 0; i < 6; i++) {
+      const x = 16 + (i % 3) * 316 + 150, y = 290 + Math.floor(i / 3) * 240, tt = t + i * 0.085;
+      g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x - 146, y - 228, 296, 236);
+      ground(y, x - 146, x + 150);
+      E.drawShiba(g, x - 6, y, p, tt, { scale: 6, fast });
+      E.drawShiba(g, x + 116, y - 180, p, tt, { scale: 1, fast });
+    }
+  }
+
+  /* ---------- 3. paletas ---------- */
+  function pagePals(t) {
+    const names = Object.keys(E.PALS);
+    bg('paletas (' + names.length + ')', 'E.PALS no formato {h,g,o,c,k,n,p}: kome goma kuro shiro (originais) + novas');
+    const poses = ['sit', 'walk', 'proud', 'cheer'];
+    names.forEach((n, i) => {
+      const cw = 84, x = 18 + i * cw + cw / 2;
+      poses.forEach((p, j) => {
+        const y = 160 + j * 106;
+        ground(y, x - 38, x + 38);
+        E.drawShiba(g, x, y, p, t + i * 0.5, { scale: 1.6, pal: n });
+      });
+      label(n, x, 510, 14, i >= 4 ? '#A8650A' : INK);
+      const P = E.PALS[n], ks = ['h', 'g', 'o', 'c', 'k', 'n', 'p'];
+      ks.forEach((k, m) => { g.fillStyle = '#2a1a10'; g.fillRect(x - 36 + m * 10, 516, 10, 10); g.fillStyle = P[k]; g.fillRect(x - 35 + m * 10, 517, 8, 8); });
+    });
+  }
+
+  /* ---------- 4. closes de rosto ---------- */
+  function pageHeads(t) {
+    const ex = E.SHIBA_EXPRS;
+    bg('E.drawShibaHead — closes de rosto', 'expr: ' + ex.join(' · ') + ' · olhos/bocas avulsos embaixo');
+    const pals = ['kome', 'kome', 'kome', 'kome', 'kome', 'kome', 'kome', 'kuro', 'sakura', 'shiro'];
+    ex.forEach((e, i) => {
+      const x = 96 + (i % 5) * 192, y = 150 + Math.floor(i / 5) * 172;
+      g.fillStyle = i % 2 ? '#F7D9A0' : '#FBE7B8'; g.fillRect(x - 90, y - 76, 180, 150);
+      g.strokeStyle = '#2a1a10'; g.lineWidth = 2; g.strokeRect(x - 90, y - 76, 180, 150);
+      g.save(); g.beginPath(); g.rect(x - 89, y - 75, 178, 148); g.clip();
+      E.drawShibaHead(g, x - 10, y, t, { expr: e, scale: 4, pal: pals[i], face: 1 });
+      g.restore();
+      label(e, x, y + 68, 13);
+    });
+    // olhos e bocas via opts do drawShiba
+    const eyes = E.SHIBA_EYES, mouths = E.SHIBA_MOUTHS;
+    label("drawShiba(...,{eyes})", 14, 434, 11, '#6B4A2E', 'left');
+    eyes.forEach((e, i) => { const x = 40 + i * 71; E.drawShiba(g, x, 480, 'sit', 0.5, { scale: 1.5, eyes: e, shadow: false }); label(e, x, 494, 10); });
+    label("{mouth}", 14, 506, 11, '#6B4A2E', 'left');
+    mouths.forEach((m, i) => { const x = 90 + i * 80; E.drawShiba(g, x, 560, 'sit', 0.5, { scale: 1.5, mouth: m, shadow: false }); label(m, x, 536, 10); });
+  }
+
+  /* ---------- 5. âncoras ---------- */
+  const A_COL = { paw: '#E63B2E', mouth: '#2E7BE6', head: '#19A35B', back: '#B03BE6', hatTop: '#F2A000', hold: '#00C2C2' };
+  const pt = { x: 0, y: 0 };
+  function pageAnchors(t) {
+    bg('E.shibaAnchor(pose, t, nome)', 'pata (vermelho) · boca (azul) · cabeça (verde) · costas (roxo) · topo do chapéu (laranja) · hold (ciano, onde vai o objeto)');
+    const list = ['sit', 'stand', 'walk', 'run', 'dig', 'sword', 'windup', 'slash', 'push', 'carry', 'drive', 'point', 'cheer', 'wave', 'climb', 'think', 'proud', 'lie'];
+    const sc = 2.6;
+    list.forEach((p, i) => {
+      const x = 20 + (i % 6) * 156 + 70, y = 200 + Math.floor(i / 6) * 150, tt = t + i * 0.3, face = (i % 6) === 5 ? -1 : 1;
+      ground(y, x - 66, x + 66);
+      E.drawShiba(g, x, y, p, tt, { scale: sc, face });
+      for (const n in A_COL) {
+        const a = E.shibaAnchor(p, tt, n, pt), px = x + a.x * face * sc, py = y + a.y * sc;
+        g.fillStyle = '#fff'; g.fillRect(px - 3, py - 3, 6, 6); g.fillStyle = A_COL[n]; g.fillRect(px - 2, py - 2, 4, 4);
+      }
+      label(p + (face < 0 ? ' (face -1)' : ''), x, y + 24, 12);
+    });
+  }
+
+  /* ---------- 6. Actor ---------- */
+  // spritezinhos de teste (pá e saco) feitos na mão, só pra demo
+  function mini(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d')); return c; }
+  const shovel = mini(8, 26, c => { c.fillStyle = INK; c.fillRect(2, 0, 4, 20); c.fillRect(0, 17, 8, 9); c.fillStyle = '#A9763F'; c.fillRect(3, 1, 2, 17); c.fillStyle = '#C3CBD4'; c.fillRect(1, 18, 6, 7); });
+  const sack = mini(22, 16, c => { c.fillStyle = INK; c.fillRect(1, 1, 20, 15); c.fillRect(8, 0, 6, 2); c.fillStyle = '#E8D9B0'; c.fillRect(2, 2, 18, 13); c.fillStyle = '#C9B480'; c.fillRect(2, 11, 18, 4); c.fillStyle = '#C8423A'; c.fillRect(9, 5, 4, 4); });
+  const wheel = mini(12, 12, c => { c.fillStyle = INK; c.beginPath(); c.arc(6, 6, 6, 0, 7); c.fill(); c.fillStyle = '#5A524A'; c.beginPath(); c.arc(6, 6, 4.5, 0, 7); c.fill(); c.fillStyle = INK; c.beginPath(); c.arc(6, 6, 2.5, 0, 7); c.fill(); });
+  const actors = [
+    E.Actor({ x: 120, y: 250, vx: 46, pose: 'walk', scale: 2.4, autoPose: true }),
+    E.Actor({ x: 700, y: 250, vx: -160, pose: 'run', scale: 2.4, pal: 'kuro', autoPose: true }),
+    E.Actor({ x: 150, y: 430, pose: 'carry', scale: 2.4, pal: 'goma', vx: 30, hold: { cv: sack, ay: 15, scale: 1 } }),
+    E.Actor({ x: 420, y: 430, pose: 'sword', scale: 2.4, pal: 'aka', hold: { cv: shovel, ax: 4, ay: 4, rot: 0.5 } }),
+    E.Actor({ x: 600, y: 430, pose: 'drive', scale: 2.4, pal: 'shiro', hold: { cv: wheel, ax: 4, ay: 6 } }),
+    E.Actor({ x: 800, y: 430, pose: 'sit', scale: 2.4, pal: 'sakura', face: -1 }),
+  ];
+  const lines = ['Bora colher arroz!', 'Uma casa no Japão… eu consigo!', 'Au au!', 'Cadê a Bagger 293?', 'Tô com fome.'];
+  let sayT = 0, sayI = 0, hopT = 0;
+  actors[0].say('Oi! Eu sou o Kome.', 3);
+  actors[5].say('Balão de fala com quebra de linha automática no estilo Kome.', 6);
+  function pageActor(t, dt) {
+    bg('E.Actor', 'estado + update(dt) + draw(g): anda sozinho (autoPose), segura sprite na âncora (hold), fala (say), pula (hop)');
+    ground(250, 0, W); ground(430, 0, W);
+    sayT += dt; hopT += dt;
+    if (sayT > 3.4) { sayT = 0; actors[sayI % 2].say(lines[sayI % lines.length], 2.6); actors[3 + (sayI % 3)].say(lines[(sayI + 2) % lines.length], 2.6); sayI++; }
+    if (hopT > 1.7) { hopT = 0; actors[5].hop(); actors[3].hop(90); }
+    for (const a of actors) {
+      a.update(dt);
+      if (a.x > W - 60 && a.vx > 0) a.vx = -a.vx; if (a.x < 60 && a.vx < 0) a.vx = -a.vx;
+      a.draw(g);
+    }
+    label('autoPose: walk', 120, 276, 11); label('hold: saco na pose carry', 150, 456, 11); label('hold: pá na pata', 420, 456, 11); label('hold: volante (drive)', 600, 456, 11); label('say + hop', 800, 456, 11);
+  }
+
+  /* ---------- 7. benchmark ---------- */
+  const bench = { n: 0, acc: 0, ms: 0, accX: 0, msX: 0, logged: false, frames: 0 };
+  const bo = { face: 1, scale: 1, pal: 'kome', exact: false };
+  function drawCrowd(t, exact, n) {
+    const palN = Object.keys(E.PALS), poses = E.SHIBA_POSES;
+    for (let i = 0; i < n; i++) {
+      bo.face = i % 3 ? 1 : -1; bo.scale = 1 + (i % 4) * 0.12; bo.pal = palN[i % palN.length]; bo.exact = exact;
+      E.drawShiba(g, 40 + (i % 20) * 46, 130 + Math.floor(i / 20) * 78, poses[(i * 7) % poses.length], t * (0.8 + (i % 5) * 0.1) + i * 1.37, bo);
+    }
+  }
+  function pageBench(t) {
+    bg('benchmark: 100 shibas por frame', 'poses, paletas e tempos diferentes para cada um');
+    const N = 100;
+    let t0 = performance.now(); drawCrowd(t, true, N); const dx = performance.now() - t0;
+    g.fillStyle = '#BFE3F2'; g.fillRect(0, 62, W, H - 62);
+    t0 = performance.now(); drawCrowd(t, false, N); const dc = performance.now() - t0;
+    bench.acc += dc; bench.accX += dx; bench.n++; bench.frames++;
+    if (bench.n >= 30) { bench.ms = bench.acc / bench.n; bench.msX = bench.accX / bench.n; bench.n = 0; bench.acc = 0; bench.accX = 0;
+      if (!bench.logged && bench.frames >= 60) { bench.logged = true; const st = E.drawShiba.stats;
+        console.log('[kome] shiba bench: 100 shibas/frame = ' + bench.ms.toFixed(2) + ' ms (com cache) | ' + bench.msX.toFixed(2) + ' ms (exact, sem cache) | hits ' + st.hits + ' misses ' + st.misses); } }
+    const st = E.drawShiba.stats;
+    g.fillStyle = '#2a1a10'; g.fillRect(14, 500, 932, 30); g.fillStyle = PAPER; g.fillRect(16, 500, 928, 26);
+    g.font = '900 13px ' + FONT; g.textAlign = 'left'; g.fillStyle = INK;
+    g.fillText('drawShiba x' + N + ': ' + bench.ms.toFixed(2) + ' ms/frame com cache (30 fps de animação) · ' + bench.msX.toFixed(2) + ' ms/frame em modo exact (rasteriza tudo) · cache hits ' + st.hits + ' / misses ' + st.misses, 26, 518);
+  }
+
+  /* ---------- loop ---------- */
+  const pages = [pagePoses, pageNew, pagePals, pageHeads, pageAnchors, pageActor, pageBench];
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    DEMO.t += dt;
+    const t = DEMO.fixed !== null ? DEMO.fixed : DEMO.t;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+    if (DEMO.page === 1 && DEMO.zoom) pageZoom(t); else pages[DEMO.page](t, dt);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  addEventListener('keydown', e => { const n = +e.key; if (n >= 1 && n <= PAGES.length) DEMO.page = n - 1; if (e.key === 'ArrowRight') DEMO.page = (DEMO.page + 1) % PAGES.length; if (e.key === 'ArrowLeft') DEMO.page = (DEMO.page + PAGES.length - 1) % PAGES.length; });
+  cv.addEventListener('pointerdown', e => {
+    const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+    if (y < 40) { const i = Math.floor((x - (W - 14 - PAGES.length * 78)) / 78); if (i >= 0 && i < PAGES.length) { DEMO.page = i; return; } }
+    DEMO.page = (DEMO.page + 1) % PAGES.length;
+  });
+})();
+</script>
+</body>
+</html>

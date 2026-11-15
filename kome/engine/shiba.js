@@ -873,6 +873,7 @@
     g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h);
     g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
   }
+  const sharedBubble = { text: null, lines: null, size: 11, maxW: 150 };
   // layout de balão: quebra o texto em linhas (cacheado no próprio objeto B)
   function layoutBubble(g, B) {
     g.font = '900 ' + B.size + 'px ' + BUBBLE_FONT;
@@ -889,9 +890,10 @@
   function drawBubble(g, x, y, text, o) {
     o = o || NOOPTS;
     let B = text;
-    if (typeof text !== 'object') B = drawBubble._one || (drawBubble._one = { text: null, lines: null });
-    if (typeof text !== 'object' && (B.text !== text || B.size !== (o.size || 11))) { B.text = text; B.lines = null; }
-    if (!B.size || typeof text !== 'object' === false) { B.size = o.size || B.size || 11; B.maxW = o.maxW || B.maxW || 150; }
+    if (typeof text !== 'object') {                       // texto solto: usa um layout compartilhado
+      B = sharedBubble; const size = o.size || 11, maxW = o.maxW || 150;
+      if (B.text !== text || B.size !== size || B.maxW !== maxW) { B.text = text; B.size = size; B.maxW = maxW; B.lines = null; }
+    }
     if (!B.lines) layoutBubble(g, B);
     const k = o.k === undefined ? 1 : o.k, side = o.side || 1, ink = o.ink || '#2a1a10', col = o.col || '#FFFAE6';
     if (k <= 0) return;
