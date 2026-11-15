@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome no Japão · máquinas do meio (trator, empilhadeira, escavadeira)</title>
+<style>html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/terrain.js"></script>
+<script src="../engine/rig.js"></script>
+<script src="../game/machines-mid.js"></script>
+<script>
+/* Demo de game/machines-mid.js: cada degrau trabalhando num barranco de arroz (E.Heap), ligando e desligando o "segurar".
+   URL: ?only=trator|empilhadeira|escav  &z=zoom  &t=segundos (avança e congela)  &pilot=paleta  &s=escala  &face=-1  &spd=speedMul
+        &dig=0 (nunca cava)  &helpers=1 (mostra também versões pequenas com outros pilotos)
+   Automação: __demo.step(seg) avança o tempo em passos fixos de 1/60 (e congela o tempo real); __demo.scenes[i].m = instância. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame;
+  const W = 960, H = 540, LINE = E.LINE_CSS, PI = Math.PI;
+  const q = new URLSearchParams(location.search);
+  const ONLY = q.get('only'), SPD = +(q.get('spd') || 1), FACE = +(q.get('face') || 1) < 0 ? -1 : 1, NODIG = q.get('dig') === '0';
+  const stage = E.Stage({ width: W, height: H, bg: PAL.ink || '#3B2818' });
+  const g = stage.g;
+  const input = E.Input(stage);
+  const SOIL = '#C7A26A', SOIL_D = '#A8834F';
+  const mixc = {}; const mix = (a, b, t) => mixc[a + b + t] || (mixc[a + b + t] = U.mixCss(a, b, t));
+
+  const CFG = {
+    trator: { reach: 122, aim: t => 12 + 10 * Math.sin(t * 0.5), span: 330, rate: 900 },
+    empilhadeira: { reach: 96, aim: t => 34 + 26 * Math.sin(t * 0.45), span: 300, rate: 0 },
+    escav: { reach: 196, aim: t => 0, span: 560, rate: 2400 },
+  };
+
+  function makeScene(id, o) {
+    o = o || {};
+    const tool = G.Tools[id], cfg = CFG[id], sc = o.scale || 1, face = o.face || 1;
+    const m = tool.create({ pilot: o.pilot || 'kome', scale: sc });
+    const heap = E.Heap({ width: 1100, colW: 4, x0: -550, y0: 0, seed: 11 });
+    const shape = x => { const d = (x * face) - 40; return d > 0 ? Math.min(170, d * 0.85 + 14 * Math.sin(d * 0.05)) : 0; };
+    heap.generate(shape); heap.settle && heap.settle(400);
+    const parts = E.Particles(700);
+    const S = { id, tool, m, heap, parts, t: 0, x: -cfg.reach * sc * face - 60 * face, face, sc, log: [], logT: 0, cam: { x: 0, z: 1 }, span: cfg.span * (0.55 + 0.45 * sc) };
+    const inp = { x: S.x, y: 0, face, tx: 0, ty: 0, digging: false, power: 1, speedMul: SPD, vx: 0, floor: x => heap.surf(x), load: 0, t: 0, parts, boost: 0 };
+    S.inp = inp;
+    function faceX() {                       // onde começa o barranco na frente da máquina
+      for (let d = 0; d < 700; d += 4) { const x = S.x + face * d; if (heap.height(x) > 13) return x; }
+      return S.x + face * 700;
+    }
+    S.update = dt => {
+      S.t += dt;
+      const fx = faceX(), per = tool.meta.cycle * 3 + 1.6;
+      inp.digging = !NODIG && (S.t % per) < tool.meta.cycle * 3 - 0.4 && Math.abs(fx - S.x - face * cfg.reach * sc) < 30 * sc;
+      // anda até ficar na distância de trabalho (rodas/esteiras giram)
+      const xT = fx - face * cfg.reach * sc, px = S.x, maxV = (id === 'escav' ? 46 : 110) * sc;
+      const want = m.busy ? 0 : U.clamp((xT - S.x) * 3, -maxV, maxV);
+      inp.vx = U.damp(inp.vx, want, 5, dt);
+      S.x += inp.vx * dt;
+      inp.x = S.x; inp.y = heap.surf(S.x); inp.t = S.t;
+      if (id === 'escav') { inp.tx = fx + face * (34 + 22 * Math.sin(S.t * 0.6)) * sc; inp.ty = heap.surf(inp.tx) + 10 * sc; }
+      else { inp.tx = fx + face * 20; inp.ty = inp.y - cfg.aim(S.t) * sc; }
+      tool.update(m, dt, inp);
+      const b = tool.bite(m);
+      if (b.active && cfg.rate) heap.dig(b.x + face * b.r * 0.4, cfg.rate * sc * sc * dt, b.r, { pow: 20 });
+      for (const ev of m.ev) {
+        S.log.unshift(ev); if (S.log.length > 5) S.log.pop(); S.logT = 1.2;
+        if (id === 'empilhadeira' && ev === 'scoop') heap.digRect(Math.min(b.x, b.x - face * b.w), Math.max(b.x, b.x - face * b.w), b.h * 1.6, { pow: 20 });
+      }
+      S.logT -= dt;
+      heap.relax(dt);
+      if (heap.frac() < 0.45) heap.restore();
+      parts.update(dt, inp.floor);
+      const st = tool.seat(m);
+      S.cam.x = U.damp(S.cam.x, S.x + face * S.span * 0.14, 3, dt);
+    };
+    S.draw = (v, t) => {
+      // céu, morros, chão
+      g.fillStyle = PAL.sky; g.fillRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0);
+      g.fillStyle = mix(PAL.sky, PAL.skyL, 0.5); g.fillRect(v.x0, -120, v.x1 - v.x0, 130);
+      g.fillStyle = mix(PAL.grassL, PAL.sky, 0.55); g.beginPath(); g.moveTo(v.x0, 10);
+      for (let x = v.x0; x <= v.x1 + 10; x += 10) g.lineTo(x, -50 - 40 * Math.sin((x - S.cam.x * 0.7) * 0.008 + 1) - 14 * Math.sin((x - S.cam.x * 0.7) * 0.021));
+      g.lineTo(v.x1 + 10, 10); g.closePath(); g.fill();
+      heap.draw(g, v, S.t);
+      g.fillStyle = SOIL; g.fillRect(v.x0, 0, v.x1 - v.x0, v.y1);
+      g.fillStyle = PAL.grass; g.fillRect(v.x0, 0, v.x1 - v.x0, 5);
+      g.fillStyle = SOIL_D; g.fillRect(v.x0, 12, v.x1 - v.x0, 3);
+      g.fillStyle = LINE; g.fillRect(v.x0, -0.8, v.x1 - v.x0, 1.6);
+      // Kome a pé (escala 1) pra comparar tamanho
+      E.drawShiba(g, S.x - face * (tool.w * 0.42 * sc + 46), 0, 'wag', S.t, { scale: 1, face, pal: 'goma' });
+      tool.draw(g, m);
+      parts.draw(g, v);
+      if (q.get('debug')) {
+        const b = tool.bite(m), d = tool.dump(m), s = tool.seat(m);
+        g.strokeStyle = b.active ? PAL.red : PAL.cream; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.stroke();
+        if (d) { g.strokeStyle = d.active ? PAL.gold : PAL.grayL; g.beginPath(); g.arc(d.x, d.y, 5, 0, 7); g.stroke(); }
+        g.strokeStyle = PAL.pink; g.beginPath(); g.arc(s.x, s.y, 4, 0, 7); g.stroke();
+        g.strokeStyle = PAL.pink; g.beginPath(); g.moveTo(S.inp.tx - 6, S.inp.ty); g.lineTo(S.inp.tx + 6, S.inp.ty); g.moveTo(S.inp.tx, S.inp.ty - 6); g.lineTo(S.inp.tx, S.inp.ty + 6); g.stroke();
+      }
+    };
+    return S;
+  }
+
+  const ids = ['trator', 'empilhadeira', 'escav'];
+  const optO = { pilot: q.get('pilot') || 'kome', scale: +(q.get('s') || 1), face: FACE };
+  let panels;
+  if (ONLY && G.Tools[ONLY]) panels = [{ s: makeScene(ONLY, optO), x: 0, y: 0, w: W, h: H }];
+  else if (q.get('helpers')) panels = [
+    { s: makeScene('trator', { pilot: 'goma', scale: 0.6 }), x: 0, y: 0, w: 318, h: H }, { s: makeScene('empilhadeira', { pilot: 'kuro', scale: 0.7, face: -1 }), x: 321, y: 0, w: 318, h: H },
+    { s: makeScene('escav', { pilot: 'goma', scale: 0.6 }), x: 642, y: 0, w: 318, h: H }];
+  else panels = [{ s: makeScene('trator', optO), x: 0, y: 0, w: 478, h: 268 }, { s: makeScene('empilhadeira', optO), x: 482, y: 0, w: 478, h: 268 }, { s: makeScene('escav', optO), x: 0, y: 272, w: 960, h: 268 }];
+  for (const p of panels) p.s.cam.z = q.has('z') ? +q.get('z') : Math.min(p.w / p.s.span, p.h / (p.s.id === 'escav' ? 250 : 180) / (0.55 + 0.45 * p.s.sc));
+
+  let frozen = false;
+  function update(dt) { for (const p of panels) p.s.update(dt); }
+  const view = { x0: 0, x1: 0, y0: 0, y1: 0 };
+  function render() {
+    stage.begin();
+    for (const p of panels) {
+      const s = p.s, c = s.cam, gy = p.h * 0.8;
+      g.save();
+      g.beginPath(); g.rect(p.x, p.y, p.w, p.h); g.clip();
+      g.translate(p.x + p.w / 2, p.y + gy); g.scale(c.z, c.z); g.translate(-c.x, 0);
+      view.x0 = c.x - p.w / 2 / c.z; view.x1 = c.x + p.w / 2 / c.z; view.y0 = -gy / c.z; view.y1 = (p.h - gy) / c.z;
+      Draw.lod(c.z);
+      s.draw(view, s.t);
+      g.restore();
+      Draw.lod(1);
+      Draw.text(g, s.tool.name, p.x + 12, p.y + 20, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
+      Draw.text(g, "'" + s.id + "'  ciclo " + s.tool.meta.cycle + ' s  fase ' + s.m.ph.toFixed(2) + (s.inp.digging ? '  CAVANDO' : '  solto') + '  zoom ' + c.z.toFixed(2), p.x + 12, p.y + 38, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+      if (s.logT > 0) Draw.text(g, s.log.join('  '), p.x + 12, p.y + 54, { size: 10.5, align: 'left', col: PAL.white, sw: 3, weight: 700 });
+      // barra de fase
+      g.fillStyle = LINE; g.fillRect(p.x + 12, p.y + p.h - 12, 104, 6); g.fillStyle = s.tool.bite(s.m).active ? PAL.red : PAL.gold; g.fillRect(p.x + 14, p.y + p.h - 10, 100 * s.m.ph, 2);
+    }
+  }
+  const loop = E.Loop({ update: dt => { if (!frozen) update(dt); }, render, input });
+  window.__demo = {
+    scenes: panels.map(p => p.s), loop, stage,
+    // step(seg): congela o tempo real e avança em passos fixos (screenshots determinísticos)
+    step(sec) { frozen = true; const n = Math.round(sec * 60); for (let i = 0; i < n; i++) update(1 / 60); return true; },
+  };
+  if (q.has('t')) window.__demo.step(+q.get('t'));
+  loop.start();
+})();
+</script>
+</body>
+</html>

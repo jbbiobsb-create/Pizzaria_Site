@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Kome Engine · nature.js (cenário japonês)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }
+</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/nature.js"></script>
+<script>
+/* Demo do nature.js
+   ?page=1  diorama completo em 4 horas do dia (ou ?page=1&tod=0.75 pra uma hora só, em tela cheia)
+   ?page=2  folha de props com legenda
+   ?page=3  casa nos estágios 0..5
+   ?page=4  lago de carpas interativo (clique = ondinha + ração)
+   teclas 1-4 / setas trocam de página; na página 3, N liga/desliga a noite */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, D = E.Draw, C = E.PAL, N = E.Nature, TAU = Math.PI * 2;
+  const W = 960, H = 540, INK = C.ink;
+  const stage = E.Stage({ width: W, height: H, bg: '#F6F1E4', maxDpr: 2 });
+  const g = stage.g, input = E.Input(stage);
+  const qs = k => (location.search.match(new RegExp(k + '=([\\d.]+)')) || [])[1];
+  const PAGES = ['Diorama · 4 horas', 'Props', 'Casa · estágios', 'Lago de carpas'];
+  let page = U.clamp((parseInt(qs('page'), 10) || 1) - 1, 0, PAGES.length - 1);
+  const oneTod = qs('tod') !== undefined ? +qs('tod') : null;
+  let houseNight = qs('night') === '1', t = 0;
+  window.setPage = n => { page = U.clamp(n - 1, 0, PAGES.length - 1); };
+  addEventListener('keydown', e => {
+    if (e.key >= '1' && e.key <= '4') page = +e.key - 1;
+    else if (e.key === 'ArrowRight') page = (page + 1) % PAGES.length;
+    else if (e.key === 'ArrowLeft') page = (page + PAGES.length - 1) % PAGES.length;
+    else if (e.key === 'n' || e.key === 'N') houseNight = !houseNight;
+  });
+  const TABW = 150, tabX = i => W - 12 - (PAGES.length - i) * (TABW + 5);
+
+  function header() {
+    g.fillStyle = INK; g.fillRect(0, 0, W, 34);
+    g.fillStyle = C.gold; g.fillRect(0, 34, W, 3);
+    D.text(g, 'KOME ENGINE', 14, 18, { size: 17, col: C.gold, sw: 0, align: 'left' });
+    D.text(g, 'nature.js', 146, 19, { size: 12, col: C.riceS, sw: 0, align: 'left', weight: 700 });
+    for (let i = 0; i < PAGES.length; i++) {
+      const x = tabX(i), on = i === page;
+      g.fillStyle = on ? C.gold : '#4A3626'; D.rrect(g, x, 6, TABW, 22, 6); g.fill();
+      D.text(g, (i + 1) + ' · ' + PAGES[i], x + TABW / 2, 17.5, { size: 10.5, col: on ? INK : C.riceS, sw: 0, weight: 900 });
+    }
+  }
+  function label(txt, x, y, o) { D.text(g, txt, x, y, Object.assign({ size: 9, col: INK, sw: 2.5, stroke: C.cream, weight: 900 }, o)); }
+
+  /* ------------------------------------------------------------------
+     1. Diorama (mundo de 480x270; chão em y=196)
+     ------------------------------------------------------------------ */
+  const GY = 196, DW = 480, DH = 270;
+  const sceneClouds = N.clouds(5, { n: 6 }), sceneBirds = N.birds(2, { n: 7, y: 0.2 });
+  const petals = E.Particles ? E.Particles(300) : null;
+  const flies = N.fireflies({ x0: 60, x1: 420, y0: GY - 30, y1: GY + 60, n: 16, seed: 4 });
+  const bfly = N.butterflies({ x0: 20, x1: 460, y0: GY - 22, y1: GY + 50, n: 5, seed: 3 });
+  const pond1 = E.Pond({ x: 166, y: 234, w: 176, h: 46, seed: 3, reeds: 2 }), koi1 = E.Koi(pond1, 7, { seed: 2, size: 0.55 });
+  const VIEW = { x0: 0, x1: DW, y0: 0, y1: DH }, FROM = { x: 236, y: GY - 62, r: 30 };
+  const TOD_NAMES = [[0, 'manhã'], [0.5, 'tarde'], [0.75, 'pôr do sol'], [1, 'noite']];
+
+  function brook(st) {
+    g.beginPath(); g.moveTo(361, GY + 1); g.lineTo(379, GY + 1); g.quadraticCurveTo(384, 232, 366, DH + 4); g.lineTo(322, DH + 4); g.quadraticCurveTo(366, 232, 361, GY + 1); g.closePath();
+    g.strokeStyle = E.LINE_CSS; g.lineWidth = 2.4; g.lineJoin = 'round'; g.stroke();
+    g.fillStyle = U.mixCss(C.water, st.mid, 0.15); g.fill();
+    g.save(); g.clip();
+    g.fillStyle = 'rgba(40,70,100,.3)'; g.fillRect(350, GY, 40, 4);
+    g.fillStyle = 'rgba(255,255,255,.55)';
+    for (let i = 0; i < 9; i++) { const q = (t * 0.22 + i / 9) % 1, y = GY + 3 + q * 76, x = 370 - q * q * 26 + Math.sin(i * 2.4) * (3 + q * 9); g.fillRect(x - (2 + q * 4), y, 4 + q * 8, 1); }
+    g.restore();
+  }
+  function diorama(tod) {
+    const st = N.light(tod);
+    N.sky(g, DW, 204, { tod, t });
+    N.celestial(g, DW, 184, { t, r: 15 });
+    sceneClouds.draw(g, DW, 180, 0);
+    sceneBirds.draw(g, DW, 150, 0);
+    N.fuji(g, 316, 181, 0.66, { t });
+    N.hills(g, DW, 180, 0, { col: C.leaf, haze: 0.66, amp: 24, seed: 3, trees: 0.5, bottom: GY + 4 });
+    N.hills(g, DW, 193, 0, { col: C.grass, haze: 0.36, amp: 20, seed: 8, freq: 0.011, trees: 0.3, bottom: GY + 4 });
+    N.ground(g, 0, DW, GY, { t, depth: DH - GY, seed: 2 });
+    brook(st);
+    // fila de trás (na linha do chão)
+    N.tree(g, 14, GY + 2, { kind: 'bamboo', seed: 4, t }); N.tree(g, 36, GY + 3, { kind: 'bamboo', seed: 9, t, s: 0.9 });
+    N.tree(g, 84, GY + 4, { kind: 'pine', seed: 3, t });
+    N.torii(g, 150, GY + 5, 0.86, { t });
+    N.koinobori(g, 196, GY + 2, { t, s: 0.8, h: 146 });
+    N.tree(g, 236, GY + 3, { kind: 'sakura', seed: 2, t });
+    N.lantern(g, 286, GY + 6, 0.9, { t });
+    N.tree(g, 322, GY + 3, { kind: 'maple', seed: 6, t, s: 0.92 });
+    N.bridge(g, 338, GY + 6, 62, { arch: 12, drop: 3 });
+    N.stall(g, 432, GY + 7, { t });
+    N.bush(g, 196, GY + 7, { seed: 3, t }); N.bush(g, 392, GY + 22, { kind: 'azalea', seed: 5, t });
+    N.rock(g, 110, GY + 9, { seed: 4, w: 18, h: 11, moss: true });
+    // primeiro plano
+    N.paddy(g, 398, 232, 76, 22, { t });
+    pond1.draw(g, t);
+    E.drawShiba(g, 290, 228, 'sit', t, { face: -1 });
+    N.flower(g, 58, 226, { kind: 'higanbana', seed: 1, t }); N.flower(g, 66, 232, { kind: 'higanbana', seed: 2, t }); N.flower(g, 46, 236, { kind: 'daisy', seed: 3, t });
+    N.flower(g, 300, 250, { kind: 'tulip', seed: 4, t }); N.flower(g, 312, 256, { kind: 'tanpopo', seed: 5, t }); N.flower(g, 20, 252, { kind: 'ajisai', seed: 6, t });
+    N.flower(g, 278, 258, { kind: 'iris', seed: 7, t }); N.flower(g, 32, 216, { kind: 'tanpopo', seed: 9, t });
+    N.rock(g, 336, 262, { seed: 7, w: 20, h: 12 }); N.grassTuft(g, 70, 262, { seed: 3, t, s: 1.3 }); N.grassTuft(g, 386, 264, { seed: 5, t, s: 1.3 });
+    bfly.draw(g);
+    if (petals) petals.draw(g);
+    N.grade(g, DW, DH, { horizon: GY });
+    flies.draw(g);
+  }
+
+  /* ------------------------------------------------------------------
+     2. Folha de props
+     ------------------------------------------------------------------ */
+  const cellClouds = N.clouds(9, { n: 3 }), cellBirds = N.birds(5, { n: 5, y: 0.5, speed: 22 });
+  const cellFlies = N.fireflies({ x0: -40, x1: 40, y0: -70, y1: -8, n: 9, seed: 2 }), cellBf = N.butterflies({ x0: -40, x1: 40, y0: -70, y1: -10, n: 4, seed: 6 });
+  const cellPetals = E.Particles ? E.Particles(120) : null;
+  const PROPS = [
+    ['tree · pine', (x, y) => N.tree(g, x, y, { kind: 'pine', seed: 1, t })],
+    ['tree · sakura', (x, y) => N.tree(g, x, y, { kind: 'sakura', seed: 1, t })],
+    ['tree · maple', (x, y) => N.tree(g, x, y, { kind: 'maple', seed: 1, t })],
+    ['tree · bamboo', (x, y) => N.tree(g, x, y, { kind: 'bamboo', seed: 2, t, s: 0.9 })],
+    ['tree · round', (x, y) => N.tree(g, x, y, { kind: 'round', seed: 1, t })],
+    ['tree · bonsai', (x, y) => { N.tree(g, x - 26, y, { kind: 'bonsai', seed: 1, t }); N.tree(g, x + 24, y, { kind: 'bonsai', seed: 7, t, s: 1.3 }); }],
+    ['bush · azalea', (x, y) => { N.bush(g, x - 26, y, { seed: 1, t }); N.bush(g, x + 24, y, { kind: 'azalea', seed: 2, t }); }],
+    ['grassTuft · rock', (x, y) => { N.grassTuft(g, x - 44, y, { seed: 1, t, s: 1.4 }); N.rock(g, x - 16, y, { seed: 1 }); N.rock(g, x + 22, y, { seed: 2, w: 34, h: 22, moss: true }); N.grassTuft(g, x + 48, y, { seed: 4, t }); }],
+    ['flower × 6', (x, y) => N.FLOWER_KINDS.forEach((k, i) => N.flower(g, x - 44 + i * 17.5, y, { kind: k, seed: i + 2, t, s: 1.2 }))],
+    ['torii', (x, y) => N.torii(g, x, y, 1, { t })],
+    ['lantern (tōrō)', (x, y) => { N.lantern(g, x - 24, y, 1, { lit: 0, t }); N.lantern(g, x + 24, y, 1, { lit: 1, t }); }],
+    ['bridge', (x, y) => N.bridge(g, x - 50, y, 100, { arch: 22, drop: 0 })],
+    ['fence · bamboo / wood', (x, y) => { N.fence(g, x - 52, x + 52, y - 34, { kind: 'bamboo' }); N.fence(g, x - 52, x + 52, y, { kind: 'wood' }); }],
+    ['paddy', (x, y) => N.paddy(g, x - 48, y - 30, 96, 24, { t })],
+    ['stall', (x, y) => N.stall(g, x, y, { t, lit: 0.6 })],
+    ['koinobori', (x, y) => N.koinobori(g, x - 34, y, { t, h: 92 })],
+    ['fūrin · chōchin · nobori', (x, y) => { g.fillStyle = C.woodD; g.fillRect(x - 48, y - 80, 60, 4); N.windchime(g, x - 34, y - 76, { t, s: 1.4 }); N.chochin(g, x - 4, y - 76, { t, lit: 1, s: 1.4 }); N.nobori(g, x + 30, y, { t, h: 76 }); }],
+    ['onsen', (x, y) => N.onsen(g, x + 5, y - 14, { t, s: 0.92 })],
+    ['sun · moon', (x, y) => { N.sun(g, x - 26, y - 44, 14, { tod: 0.5, t }); g.fillStyle = N.light(1).mid; D.rrect(g, x + 2, y - 76, 52, 66, 5); g.fill(); N.moon(g, x + 28, y - 44, 13, { t }); }],
+    ['clouds · birds', (x, y) => { g.save(); g.beginPath(); g.rect(x - 56, y - 86, 112, 86); g.clip(); g.fillStyle = N.light(0.5).mid; g.fillRect(x - 56, y - 86, 112, 86); g.translate(x - 56, y - 86); cellClouds.draw(g, 112, 160, 0, { tod: 0.5 }); cellBirds.draw(g, 112, 80, 0); g.restore(); }],
+    ['fuji · hills', (x, y) => { g.save(); g.beginPath(); g.rect(x - 56, y - 86, 112, 86); g.clip(); g.translate(x - 56, y - 86); N.sky(g, 112, 86, { tod: 0.5, t }); N.fuji(g, 60, 70, 0.34, { t }); N.hills(g, 112, 74, t * 6, { col: C.leaf, haze: 0.5, amp: 14, freq: 0.02, trees: 0.4, bottom: 90 }); N.hills(g, 112, 86, t * 12, { amp: 12, freq: 0.03, haze: 0.1, bottom: 90, seed: 4 }); g.restore(); }],
+    ['fireflies', (x, y) => { g.fillStyle = N.light(1).top; D.rrect(g, x - 54, y - 84, 108, 84, 5); g.fill(); N.bush(g, x - 20, y, { seed: 6, t, shadow: false }); g.save(); g.translate(x, y); cellFlies.draw(g, 1); g.restore(); }],
+    ['butterflies · sakuraPetals', (x, y) => { N.flower(g, x - 30, y, { kind: 'daisy', seed: 1, t }); N.flower(g, x + 28, y, { kind: 'tulip', seed: 2, t }); g.save(); g.translate(x, y); cellBf.draw(g); if (cellPetals) cellPetals.draw(g); g.restore(); }],
+    ['ground', (x, y) => N.ground(g, x - 56, x + 56, y - 34, { t, depth: 34, seed: 5 })],
+  ];
+  function propSheet() {
+    const cols = 8, cw = 118, chh = 164, x0 = 8, y0 = 44;
+    g.imageSmoothingEnabled = false;
+    for (let i = 0; i < PROPS.length; i++) {
+      const cx = x0 + (i % cols) * cw + cw / 2, cy = y0 + Math.floor(i / cols) * chh;
+      g.fillStyle = INK; D.rrect(g, cx - cw / 2 + 2, cy, cw - 4, chh - 6, 7); g.fill();
+      g.fillStyle = '#EFE6CF'; D.rrect(g, cx - cw / 2 + 4, cy + 2, cw - 8, chh - 10, 5); g.fill();
+      g.fillStyle = INK; g.fillRect(cx - cw / 2 + 4, cy + chh - 24, cw - 8, 14);
+      D.text(g, PROPS[i][0], cx, cy + chh - 16.5, { size: 8.6, col: C.cream, sw: 0, weight: 800 });
+      g.save(); g.beginPath(); g.rect(cx - cw / 2 + 4, cy + 2, cw - 8, chh - 26); g.clip();
+      PROPS[i][1](cx, cy + chh - 34);
+      g.restore();
+    }
+    N.glows(g);
+  }
+
+  /* ------------------------------------------------------------------
+     3. Casa: estágios 0..5
+     ------------------------------------------------------------------ */
+  const houseClouds = N.clouds(11, { n: 4 });
+  function houses() {
+    const tod = houseNight ? 1 : 0.5, cw = 320, chh = 250;
+    for (let i = 0; i < 6; i++) {
+      const cx0 = (i % 3) * cw, cy0 = 38 + Math.floor(i / 3) * chh + (i > 2 ? 1 : 0), gy = cy0 + 196;
+      g.save(); g.beginPath(); g.rect(cx0, cy0, cw, chh); g.clip();
+      g.translate(cx0, cy0);
+      N.sky(g, cw, 200, { tod, t });
+      N.celestial(g, cw, 190, { t, r: 13 }); houseClouds.draw(g, cw, 190, i * 400);
+      if (i % 3 === 1) N.fuji(g, 236, 186, 0.5, { t });
+      N.hills(g, cw, 190, i * 90, { col: C.leaf, haze: 0.6, amp: 26, seed: 5, trees: 0.4, bottom: 200 });
+      N.ground(g, 0, cw, 196, { t, depth: chh - 196, seed: i });
+      const hx = i === 5 ? 144 : i === 4 ? 190 : 160;
+      N.house(g, hx, 198, { stage: i, t });
+      if (i === 0) E.drawShiba(g, 244, 212, 'sit', t, { face: -1 });
+      if (i === 1) E.drawShiba(g, 268, 216, 'dig', t, { face: -1 });
+      if (i === 2) E.drawShiba(g, 250, 214, 'carry', t, { face: -1 });
+      if (i === 3) E.drawShiba(g, 132, 214, 'proud', t, { face: 1 });
+      if (i === 4) E.drawShiba(g, 258, 216, 'wag', t, { face: -1 });
+      N.grade(g, cw, chh, { horizon: 196, top: i === 5 ? 150 : 110, fade: 50 });
+      g.restore();
+      g.fillStyle = INK; D.rrect(g, cx0 + 8, cy0 + 8, 178, 20, 6); g.fill();
+      D.text(g, i + ' · ' + N.HOUSE_NAMES[i], cx0 + 16, cy0 + 18.5, { size: 11, col: C.gold, sw: 0, align: 'left' });
+      g.strokeStyle = INK; g.lineWidth = 2; g.strokeRect(cx0, cy0, cw, chh);
+    }
+    D.text(g, 'N = noite', W - 44, H - 12, { size: 10, col: C.cream, sw: 3 });
+  }
+
+  /* ------------------------------------------------------------------
+     4. Lago de carpas (zoom 2; mundo de 480x270)
+     ------------------------------------------------------------------ */
+  const pond = E.Pond({ x: 240, y: 166, w: 392, h: 178, seed: 7, reeds: 3 }), koi = E.Koi(pond, 13, { seed: 4 });
+  const pondBf = N.butterflies({ x0: 20, x1: 460, y0: 30, y1: 80, n: 3, seed: 9 });
+  let pondTod = qs('tod') !== undefined ? +qs('tod') : 0.5, autoFeed = 3;
+  function koiPond() {
+    g.save(); g.scale(2, 2); D.lod(2);
+    g.imageSmoothingEnabled = false;
+    N.tod = pondTod;
+    N.ground(g, 0, 480, 16, { t: 0, depth: 260, tufts: false });
+    g.fillStyle = U.shade(C.grass, 0.06); g.fillRect(0, 17, 480, 50);
+    N.fence(g, -2, 482, 50, { kind: 'bamboo' });
+    N.tree(g, 24, 56, { kind: 'bamboo', seed: 3, t, s: 0.72 }); N.tree(g, 462, 60, { kind: 'bamboo', seed: 8, t, s: 0.72 });
+    N.tree(g, 410, 80, { kind: 'maple', seed: 2, t, s: 0.9 }); N.tree(g, 78, 76, { kind: 'pine', seed: 5, t, s: 0.8 });
+    N.lantern(g, 336, 76, 1, { t });
+    N.bush(g, 150, 66, { kind: 'azalea', seed: 4, t }); N.bush(g, 262, 62, { seed: 7, t });
+    pond.draw(g, t);
+    N.flower(g, 28, 150, { kind: 'iris', seed: 1, t }); N.flower(g, 20, 162, { kind: 'iris', seed: 2, t }); N.flower(g, 456, 196, { kind: 'higanbana', seed: 3, t });
+    N.flower(g, 448, 110, { kind: 'ajisai', seed: 4, t }); N.flower(g, 464, 122, { kind: 'ajisai', seed: 7, t });
+    N.bush(g, 30, 262, { seed: 9, t }); N.rock(g, 458, 262, { seed: 12, w: 28, h: 17, moss: true });
+    N.grassTuft(g, 60, 258, { seed: 2, t, s: 1.4 }); N.grassTuft(g, 420, 262, { seed: 6, t, s: 1.4 }); N.grassTuft(g, 16, 214, { seed: 8, t, s: 1.2 });
+    E.drawShiba(g, 62, 246, 'sit', t, { face: 1 });
+    pondBf.draw(g);
+    N.grade(g, 480, 270, {});
+    g.restore(); D.lod(1);
+    g.fillStyle = 'rgba(42,26,16,.82)'; D.rrect(g, 12, H - 34, 318, 24, 8); g.fill();
+    D.text(g, 'clique na água: ondinha + ração  ·  ' + koi.list.length + ' carpas', 22, H - 21.5, { size: 11.5, col: C.cream, sw: 0, align: 'left', weight: 800 });
+  }
+
+  /* ------------------------------------------------------------------
+     Loop
+     ------------------------------------------------------------------ */
+  function update(dt) {
+    t += dt;
+    if (input.pressed) {
+      if (input.y < 36) { for (let i = 0; i < PAGES.length; i++) if (input.x >= tabX(i) && input.x < tabX(i) + TABW) page = i; }
+      else if (page === 3) { const wx = input.x / 2, wy = input.y / 2; if (pond.ripple(wx, wy)) { pond.feed(wx, wy, 5); autoFeed = 12; } }
+    }
+    if (page === 0) {
+      sceneClouds.update(dt); sceneBirds.update(dt); flies.update(dt); bfly.update(dt); pond1.update(dt); koi1.update(dt);
+      if (petals) { N.sakuraPetals(petals, VIEW, dt, 5, FROM); N.sakuraPetals(petals, VIEW, dt, 2); petals.update(dt); }
+    } else if (page === 1) {
+      cellClouds.update(dt); cellBirds.update(dt); cellFlies.update(dt); cellBf.update(dt);
+      if (cellPetals) { N.sakuraPetals(cellPetals, { x0: -50, x1: 50, y0: -84, y1: 0 }, dt, 4); cellPetals.update(dt); }
+    } else if (page === 2) houseClouds.update(dt);
+    else if (page === 3) {
+      pond.update(dt); koi.update(dt); pondBf.update(dt);
+      if ((autoFeed -= dt) <= 0) { autoFeed = 7; pond.feed(240 + U.rnd(-120, 120), 166 + U.rnd(-50, 50), 3); }
+    }
+  }
+  const ZOOM = +qs('zoom') || 1, ZX = +qs('zx') || 0, ZY = +qs('zy') || 0;   // inspeção de arte: ?zoom=3&zx=..&zy=.. (canto de cima/esquerda)
+  function render() {
+    stage.begin();
+    g.imageSmoothingEnabled = false;
+    if (ZOOM !== 1) { g.scale(ZOOM, ZOOM); g.translate(-ZX, -ZY); }
+    if (page === 0) {
+      if (oneTod !== null) { g.save(); g.scale(2, 2); D.lod(2); diorama(oneTod); g.restore(); D.lod(1); }
+      else {
+        for (let i = 0; i < 4; i++) {
+          g.save(); g.translate((i % 2) * DW, Math.floor(i / 2) * DH); g.beginPath(); g.rect(0, 0, DW, DH); g.clip();
+          diorama(TOD_NAMES[i][0]);
+          g.restore();
+          label(TOD_NAMES[i][1] + ' · tod ' + TOD_NAMES[i][0], (i % 2) * DW + 10, Math.floor(i / 2) * DH + (i < 2 ? 48 : 14), { align: 'left', size: 11 });
+        }
+        g.fillStyle = INK; g.fillRect(DW - 1, 0, 2, H); g.fillRect(0, DH - 1, W, 2);
+      }
+    } else if (page === 1) propSheet();
+    else if (page === 2) houses();
+    else koiPond();
+    if (!(page === 0 && oneTod !== null)) header();
+  }
+  E.Loop({ update, render, input }).start();
+})();
+</script>
+</body>
+</html>

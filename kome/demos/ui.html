@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Kome Engine · ui.js (HUD em DOM)</title>
+<link rel="stylesheet" href="../engine/kome.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }
+</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/ui.js"></script>
+<script>
+/* Demo do ui.js: um HUD de mentira por cima de um canvas, usando TODOS os componentes com dados falsos.
+   Para screenshots:  demo.open('tree'|'caderno'|'ajustes'|'kit')  demo.celebrate()  demo.welcome()  demo.rest()  demo.stats()
+   Teclas: T árvore · C caderno · G ajustes · K kit · B banner · N faixa · A conquista · X celebração · W boas-vindas */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, UI = E.UI, C = E.PAL, TAU = Math.PI * 2;
+  if (!/nofont/.test(location.search)) UI.loadFont();
+
+  const portrait = innerHeight > innerWidth * 1.05;
+  const W = portrait ? 540 : 960, H = portrait ? 960 : 540;
+  const stage = E.Stage({ width: W, height: H, bg: C.sky });
+  const g = stage.g;
+  const ui = UI.mount(stage);
+  let wasPortrait = portrait;
+  addEventListener('resize', () => { const p = innerHeight > innerWidth * 1.05; if (p !== wasPortrait) location.reload(); });
+
+  /* ====================================================================
+     Estado falso do jogo
+     ==================================================================== */
+  const S = {
+    yen: 900, rate: 310, best: 310, grains: 52300, mountain: 0.459, combo: 0.3, fury: false,
+    toolCost: 48000, houseCost: 160000, sack: 0.2, t: 0, mordida: 0.4, carga: 0.1,
+    sfx: true, music: true, shake: true, hints: true,
+  };
+  const rateHist = [];
+  for (let i = 0; i < 40; i++) rateHist.push(120 + i * 4 + Math.sin(i * 0.7) * 22 + (i > 28 ? (i - 28) * 9 : 0));
+
+  /* sprites de exemplo feitos com Pix (qualquer sprite vira ícone com UI.icon) */
+  const sprShovel = E.sprite('demo.shovel', 16, 16, P => {
+    P.line(11, 3, 5, 10, 2, C.wood).line(12.5, 1.5, 13.5, 2.5, 3, C.woodD);
+    P.poly([[2, 9], [7, 14], [3, 15], [1, 13]], C.steel).line(2, 10, 5, 13, 1, C.steelL).set(2, 13, C.steelD).set(3, 14, C.steelD);
+  });
+  const sprTractor = E.sprite('demo.tractor', 20, 16, P => {
+    P.rect(3, 6, 10, 5, C.red).rect(3, 9, 10, 2, C.redD).rect(9, 2, 5, 5, C.red).rect(10, 3, 3, 3, C.glass).rect(2, 4, 1, 3, C.blk);
+    P.ell(13.5, 11, 4, 4, C.blk).ell(13.5, 11, 1.8, 1.8, C.yel).ell(5, 12.5, 2.6, 2.6, C.blk).ell(5, 12.5, 1, 1, C.yel).rect(3, 6, 6, 1, C.redL);
+  });
+  const sprOnigiri = E.sprite('demo.onigiri', 16, 16, P => {
+    P.poly([[8, 2], [14, 12], [12, 14], [4, 14], [2, 12]], C.rice).rect(5, 10, 6, 4, C.blk).rect(5, 10, 6, 1, C.blkL).line(7, 4, 4, 10, 1, C.white).rect(11, 11, 2, 2, C.riceS);
+  });
+  const sprBowl = E.sprite('demo.bowl', 16, 16, P => {
+    P.ell(8, 6, 5.5, 3.2, C.rice).ell(6, 5, 2, 1.2, C.white).poly([[2, 7], [14, 7], [12, 13], [4, 13]], C.bowl).rect(2, 7, 12, 1, C.bowlL).rect(5, 13, 6, 1, '#2F4670').rect(11, 8, 2, 4, '#2F4670');
+  });
+  const sprKome = (() => {
+    const c = document.createElement('canvas'); c.width = 48; c.height = 46;
+    E.drawShiba(c.getContext('2d'), 23, 44, 'sit', 0.5, { shadow: false });
+    return c;
+  })();
+
+  /* ====================================================================
+     Cenário de fundo (canvas): céu, morros, montanha de arroz, Kome cavando
+     ==================================================================== */
+  const GY = Math.round(H * (portrait ? 0.72 : 0.8));
+  const grains = [];
+  for (let i = 0; i < 40; i++) grains.push({ x: 0, y: 0, vx: 0, vy: 0, life: 0 });
+  let grainI = 0, digT = 0;
+  const clouds = [];
+  for (let i = 0; i < 6; i++) clouds.push({ x: E.hash(i * 7.1) * W * 1.4, y: 40 + E.hash(i * 3.3) * H * 0.26, s: 0.7 + E.hash(i) * 0.9, v: 5 + E.hash(i * 2.2) * 8 });
+  function cloud(x, y, s) {
+    g.fillStyle = 'rgba(255,255,255,.85)';
+    g.beginPath(); g.ellipse(x, y, 34 * s, 11 * s, 0, 0, TAU); g.ellipse(x - 14 * s, y - 7 * s, 16 * s, 11 * s, 0, 0, TAU); g.ellipse(x + 10 * s, y - 10 * s, 20 * s, 14 * s, 0, 0, TAU); g.fill();
+  }
+  function mound(cx, base, w, hh, seed, t) {
+    g.beginPath(); g.moveTo(cx - w / 2, base);
+    for (let i = 0; i <= 40; i++) {
+      const u = i / 40, x = cx - w / 2 + u * w;
+      const y = base - Math.pow(Math.sin(u * Math.PI), 0.8) * hh * (0.86 + 0.14 * E.Noise.n1(u * 6, seed));
+      g.lineTo(x, y);
+    }
+    g.lineTo(cx + w / 2, base); g.closePath();
+  }
+  function drawWorld(t, dt) {
+    const sky = g.createLinearGradient(0, 0, 0, GY);
+    sky.addColorStop(0, '#8FC9E4'); sky.addColorStop(0.7, '#CFE9EE'); sky.addColorStop(1, C.skyL);
+    g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,211,107,.35)'; g.beginPath(); g.arc(W * 0.8, H * 0.2, 46 + Math.sin(t) * 2, 0, TAU); g.fill();
+    g.fillStyle = C.sun; g.beginPath(); g.arc(W * 0.8, H * 0.2, 30, 0, TAU); g.fill();
+    for (const c of clouds) { c.x += c.v * dt; if (c.x > W + 80) c.x = -90; cloud(c.x, c.y, c.s); }
+    // Fuji e morros distantes (mais claros e azulados)
+    g.fillStyle = '#B9D3E2'; g.beginPath(); g.moveTo(W * 0.02, GY); g.lineTo(W * 0.24, GY - H * 0.36); g.lineTo(W * 0.29, GY - H * 0.36); g.lineTo(W * 0.52, GY); g.fill();
+    g.fillStyle = '#F5FAFC'; g.beginPath(); g.moveTo(W * 0.2, GY - H * 0.3); g.lineTo(W * 0.24, GY - H * 0.36); g.lineTo(W * 0.29, GY - H * 0.36); g.lineTo(W * 0.335, GY - H * 0.29); g.lineTo(W * 0.3, GY - H * 0.31); g.lineTo(W * 0.27, GY - H * 0.285); g.lineTo(W * 0.24, GY - H * 0.315); g.fill();
+    g.fillStyle = '#A9C7B3'; mound(W * 0.2, GY, W * 0.9, H * 0.13, 3); g.fill();
+    g.fillStyle = '#8FB58A'; mound(W * 0.85, GY, W * 0.8, H * 0.1, 9); g.fill();
+    // montanha de arroz com textura de grão
+    const mh = H * (portrait ? 0.3 : 0.5) * (0.55 + S.mountain * 0.6), mx = W * 0.6, mw = W * (portrait ? 1.0 : 0.72);
+    g.save();
+    mound(mx, GY, mw, mh, 21);
+    g.fillStyle = E.Draw.pattern(g, 'demo.rice', C.rice, C.riceS, C.white, { size: 48, n: 190 }); g.fill();
+    g.clip();
+    g.fillStyle = 'rgba(207,194,162,.5)'; g.beginPath(); g.ellipse(mx + mw * 0.2, GY + 10, mw * 0.5, mh * 0.75, 0, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(243,201,74,.5)'; g.beginPath(); g.ellipse(mx + 30, GY - mh * 0.3, 26, 14, 0.3, 0, TAU); g.fill();
+    g.restore();
+    mound(mx, GY, mw, mh, 21); g.lineWidth = 2.5; g.strokeStyle = C.line; g.lineJoin = 'round'; g.stroke();
+    // chão
+    g.fillStyle = C.grass; g.fillRect(0, GY, W, H - GY);
+    g.fillStyle = C.grassD; g.fillRect(0, GY, W, 5);
+    g.fillStyle = C.grassL;
+    for (let i = 0; i < 30; i++) { const x = E.hash(i * 5.7) * W, y = GY + 14 + E.hash(i * 1.9) * (H - GY - 20); g.fillRect(x, y, 10 + E.hash(i) * 16, 3); }
+    // ajudantes andando + Kome cavando
+    const kx = mx - mw * 0.36, ky = GY + 6;
+    for (let i = 0; i < 3; i++) {
+      const ph = (t * 0.07 + i * 0.33) % 1, dir = i % 2 ? 1 : -1, x = dir > 0 ? ph * (W + 80) - 40 : W + 40 - ph * (W + 80);
+      E.drawShiba(g, x, GY + 22 + i * 9, i === 1 ? 'carry' : 'walk', t + i, { face: dir, scale: 1, pal: ['goma', 'kuro', 'shiro'][i] });
+    }
+    E.drawShiba(g, kx, ky, 'dig', t, { face: 1, scale: 2 });
+    digT -= dt;
+    if (digT <= 0) {
+      digT = 0.09;
+      const p = grains[grainI++ % grains.length];
+      p.x = kx + 34; p.y = ky - 22; p.vx = 30 + Math.random() * 90; p.vy = -150 - Math.random() * 110; p.life = 1;
+    }
+    for (const p of grains) {
+      if (p.life <= 0) continue;
+      p.vy += 520 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 1.2;
+      g.fillStyle = C.line; g.fillRect(p.x - 2.5, p.y - 2, 5, 4); g.fillStyle = C.rice; g.fillRect(p.x - 1.5, p.y - 1, 3, 2);
+    }
+  }
+
+  /* ====================================================================
+     HUD
+     ==================================================================== */
+  /* ---- em cima, à esquerda: iene, ¥/s + sparkline, combo, missões ---- */
+  const tl = ui.zone('tl');
+  const yenPill = UI.pill(tl, { id: 'yen', icon: 'yen', big: true, value: S.yen });
+  UI.tooltip(yenPill, () => '<b>Ienes</b><br>Tudo que o Kome já vendeu de arroz.');
+  const rate = UI.rate(tl, {
+    icon: 'rice', label: '¥/s',
+    lines: [() => '+' + Math.round((S.rate / rateHist[Math.max(0, rateHist.length - 30)] - 1) * 100) + '% vs 5 min atrás', () => 'recorde: ¥' + U.fmt(S.best) + '/s', () => '= ' + Math.max(1, Math.round(S.rate / 90)) + ' kei-trucks de arroz'],
+    every: 5,
+  });
+  rate.spark.set(rateHist);
+  const combo = UI.bar(tl, { size: 'sm', label: 'combo', value: '×1,00' });
+  const mis = UI.missions(tl, {
+    collapsed: portrait,
+    onClaim(i) {
+      const mult = U.pick([1, 1, 1, 1.5, 1.5, 3]), v = Math.round(S.rate * M[i].rw * mult);
+      S.yen += v; yenPill.bump(); yenPill.gain('+¥' + U.fmt(v), mult >= 3);
+      UI.toast('Baú de missão', { icon: 'chest', sub: '×' + String(mult).replace('.', ',') + ' · +¥' + U.fmt(v), tone: 'gold' });
+      newMission(i);
+    },
+  });
+  const MIS = [
+    { icon: sprBowl, txt: 'Cave {N} tigelas de arroz', n: 400, rw: 10 }, { icon: 'bolt', txt: 'Segure o combo por {N} s', n: 12, rw: 10 },
+    { icon: 'sack', txt: 'Estoure {N} sacos', n: 3, rw: 8 }, { icon: 'star', txt: 'Ache um bolsão dourado', n: 1, rw: 15 },
+    { icon: 'tree', txt: 'Compre uma melhoria', n: 1, rw: 8 }, { icon: sprOnigiri, txt: 'Pegue {N} onigiris', n: 2, rw: 12 },
+  ];
+  const M = [];
+  function newMission(i) { const m = U.pick(MIS.filter(x => !M.some(y => y && y.txt === x.txt))); M[i] = { icon: m.icon, txt: m.txt, n: m.n, rw: m.rw, v: 0, sp: 0.06 + Math.random() * 0.12 }; }
+  for (let i = 0; i < 3; i++) newMission(i);
+  M[0].v = 0.72; M[1].v = 0.35; M[2].v = 0.96;
+
+  /* ---- em cima, no centro: montanha ---- */
+  const mount = UI.goal(ui.zone('tc'), {
+    label: 'Montanha 1', w: portrait ? 300 : 250, pct: true, done: 'acabou!',
+    ticks: [{ at: 0.3, color: C.pressD }, { at: 0.62, color: C.sakuraD }, { at: 0.86, color: C.gold }],
+  });
+
+  /* ---- em cima, à direita: panfleto da casa, caderno, engrenagem ---- */
+  const tr = ui.zone('tr');
+  const flyer = UI.flyer(tr, { art: 'house', title: 'Terreno', sub: '¥ 160 mil', progress: 0, onClick: () => payHouse() });
+  const cadBtn = UI.button(tr, { icon: 'book', badge: 2, onClick: () => demo.open('caderno') });
+  const gearBtn = UI.button(tr, { icon: 'gear', onClick: () => demo.open('ajustes') });
+  UI.tooltip(cadBtn, 'Caderno do Kome'); UI.tooltip(gearBtn, 'Ajustes');
+
+  /* ---- medidores "no mundo" (à direita) ---- */
+  const mr = ui.zone('mr');
+  const gMord = UI.gauge(mr, { size: 78, label: 'Mordida', over: true, zones: [[0.62, 0.8]], needle: true });
+  const gCarga = UI.gauge(mr, { size: 64, label: 'Carga', over: true, sweep: 240, tone: C.ora });
+
+  /* ---- barra de baixo ---- */
+  const dock = ui.zone('dock');
+  const toolBtn = UI.button(dock, { icon: sprShovel, iconSize: 36, title: 'Pá de Jardim', sub: '¥ 48 mil', w: portrait ? 0 : 218, progress: 0, onClick: () => buyTool() });
+  UI.tooltip(toolBtn, () => '<b>Próxima ferramenta</b><br>Quantas tigelas cabem numa pá?');
+  const SLOT_COL = [C.grass, C.gold, C.ora];
+  const slots = [0, 1, 2].map(i => UI.button(dock, { icon: 'paw', iconSize: 26, title: '…', sub: '', w: portrait ? 0 : 150, accent: SLOT_COL[i], progress: 0, onClick: () => quickBuy(i) }));
+  UI.spacer(dock);
+  const hornBtn = UI.button(dock, { icon: 'horn', tone: 'red', onClick: () => { UI.banner('FOOOOOM!', 'a buzina da Bagger assusta os corvos', { icon: 'horn', dur: 1.2 }); } });
+  const treeBtn = UI.button(dock, { icon: 'tree', title: 'Árvore', sub: 'do Kome', badge: 0, onClick: () => demo.open('tree') });
+
+  /* ====================================================================
+     Árvore: 68 nós falsos em 5 ramos (72° entre eles), com névoa, keystones e sinergias
+     ==================================================================== */
+  const BR = {
+    colheita: { name: 'Colheita', color: C.grass, icon: 'paw', n: 12, names: ['Patinhas Fortes', 'Patada Sísmica', 'Patas Ligeiras', 'Kome Workaholic', 'Almofadinhas', 'Braço Comprido', 'Ritmo de Taiko', 'Diesel Premium', 'Garras de Aço', 'Fúria do Kome', 'Fôlego de Shiba', 'Cavada Dupla'] },
+    comercio: { name: 'Comércio', color: C.gold, icon: 'yen', n: 14, names: ['Barraquinha', 'Balança Honesta', 'Placa de Madeira', 'Selo de Qualidade', 'Feira de Sábado', 'Embalagem Bonita', 'Loja na Vila', 'Caminhão de Entrega', 'Sake de Arroz', 'Trem de Arroz', 'Mochi da Casa', 'Exportação', 'Marca Kome', 'Mercado de Tóquio'] },
+    equipe: { name: 'Equipe', color: C.ora, icon: 'hat', n: 15, names: ['Goma Ajudante', 'Marmita', 'Kakashi', 'Kuro Carregador', 'Kei-truck', 'Silo Pequeno', 'Shiro Vendedor', 'Esteira', 'Apito do Chefe', 'Silo Grande', 'Turno da Noite', 'Uniforme', 'Mame Estagiário', 'Refeitório', 'Festa da Firma'] },
+    maquinas: { name: 'Máquinas', color: C.water, icon: 'gear', n: 15, names: ['Oficina', 'Piloto de Trator', 'Óleo Novo', 'Fábrica', 'Pneus Largos', 'Piloto de Empilhadeira', 'Trilhos', 'Turbo', 'Guindaste', 'Roda de Caçambas', 'Lança Longa', 'Motor Duplo', 'Mordida Perfeita', 'Esteira-Mãe', 'Bagger Dourada'] },
+    sorte: { name: 'Sorte', color: C.sakuraD, icon: 'star', n: 12, names: ['Sacos Surpresa', 'Grão Dourado', 'Onigiri da Sorte', 'Faro de Shiba', 'Sacos de Seda', 'Mural Maior', 'Peneira de Ouro', 'Sacos Dourados', 'Onigiri Duplo', 'Veio de Ouro', 'Chá da Obaa-san', 'DESLIZAMENTO!'] },
+  };
+  const FX = ['+30% de arroz por patada', '+15% no preço de venda', 'ajudantes 8% mais rápidos', '+10% de chance de grão dourado', 'sacos valem 30% mais', 'pilotos 10% mais ligeiros'];
+  const SEE = ['patas do Kome crescem e ganham almofadinhas rosa', 'aparece uma barraquinha nova no pátio', 'os ajudantes passam a usar uniforme', 'fumaça do escape vira azul e mais densa', 'grãos dourados aparecem no jato', 'a placa do pátio ganha uma lanterna'];
+  const NODES = [];
+  Object.keys(BR).forEach((bid, bi) => {
+    const b = BR[bid], ang = -Math.PI / 2 + bi * TAU / 5, dx = Math.cos(ang), dy = Math.sin(ang), px = -dy, py = dx;
+    const ids = {};
+    for (let i = 0; i < b.n; i++) {
+      const depth = i === 0 ? 0 : 1 + Math.floor((i - 1) / 3), lane = i === 0 ? 0 : [0, -1, 1][(i - 1) % 3];
+      const rad = 1.3 + depth * 1.28 + (lane ? 0.18 : 0), off = lane * (0.78 + depth * 0.13);
+      const jx = (E.hash(bi * 31 + i * 7) - 0.5) * 0.22, jy = (E.hash(bi * 17 + i * 13) - 0.5) * 0.22;
+      const id = (bid === 'comercio' ? 'v' : bid[0]) + i;
+      ids[depth + ':' + lane] = id;
+      const req = i === 0 ? [] : [ids[(depth - 1) + ':' + lane] || ids[(depth - 1) + ':0']];
+      const key = lane === 0 && (depth === 2 || depth === 4), size = key ? 2 : lane === 0 ? 1 : 0;
+      NODES.push({
+        id, n: b.names[i], branch: bid, req, size, pos: { x: dx * rad + px * off + jx, y: dy * rad + py * off + jy },
+        c: Math.round(40 * Math.pow(2.35, depth * 1.6 + bi * 0.45 + (lane ? 0.5 : 0) + E.hash(i * 3.3 + bi)) / 10) * 10,
+        desc: (key ? 'KEYSTONE: muda o jeito de cavar. ' : '') + FX[(i + bi) % FX.length], see: 'O que muda: ' + SEE[(i * 2 + bi) % SEE.length] + '.',
+        icon: [undefined, undefined, 'sack', 'rice', undefined, 'clock', 'bolt', undefined, 'chest', 'house', 'trophy'][(i * 3 + bi * 2) % 11],
+      });
+    }
+  });
+  // ligações cruzadas (dois pais de ramos diferentes) e pares de sinergia
+  const byId = {}; NODES.forEach(n => byId[n.id] = n);
+  byId.e7.req.push('c4'); byId.m9.req.push('e8');
+  const SYN = [{ a: 'e1', b: 'm3' }, { a: 's1', b: 'c6' }, { a: 'e2', b: 's3' }];
+  const owned = new Set(['c0', 'c1', 'c2', 'c3', 'c4', 'v0', 'v1', 'v2', 'v3', 'e0', 'e1', 'e3', 's0', 's1', 's2']);
+
+  const treePanel = UI.panel({ title: 'Árvore do Kome', icon: 'tree', bare: true, onOpen: () => tree.openAt() });
+  const tree = UI.tree(treePanel.body, {
+    nodes: NODES, branches: BR, synergies: SYN, center: { icon: sprKome, label: 'Kome', scale: 1.45, dy: -2 },
+    owned: id => owned.has(id),
+    money: () => S.yen, rate: () => S.rate,
+    locked: n => (n.branch === 'maquinas' && n.req.length === 0 && owned.size < 18 ? 'precisa: Trator' : null),
+    onBuy(n) {
+      S.yen -= n.c; owned.add(n.id); S.rate *= 1.06;
+      yenPill.bump();
+      if (n.size === 2) UI.banner(n.n, 'keystone desbloqueado!', { icon: 'star', tone: 'gold' });
+      else UI.toast(n.n, { icon: 'check', sub: 'comprado' });
+      refreshSlots();
+    },
+  });
+  UI.el('div', 'k-tree-hint', tree.el, 'arraste pra andar · roda ou pinça pra zoom · toque num nó, toque de novo pra comprar');
+
+  let slotNodes = [];
+  function refreshSlots() {
+    slotNodes = NODES.filter(n => tree.state(n.id) === 'open').sort((a, b) => a.c - b.c).slice(0, 3);
+    slots.forEach((s, i) => {
+      const n = slotNodes[i];
+      s.el.style.visibility = n ? '' : 'hidden';
+      if (!n) return;
+      s.el.style.setProperty('--k-accent', BR[n.branch].color);
+      s.set({ title: n.n, icon: n.icon || BR[n.branch].icon });
+    });
+  }
+  function quickBuy(i) {
+    const n = slotNodes[i];
+    if (!n || S.yen < n.c) return;
+    S.yen -= n.c; owned.add(n.id); S.rate *= 1.06;
+    tree.refresh(); refreshSlots();
+    slots[i].pop(); yenPill.bump();
+    UI.toast(n.n, { icon: 'check', sub: 'comprado' });
+  }
+  refreshSlots();
+
+  /* ====================================================================
+     Caderno (abas: conquistas, álbum, recordes) · Ajustes (folha lateral) · Kit (galeria)
+     ==================================================================== */
+  const cad = UI.panel({
+    title: 'Caderno do Kome', icon: 'book', wide: true,
+    tabs: [{ id: 'conq', label: 'Conquistas', icon: 'trophy', badge: 2 }, { id: 'album', label: 'Álbum', icon: 'star' }, { id: 'rec', label: 'Recordes', icon: 'clock' }],
+    onTab: id => cad.tabs.badge(id, 0),
+  });
+  const ACH = ['Primeira Patada', 'Mil Grãos', 'Hashi Ninja', 'Primeiro Iene Suado', 'Estourador', 'Sorte Grande', 'Patrão', 'Espanta-Corvo', 'Garimpeiro', 'Duas Mãos, Duas Pás', 'Combo de Mestre', 'Tirou a Carta',
+    'Dono de Terreno', 'Paleteiro', 'Milionário', 'Primeiro Piloto', 'Quebra-Mochi', 'Amigo da Obaa-san'];
+  const achAlbum = UI.album(cad.tabs.pane('conq'), {
+    cols: portrait ? 3 : 6, iconSize: 30,
+    items: ACH.map((n, i) => ({ id: 'k' + i, name: n, icon: 'paw', unlocked: i < 7, isNew: i === 5 || i === 6, a: '+1% ¥', q: i < 10 ? 'selo trancado' : '', hint: n })),
+  });
+  const FACTS = [
+    { id: 'f1', name: 'Pá de Jardim', icon: sprShovel, q: 'Quantas tigelas cabem numa pá?', a: 'Umas 9 tigelas por pazada. O Kome conta todas.', unlocked: true },
+    { id: 'f2', name: 'Tigela', icon: sprBowl, q: 'Quantos grãos tem uma tigela?', a: 'Cerca de 3.000 grãos de arroz.', unlocked: true, isNew: true },
+    { id: 'f3', name: 'Onigiri voador', icon: sprOnigiri, q: 'De onde vem o onigiri com asas?', a: 'Ninguém sabe. Ele só passa.', unlocked: true },
+    { id: 'f4', name: 'Trator', icon: sprTractor, q: 'Quantos shibas pesa um trator?', a: 'Uns 3.500 kg: 350 shibas de 10 kg.' },
+    { id: 'f5', name: 'Bagger 293', icon: 'gear', q: 'Quantos shibas pesa uma Bagger 293?', a: '14.200 t = 1.420.000 shibas.' },
+    { id: 'f6', name: 'Montanha', icon: 'rice', q: 'Quantos grãos tem a montanha?', a: '377 milhões. Você contou todos.' },
+    { id: 'f7', name: 'Kei-truck', icon: 'bolt', q: 'Quanto arroz leva um kei-truck?', a: '350 kg, uns 5.800 onigiris.' },
+    { id: 'f8', name: 'Baú', icon: 'chest', q: 'O que tem no baú de missão?', a: 'Ienes: ×1, ×1,5 ou ×3.' },
+  ];
+  const factAlbum = UI.album(cad.tabs.pane('album'), { cols: portrait ? 2 : 4, items: FACTS, onOpen: it => UI.toast(it.name, { icon: it.icon, sub: 'carta aberta', tone: 'light' }) });
+  const rec = cad.tabs.pane('rec');
+  {
+    const row = UI.el('div', 'k-row', rec); row.style.alignItems = 'stretch'; row.style.gap = '12px'; row.style.flexWrap = 'wrap';
+    const a = UI.el('div', 'k-paper', row); a.style.flex = '1 1 260px';
+    UI.el('div', 'k-h', a, '¥/s da partida');
+    UI.sparkline(a, { w: 300, h: 70, size: 'lg', data: rateHist }).el.style.width = '100%';
+    UI.stat(a, { icon: 'yen', label: 'Recorde de ¥/s', value: '¥ 310' });
+    UI.stat(a, { icon: 'sack', label: 'Maior saco', value: '¥ 4.820 (×10)' });
+    UI.stat(a, { icon: 'bolt', label: 'Combo no máximo', value: '38 s' });
+    const b = UI.el('div', 'k-paper', row); b.style.flex = '1 1 220px';
+    UI.el('div', 'k-h', b, 'Progresso');
+    const gs = UI.el('div', 'k-row', b); gs.style.justifyContent = 'space-around';
+    UI.gauge(gs, { size: 84, label: 'Conquistas' }).set(7 / 30, '7/30');
+    UI.gauge(gs, { size: 84, label: 'Álbum', tone: C.sakuraD }).set(3 / 35, '3/35');
+    UI.gauge(gs, { size: 84, label: 'Árvore', tone: C.grass }).set(15 / 68, '15/68');
+    const gl = UI.goals(b); gl.el.style.marginTop = '8px';
+    gl.add({ label: 'Um Monte Fuji', icon: 'rice', fluid: true, unit: '' }).set(52300, 377e6 * 0.9, 0);
+    gl.add({ label: 'Milionário', icon: 'yen', fluid: true }).set(912000, 1e6, 310);
+  }
+
+  const aj = UI.panel({ title: 'Ajustes', icon: 'gear', side: portrait ? 'bottom' : 'right' });
+  UI.el('div', 'k-h', aj.body, 'Som');
+  UI.toggle(aj.body, { icon: 'sound', label: 'Efeitos sonoros', value: true, onChange: v => { UI.sound = v; UI.toast(v ? 'Som ligado' : 'Som desligado', { icon: v ? 'sound' : 'mute' }); } });
+  UI.slider(aj.body, { icon: 'sound', label: 'Volume', value: 0.8, w: 130 });
+  UI.toggle(aj.body, { icon: 'music', label: 'Música', sub: 'koto, shakuhachi e taiko', value: true });
+  UI.slider(aj.body, { icon: 'music', label: 'Volume da música', value: 0.55, w: 130 });
+  UI.el('div', 'k-h', aj.body, 'Jogo');
+  UI.toggle(aj.body, { icon: 'bolt', label: 'Tremor de tela', value: true });
+  UI.toggle(aj.body, { icon: 'star', label: 'Dicas', value: true });
+  UI.toggle(aj.body, { icon: 'tree', label: 'Modo Jardim', sub: 'sem números, só o Kome e a montanha' });
+  UI.slider(aj.body, { icon: 'gear', label: 'Qualidade', min: 1, max: 3, step: 1, value: 2, w: 110, fmt: v => ['baixa', 'média', 'alta'][v - 1] });
+  UI.el('div', 'k-h', aj.body, 'Salvar');
+  {
+    const r = UI.el('div', 'k-row', aj.body); r.style.flexWrap = 'wrap'; r.style.padding = '4px 0 8px';
+    UI.button(r, { title: 'Exportar', size: 'sm', onClick: () => UI.toast('Save copiado', { icon: 'check' }) });
+    UI.button(r, { title: 'Importar', size: 'sm', onClick: () => UI.toast('Nada pra importar', { icon: 'x', tone: 'bad' }) });
+    UI.button(r, { title: 'Apagar tudo', size: 'sm', tone: 'red', onClick: () => UI.confirm('Isso apaga a montanha, a árvore e a casa. O Kome começa do zero.', () => UI.toast('Brincadeira, nada foi apagado', { icon: 'paw' }), { title: 'Apagar o save?', yes: 'Apagar', no: 'Deixa pra lá', danger: true }) });
+  }
+
+  /* kit: todos os componentes lado a lado, pra revisão de arte */
+  const kit = UI.panel({ title: 'Kit de componentes', icon: 'star', wide: true });
+  {
+    const b = kit.body;
+    UI.el('div', 'k-h', b, 'Ícones Pix embutidos (E.UI.icon)');
+    const ir = UI.el('div', 'k-row', b); ir.style.flexWrap = 'wrap'; ir.style.gap = '6px 10px';
+    for (const n of UI.icons()) {
+      const c = UI.el('div', 'k-col', ir); c.style.alignItems = 'center'; c.style.gap = '1px'; c.style.width = '46px';
+      c.appendChild(UI.icon(n, 32)); UI.el('span', null, c, n).style.cssText = 'font-size:9.5px;font-weight:700;opacity:.7';
+    }
+    for (const s of [sprShovel, sprTractor, sprOnigiri, sprBowl, sprKome]) ir.appendChild(UI.icon(s, 36));
+    UI.el('div', 'k-h', b, 'Pílulas e barras');
+    const pr = UI.el('div', 'k-row', b); pr.style.flexWrap = 'wrap'; pr.style.gap = '10px 12px'; pr.style.alignItems = 'flex-end';
+    UI.pill(pr, { icon: 'yen', big: true, value: 1234567 });
+    UI.pill(pr, { icon: 'rice', value: 52300, small: 'grãos' });
+    UI.pill(pr, { icon: 'paw', value: 7, small: 'selos', tone: 'gold' });
+    UI.pill(pr, { sm: true, label: '¥/s', value: 81000 });
+    const br = UI.el('div', 'k-row', b); br.style.flexWrap = 'wrap'; br.style.gap = '12px 16px'; br.style.alignItems = 'flex-end'; br.style.marginTop = '10px';
+    UI.goal(br, { label: 'Pá de Jardim', icon: sprShovel, w: 236 }).set(0, 48000, 310);
+    UI.goal(br, { label: 'Trator', icon: sprTractor, w: 236, tone: 'green' }).set(31000, 64000, 310);
+    UI.goal(br, { label: 'Casa', icon: 'house', w: 236 }).set(152000, 160000, 310);
+    UI.goal(br, { label: 'Kei-truck', icon: 'bolt', w: 180 }).set(10, 10, 1);
+    UI.bar(br, { label: 'Fúria', tone: 'fury', size: 'sm', value: '×2,00' }).set(0.8);
+    UI.bar(br, { label: 'Saco de arroz', tone: 'sack', size: 'sm' }).set(0.55);
+    UI.bar(br, { label: 'Mochi duro', tone: 'pink', size: 'sm' }).set(0.3);
+    UI.el('div', 'k-h', b, 'Botões, medidores e controles');
+    const bt = UI.el('div', 'k-row', b); bt.style.flexWrap = 'wrap'; bt.style.gap = '12px'; bt.style.alignItems = 'center';
+    UI.button(bt, { icon: sprShovel, title: 'Pá de Jardim', sub: '¥ 48 mil', progress: 0.4 });
+    UI.button(bt, { icon: sprTractor, title: 'Trator', sub: 'dá pra comprar!', state: 'can', progress: 1, badge: 1 });
+    UI.button(bt, { icon: 'lock', title: 'Bagger 293', sub: 'falta muito', state: 'off' });
+    UI.button(bt, { title: 'Bora cavar', tone: 'primary', size: 'lg' });
+    UI.button(bt, { title: 'Pequeno', size: 'sm' });
+    UI.button(bt, { icon: 'mute' });
+    UI.gauge(bt, { size: 66, label: 'RPM', needle: true, zones: [[0.6, 0.85]] }).set(0.7, '1.400');
+    UI.gauge(bt, { size: 66, label: 'Carga' }).set(0.97, '97%');
+    UI.toggle(bt, { value: true }); UI.toggle(bt, {});
+    UI.slider(bt, { value: 0.6, w: 120 });
+  }
+
+  /* ====================================================================
+     Ações falsas
+     ==================================================================== */
+  let houseStage = 0;
+  const HOUSE = ['Terreno', 'Fundação', 'Estrutura', 'Telhado', 'Casa pronta', 'Mansão'];
+  function payHouse() {
+    if (S.yen < S.houseCost) { UI.toast('Faltam ¥' + U.fmt(S.houseCost - S.yen) + ' pro ' + HOUSE[houseStage].toLowerCase(), { icon: 'house', tone: 'bad' }); return; }
+    S.yen -= S.houseCost; S.houseCost *= 3.2; houseStage = Math.min(5, houseStage + 1);
+    flyer.pop();
+    UI.banner(HOUSE[houseStage - 1].toUpperCase() + '!', 'a casa no Japão está mais perto', { level: 3, icon: 'house' });
+  }
+  let toolN = 0;
+  const TOOLS = [['Pá de Jardim', sprShovel], ['Trator', sprTractor], ['Bagger 293', 'gear']];
+  function buyTool() {
+    if (S.yen < S.toolCost) { UI.toast('Faltam ¥' + U.fmt(S.toolCost - S.yen), { icon: 'yen', tone: 'bad' }); return; }
+    S.yen -= S.toolCost; S.toolCost *= 6; S.rate *= 2.2;
+    const t = TOOLS[toolN % TOOLS.length]; toolN++;
+    UI.celebrate({ kicker: 'Nova ferramenta', title: t[0] + '!', sub: 'O Kome nunca cavou tão rápido.', icon: t[1] });
+  }
+
+  const demo = window.demo = {
+    S, tree, ui, stage,
+    open(what) {
+      if (what === 'tree') treePanel.open();
+      else if (what === 'caderno') { cad.open(); cadBtn.set({ badge: 0 }); }
+      else if (what === 'ajustes') aj.open();
+      else if (what === 'kit') kit.open();
+    },
+    closeAll() { treePanel.close(); cad.close(); aj.close(); kit.close(); },
+    tab: id => cad.tabs.set(id),
+    banner: () => UI.banner('Novo recorde!', '¥' + U.fmt(S.rate) + ' por segundo', { icon: 'trophy' }),
+    ribbon: () => UI.banner('FUNDAÇÃO!', 'a casa no Japão está mais perto', { level: 3, icon: 'house' }),
+    ach: () => { UI.achievement(ACH[7], { sub: '+1 selo · +1% de ienes pra sempre' }); achAlbum.unlock('k7'); cadBtn.set({ badge: 3 }); },
+    toast: () => UI.toast('Saco estourado', { icon: 'sack', sub: '×3 · +¥2.400', tone: 'gold' }),
+    celebrate: () => UI.celebrate({ kicker: 'Nova ferramenta', title: 'Pá de Jardim!', sub: 'Quantas tigelas cabem numa pá? Agora você sabe: 9.', icon: sprShovel }),
+    welcome: () => UI.dialog({
+      art: sprKome, artSize: 84, kicker: 'Bem-vindo de volta', title: 'Enquanto você dormia',
+      big: { label: 'o silo encheu e rendeu', prefix: '¥ ', value: 284600, icon: 'yen' },
+      rows: [{ icon: 'clock', label: 'Tempo fora', value: '2h 14min' }, { icon: 'chest', label: 'Missões esperando', value: '2 baús' }, { icon: sprShovel, label: 'Próxima meta: Pá de Jardim', value: 'faltam ¥0' }],
+      buttons: [{ title: 'Bora cavar', tone: 'primary', icon: 'paw', iconSize: 24, onClick: () => { S.yen += 284600; yenPill.bump(); } }],
+    }),
+    rest: () => UI.dialog({
+      art: sprKome, artSize: 72, kicker: 'O Kome bocejou', title: 'Bom ponto pra parar',
+      text: 'Tudo salvo. Enquanto você descansa o silo rende uns ¥1,1 mi, e tem um saco de boas-vindas te esperando.',
+      buttons: [{ title: 'Guardar e descansar' }, { title: 'Só mais um pouco' }],
+    }),
+    stats() {
+      const rank = UI.el('div', 'k-rank', null, 'A');
+      UI.dialog({
+        art: rank, kicker: 'Fim da montanha', title: 'Daimyō do Arroz',
+        rows: [{ icon: 'clock', label: 'Tempo', value: '1h 12min' }, { icon: 'rice', label: 'Grãos', value: '377 mi (1,0 Monte Fuji)' }, { icon: 'sack', label: 'Maior saco', value: '¥ 48,2 mi' }, { icon: 'trophy', label: 'Conquistas', value: '26/30' }],
+        buttons: [{ title: 'Modo Jardim' }, { title: 'De novo!', tone: 'primary' }],
+      });
+    },
+    quiet: /quiet/.test(location.search),
+  };
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (k === 't') treePanel.toggle(); else if (k === 'c') cad.toggle(); else if (k === 'g') aj.toggle(); else if (k === 'k') kit.toggle();
+    else if (k === 'b') demo.banner(); else if (k === 'n') demo.ribbon(); else if (k === 'a') demo.ach(); else if (k === 'x') demo.celebrate(); else if (k === 'w') demo.welcome();
+  });
+
+  /* ====================================================================
+     Laço: valores falsos animados
+     ==================================================================== */
+  let sampleT = 0, evT = 4, evI = 0, lastYen = S.yen;
+  const EVENTS = [demo.toast, demo.ach, demo.banner, () => UI.toast('Kuro Carregador chegou', { icon: 'hat', sub: 'novo ajudante' }), () => UI.toast('Onigiri da Sorte!', { icon: sprOnigiri, tone: 'light', sub: '+¥900' })];
+  E.Loop({
+    update(dt) {
+      S.t += dt;
+      const t = S.t;
+      S.yen += S.rate * dt * (S.fury ? 2 : 1) * 6;                 // 6× pra demo andar
+      S.grains += S.rate * dt * 3;
+      S.best = Math.max(S.best, S.rate);
+      S.mountain = Math.max(0, S.mountain - dt * 0.0012);
+      const cyc = (t % 14) / 14;
+      S.combo = cyc < 0.7 ? cyc / 0.7 : cyc < 0.9 ? 1 : 0.2;
+      S.fury = cyc >= 0.7 && cyc < 0.9;
+      S.mordida = 0.62 + Math.sin(t * 0.9) * 0.2 + Math.sin(t * 2.3) * 0.08;
+      S.carga = (t % 9) / 9;
+
+      yenPill.set(S.yen);
+      if (S.yen - lastYen > S.rate * 4) { lastYen = S.yen; yenPill.bump(); yenPill.gain('+¥' + U.fmt(S.rate * 4), Math.random() < 0.15); }
+      if (S.yen < lastYen) lastYen = S.yen;
+      rate.set(S.rate * 6);
+      sampleT -= dt;
+      if (sampleT <= 0) { sampleT = 1.2; rateHist.push(S.rate * (S.fury ? 2 : 1) * (0.9 + Math.random() * 0.2)); rate.push(rateHist[rateHist.length - 1]); }
+      combo.set(S.combo, S.fury ? 'FÚRIA!' : 'combo', { value: '×' + (1 + S.combo * (S.fury ? 1 : 0.75)).toFixed(2).replace('.', ',') });
+      combo.tone(S.fury ? 'fury' : '');
+      mount.set(1 - S.mountain, 1, 0);
+      mount.bar.set(1 - S.mountain, 'Montanha 1 · ' + U.pct(S.mountain, 1));
+      flyer.set({ title: HOUSE[houseStage], sub: S.yen >= S.houseCost ? 'pagar agora!' : 'faltam ¥' + U.fmt(S.houseCost - S.yen), progress: 0.12 + 0.88 * U.clamp(S.yen / S.houseCost, 0, 1), state: S.yen >= S.houseCost ? 'can' : '' });
+      const tl2 = TOOLS[toolN % TOOLS.length], canTool = S.yen >= S.toolCost;
+      toolBtn.set({
+        title: tl2[0], icon: tl2[1], sub: '¥ ' + U.fmt(S.toolCost),
+        left: canTool ? 'dá pra comprar!' : 'faltam ¥' + U.fmt(S.toolCost - S.yen) + ' · ≈ ' + U.fmtTime((S.toolCost - S.yen) / (S.rate * 6)),
+        progress: 0.12 + 0.88 * U.clamp(S.yen / S.toolCost, 0, 1), state: canTool ? 'can' : '',
+      });
+      let can = 0;
+      slotNodes.forEach((n, i) => { const ok = S.yen >= n.c; if (ok) can++; slots[i].set({ sub: ok ? '¥ ' + U.fmt(n.c) : 'faltam ¥' + U.fmt(n.c - S.yen), progress: 0.12 + 0.88 * U.clamp(S.yen / n.c, 0, 1), state: ok ? 'can' : '' }); });
+      treeBtn.set({ badge: tree.count().can, state: '' });
+      for (let i = 0; i < 3; i++) {
+        const m = M[i];
+        m.v = Math.min(1, m.v + dt * m.sp * 0.4);
+        const have = Math.floor(m.v * m.n);
+        mis.set(i, { icon: m.icon, text: m.txt.replace('{N}', m.n), frac: m.v, count: have + '/' + m.n, done: m.v >= 1 });
+      }
+      gMord.set(S.mordida, Math.round(S.mordida * 100) + '%'); gMord.hot(S.mordida > 0.62 && S.mordida < 0.8);
+      gCarga.set(S.carga, Math.round(S.carga * 363) + ' t'); gCarga.hot(S.carga > 0.95);
+
+      if (!demo.quiet) { evT -= dt; if (evT <= 0) { evT = 7; EVENTS[evI++ % EVENTS.length](); } }
+    },
+    render() {
+      stage.begin();
+      drawWorld(S.t, 1 / 60);
+    },
+  }).start();
+})();
+</script>
+</body>
+</html>
