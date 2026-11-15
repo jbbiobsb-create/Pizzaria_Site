@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome no Japão · Bagger 293</title>
+<style>html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/terrain.js"></script>
+<script src="../engine/rig.js"></script>
+<script src="../game/bagger.js"></script>
+<script>
+/* Demo de game/bagger.js: a Bagger 293 no chão, ao lado de um paredão de arroz (E.Heap), com um Kome de 44 px e uma
+   caixa do tamanho de uma pick-up na frente pra dar escala.
+   URL: ?z=zoom &cx=x da câmera &cy=y da câmera &face=-1|1 &stage=1|2|3 &night=1 &dig=1 &luff=graus &bite=0..1 (força o medidor)
+   Sem dig/luff a demo se pilota sozinha (ou siga o ponteiro: X = alvo da roda, Y = altura, segurar = girar a roda).
+   Automação: __demo.step(seg) avança em passos fixos de 1/60; __demo.bench(n) -> ms médios por draw; __demo.m = instância. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, T = KomeGame.Tools.bagger;
+  const W = 960, H = 540, LINE = E.LINE_CSS, PI = Math.PI;
+  const q = new URLSearchParams(location.search);
+  const Z = +(q.get('z') || 0.26), FACE = +(q.get('face') || -1) < 0 ? -1 : 1, STAGE = +(q.get('stage') || 3), NIGHT = q.has('night') ? +(q.get('night') || 1) : 0;
+  const DIG = q.get('dig'), LUFF = q.has('luff') ? +q.get('luff') * PI / 180 : null, BITE = q.has('bite') ? +q.get('bite') : null;
+  const stage = E.Stage({ width: W, height: H, bg: '#3B2818' });
+  const g = stage.g, input = E.Input(stage);
+  const m = T.create({ stage: STAGE });
+  const parts = E.Particles(900);
+  const FOOT = 600, heap = E.Heap({ width: 2400, colW: 8, x0: FACE > 0 ? FOOT : -FOOT - 2400, y0: 0, seed: 7 });
+  heap.generate(x => { const d = x * FACE - FOOT; return d > 0 ? Math.min(980, d * 1.25 + 26 * Math.sin(d * 0.012) + 9 * Math.sin(d * 0.05)) : 0; });
+  const inp = { x: 0, y: 0, face: FACE, tx: null, ty: null, digging: false, power: 1, speedMul: 1, vx: 0, floor: x => Math.min(0, heap.surf(x)), t: 0, parts, boost: 0, night: NIGHT, zoom: Z };
+  const cam = { x: q.has('cx') ? +q.get('cx') : 0, y: q.has('cy') ? +q.get('cy') : 0 };
+  let t = 0, frozen = false, ms = 0, hold = false, px = 0, py = 0, usePtr = false;
+  const cvEl = stage.canvas || g.canvas;
+  cvEl.addEventListener('pointerdown', e => { hold = true; usePtr = true; ptr(e); });
+  cvEl.addEventListener('pointermove', e => { if (usePtr) ptr(e); });
+  window.addEventListener('pointerup', () => { hold = false; });
+  function ptr(e) { const r = cvEl.getBoundingClientRect(), sx = (e.clientX - r.left) / r.width * W, sy = (e.clientY - r.top) / r.height * H; px = (sx - W / 2) / Z + cam.x; py = (sy - H * 0.8) / Z + cam.y; }
+
+  function update(dt) {
+    t += dt; inp.t = t;
+    const b = T.bite(m);
+    if (usePtr) { inp.tx = px; inp.ty = py; inp.digging = hold; }
+    else {
+      inp.digging = STAGE >= 3 && (DIG === '1' || (DIG !== '0' && (t % 14) < 10));
+      const lf = LUFF !== null ? LUFF : (4 + 13 * Math.sin(t * 0.22)) * PI / 180;
+      inp.ty = T.meta.pivot[1] - T.meta.boom * Math.sin(lf);
+      // piloto automático: avança/recua até a mordida ficar perto de .55
+      const bt = heap.bite(b.x, b.y, b.r, FACE, 12);
+      inp.tx = STAGE >= 3 ? b.x + FACE * (0.55 - bt) * 160 : null;
+    }
+    if (STAGE >= 3) m.bite01 = BITE !== null ? BITE : heap.bite(b.x, b.y, b.r, FACE, 12);
+    T.update(m, dt, inp);
+    const bb = T.bite(m);
+    if (bb.active) heap.digCircle(bb.x, bb.y, bb.r, 5200 * m.rpm * dt, { pow: 20 });
+    heap.relax(dt);
+    parts.update(dt, inp.floor);
+  }
+  const view = { x0: 0, x1: 0, y0: 0, y1: 0 }, mixc = {};
+  const mix = (a, b, k) => mixc[a + b + k] || (mixc[a + b + k] = U.mixCss(a, b, k));
+  function hills(k, base, amp, col) {
+    g.fillStyle = col; g.beginPath(); g.moveTo(view.x0, 10);
+    for (let x = view.x0; x <= view.x1 + 40; x += 40) g.lineTo(x, base - amp * (0.6 + 0.4 * Math.sin((x - cam.x * k) * 0.0021 + base) + 0.25 * Math.sin((x - cam.x * k) * 0.0063)));
+    g.lineTo(view.x1 + 40, 10); g.closePath(); g.fill();
+  }
+  function render() {
+    stage.begin();
+    const gy = H * 0.8, n = NIGHT;
+    g.save(); g.translate(W / 2, gy); g.scale(Z, Z); g.translate(-cam.x, -cam.y);
+    view.x0 = cam.x - W / 2 / Z; view.x1 = cam.x + W / 2 / Z; view.y0 = cam.y - gy / Z; view.y1 = cam.y + (H - gy) / Z;
+    Draw.lod(Z, 0.6);
+    const sky = n ? '#27325C' : PAL.sky, skyL = n ? '#4A4F7C' : PAL.skyL;
+    g.fillStyle = sky; g.fillRect(view.x0, view.y0, view.x1 - view.x0, view.y1 - view.y0);
+    g.fillStyle = mix(sky, skyL, 0.55); g.fillRect(view.x0, -620, view.x1 - view.x0, 640);
+    hills(0.9, -260, 330, mix(n ? '#3A4470' : PAL.grassL, sky, 0.7));
+    hills(0.8, -110, 180, mix(n ? '#2F3A5E' : PAL.grassL, sky, 0.45));
+    heap.draw(g, view, t);
+    g.fillStyle = '#C7A26A'; g.fillRect(view.x0, 0, view.x1 - view.x0, view.y1);
+    g.fillStyle = PAL.grass; g.fillRect(view.x0, 0, view.x1 - view.x0, 9);
+    g.fillStyle = LINE; g.fillRect(view.x0, -1.2, view.x1 - view.x0, 2.4);
+    m.deferGlow = !!n;
+    const t0 = performance.now();
+    T.draw(g, m);
+    ms = ms * 0.95 + (performance.now() - t0) * 0.05;
+    // escala: Kome a pé (44 px) e uma pick-up (caixa de 36 x 12)
+    const sx = FACE * 330;
+    E.drawShiba(g, sx, 0, 'wag', t, { scale: 1, face: FACE });
+    Draw.box(g, sx + FACE * 50 - 18, -15, 36, 11, PAL.white, { r: 2 }); Draw.box(g, sx + FACE * 50 - (FACE > 0 ? 4 : 10), -22, 14, 8, PAL.glass, { r: 2 });
+    Draw.circle(g, sx + FACE * 50 - 11, -3, 4, PAL.blk, { ol: 1 }); Draw.circle(g, sx + FACE * 50 + 11, -3, 4, PAL.blk, { ol: 1 });
+    parts.draw(g, view);
+    if (n) {
+      g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgba(70,78,140,' + (0.85 * n) + ')'; g.fillRect(view.x0, view.y0, view.x1 - view.x0, view.y1 - view.y0);
+      g.globalCompositeOperation = 'source-over';
+      T.glow(g, m);
+    }
+    if (q.get('debug')) {
+      const b = T.bite(m), d = T.dump(m), s = T.seat(m);
+      g.lineWidth = 2 / Z; g.strokeStyle = b.active ? PAL.red : PAL.cream; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.stroke();
+      g.strokeStyle = PAL.gold; g.beginPath(); g.arc(d.x, d.y, 8 / Z, 0, 7); g.stroke();
+      g.strokeStyle = PAL.pink; g.beginPath(); g.arc(s.x, s.y, 6 / Z, 0, 7); g.stroke();
+    }
+    g.restore();
+    Draw.lod(1);
+    Draw.text(g, 'Bagger 293', 12, 20, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
+    Draw.text(g, 'estágio ' + m.stage + '  rpm ' + (m.rpm * 100 | 0) + '%  lança ' + (m.luff * 180 / PI).toFixed(1) + '°  mordida ' + (m.bite01 === null ? '-' : m.bite01.toFixed(2)) + '  zoom ' + Z + '  draw ' + ms.toFixed(2) + ' ms', 12, 38, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+  }
+  const loop = E.Loop({ update: dt => { if (!frozen) update(dt); }, render, input });
+  window.__demo = {
+    m, inp, heap, loop, stage, tool: T,
+    step(sec) { frozen = true; const k = Math.round(sec * 60); for (let i = 0; i < k; i++) update(1 / 60); return true; },
+    // bench(n): custo médio de T.draw (ms) no zoom atual, com a transformação da câmera aplicada
+    bench(k) {
+      k = k || 300; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); const d = stage.dpr || window.devicePixelRatio || 1;
+      g.scale(d, d); g.translate(W / 2, H * 0.8); g.scale(Z, Z); g.translate(-cam.x, -cam.y);
+      T.draw(g, m); const t0 = performance.now();
+      for (let i = 0; i < k; i++) { m.trk += 2; m.rot -= 0.03; T.draw(g, m); }
+      g.getImageData(0, 0, 1, 1);
+      const r = (performance.now() - t0) / k; g.restore(); return +r.toFixed(3);
+    },
+  };
+  if (q.has('t')) window.__demo.step(+q.get('t'));
+  loop.start();
+})();
+</script>
+</body>
+</html>
