@@ -39,12 +39,17 @@
     let y0 = Math.floor(cy - ry), y1 = Math.ceil(cy + ry), x0 = Math.floor(cx - rx), x1 = Math.ceil(cx + rx);
     if (y0 < -BOY) y0 = -BOY; if (y1 > BH - 1 - BOY) y1 = BH - 1 - BOY;
     if (x0 < 0) x0 = 0; if (x1 > BW - 1) x1 = BW - 1;
+    // Mesmo teste do rascunho, pixel a pixel ((dx/rx)² + (dy/ry)² <= 1, com a MESMA aritmética), mas sem testar o miolo:
+    // numa linha o teste é monótono dos dois lados do centro, então os pixels pintados formam um intervalo [a,b].
+    const b8 = buf;
     for (let y = y0; y <= y1; y++) {
-      const dy = (y + 0.5 - cy) / ry, dy2 = dy * dy, row = (y + BOY) * BW;
-      for (let x = x0; x <= x1; x++) {
-        const dx = (x + 0.5 - cx) / rx;
-        if (dx * dx + dy2 <= 1) buf[row + x] = c;
-      }
+      const dy = (y + 0.5 - cy) / ry, dy2 = dy * dy;
+      if (dy2 > 1) continue;                               // linha inteira fora
+      let a = x0, b = x1, dx;
+      for (; a <= b; a++) { dx = (a + 0.5 - cx) / rx; if (dx * dx + dy2 <= 1) break; }
+      for (; b > a; b--) { dx = (b + 0.5 - cx) / rx; if (dx * dx + dy2 <= 1) break; }
+      const row = (y + BOY) * BW;
+      for (let x = row + a, e = row + b; x <= e; x++) b8[x] = c;
     }
   }
   function rect(x, y, w, h, c) {

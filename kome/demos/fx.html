@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome Engine · fx.js</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
+</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script>
+/* Demo do fx.js: parquinho de efeitos.
+   Clique no mundo = explosão + "+¥". Roda do mouse = zoom no ponteiro. Botões embaixo (ou as teclas neles) disparam cada efeito.
+   Automação: window.__demo.fire('confete') ; ?fire=a,b na URL ; ?rain=0 desliga a chuva de formas. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw;
+  const W = 960, H = 540, LINE = E.LINE_CSS, INK = PAL.ink, CREAM = PAL.cream;
+  const q = new URLSearchParams(location.search);
+
+  const stage = E.Stage({ width: W, height: H, bg: PAL.sky });
+  const g = stage.g;
+  const input = E.Input(stage);
+  const cam = E.Camera(W, H);
+  const ps = E.Particles(3600);
+  const fl = E.Floaters();
+  const fx = E.ScreenFX(stage);
+
+  /* ---------- mundo ---------- */
+  const floor = x => -(9 * Math.sin(x * 0.011) + 5 * Math.sin(x * 0.029 + 1.3) + 2.5 * Math.sin(x * 0.07 + 4));
+  const slope = x => (floor(x + 3) - floor(x - 3)) / 6;
+  cam.bounds = { x0: -900, x1: 900, y1: 150 };
+  cam.snapTo(0, -62, 2);
+
+  const kome = E.Actor({ x: -40, pal: 'kome' });
+  Object.assign(kome, { x: -40, autoPose: true, idlePose: 'stand' });
+  const brain = { target: 60, wait: 0, digT: 0, digging: false };
+  const state = { rain: q.get('rain') !== '0', stress: false, camMode: 'follow', zoom: 2, t: 0, msU: 0, msD: 0, lane: 0, rainAcc: 0, toggles: {} };
+
+  /* ---------- sprites de cenário (pixel art) ---------- */
+  function treeSprite(name, c, cd, cl) {
+    return E.sprite(name, 44, 58, P => {
+      P.rect(20, 34, 5, 24, PAL.wood).rect(23, 34, 2, 24, PAL.woodD).rect(17, 55, 11, 3, PAL.wood);
+      P.ell(22, 22, 19, 15, cd).ell(12, 26, 10, 9, cd).ell(32, 27, 10, 9, cd);
+      P.ell(21, 19, 17, 13, c).ell(11, 23, 8, 7, c).ell(32, 23, 8, 7, c);
+      P.ell(16, 13, 8, 5, cl).ell(28, 16, 5, 3, cl).ell(9, 21, 3, 2, cl);
+    });
+  }
+  const SPR = {
+    tree: treeSprite('fx.tree', PAL.leaf, PAL.leafD, PAL.grassL),
+    sakura: treeSprite('fx.sakura', PAL.sakura, PAL.sakuraD, '#FFE3EA'),
+    bush: E.sprite('fx.bush', 26, 14, P => {
+      P.ell(13, 9, 12, 6, PAL.leafD).ell(7, 8, 6, 5, PAL.leaf).ell(17, 7, 8, 6, PAL.leaf).ell(15, 5, 4, 2, PAL.grassL).ell(6, 6, 2, 1, PAL.grassL);
+    }),
+    rock: E.sprite('fx.rock', 20, 13, P => {
+      P.ell(10, 8, 9, 6, PAL.stoneD).ell(9, 7, 8, 5, PAL.stone).ell(7, 5, 4, 2, PAL.stoneL);
+    }),
+  };
+  const PROPS = [];
+  (function () {
+    const r = E.RNG(7);
+    for (let x = -1500; x < 1500; x += r.range(70, 150)) {
+      const k = r();
+      PROPS.push({ x, kind: k < 0.3 ? 'tree' : k < 0.5 ? 'sakura' : k < 0.8 ? 'bush' : 'rock', s: r.range(0.85, 1.25), ph: r.range(0, 6), back: r.chance(0.6) });
+    }
+  })();
+
+  /* ---------- chuva de formas: uma raia por forma ---------- */
+  const LANES = E.Particles.SHAPES.map((shape, i) => ({ shape, x: (i - 6) * 82 }));
+  const CONF = [PAL.red, PAL.yel, PAL.grass, PAL.water, PAL.sakura, PAL.ora];
+  const MOMIJI = [PAL.ora, PAL.red, PAL.yel, PAL.leaf, PAL.oraL];
+  function dropLand(p) { ps.splash(p.x, p.y, 3, { speed: [40, 110], c: PAL.waterL }); }
+  function starLand(p) { ps.sparkle(p.x, p.y - 2, 3, { r: 5 }); }
+  const RAIN = {
+    grain: (x, y) => ps.add({ x, y, vy: 40, vx: U.rnd(-20, 20), r: U.rnd(7), vr: U.rnd(-9, 9), w: 3.2, h: 1.6, c: U.chance(0.25) ? PAL.riceS : PAL.rice, shape: 'grain', land: true, bounce: 0.35, life: 4, ol: true }),
+    star: (x, y) => ps.add({ x, y, vy: 20, g: 240, r: U.rnd(7), vr: U.rnd(-4, 4), w: U.rnd(3.5, 5.5), c: U.chance(0.5) ? PAL.goldL : PAL.gold, shape: 'star', land: true, life: 4, ol: true, onLand: starLand }),
+    puff: (x) => ps.puff(x, floor(x) - 2, 5, 7),
+    rect: (x, y) => ps.add({ x, y, vy: 30, g: 200, drag: 1.4, r: U.rnd(7), vr: U.rnd(-4, 4), w: U.rnd(4, 6), h: U.rnd(2.5, 3.5), c: U.pick(CONF), shape: 'rect', flip: U.rnd(5, 10), sway: 40, land: 'rest', life: 5, decay: 1 }),
+    spark: (x, y) => ps.add({ x, y: y + 60, vx: U.rnd(-140, 140), vy: U.rnd(60, 260), g: 500, w: U.rnd(3, 5), c: U.pick([PAL.goldL, PAL.yel, PAL.ora]), shape: 'spark', land: true, bounce: 0.5, life: 1.6, fade: 0.3 }),
+    petal: (x, y) => ps.add({ x, y, vy: 20, g: 46, drag: 1.3, r: U.rnd(7), vr: U.rnd(-2, 2), w: U.rnd(2.6, 3.6), c: U.chance(0.3) ? PAL.sakuraD : PAL.sakura, shape: 'petal', flip: U.rnd(2, 4), sway: 46, land: 'rest', life: 9, fade: 0.6 }),
+    leaf: (x, y) => ps.add({ x, y, vy: 20, g: 70, drag: 1.2, r: U.rnd(7), vr: U.rnd(-3, 3), w: U.rnd(3.4, 4.6), c: U.pick(MOMIJI), shape: 'leaf', flip: U.rnd(2, 5), sway: 60, land: 'rest', life: 8, fade: 0.6, ol: true }),
+    ring: (x) => ps.add({ x: x + U.rnd(-14, 14), y: floor(x) - U.rnd(8, 60), w: 2, grow: 4.5, h: 2.4, c: U.pick([CREAM, PAL.goldL, PAL.waterL]), shape: 'ring', life: 0.7, ol: true }),
+    smoke: (x) => ps.add({ x: x + U.rnd(-3, 3), y: floor(x) - 8, vx: U.rnd(-8, 8), vy: U.rnd(-30, -16), w: U.rnd(3, 4.6), grow: 0.45, c: U.chance(0.4) ? PAL.steelL : PAL.cream, shape: 'smoke', life: U.rnd(1.4, 2), sway: 12 }),
+    drop: (x, y) => ps.add({ x, y, vy: 220, g: 700, w: U.rnd(1.6, 2.3), c: U.chance(0.4) ? PAL.waterL : PAL.water, shape: 'drop', land: true, life: 3, onLand: dropLand }),
+    dot: (x, y) => ps.add({ x, y, vx: U.rnd(-40, 40), g: 700, w: U.rnd(2, 3.2), c: U.pick([PAL.pink, PAL.cream, PAL.mochi, PAL.yelL]), shape: 'dot', land: true, bounce: 0.72, life: 3.5, ol: true }),
+    coin: (x, y) => ps.add({ x, y, vx: U.rnd(-30, 30), g: 700, r: U.rnd(7), vr: U.rnd(7, 13), w: U.rnd(3.4, 4.2), c: PAL.gold, shape: 'coin', land: 'rest', bounce: 0.5, life: 4, fade: 0.3 }),
+    text: (x, y) => ps.add({ x, y, vx: U.rnd(-20, 20), g: 420, r: U.rnd(-0.4, 0.4), vr: U.rnd(-2, 2), w: 9, c: U.pick([CREAM, PAL.goldL, PAL.sakura]), shape: 'text', txt: U.pick(['米', 'ワン', '¥', '!']), land: true, bounce: 0.5, life: 3.5 }),
+  };
+  const RATE = { grain: 16, star: 5, puff: 1.6, rect: 9, spark: 12, petal: 6, leaf: 4, ring: 3, smoke: 7, drop: 12, dot: 5, coin: 3, text: 2.2 };
+  const acc = {};
+  function rain(dt) {
+    const v = cam.view(viewTmp), top = Math.max(v.y0 - 20, -330);
+    for (const L of LANES) {
+      if (L.x < v.x0 - 60 || L.x > v.x1 + 60) continue;
+      acc[L.shape] = (acc[L.shape] || 0) + RATE[L.shape] * dt;
+      while (acc[L.shape] >= 1) { acc[L.shape]--; RAIN[L.shape](L.x + U.rnd(-26, 26), top + U.rnd(-30, 0)); }
+    }
+  }
+  const viewTmp = { x0: 0, x1: 0, y0: 0, y1: 0 };
+
+  /* ---------- efeitos disparáveis ---------- */
+  const komeScreen = () => cam.toScreen(kome.x, kome.y - 18);
+  const ACTIONS = [
+    // partículas
+    ['burst', 'Digit1', '1', 'p', () => { const y = kome.y - 30; ps.burst(kome.x, y, 46, { c: [PAL.gold, PAL.goldL, CREAM], w: [2.5, 5], life: [0.8, 1.4], vr: 6, ol: true }); fl.money(kome.x, y - 20, 1234); }],
+    ['jato', 'Digit2', '2', 'p', () => ps.spray(kome.x + kome.face * 12, kome.y - 8, 90, { dir: -Math.PI / 2 - kome.face * 0.5, spread: 0.5, speed: [160, 420], c: [PAL.rice, PAL.rice, PAL.riceS], w: 3.2, h: 1.6, land: true, bounce: 0.3, life: 3, vr: 10, ol: true })],
+    ['poeira', 'Digit3', '3', 'p', () => { ps.puff(kome.x, kome.y - 2, 16, 11); kome.hop(150); }],
+    ['moedas', 'Digit4', '4', 'p', () => { ps.coins(kome.x, kome.y - 22, 22); fl.money(kome.x, kome.y - 52, 48200); }],
+    ['faíscas', 'Digit5', '5', 'p', () => { ps.sparks(kome.x + kome.face * 14, kome.y - 14, 50); cam.addTrauma(0.18); }],
+    ['água', 'Digit6', '6', 'p', () => ps.splash(kome.x + kome.face * 26, floor(kome.x + kome.face * 26), 26)],
+    ['brilho', 'Digit7', '7', 'p', () => ps.sparkle(kome.x, kome.y - 22, 16, { r: 22, c: [PAL.goldL, CREAM] })],
+    ['pétalas', 'Digit8', '8', 'p', () => { for (let i = 0; i < 60; i++) RAIN.petal(kome.x + U.rnd(-150, 150), kome.y - U.rnd(60, 170)); }],
+    ['textos', 'Digit9', '9', 'p', () => {
+      [12, 780, 56000, 4.2e6, 9.9e9].forEach((v, i) => fl.money(kome.x + (i - 2) * 46, kome.y - 44 - (i % 2) * 14, v, { delay: i * 0.09 }));
+      fl.add(kome.x, kome.y - 92, 'OURO!', { c: PAL.goldL, size: 30, pop: 1.8, life: 1.5, delay: 0.5 });
+    }],
+    // tela
+    ['flash', 'KeyQ', 'Q', 's', () => fx.flash()],
+    ['fade', 'KeyW', 'W', 's', () => fx.fade(1, 0.45, () => fx.fade(0, 0.45))],
+    ['cinema', 'KeyE', 'E', 's', 'toggle', on => fx.letterbox(on)],
+    ['vinheta', 'KeyR', 'R', 's', 'toggle', on => fx.vignette(on ? 0.75 : 0)],
+    ['foco', 'KeyT', 'T', 's', 'toggle', on => { const s = komeScreen(); fx.speedlines(on, { x: s.x, y: s.y, col2: 'rgba(59,40,24,.4)' }); if (on && state.toggles.veloz) setToggle('veloz', false, true); }],
+    ['veloz', 'KeyY', 'Y', 's', 'toggle', on => { fx.speedlines(on, { dir: Math.PI, n: 54 }); if (on && state.toggles.foco) setToggle('foco', false, true); }],
+    ['impacto', 'KeyU', 'U', 's', () => {
+      const s = komeScreen(); fx.impact(s.x, s.y + 30, 1); cam.addTrauma(0.75); cam.punch(0.07); kome.squash = 0.32;
+      ps.puff(kome.x, kome.y - 2, 18, 13); ps.burst(kome.x, kome.y - 6, 40, { shape: 'grain', c: [PAL.rice, PAL.riceS], speed: [120, 420], up: 220, w: 3.2, h: 1.6, land: true, bounce: 0.3, life: 3, ol: true });
+      fl.add(kome.x, kome.y - 64, 'PATADA!', { c: '#FF7A5A', stroke: '#4A1410', size: 28, pop: 2, shake: 1.2 });
+    }],
+    ['lento', 'KeyI', 'I', 's', () => { fx.slowmo(0.22, 0.9); FIRE.jato(); }],
+    ['confete', 'KeyO', 'O', 's', () => fx.confetti(130)],
+    ['canhão', 'KeyP', 'P', 's', () => { fx.confetti(80, { x: 60, y: H - 70 }); fx.confetti(80, { x: W - 60, y: H - 70 }); }],
+    ['anel', 'KeyA', 'A', 's', () => { const s = komeScreen(); fx.shock(s.x, s.y); }],
+    ['íris', 'KeyS', 'S', 's', () => { const s = komeScreen(); fx.iris(false, s.x, s.y, 0.7, () => E.Tween.wait(0.35, () => { const k = komeScreen(); fx.iris(true, k.x, k.y, 0.7); })); }],
+    // câmera
+    ['4x', 'KeyZ', 'Z', 'c', () => setZoom(state.zoom === 4 ? 2 : 4)],
+    ['0,2x', 'KeyX', 'X', 'c', () => setZoom(state.zoom === 0.2 ? 2 : 0.2)],
+    ['tremor', 'KeyC', 'C', 'c', () => cam.addTrauma(0.6)],
+    ['chute', 'KeyV', 'V', 'c', () => { cam.kick(-26 * kome.face, -10); cam.punch(0.05); }],
+    ['fit', 'KeyF', 'F', 'c', 'toggle', on => { state.camMode = on ? 'fit' : 'follow'; if (on) cam.fit(-540, -300, 540, 40, 30); else setZoom(2); }],
+    ['chuva', 'KeyG', 'G', 'c', 'toggle', on => { state.rain = on; }],
+    ['3000', 'KeyB', 'B', 'c', 'toggle', on => { state.stress = on; }],
+  ];
+  const FIRE = {};
+  const BTN = ACTIONS.map((a, i) => {
+    const b = { id: a[0], code: a[1], key: a[2], group: a[3], toggle: a[4] === 'toggle', fn: a[4] === 'toggle' ? a[5] : a[4], x: 0, y: 0, w: 0, h: 22, press: 0, hover: 0 };
+    FIRE[b.id] = () => fire(b.id);
+    return b;
+  });
+  state.toggles.chuva = state.rain;
+  function setZoom(z) { state.zoom = z; cam.zoomTo(z, 2.2); if (state.camMode === 'fit') setToggle('fit', false); }
+  function setToggle(id, on, silent) {
+    state.toggles[id] = on;
+    const b = BTN.find(b => b.id === id);
+    if (b && !silent) b.fn(on);
+  }
+  function fire(id) {
+    const b = BTN.find(b => b.id === id);
+    if (!b) return false;
+    b.press = 1;
+    if (b.toggle) setToggle(id, !state.toggles[id]); else b.fn();
+    return true;
+  }
+  // layout: duas fileiras embaixo
+  (function () {
+    const rows = [BTN.slice(0, 14), BTN.slice(14)];
+    rows.forEach((row, r) => {
+      const gap = 4, bw = (W - 16 - gap * (row.length - 1)) / row.length;
+      row.forEach((b, i) => { b.x = 8 + i * (bw + gap); b.y = H - 58 + r * 28; b.w = bw; });
+    });
+  })();
+
+  /* ---------- entrada ---------- */
+  const wp = { x: 0, y: 0 };
+  function handleInput() {
+    let overBtn = false;
+    for (const b of BTN) {
+      const over = input.inside && input.x >= b.x && input.x <= b.x + b.w && input.y >= b.y && input.y <= b.y + b.h + 3;
+      b.hover = U.damp(b.hover, over ? 1 : 0, 18, 1 / 60);
+      if (over) { overBtn = true; if (input.pressed) fire(b.id); }
+      if (input.keyPressed(b.code)) fire(b.id);
+    }
+    if (input.pressed && !overBtn) {
+      cam.toWorld(input.x, input.y, wp);
+      const v = Math.pow(10, U.rnd(1, 10));
+      ps.burst(wp.x, wp.y, 26, { c: [PAL.gold, PAL.goldL, CREAM], w: [2.5, 4.5], life: [0.7, 1.2], vr: 6, ol: true });
+      ps.add({ x: wp.x, y: wp.y, shape: 'ring', w: 3, grow: 7, h: 3, c: CREAM, life: 0.45, ol: true });
+      fl.money(wp.x, wp.y - 12, v);
+      cam.addTrauma(0.12);
+    }
+    if (input.wheel) {
+      state.zoom = U.clamp(cam.tz * Math.pow(0.85, input.wheel), 0.15, 8);
+      cam.zoomAt(state.zoom, input.x, input.y, 7);
+    }
+  }
+
+  /* ---------- Kome passeando e cavando ---------- */
+  function think(dt) {
+    const b = brain;
+    if (b.digging) {
+      kome.vx = 0; kome.autoPose = false; kome.pose = 'dig';
+      b.digT -= dt; b.wait -= dt;
+      if (b.digT <= 0) {
+        b.digT = 0.16;
+        ps.spray(kome.x + kome.face * 13, kome.y - 4, 5, { dir: -Math.PI / 2 - kome.face * 0.7, spread: 0.45, speed: [120, 300], c: [PAL.rice, PAL.riceS], w: 3, h: 1.5, land: true, bounce: 0.3, life: 2.5, vr: 10, ol: true });
+        if (U.chance(0.3)) ps.puff(kome.x + kome.face * 12, kome.y - 1, 2, 5);
+        if (U.chance(0.22)) fl.money(kome.x + U.rnd(-10, 10), kome.y - 46, Math.pow(10, U.rnd(0.5, 5)));
+      }
+      if (b.wait <= 0) { b.digging = false; kome.autoPose = true; b.target = U.clamp(kome.x + U.rnd(90, 260) * U.pick([-1, 1]), -480, 480); }
+    } else {
+      const d = b.target - kome.x;
+      kome.vx = U.damp(kome.vx, Math.abs(d) < 4 ? 0 : U.sign(d) * (Math.abs(d) > 120 ? 170 : 60), 6, dt);
+      if (Math.abs(d) < 4) { b.digging = true; b.wait = U.rnd(1.6, 3); kome.vx = 0; }
+    }
+    kome.update(dt);
+    kome.y = floor(kome.x);
+    kome.rot = U.damp(kome.rot, Math.atan(slope(kome.x)) * 0.6, 10, dt);
+  }
+
+  /* ---------- update ---------- */
+  function update(dt) {
+    state.t += dt;
+    handleInput();
+    think(dt);
+    if (state.rain) rain(dt);
+    if (state.stress) {
+      const v = cam.view(viewTmp);
+      for (let i = 0; i < 60 && ps.count < 3000; i++) {
+        const k = i % 4, x = U.rnd(v.x0, v.x1), y = v.y0 - U.rnd(0, 40);
+        if (k === 0) RAIN.grain(x, y); else if (k === 1) RAIN.petal(x, y); else if (k === 2) RAIN.rect(x, y); else RAIN.dot(x, y);
+      }
+    }
+    const t0 = performance.now();
+    ps.update(dt, floor);
+    state.msU = U.lerp(state.msU, performance.now() - t0, 0.08);
+    fl.update(dt);
+    if (state.camMode === 'follow') cam.follow(kome.x + kome.face * 14, kome.y - 30 - 32 / cam.z, dt, 3.5);
+    cam.update(dt);
+    fx.update(dt);
+    loop.timeScale = fx.timeScale;
+    for (const b of BTN) b.press = U.damp(b.press, 0, 10, 1 / 60);
+  }
+
+  /* ---------- cenário ---------- */
+  function drawSky() {
+    const bands = [PAL.sky, '#B2DCEB', '#C6E5EC', '#DCEBE2', '#F0EAD2', PAL.skyL];
+    const bh = 300 / bands.length;
+    bands.forEach((c, i) => { g.fillStyle = c; g.fillRect(0, i === 0 ? 0 : 80 + i * bh, W, i === bands.length - 1 ? H : bh + 81); });
+  }
+  function drawFar(g, v) {            // sol, Fuji e nuvens (bem longe: quase não mexem)
+    const t = state.t;
+    g.fillStyle = 'rgba(255,250,230,.35)'; g.beginPath(); g.arc(250, -80, 54 + Math.sin(t * 1.3) * 3, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,250,230,.5)'; g.beginPath(); g.arc(250, -80, 42 + Math.sin(t * 1.3 + 1) * 2, 0, 7); g.fill();
+    g.fillStyle = PAL.sun; g.beginPath(); g.arc(250, -80, 32, 0, 7); g.fill();
+    // Fuji azulado pela distância, com neve
+    g.fillStyle = '#A9C3D6'; g.beginPath(); g.moveTo(-330, 70); g.quadraticCurveTo(-150, 20, -62, -128); g.lineTo(-18, -128); g.quadraticCurveTo(70, 20, 250, 70); g.fill();
+    g.fillStyle = '#93B0C8'; g.beginPath(); g.moveTo(-40, -128); g.lineTo(-18, -128); g.quadraticCurveTo(70, 20, 250, 70); g.lineTo(60, 70); g.quadraticCurveTo(-10, 0, -40, -128); g.fill();
+    g.fillStyle = '#F7FAFA'; g.beginPath(); g.moveTo(-62, -128); g.lineTo(-18, -128); g.lineTo(12, -74); g.lineTo(-4, -86); g.lineTo(-18, -66); g.lineTo(-36, -88); g.lineTo(-54, -68); g.lineTo(-70, -84); g.lineTo(-92, -72); g.fill();
+    // nuvens gordinhas passando
+    for (let i = 0; i < 6; i++) {
+      const span = v.x1 - v.x0 + 300, cx = v.x0 - 150 + U.wrap(i * 263 + t * (5 + i % 3 * 2), 0, span), cy = -150 + (i * 53 % 110), s = 0.8 + (i % 3) * 0.3;
+      g.fillStyle = '#E3EEF0'; g.beginPath(); g.ellipse(cx, cy + 4 * s, 40 * s, 10 * s, 0, 0, 7); g.fill();
+      g.fillStyle = '#FFFDF6'; g.beginPath(); g.ellipse(cx - 14 * s, cy, 18 * s, 11 * s, 0, 0, 7); g.ellipse(cx + 10 * s, cy - 5 * s, 22 * s, 14 * s, 0, 0, 7); g.ellipse(cx + 2 * s, cy + 2 * s, 36 * s, 8 * s, 0, 0, 7); g.fill();
+    }
+  }
+  function hills(g, v, base, amp, freq, seed, col, colTop) {
+    const step = Math.max(6, (v.x1 - v.x0) / 160);
+    for (let pass = 0; pass < 2; pass++) {
+      g.fillStyle = pass ? col : colTop;
+      g.beginPath(); g.moveTo(v.x0 - step, v.y1 + 10);
+      for (let x = Math.floor(v.x0 / step) * step - step; x <= v.x1 + step; x += step) g.lineTo(x, base - E.Noise.fbm1(x * freq, 3, seed) * amp + pass * 5);
+      g.lineTo(v.x1 + step, v.y1 + 10); g.fill();
+    }
+  }
+  function drawProp(p) {
+    if (!cam.visible(p.x, floor(p.x) - 30, 60)) return;
+    const y = floor(p.x) + 1, cv = SPR[p.kind], tree = p.kind === 'tree' || p.kind === 'sakura';
+    if (tree) Draw.shadow(g, p.x, y, 17 * p.s, 3 * p.s, 0.16);
+    E.drawSprite(g, cv, p.x, y, { sx: p.s, sy: p.s * (1 + (tree ? Math.sin(state.t * 1.6 + p.ph) * 0.012 : 0)), rot: tree ? Math.sin(state.t * 1.1 + p.ph) * 0.022 : p.kind === 'bush' ? Math.sin(state.t * 2 + p.ph) * 0.03 : 0 });
+  }
+  function drawGround(v) {
+    const step = Math.max(4, (v.x1 - v.x0) / 240), x0 = Math.floor(v.x0 / step) * step - step, x1 = v.x1 + step;
+    // terra
+    g.fillStyle = PAL.woodD; g.beginPath(); g.moveTo(x0, v.y1 + 20);
+    for (let x = x0; x <= x1; x += step) g.lineTo(x, floor(x));
+    g.lineTo(x1, v.y1 + 20); g.fill();
+    g.fillStyle = PAL.wood; g.beginPath(); g.moveTo(x0, floor(x0));
+    for (let x = x0; x <= x1; x += step) g.lineTo(x, floor(x));
+    for (let x = x1; x >= x0; x -= step) g.lineTo(x, floor(x) + 26 + Math.sin(x * 0.05) * 4);
+    g.fill();
+    // grama: faixa escura, faixa base, fio de luz
+    const band = (dy, th, c) => { g.strokeStyle = c; g.lineWidth = th; g.lineJoin = 'round'; g.beginPath(); for (let x = x0; x <= x1; x += step) g.lineTo(x, floor(x) + dy); g.stroke(); };
+    band(7.5, 7, PAL.grassD); band(3.5, 7, PAL.grass); band(1.6, 1.6, PAL.grassL);
+    g.strokeStyle = LINE; g.lineWidth = 1.4; g.beginPath(); for (let x = x0; x <= x1; x += step) g.lineTo(x, floor(x)); g.stroke();
+    // tufos balançando (só de perto)
+    if (cam.z > 0.7) {
+      g.strokeStyle = PAL.grassD; g.lineWidth = 1.3; g.lineCap = 'round'; g.beginPath();
+      for (let x = Math.floor(v.x0 / 17) * 17; x < v.x1; x += 17) {
+        const hx = x + E.hash(x) * 10, y = floor(hx), sw = Math.sin(state.t * 2.2 + x) * 1.6, hh = 4 + E.hash(x + 9) * 4;
+        g.moveTo(hx, y + 1); g.lineTo(hx + sw, y - hh); g.moveTo(hx + 2.5, y + 1); g.lineTo(hx + 3.5 + sw, y - hh * 0.7); g.moveTo(hx - 2.5, y + 1); g.lineTo(hx - 3.5 + sw, y - hh * 0.6);
+      }
+      g.stroke();
+    }
+  }
+
+  /* ---------- HUD de canvas ---------- */
+  const GROUP = { p: PAL.goldL, s: '#FBD5DC', c: PAL.waterL };
+  function pill(x, y, w, h, fill, dy) {
+    g.fillStyle = INK; Draw.rrect(g, x - 2, y - 2, w + 4, h + 7, 8); g.fill();
+    g.fillStyle = fill; Draw.rrect(g, x, y + dy, w, h, 6); g.fill();
+  }
+  function drawButtons() {
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const b of BTN) {
+      const on = b.toggle && state.toggles[b.id], dy = Math.round((on ? 2 : 0) + b.press * 3);
+      pill(b.x, b.y, b.w, b.h, on ? PAL.gold : U.mixCss(CREAM, GROUP[b.group], 0.55 + b.hover * 0.45), dy);
+      g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(b.x + 5, b.y + dy + 2, b.w - 10, 2);
+      g.font = "900 10.5px " + Draw.FONT; g.fillStyle = INK; g.fillText(b.id, b.x + b.w / 2 + 7, b.y + dy + b.h / 2 + 1);
+      g.fillStyle = INK; Draw.rrect(g, b.x + 3, b.y + dy + 5, 12, 12, 3); g.fill();
+      g.font = "900 9px " + Draw.FONT; g.fillStyle = CREAM; g.fillText(b.key, b.x + 9, b.y + dy + 11.5);
+    }
+  }
+  function drawMeter() {
+    const txt = 'partículas ' + ps.count + '   update ' + state.msU.toFixed(2) + ' ms   draw ' + state.msD.toFixed(2) + ' ms   ' + Math.round(loop.fps) + ' fps';
+    pill(10, 10, 356, 22, CREAM, 0);
+    g.font = "900 12px " + Draw.FONT; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText(txt, 20, 22);
+    // câmera: zoom e trauma
+    pill(W - 226, 10, 216, 22, CREAM, 0);
+    g.fillStyle = INK; g.fillText('zoom ' + cam.z.toFixed(2) + 'x', W - 216, 22);
+    g.fillText('trauma', W - 138, 22);
+    g.fillStyle = PAL.riceD; Draw.rrect(g, W - 92, 16, 74, 10, 4); g.fill();
+    if (cam.trauma > 0.01) { g.fillStyle = cam.trauma > 0.6 ? PAL.red : PAL.ora; Draw.rrect(g, W - 92, 16, Math.max(8, 74 * cam.trauma), 10, 4); g.fill(); }
+    Draw.text(g, 'fx.js · clique no mundo · roda do mouse = zoom', 550, 22, { size: 12, col: CREAM, sw: 4 });
+  }
+  const sp = { x: 0, y: 0 };
+  function drawLaneLabels() {
+    if (!state.rain) return;
+    for (const L of LANES) {
+      cam.toScreen(L.x, floor(L.x) + 15, sp);
+      if (sp.x < -40 || sp.x > W + 40) continue;
+      Draw.text(g, L.shape, sp.x + cam.sx, sp.y + cam.sy + 8, { size: U.clamp(10 * Math.sqrt(cam.z), 7, 14), col: CREAM, sw: 3.5 });
+    }
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    stage.begin();
+    drawSky();
+    cam.parallax(g, 0.08, drawFar, 0.12);
+    cam.parallax(g, 0.25, (g, v) => hills(g, v, 44, 60, 0.004, 3, '#A9C9B4', '#BDD8C2'), 0.3);
+    cam.parallax(g, 0.5, (g, v) => hills(g, v, 34, 46, 0.007, 8, '#8FB58A', '#A4C79A'), 0.55);
+    cam.begin(g);
+    const v = cam.view(viewTmp);
+    for (const p of PROPS) if (p.back) drawProp(p);
+    drawGround(v);
+    kome.draw(g);
+    for (const p of PROPS) if (!p.back) drawProp(p);
+    const t0 = performance.now();
+    ps.draw(g, v);
+    state.msD = U.lerp(state.msD, performance.now() - t0, 0.08);
+    cam.end(g);
+    drawLaneLabels();
+    fl.draw(g, cam);
+    fx.draw(g);
+    drawButtons();
+    drawMeter();
+  }
+
+  const loop = E.Loop({ update, render, input });
+  loop.start();
+
+  window.__demo = { fire, cam, ps, fl, fx, kome, state, loop, stage, actions: BTN.map(b => b.id) };
+  (q.get('fire') || '').split(',').filter(Boolean).forEach(fire);
+  if (q.has('z')) { state.zoom = +q.get('z'); cam.snapTo(undefined, undefined, state.zoom); }
+})();
+</script>
+</body>
+</html>

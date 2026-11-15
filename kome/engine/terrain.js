@@ -798,14 +798,14 @@
             if (i < 1 || i >= n - 1) continue;
             const av = act[i];
             if (av < 0.12) continue;
-            const dir = h[i - 1] > h[i + 1] ? 1 : -1, sl = Math.abs(h[i - 1] - h[i + 1]) / (2 * colW);
+            const dir = h[i - 1] > h[i + 1] ? 1 : -1;
             const cntG = av > 1.2 ? 2 : 1;
             for (let q = 0; q < cntG; q++) {
               const sd = hs(i * 0.917 + q * 4.3), span = colW * st * 3.2;
               const ph = (time * (1.4 + sd * 1.6) + sd * 7) % 1;
               const x = x0 + (i + 0.5) * colW + dir * (ph - 0.5) * span;
               const hop = Math.abs(Math.sin(ph * Math.PI * 3 + sd * 6)) * (1.5 + 3 * sd) * u * Math.min(1, av);
-              const y = y0 - h[i] + dir * (ph - 0.5) * span * sl * dir * 0 + (ph - 0.5) * span * sl - hop - gr * 0.6;
+              const y = heap.surf(x) - hop - gr * 0.6;
               const rot = ph * 9 * dir + sd * 6;
               const R = pass ? gr : gr + Math.max(0.7, pxw * 1.1);
               g.moveTo(x + Math.cos(rot) * R, y + Math.sin(rot) * R);
@@ -978,13 +978,8 @@
         g.save();
         g.translate(x, y);
         g.lineJoin = 'round'; g.lineCap = 'round';
-        if (o.clip !== false) { g.beginPath(); g.rect(0, -(o.lip !== undefined ? o.lip : hmax * (pile.max + 0.6)), w, hmax * (pile.max + 0.6) + (o.lip || 0) + 1); g.clip(); }
-        const path = () => {
-          g.moveTo(X[0], Y[0]); g.lineTo((X[0] + X[1]) * 0.5, (Y[0] + Y[1]) * 0.5);
-          for (let k = 1; k < M; k++) g.quadraticCurveTo(X[k], Y[k], (X[k] + X[k + 1]) * 0.5, (Y[k] + Y[k + 1]) * 0.5);
-          g.lineTo(X[M], Y[M]);
-        };
-        g.beginPath(); g.moveTo(0, 0.5); g.lineTo(X[0], Y[0]); path(); g.lineTo(w, 0.5); g.closePath();
+        if (o.clip !== false) { const lip = o.lip !== undefined ? o.lip : hmax * (pile.max + 0.6); g.beginPath(); g.rect(0, -lip, w, lip + 1); g.clip(); }
+        g.beginPath(); g.moveTo(0, 0.5); topPath(g, M, true); g.lineTo(w, 0.5); g.closePath();
         if (!pat) pat = texture(g, col, col2, col3, opts.tex || { size: 40, n: 150, shape: 'grain' });
         patScale(pat, o.grainScale || 0.5);
         g.fillStyle = pat; g.fill();
@@ -995,14 +990,14 @@
         g.fillRect(0, -sh, w, sh + 1); g.fillRect(0, -sh * 0.45, w, sh * 0.45 + 1);
         g.fillRect(0, -hmax * 3, Math.min(2.2, w * 0.05), hmax * 3); g.fillRect(w - Math.min(2.2, w * 0.05), -hmax * 3, 3, hmax * 3);
         // crista iluminada
-        g.beginPath(); path();
+        g.beginPath(); topPath(g, M, false);
         g.strokeStyle = HILITE; g.lineWidth = o.outline === false ? 2.6 : 4.6; g.stroke();
         // brilhinho
         const ph = t * 0.8 + pile.seed * 3.3, cyc = Math.floor(ph), tw = Math.sin((ph - cyc) * Math.PI);
         const si = 1 + Math.floor(hs(cyc * 2.3 + pile.seed) * (K - 1));
         if (A[si - 1] * hmax > 7) { g.fillStyle = HILITE; g.beginPath(); star(g, X[si], Y[si] + 4.5, 0.8 + 2.2 * tw * tw); g.fill(); }
         g.restore();
-        if (o.outline !== false) { g.beginPath(); path(); g.strokeStyle = o.line || LINE; g.lineWidth = o.lw || 1.5; g.stroke(); }
+        if (o.outline !== false) { g.beginPath(); topPath(g, M, false); g.strokeStyle = o.line || LINE; g.lineWidth = o.lw || 1.5; g.stroke(); }
         // grãos soltos pousados na superfície
         if (o.grains !== false) {
           for (let pass = 0; pass < 2; pass++) {
@@ -1020,6 +1015,13 @@
         g.restore();
       },
     };
+    // superfície da pilha (curva pelos pontos médios) no caminho atual
+    function topPath(g, M, cont) {
+      if (cont) g.lineTo(X[0], Y[0]); else g.moveTo(X[0], Y[0]);
+      g.lineTo((X[0] + X[1]) * 0.5, (Y[0] + Y[1]) * 0.5);
+      for (let k = 1; k < M; k++) g.quadraticCurveTo(X[k], Y[k], (X[k] + X[k + 1]) * 0.5, (Y[k] + Y[k + 1]) * 0.5);
+      g.lineTo(X[M], Y[M]);
+    }
     // avalanche entre colunas com paredes; devolve o quanto se mexeu
     function relax(iters, tilt) {
       let moved = 0;

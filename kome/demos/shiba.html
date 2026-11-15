@@ -51,7 +51,7 @@
 
   /* ---------- 1. todas as poses ---------- */
   function pagePoses(t) {
-    bg('todas as poses (' + E.SHIBA_POSES.length + ')', 'as ' + OLD_N + ' do rascunho (pixel a pixel iguais) + ' + NEW.length + ' novas (rótulo dourado)');
+    bg('todas as poses (' + E.SHIBA_POSES.length + ')', 'as ' + OLD_N + ' do rascunho (pixel a pixel iguais, menos a roll, redesenhada a pedido do dono) + ' + NEW.length + ' novas (rótulo dourado)');
     const cols = 10, cw = 94, ch = 118, sc = 1.75;
     E.SHIBA_POSES.forEach((p, i) => {
       const x = 14 + (i % cols) * cw + cw / 2, y = 150 + Math.floor(i / cols) * ch;

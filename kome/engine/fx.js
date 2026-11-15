@@ -341,7 +341,7 @@
         D[o + R] = p.r || 0; D[o + VR] = p.vr || 0;
         D[o + PW] = w; D[o + PH] = p.h === undefined ? (sh === S_RING ? 2 : sh === S_GRAIN && w === 3 ? 1.4 : w * DEF_HK[sh]) : p.h;
         D[o + DRAG] = p.drag || 0; D[o + GROW] = p.grow || 0;
-        D[o + FADE] = p.fade === undefined ? (sh === S_PUFF ? 0 : 0.625) : p.fade;
+        D[o + FADE] = p.fade === undefined ? (sh === S_PUFF || sh === S_SMOKE ? 0 : sh === S_RING ? 0.3 : 0.625) : p.fade;
         D[o + BOUNCE] = p.bounce || 0; D[o + SWAY] = p.sway || 0; D[o + PHASE] = Math.random() * TAU;
         D[o + SC] = 1; D[o + FLIP] = p.flip || 0; D[o + AGE] = 0;
         shape[i] = sh; col[i] = colorOf(p.c || '#fffdf6');
@@ -599,7 +599,9 @@
             rad *= (0.55 + 0.45 * (1 - (1 - tin) * (1 - tin)) + age * 0.25) * (life < 0.32 ? life / 0.32 : 1);
             a = 0.92;
           } else {
-            a = Math.min(0.62, life * 0.9) * Math.min(1, age * 8);
+            // fumaça: bolota quase opaca que incha (grow) e se desfaz encolhendo
+            rad *= (age < 0.15 ? 0.4 + 4 * age : 1) * (life < 0.45 ? 0.25 + life / 0.6 : 1);
+            a = 0.82 * (life < 0.45 ? 0.35 + life / 0.69 : 1);
           }
           const fd = D[o + FADE]; if (fd > 0 && life < fd) a *= life / fd;
           if (rad < 0.3 || a <= 0.01) continue;
@@ -787,7 +789,7 @@
     const fade = { a: 0, from: 0, to: 0, t: 1, dur: 0, col: DEEP, cb: null };
     const lb = { k: 0, to: 0, h: 60 };
     const vig = { k: 0, to: 0, cv: null };
-    const sl = { k: 0, on: false, dir: null, col: CREAM, col2: null, n: 44, x: 0, y: 0, inner: 0.34, alpha: 0.9, t: 0 };
+    const sl = { k: 0, on: false, dir: null, col: CREAM, col2: null, n: 64, x: 0, y: 0, inner: 0.36, alpha: 0.9, t: 0 };
     const iris = { active: false, r: 0, from: 0, to: 0, t: 1, dur: 0.6, x: 0, y: 0, cb: null, max: 0 };
     const rings = [];
     for (let i = 0; i < 8; i++) rings.push({ on: false, x: 0, y: 0, t: 0, dur: 0.5, r: 160, col: CREAM, w: 14 });
@@ -809,15 +811,15 @@
       letterbox(on, h) { lb.to = on ? 1 : 0; if (h) lb.h = h; return fx; },
       // vignette(k): vinheta marrom suave (0 desliga; .25 sutil; .6 dramática)
       vignette(k) { vig.to = Math.max(0, k || 0); return fx; },
-      // speedlines(on, {dir, col, col2, n=44, x, y, inner=.34, alpha=.9}): linhas de anime; sem dir = radiais em volta de (x,y);
+      // speedlines(on, {dir, col, col2, n=64, x, y, inner=.36, alpha=.9}): linhas de anime; sem dir = radiais em volta de (x,y);
       //   com dir (rad) = riscos passando nessa direção
       speedlines(on, o) {
         sl.on = !!on;
         if (on) {
           o = o || NO;
-          sl.dir = o.dir === undefined ? null : o.dir; sl.col = o.col || CREAM; sl.col2 = o.col2 || null; sl.n = o.n || 44;
+          sl.dir = o.dir === undefined ? null : o.dir; sl.col = o.col || CREAM; sl.col2 = o.col2 || null; sl.n = o.n || 64;
           sl.x = o.x === undefined ? W / 2 : o.x; sl.y = o.y === undefined ? H / 2 : o.y;
-          sl.inner = o.inner === undefined ? 0.34 : o.inner; sl.alpha = o.alpha === undefined ? 0.9 : o.alpha;
+          sl.inner = o.inner === undefined ? 0.36 : o.inner; sl.alpha = o.alpha === undefined ? 0.9 : o.alpha;
         }
         return fx;
       },
@@ -934,7 +936,7 @@
       for (let i = 0; i < rings.length; i++) {
         const rg = rings[i];
         if (!rg.on) continue;
-        const e = U.ease.out(rg.t), rad = rg.r * (0.12 + 0.88 * e), lw = rg.w * (1 - rg.t) * (1 - rg.t) + 0.5;
+        const e = U.ease.out(rg.t), rad = rg.r * (0.12 + 0.88 * e), lw = rg.w * Math.pow(1 - rg.t, 1.4) + 0.5;
         g.globalAlpha = Math.min(1, (1 - rg.t) * 2.2);
         g.beginPath(); g.arc(rg.x, rg.y, rad, 0, TAU);
         g.strokeStyle = LINE; g.lineWidth = lw + 4; g.stroke();
@@ -960,8 +962,8 @@
           g.beginPath();
           for (let i = pass; i < sl.n; i += sl.col2 ? 2 : 1) {
             const h1 = hash(i * 7.31 + fr * 13.7), h2 = hash(i * 3.17 + fr * 5.9 + 40), h3 = hash(i * 11.3 + fr * 2.3 + 90);
-            const a = (i + h1 * 0.9) / sl.n * TAU, wd = (0.006 + h2 * 0.022) * (0.6 + 0.4 * k);
-            const tip = (0.72 + h3 * 0.75) / k;         // entra de fora pra dentro quando liga
+            const a = (i + h1 * 0.9) / sl.n * TAU, wd = (0.003 + h2 * h2 * 0.017) * (0.6 + 0.4 * k);
+            const tip = (0.85 + h3 * 0.8) / k;         // entra de fora pra dentro quando liga
             const ca = Math.cos(a), sa = Math.sin(a);
             g.moveTo(cx + ca * rx * tip, cy + sa * ry * tip);
             g.lineTo(cx + Math.cos(a - wd) * R, cy + Math.sin(a - wd) * R);

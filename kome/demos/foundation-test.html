@@ -8,7 +8,7 @@
   html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
   .ft-list {
     position: absolute; left: 12px; top: 44px; width: 590px; height: 486px; overflow: hidden;
-    columns: 3; column-gap: 8px; font: 700 8px/1.32 'Zen Maru Gothic', 'Trebuchet MS', system-ui, sans-serif; color: #3B2818;
+    columns: 3; column-gap: 8px; column-fill: auto; font: 700 7.5px/1.3 'Zen Maru Gothic', 'Trebuchet MS', system-ui, sans-serif; color: #3B2818;
   }
   .ft-list div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; break-inside: avoid; }
   .ft-list .ok::before { content: '● '; color: #6FA84B; }
@@ -748,7 +748,8 @@
   FT.pass = tests.length - fails.length; FT.fail = fails.length; FT.failed = fails.map(f => f.name + ' — ' + f.err);
   console.log('[kome] foundation: RESUMO ' + FT.pass + '/' + tests.length + ' PASS' + (fails.length ? ' · ' + fails.length + ' FAIL' : ' · tudo ok') + ' (janela ' + innerWidth + 'x' + innerHeight + ', dpr ' + devicePixelRatio + ', escala ' + stage.scale.toFixed(3) + ')');
 
-  const list = stage.layer('ft-list');
+  const list = document.createElement('div'); list.className = 'ft-list'; stage.layer().appendChild(list);
+  FT.taps.length = 0;                                       // só os toques de verdade (pós-testes) aparecem no palco
   results.forEach(r => { const d = document.createElement('div'); if (r.sec) { d.className = 'sec'; d.textContent = r.sec; } else { d.className = r.pass ? 'ok' : 'bad'; d.textContent = r.name.replace(/^[^·]+· /, '') + (r.pass ? '' : ' — ' + r.err); } list.appendChild(d); });
 
   const sprOni = E.sprite('ft-onigiri', 16, 16, P => { P.tri(8, 1, 1, 14, 15, 14, PAL.rice).rrect(1, 9, 14, 6, 3, PAL.rice).rect(5, 9, 6, 6, PAL.leafD).shadeBelow(PAL.rice, .12); });
