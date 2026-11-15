@@ -1,0 +1,3 @@
+/* Kome no Japão — ajustes de página do jogo (o visual do HUD vem de engine/kome.css) */
+html, body { margin: 0; height: 100%; background: #2a1a10; overflow: hidden; overscroll-behavior: none; }
+canvas { touch-action: none; }

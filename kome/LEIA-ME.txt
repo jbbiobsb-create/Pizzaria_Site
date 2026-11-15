@@ -1,8 +1,8 @@
 KOME ENGINE / KOME NO JAPÃO — versão parcial (pausada no meio)
 
 COMO TESTAR
-  Abra o arquivo demos/index.html no navegador (duplo clique). Não precisa instalar nada.
-  O JOGO AINDA NÃO EXISTE nesta versão: o que dá pra testar são as demonstrações da engine.
+  Abra index.html (o jogo) ou demos/index.html (demonstrações da engine). Não precisa instalar nada.
+  O JOGO: abra index.html (na raiz da pasta kome). É a etapa 1: jogável da pata até a Bagger e a casa.
 
 O QUE ESTÁ PRONTO
   demos/shiba.html    o Kome: 39 poses, paletas, closes de rosto
