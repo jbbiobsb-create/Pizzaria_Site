@@ -819,7 +819,7 @@
       let hit = cacheMap.get(key);
       if (hit !== undefined) {
         stats.hits++;
-        if (cacheSeq - slotSeq[hit] > (CACHE_N >> 1)) hit = refreshSlot(hit);
+        if (cacheSeq - slotSeq[hit] > (CACHE_N >> 2)) hit = refreshSlot(hit);
         return slotCv[hit];
       }
       const i = cacheCur; cacheCur = (cacheCur + 1) % CACHE_N;
@@ -1085,7 +1085,9 @@
      métodos: say(texto,seg,{size,maxW,typing}), shutUp(), hop(força), update(dt), draw(g), anchor(nome,out)->{x,y} no mundo */
   function Actor(opts) {
     const a = {
-      x: 0, y: 0, face: 1, pose: 'sit', t: Math.random() * 20, pal: 'kome', scale: 1, squash: 0, rot: 0, vx: 0, vy: 0,
+      // t começa numa fase aleatória de uma janela curta (2..6 s): cada shiba pisca/anda no seu tempo, mas uma multidão
+      // na mesma pose/paleta ainda reaproveita os frames uns dos outros no cache (fases muito espalhadas não cabem nele)
+      x: 0, y: 0, face: 1, pose: 'sit', t: 2 + Math.random() * 4, pal: 'kome', scale: 1, squash: 0, rot: 0, vx: 0, vy: 0,
       hat: true, alpha: 1, eyes: null, mouth: null, fast: 0, shadow: true, visible: true, timeScale: 1,
       hold: null, autoPose: false, idlePose: 'stand', walkSpeed: 20, runSpeed: 150,
       gravity: 0, ground: 0, z: 0, vz: 0,                 // z = altura do pulinho (hop), separado de y

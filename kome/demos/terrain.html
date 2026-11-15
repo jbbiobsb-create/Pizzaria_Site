@@ -41,14 +41,15 @@
   function shape(x) {
     if (x < MX0 || x > MX1) return 0;
     const u = (x - (MX0 + MX1) / 2) / ((MX1 - MX0) / 2);          // -1..1
-    const tri = 1.02 - Math.sqrt(u * u + 0.012) - 0.02 * (1 - u * u) * 0;
-    const foot = U.smooth(U.clamp((1 - Math.abs(u)) / 0.035, 0, 1)); // pé arredondado
+    const tri = Math.max(0, 1 - Math.sqrt(u * u + 0.012));
+    const edge = U.smooth(U.clamp((1 - Math.abs(u)) / 0.12, 0, 1));
     const bumps = 5 * Math.sin(x / 130) + 3 * Math.sin(x / 71 + 2) + 10 * Math.sin(x / 290 + 1);
-    return Math.max(0, (MH * Math.max(0, tri) + bumps) * foot);
+    return Math.max(0, MH * tri + bumps * edge * (tri > 0 ? 1 : 0));
   }
   function build() {
     heap.clearPockets();
     heap.generate(shape);
+    heap.wake().settle(); heap.fromArray(heap.h.slice()); // nasce já assentada (talude do arroz solto)
     const r = E.RNG(77);
     let tries = 0;
     while (heap.pockets.length < 28 && tries++ < 400) {

@@ -34,14 +34,15 @@
 
   // tons de um material: vão entre grãos, sombra, base, luz, brilho
   function tonesOf(kind, col, c2, c3) {
-    const gold = kind === 'gold';
+    const gold = kind === 'gold', mochi = kind === 'mochi';
+    const dark = gold ? '#5A3206' : mochi ? '#9A4E58' : BROWN;
     return {
-      gap: U.mixCss(col, gold ? '#5A3206' : BROWN, kind === 'pressed' ? 0.34 : gold ? 0.5 : 0.42),
-      low: c2 || U.mixCss(col, gold ? '#7A4A0C' : BROWN, gold ? 0.26 : 0.15),
+      gap: U.mixCss(col, dark, kind === 'pressed' ? 0.34 : gold ? 0.5 : mochi ? 0.5 : 0.38),
+      low: c2 || U.mixCss(col, gold ? '#7A4A0C' : dark, gold ? 0.26 : mochi ? 0.14 : 0.11),
       mid: col,
-      top: c3 || U.mixCss(col, gold ? '#FFF3B0' : '#FFFFFF', gold ? 0.5 : 0.62),
+      top: c3 || U.mixCss(col, gold ? '#FFF3B0' : '#FFFFFF', gold ? 0.5 : 0.66),
       hi: gold ? '#FFFBE0' : '#FFFFFF',
-      shadow: gold ? 'rgba(70,36,4,.38)' : 'rgba(60,36,14,.30)',
+      shadow: gold ? 'rgba(70,36,4,.38)' : 'rgba(60,36,14,.28)',
     };
   }
 
@@ -130,7 +131,7 @@
         if (X < -90 || X > T + 90 || Y < -90 || Y > T + 90) continue;
         c.strokeStyle = U.rgba(tn.top, 0.9); c.lineWidth = 1.6;
         c.beginPath(); c.moveTo(X, Y + 1.8); c.quadraticCurveTo(X + dx * 0.5 + bx, Y + dy * 0.5 + by + 1.8, X + dx, Y + dy + 1.8); c.stroke();
-        c.strokeStyle = tn.gap; c.lineWidth = 2;
+        c.strokeStyle = U.rgba(tn.gap, 0.8); c.lineWidth = 1.8;
         c.beginPath(); c.moveTo(X, Y); c.quadraticCurveTo(X + dx * 0.5 + bx, Y + dy * 0.5 + by, X + dx, Y + dy); c.stroke();
         c.lineWidth = 1.2;
         c.beginPath(); c.moveTo(X + dx * 0.55 + bx * 0.5, Y + dy * 0.55 + by * 0.5); c.lineTo(X + dx * 0.55 - dy * 0.22, Y + dy * 0.55 + dx * 0.22); c.stroke();
@@ -144,15 +145,15 @@
       c.fillStyle = U.mixCss(tn.low, tn.gap, 0.45); wfill(c, T, x - 0.4, y - 0.7, s * 0.62, s * 0.3, a);
     }
     // brilho de superfície lisa: cápsula branca + pontinho
-    for (let i = 0; i < 15; i++) {
-      const x = r() * T, y = r() * T, L = 9 + r() * 12;
+    for (let i = 0; i < 24; i++) {
+      const x = r() * T, y = r() * T, L = 8 + r() * 14;
       c.fillStyle = 'rgba(255,255,255,.85)';
       wfill(c, T, x, y, L, 2.1, -0.42);
       wfill(c, T, x + L * 1.25, y - L * 0.56, 2.2, 1.9, 0);
     }
   }
   function tileSoft(c, T, r, kind, tn) {
-    c.fillStyle = U.mixCss(tn.mid, tn.low, kind === 'mochi' ? 0.1 : 0.42); c.fillRect(0, 0, T, T);
+    c.fillStyle = U.mixCss(tn.mid, tn.low, kind === 'mochi' ? 0.1 : kind === 'loose' ? 0.2 : 0.4); c.fillRect(0, 0, T, T);
     const nb = kind === 'mochi' ? 26 : 70;
     for (let i = 0; i < nb; i++) { c.fillStyle = U.rgba(tn.gap, 0.1); wfill(c, T, r() * T, r() * T, 5 + r() * 10, 3 + r() * 5, (r() - 0.5) * 0.8); }
     for (let i = 0; i < nb; i++) { c.fillStyle = U.rgba(tn.top, 0.2); wfill(c, T, r() * T, r() * T, 4 + r() * 9, 2.5 + r() * 4, (r() - 0.5) * 0.8); }
@@ -210,8 +211,8 @@
     const q = Math.pow(2, Math.max(0, Math.round(Math.log2(1 / S))));
     if (S >= 2.6) { LA = 'g'; LAs = 0.25; LBa = 0; }
     else if (S >= 2.1) { LA = 'g'; LAs = 0.5; LB = 'g'; LBs = 0.25; LBa = (S - 2.1) / 0.5; }
-    else if (S >= 0.85) { LA = 'g'; LAs = 0.5; LBa = 0; }
-    else if (S >= 0.65) { LA = 's'; LAs = q; LB = 'g'; LBs = 0.5; LBa = (S - 0.65) / 0.2; }
+    else if (S >= 0.85) { LA = 'g'; LAs = 0.5; LB = 's'; LBs = q; LBa = U.clamp((1.7 - S) / 0.85, 0, 1) * 0.42; } // médio: grão graúdo, acalmado pela textura macia
+    else if (S >= 0.65) { LA = 's'; LAs = q; LB = 'g'; LBs = 0.5; LBa = ((S - 0.65) / 0.2) * 0.58; }
     else { LA = 's'; LAs = q; LBa = 0; }
     LNear = U.clamp((S - 2.1) / 0.5, 0, 1); // 1 = grãos no tamanho real
   }
