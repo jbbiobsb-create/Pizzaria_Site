@@ -1,0 +1,28 @@
+KOME ENGINE / KOME NO JAPÃO — versão parcial (pausada no meio)
+
+COMO TESTAR
+  Abra o arquivo demos/index.html no navegador (duplo clique). Não precisa instalar nada.
+  O JOGO AINDA NÃO EXISTE nesta versão: o que dá pra testar são as demonstrações da engine.
+
+O QUE ESTÁ PRONTO
+  demos/shiba.html    o Kome: 39 poses, paletas, closes de rosto
+  demos/pix.html      folha de estilo: paleta, sprites, peças de máquina (teclas 1/2/3)
+  demos/terrain.html  montanha de arroz: segure o clique pra cavar (1-5 ferramenta, R roda, Z zoom)
+  demos/rig.html      máquinas articuladas: trator, escavadeira (segue o mouse), esteira
+  demos/fx.html       câmera, partículas, efeitos de tela
+  demos/audio.html    mesa de som (clique primeiro pra liberar o áudio)
+  demos/core.html     núcleo (laço, entrada, tweens, save)
+
+INTERROMPIDO NO MEIO (abre, mas pode ter pedaço faltando ou bug)
+  demos/nature.html        cenário japonês, casa, lago de carpas (?page=1..4)
+  demos/ui.html            interface e árvore de habilidades
+  demos/machines-mid.html  trator, empilhadeira e escavadeira do jogo
+
+NÃO COMEÇOU
+  ferramentas de mão + britadeira, pá de cabo, caminhão, Bagger 293, o jogo, cutscenes.
+
+PRA CONTINUAR (você ou outro Claude)
+  docs/GDD.md + docs/GDD-ADENDO.md   design completo do jogo (o adendo tem prioridade)
+  tools/ENGINE_CONTRACT.md           arquitetura e API da engine
+  tools/ART_DIRECTION.md             direção de arte
+  docs/                              pesquisas (Bagger, incrementais, cutscenes, áudio) e prints
