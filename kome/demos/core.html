@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome Engine · core.js</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
+  .demo-pill {
+    position: absolute; right: 14px; top: 8px; padding: 3px 12px; pointer-events: auto; cursor: pointer;
+    font: 900 13px/1.4 'Zen Maru Gothic', 'Trebuchet MS', system-ui, sans-serif; color: #3B2818;
+    background: #FFFAE6; border: 2px solid #2a1a10; border-radius: 99px; box-shadow: 0 3px 0 #2a1a10;
+  }
+  .demo-pill:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a1a10; }
+</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U;
+  const INK = '#3B2818', CREAM = '#FFF6DC', PAPER = '#FFFAE6', GOLD = '#E3BC62', RED = '#D9533B', GREEN = '#6FA84B', BLUE = '#5B9BC8';
+  const FONT = "'Zen Maru Gothic','Trebuchet MS',system-ui,sans-serif";
+
+  /* ====================== testes automáticos ====================== */
+  const results = [];
+  function test(name, fn) {
+    let ok = false, err = '';
+    try { ok = fn() === true; } catch (e) { err = ' (' + e.message + ')'; }
+    results.push({ name, ok });
+    console.log('[kome] core test: ' + (ok ? 'ok   ' : 'FALHOU ') + name + err);
+  }
+  const near = (a, b, eps) => Math.abs(a - b) <= (eps || 1e-9);
+
+  test('U math (clamp/lerp/remap/smooth/damp/angLerp/wrap)', () =>
+    U.clamp(5, 0, 3) === 3 && U.clamp(-1, 0, 3) === 0 && U.lerp(2, 4, .5) === 3 && U.invLerp(2, 4, 3) === .5 &&
+    U.remap(5, 0, 10, 100, 200) === 150 && U.remap(99, 0, 10, 100, 200) === 200 && U.smooth(.5) === .5 && U.smooth(2) === 1 &&
+    near(U.damp(0, 10, 5, 1e9), 10) && near(U.damp(0, 10, 4, .1) , 10 * (1 - Math.exp(-.4))) &&
+    near(U.angLerp(3, -3, .5), Math.PI, .01) && U.sign(-4) === -1 && U.dist(0, 0, 3, 4) === 5 && U.wrap(-1, 0, 5) === 4 && U.approach(0, 1, 5) === 1);
+  test('U aleatório (rnd/irnd/pick/chance/shuffle)', () => {
+    for (let i = 0; i < 300; i++) {
+      const a = U.rnd(2, 3), b = U.irnd(1, 6);
+      if (a < 2 || a >= 3 || b < 1 || b > 6 || b !== Math.floor(b)) return false;
+    }
+    const arr = U.shuffle([1, 2, 3, 4, 5, 6]);
+    return arr.length === 6 && arr.slice().sort().join('') === '123456' && [7, 8].indexOf(U.pick([7, 8])) >= 0 && U.chance(1) && !U.chance(0);
+  });
+  test('U.ease (todas vão de 0 a 1)', () => {
+    for (const k in U.ease) { if (k === 'arc') continue; if (!near(U.ease[k](0), 0, 1e-6) || !near(U.ease[k](1), 1, 1e-6)) throw new Error(k); }
+    return near(U.ease.out(.5), .875) && near(U.ease.back(.5), 1 + 2.7 * -.125 + 1.7 * .25) && near(U.ease.arc(.5), 1);
+  });
+  test('U.fmt (compatível com o rascunho + sufixos novos)', () =>
+    U.fmt(0) === '0' && U.fmt(999) === '999' && U.fmt(1234) === '1.234' && U.fmt(9999.9) === '9.999' && U.fmt(12345) === '12,3 mil' &&
+    U.fmt(4.56e6) === '4,56 mi' && U.fmt(1.5e6) === '1,50 mi' && U.fmt(2.3e9) === '2,30 bi' && U.fmt(7.7e12) === '7,70 tri' &&
+    U.fmt(1e15) === '1,00 quatri' && U.fmt(1e18) === '1,00 quinti' && U.fmt(1e21) === '1,00 sexti' && U.fmt(1e24) === '1,00 septi' &&
+    U.fmt(1e27) === '1,00 octi' && U.fmt(1e30) === '1,00 noni' && U.fmt(1e33) === '1,00 deci' && U.fmt(1e36) === '1,00e36' &&
+    U.fmt(999999) === '1,00 mi' && U.fmt(-2500000) === '-2,50 mi' && U.fmt(NaN) === '0' && U.fmt(123456) === '123 mil');
+  test('U.fmtTime / fmtInt / pct', () =>
+    U.fmtTime(45) === '45s' && U.fmtTime(200) === '3min 20s' && U.fmtTime(3725) === '1h 02min' && U.fmtTime(200000) === '2d 07h' &&
+    U.fmtInt(1234567) === '1.234.567' && U.pct(.425, 1) === '42,5%');
+  test('U cores (hex/rgba/css/mix/mixCss/shade)', () =>
+    U.hex('#E3BC62').join() === '227,188,98,255' && U.hex('#abc').join() === '170,187,204,255' && U.hex('#00000080')[3] === 128 &&
+    U.hex([1, 2, 3]).join() === '1,2,3,255' && U.rgba('#E3BC62', .5) === 'rgba(227,188,98,0.5)' && U.css('#abc') === '#abc' &&
+    U.css([255, 0, 16, 255]) === '#ff0010' && U.mix('#000', '#fff', .5).join() === '128,128,128,255' && U.mixCss('#000000', '#ffffff', .5) === '#808080' &&
+    U.shade('#E3BC62', -.28) === U.css(U.mix('#E3BC62', '#281408', .28)) && U.shade('#E3BC62', .3) === U.css(U.mix('#E3BC62', '#FFFAE6', .3)));
+  test('RNG determinístico (mesma seed = mesma sequência; fork estável)', () => {
+    const a = E.RNG(1234), b = E.RNG(1234), c = E.RNG(1235);
+    let same = true, diff = false;
+    for (let i = 0; i < 200; i++) { const x = a(), y = b(), z = c(); if (x !== y) same = false; if (x !== z) diff = true; if (x < 0 || x >= 1) return false; }
+    const f1 = E.RNG(9).fork(3)(), r9 = E.RNG(9); r9(); r9();
+    const k = E.RNG('kome'); let sum = 0;
+    for (let i = 0; i < 4000; i++) { const v = k.int(1, 6); if (v < 1 || v > 6) return false; sum += k(); }
+    const first = a.reset()();
+    return same && diff && f1 === r9.fork(3)() && f1 !== E.RNG(9).fork(4)() && near(sum / 4000, .5, .03) && first === E.RNG(1234)() &&
+      E.RNG('kome')() === E.RNG('kome')() && [1, 2].indexOf(k.pick([1, 2])) >= 0 && k.chance(1);
+  });
+  test('hash + Noise (0..1, determinístico, contínuo)', () => {
+    if (E.hash(7) !== E.hash(7) || E.hash(7) === E.hash(8) || E.hash(1, 2) === E.hash(2, 1)) return false;
+    let mn = 1, mx = 0, prev = E.Noise.n1(0, 3);
+    for (let i = 1; i < 4000; i++) {
+      const x = i * .01, v = E.Noise.n1(x, 3), w = E.Noise.fbm2(x, x * .7, 4, 5), h = E.hash(i);
+      if (Math.abs(v - prev) > .03 || v < 0 || v > 1 || w < 0 || w > 1 || h < 0 || h >= 1) return false;
+      prev = v; mn = Math.min(mn, v); mx = Math.max(mx, v);
+    }
+    return mn < .15 && mx > .85 && E.Noise.n2(1.5, 2.5, 9) === E.Noise.n2(1.5, 2.5, 9) && E.Noise.n2(1.5, 2.5, 9) !== E.Noise.n2(1.5, 2.5, 10) &&
+      E.Noise.fbm1(.3, 3, 1) >= 0;
+  });
+  test('Emitter (on/off/once/emit/clear)', () => {
+    const em = E.Emitter(); let log = '';
+    const off = em.on('a', (x, y) => { log += 'A' + x + y; });
+    em.once('a', x => { log += 'O' + x; });
+    em.on('b', () => { log += 'B'; });
+    const n = em.emit('a', 1, 2); em.emit('a', 3, 4); off(); em.emit('a', 5, 6); em.emit('b'); em.clear(); em.emit('b');
+    return n === 2 && log === 'A12O1A34B' && em.emit('nada') === 0;
+  });
+  test('Pool (get/free/size reaproveita)', () => {
+    let made = 0;
+    const pool = E.Pool(() => ({ id: ++made, v: -1 }), (o, v) => { o.v = v; });
+    const a = pool.get(5), b = pool.get(6);
+    pool.free(a);
+    const c = pool.get(7);
+    pool.free(b); pool.free(c);
+    return made === 2 && c === a && c.v === 7 && pool.size === 2 && pool.made === 2 && pool.prealloc(3).size === 5;
+  });
+  test('Tween (to/delay/ease/wait/killOf/yoyo/finish)', () => {
+    E.Tween.clear();
+    const o = { x: 0, y: 10 }, p = { x: 0 }, q = { x: 0 }, y = { v: 0 };
+    let done = 0, upd = 0, waited = 0;
+    const h = E.Tween.to(o, { x: 100, y: 0 }, 1, { ease: 'lin', delay: .5, onUpdate: () => upd++, onDone: () => done++ });
+    E.Tween.to(p, { x: 50 }, 1);
+    E.Tween.wait(.7, () => waited++);
+    const hy = E.Tween.to(y, { v: 1 }, 1, { ease: 'lin', yoyo: true, repeat: -1 });
+    const hq = E.Tween.to(q, { x: 8 }, 10, { onDone: () => done += 10 });
+    E.Tween.update(.25); if (o.x !== 0 || upd !== 0) return false;      // ainda no delay
+    E.Tween.killOf(p);
+    E.Tween.update(.75); if (!near(o.x, 50, 1e-6) || !near(o.y, 5, 1e-6) || waited !== 1 || h.done) return false;
+    E.Tween.update(.75); if (!near(y.v, .25, 1e-6)) return false;        // yoyo voltando: 1.75 -> .25
+    hq.finish();
+    const okEnd = o.x === 100 && o.y === 0 && done === 11 && h.done && q.x === 8 && hq.done && p.x > 0 && p.x < 50;
+    hy.cancel(); E.Tween.update(.01);
+    return okEnd && E.Tween.count === 0;
+  });
+  test('Timers (every/cooldown)', () => {
+    let n = 0; const ev = E.every(.5, () => n++), cd = E.cooldown(2);
+    ev.tick(.4); ev.tick(.2); ev.tick(1.0);
+    const a = cd.ready() && cd.use() && !cd.use() && cd.frac === 0;
+    cd.tick(1); const b = cd.frac === .5 && !cd.ready(); cd.tick(5);
+    return n === 3 && a && b && cd.ready() && cd.frac === 1;
+  });
+  test('Scenes (go/push/pop + ordem de enter/exit/pause/resume)', () => {
+    const S = E.Scenes.create(); let log = '';
+    const mk = n => ({ enter: a => { log += n + '+' + (a || '') + ' '; }, exit: () => { log += n + '- '; }, update: () => { log += n + 'u '; },
+      render: () => { log += n + 'r '; }, pause: () => { log += n + 'p '; }, resume: () => { log += n + 'R '; } });
+    S.add('menu', mk('m')).add('jogo', mk('j')).add('pausa', mk('p'));
+    S.go('menu'); S.go('jogo', 7); S.push('pausa'); S.update(.1); S.render(null);
+    const mid = S.name === 'pausa' && S.depth() === 2;
+    S.pop(); S.update(.1);
+    let threw = false; try { S.go('nope'); } catch (e) { threw = true; }
+    return mid && threw && S.name === 'jogo' && S.current === S.current && log === 'm+ m- j+7 jp p+ pu jr pr p- jR ju ';
+  });
+  test('Save (roundtrip, defaults profundos, migrate, export/import, lixo)', () => {
+    const KEY = 'kome-core-demo-test';
+    try { localStorage.removeItem(KEY); localStorage.removeItem(KEY + '.bak'); } catch (e) {}
+    const defs = () => ({ money: 0, tools: { paw: 1, hashi: 0 }, list: [] });
+    const s1 = E.Save(KEY, { version: 1, defaults: defs });
+    const d1 = s1.load();
+    if (!s1.isNew || d1.money !== 0 || d1.tools.paw !== 1) return false;
+    d1.money = 1234; d1.tools.paw = 3; d1.list.push('ação', 'こめ'); delete d1.tools.hashi; d1.old = 5;
+    if (s1.persistent && !s1.save()) return false; else s1.save();
+    // nova versão: migra e completa o que falta
+    const s2 = E.Save(KEY, { version: 2, defaults: () => ({ money: 0, rice: 0, tools: { paw: 1, hashi: 0, cart: 0 }, list: [] }),
+      migrate: (old, v) => { if (v < 2) { old.rice = old.old * 2; delete old.old; } return old; } });
+    const d2 = s2.load();
+    if (s2.isNew || d2.money !== 1234 || d2.rice !== 10 || d2.old !== undefined || d2.tools.paw !== 3 || d2.tools.hashi !== 0 || d2.tools.cart !== 0 ||
+      d2.list[1] !== 'こめ' || d2.__v !== 2 || typeof d2.__t !== 'number' || s2.offlineSeconds() < 0 || s2.offlineSeconds() > 5) return false;
+    // export / import
+    const str = s2.exportStr();
+    d2.money = 1;
+    if (!s2.importStr(str) || s2.data.money !== 1234 || s2.importStr('isso não é um save!') || s2.data.money !== 1234) return false;
+    // save estragado: cai no backup em vez de zerar
+    s2.save(); s2.load();
+    let ok = true;
+    if (s2.persistent) {
+      localStorage.setItem(KEY, '{quebrado');
+      const s3 = E.Save(KEY, { version: 2, defaults: defs });
+      ok = s3.load().money === 1234;
+    }
+    const cleared = s2.clear();
+    return ok && cleared.money === 0 && s2.isNew && E.Save(KEY, { defaults: defs }).load().money === 0;
+  });
+  test('Loop.step (dt limitado, passo fixo, pausa, timeScale)', () => {
+    let ups = 0, sum = 0, rs = 0;
+    const l = E.Loop({ update: dt => { ups++; sum += dt; }, render: () => rs++, maxDt: .05 });
+    l.step(10); l.timeScale = 2; l.step(.01); l.paused = true; l.step(.01);
+    const a = ups === 2 && near(sum, .07) && rs === 3 && near(l.time, .07) && l.frame === 3;
+    let fu = 0, alpha = -1;
+    const f = E.Loop({ fixed: 1 / 100, update: () => fu++, render: al => { alpha = al; } });
+    f.step(.035);
+    return a && fu === 3 && near(alpha, .5, 1e-6);
+  });
+
+  /* ====================== stage, input, loop ====================== */
+  const stage = E.Stage({ width: 960, height: 540, bg: CREAM, maxDpr: 2 });
+  const input = E.Input(stage);
+  const g = stage.g;
+
+  // camada DOM dentro do stage: escala junto com o canvas
+  const layer = stage.layer();
+  const pill = document.createElement('div');
+  pill.className = 'demo-pill';
+  layer.appendChild(pill);
+  let clicks = 0;
+  pill.addEventListener('click', () => { clicks++; });
+
+  test('Stage (tamanho lógico, escala, toStage)', () => {
+    const r = stage.el.getBoundingClientRect();
+    const p = stage.toStage({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 4 }, {});
+    const c = stage.toClient(480, 135);
+    return stage.w === 960 && stage.h === 540 && stage.scale > 0 && near(r.width, 960 * stage.scale, 1) && near(p.x, 480, .5) && near(p.y, 135, .5) &&
+      near(c.x, r.left + r.width / 2, .5) && stage.cv.width === Math.round(960 * stage.dpr) && stage.el.contains(stage.cv);
+  });
+  const passed = results.filter(r => r.ok).length;
+  console.log('[kome] core tests passed ' + passed + '/' + results.length);
+
+  /* ---------- estado da demo ---------- */
+  const box = { x: 60, y: 40, vx: 150, vy: 110, s: 26, sq: 1 };
+  const AREA = { x: 16, y: 44, w: 300, h: 180 };
+  const easeNames = Object.keys(U.ease);
+  const easeDot = { k: 0 };
+  E.Tween.to(easeDot, { k: 1 }, 1.6, { ease: 'lin', repeat: -1, delay: .2 });
+  const sliders = [
+    { name: 'out', v: 0 }, { name: 'back', v: 0 }, { name: 'elastic', v: 0 }, { name: 'bounce', v: 0 }, { name: 'inOut', v: 0 },
+  ];
+  sliders.forEach((s, i) => E.Tween.to(s, { v: 1 }, 1.2, { ease: s.name, yoyo: true, repeat: -1, delay: i * .08 }));
+  const ripples = E.Pool(() => ({ x: 0, y: 0, r: 0, a: 0, live: false }), (o, x, y) => { o.x = x; o.y = y; o.r = 4; o.a = 1; o.live = true; });
+  const liveRipples = [];
+  input.on('down', (x, y) => {
+    const r = ripples.get(x, y);
+    liveRipples.push(r);
+    E.Tween.to(r, { r: 34, a: 0 }, .5, { ease: 'out', onDone: o => { o.live = false; liveRipples.splice(liveRipples.indexOf(o), 1); ripples.free(o); } });
+    if (cd.use()) { box.sq = 1.6; E.Tween.killOf(box); E.Tween.to(box, { sq: 1 }, .6, { ease: 'elastic' }); }
+  });
+  const cd = E.cooldown(1.5);
+  let beats = 0;
+  const beat = E.every(1, () => { beats++; });
+  let taps = 0;
+  input.on('tap', () => { taps++; });
+
+  // faixa de ruído 2D pré-renderizada (getImageData/fbm por pixel nunca por frame)
+  const noiseCv = document.createElement('canvas');
+  noiseCv.width = 232; noiseCv.height = 12;
+  (function () {
+    const ng = noiseCv.getContext('2d'), img = ng.createImageData(232, 12), a = U.hex('#5B9BC8'), b = U.hex('#FFFAE6');
+    for (let y = 0; y < 12; y++) for (let x = 0; x < 232; x++) {
+      const v = Math.floor(U.smooth(E.Noise.fbm2(x * .06, y * .12, 4, 11) * 1.4 - .2) * 5) / 4, i = (y * 232 + x) * 4;
+      img.data[i] = U.lerp(a[0], b[0], v); img.data[i + 1] = U.lerp(a[1], b[1], v); img.data[i + 2] = U.lerp(a[2], b[2], v); img.data[i + 3] = 255;
+    }
+    ng.putImageData(img, 0, 0);
+  })();
+
+  /* ---------- desenho ---------- */
+  function panel(x, y, w, h, title) {
+    g.fillStyle = INK; rr(x + 3, y + 4, w, h, 10); g.fill();
+    g.fillStyle = PAPER; rr(x, y, w, h, 10); g.fill();
+    g.lineWidth = 2; g.strokeStyle = INK; g.stroke();
+    if (title) text(title, x + 10, y + 16, 12, INK, 'left', 900);
+  }
+  function rr(x, y, w, h, r) {
+    g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+  function text(s, x, y, size, col, align, weight) {
+    g.font = (weight || 700) + ' ' + size + 'px ' + FONT; g.textAlign = align || 'left'; g.textBaseline = 'middle';
+    g.fillStyle = col || INK; g.fillText(s, x, y);
+  }
+
+  const FMT_ROWS = [0, 999, 12345, 1.5e6, 2.3e9, 7.7e12, 1e15, 1e18, 1e21, 1e24, 1e27, 1e30, 1e33];
+  const FMT_LABELS = ['0', '999', '12345', '1.5e6', '2.3e9', '7.7e12', '1e15', '1e18', '1e21', '1e24', '1e27', '1e30', '1e33'];
+  const FMT_OUT = FMT_ROWS.map(U.fmt);
+
+  function update(dt) {
+    box.x += box.vx * dt; box.y += box.vy * dt;
+    if (box.x < 0) { box.x = 0; box.vx = Math.abs(box.vx); } else if (box.x > AREA.w - box.s) { box.x = AREA.w - box.s; box.vx = -Math.abs(box.vx); }
+    if (box.y < 22) { box.y = 22; box.vy = Math.abs(box.vy); } else if (box.y > AREA.h - box.s - 20) { box.y = AREA.h - box.s - 20; box.vy = -Math.abs(box.vy); }
+    beat.tick(dt); cd.tick(dt);
+    if (input.keys.Space) box.vy -= 600 * dt;
+    box.vx += input.axis('ArrowLeft', 'ArrowRight') * 400 * dt;
+  }
+
+  function render() {
+    stage.begin();
+    const t = loop.time;
+
+    // cabeçalho
+    text('Kome Engine · core.js v' + E.version, 16, 22, 18, INK, 'left', 900);
+    text('testes ' + passed + '/' + results.length, 300, 23, 13, passed === results.length ? GREEN : RED, 'left', 900);
+    pill.textContent = 'camada DOM · ' + Math.round(loop.fps) + ' fps · escala ' + stage.scale.toFixed(2) + ' · dpr ' + stage.dpr + ' · cliques ' + clicks;
+
+    // A: Loop + Input
+    panel(AREA.x, AREA.y, AREA.w, AREA.h, 'Loop + Input  (clique · espaço · setas)');
+    g.save(); g.beginPath(); g.rect(AREA.x, AREA.y, AREA.w, AREA.h); g.clip();
+    const bs = box.s * box.sq, bx = AREA.x + box.x + (box.s - bs) / 2, by = AREA.y + box.y + (box.s - bs) / 2;
+    g.fillStyle = 'rgba(59,40,24,.18)'; rr(bx + 3, by + 4, bs, bs, 6); g.fill();
+    g.fillStyle = GOLD; rr(bx, by, bs, bs, 6); g.fill(); g.lineWidth = 2; g.strokeStyle = INK; g.stroke();
+    g.fillStyle = U.shade(GOLD, .5); g.fillRect(bx + 5, by + 4, bs - 12, 3);
+    g.restore();
+    // barra de cooldown e contador do every()
+    g.fillStyle = U.shade(GOLD, -.3); g.fillRect(AREA.x + 10, AREA.y + AREA.h - 12, 80, 5);
+    g.fillStyle = cd.ready() ? GREEN : RED; g.fillRect(AREA.x + 10, AREA.y + AREA.h - 12, 80 * cd.frac, 5);
+    text('cooldown   every(1s): ' + beats + '   taps: ' + taps, AREA.x + 98, AREA.y + AREA.h - 10, 10, INK);
+
+    // B: curvas de ease, cada uma com um ponto animado por Tween
+    const BX = 328, BY = 44, BW = 616, BH = 180;
+    panel(BX, BY, BW, BH, 'U.ease + E.Tween  (' + easeNames.length + ' curvas; ' + E.Tween.count + ' tweens ativos)');
+    const cols = 11, cw = 54, ch = 62;
+    for (let i = 0; i < easeNames.length; i++) {
+      const fn = U.ease[easeNames[i]], cx = BX + 12 + (i % cols) * cw, cy = BY + 30 + Math.floor(i / cols) * (ch + 12);
+      const gw = cw - 12, gh = ch - 26, gy = cy + 14;
+      g.fillStyle = CREAM; g.fillRect(cx, gy, gw, gh);
+      g.strokeStyle = 'rgba(59,40,24,.25)'; g.lineWidth = 1; g.strokeRect(cx + .5, gy + .5, gw - 1, gh - 1);
+      const yOf = v => gy + gh - 5 - v * (gh - 16); // margem pra curvas que passam de 0..1
+      g.beginPath();
+      for (let s = 0; s <= 28; s++) { const k = s / 28, px = cx + k * gw, py = yOf(fn(k)); if (s) g.lineTo(px, py); else g.moveTo(px, py); }
+      g.strokeStyle = RED; g.lineWidth = 2; g.lineJoin = 'round'; g.stroke();
+      const k = easeDot.k;
+      g.fillStyle = INK; g.beginPath(); g.arc(cx + k * gw, yOf(fn(k)), 3.2, 0, U.TAU); g.fill();
+      text(easeNames[i], cx + gw / 2, cy + ch - 4, 9.5, INK, 'center', 900);
+    }
+
+    // C: ruído
+    const CY = 236;
+    panel(16, CY, 928, 62, 'E.Noise  (fbm1 rolando · n1 · faixa fbm2 pré-renderizada) + E.hash');
+    g.save(); g.beginPath(); g.rect(24, CY + 22, 560, 34); g.clip();
+    g.beginPath(); g.moveTo(24, CY + 56);
+    for (let x = 0; x <= 560; x += 4) g.lineTo(24 + x, CY + 56 - E.Noise.fbm1((x + t * 60) * .012, 4, 3) * 32);
+    g.lineTo(584, CY + 56); g.closePath(); g.fillStyle = GOLD; g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke();
+    g.beginPath();
+    for (let x = 0; x <= 560; x += 4) { const y = CY + 56 - E.Noise.n1((x + t * 60) * .03, 8) * 30; if (x) g.lineTo(24 + x, y); else g.moveTo(24 + x, y); }
+    g.strokeStyle = BLUE; g.lineWidth = 2; g.stroke();
+    g.restore();
+    g.imageSmoothingEnabled = false; g.drawImage(noiseCv, 596, CY + 22, 232, 34); g.imageSmoothingEnabled = true;
+    g.strokeStyle = INK; g.lineWidth = 2; g.strokeRect(596, CY + 22, 232, 34);
+    for (let i = 0; i < 48; i++) { g.fillStyle = U.mixCss('#3B2818', '#FFFAE6', Math.round(E.hash(i, Math.floor(t * 2)) * 8) / 8); g.fillRect(840 + (i % 12) * 8, CY + 22 + Math.floor(i / 12) * 8.5, 7, 7.5); }
+
+    // D: tabela de fmt
+    const DY = 310;
+    panel(16, DY, 372, 214, 'U.fmt / U.fmtTime');
+    for (let i = 0; i < FMT_ROWS.length; i++) {
+      const col = i < 7 ? 0 : 1, row = i < 7 ? i : i - 7, x = 26 + col * 184, y = DY + 38 + row * 24;
+      text(FMT_LABELS[i], x, y, 11, U.shade(INK, .35), 'left', 700);
+      text(FMT_OUT[i], x + 168, y, 13, INK, 'right', 900);
+      g.fillStyle = 'rgba(59,40,24,.12)'; g.fillRect(x, y + 11, 168, 1);
+    }
+    text('fmtTime  ' + U.fmtTime(45) + ' · ' + U.fmtTime(200) + ' · ' + U.fmtTime(3725), 210, DY + 34 + 6 * 24, 10, INK, 'left', 900);
+    text(U.fmtTime(200000) + ' · tempo de jogo: ' + U.fmtTime(t), 210, DY + 34 + 6 * 24 + 15, 10, U.shade(INK, .3), 'left', 700);
+
+    // E: tweens yoyo + resultados dos testes
+    const EX = 400, EW = 544;
+    panel(EX, DY, EW, 214, 'Tween yoyo (out · back · elastic · bounce · inOut) + autotestes');
+    for (let i = 0; i < sliders.length; i++) {
+      const y = DY + 34 + i * 13;
+      g.fillStyle = 'rgba(59,40,24,.14)'; g.fillRect(EX + 12, y + 3, EW - 24, 3);
+      g.fillStyle = [GOLD, RED, GREEN, BLUE, '#F2A65A'][i]; rr(EX + 12 + sliders[i].v * (EW - 40) , y - 1, 16, 11, 4); g.fill();
+      g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke();
+    }
+    for (let i = 0; i < results.length; i++) {
+      const col = i % 2, row = Math.floor(i / 2), x = EX + 12 + col * 266, y = DY + 108 + row * 13.2, r = results[i];
+      g.fillStyle = r.ok ? GREEN : RED; g.beginPath(); g.arc(x + 4, y, 4, 0, U.TAU); g.fill();
+      text(r.name.length > 44 ? r.name.slice(0, 43) + '…' : r.name, x + 13, y, 9.5, INK, 'left', 700);
+    }
+
+    // ondas de clique (Pool + Tween)
+    for (let i = 0; i < liveRipples.length; i++) {
+      const r = liveRipples[i];
+      g.strokeStyle = U.rgba(RED, r.a); g.lineWidth = 3; g.beginPath(); g.arc(r.x, r.y, r.r, 0, U.TAU); g.stroke();
+    }
+    // mira no ponteiro (coords lógicas, corretas em qualquer escala)
+    if (input.inside || input.down) {
+      const x = Math.round(input.x) + .5, y = Math.round(input.y) + .5, r = input.down ? 7 : 10;
+      g.strokeStyle = INK; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x - 18, y); g.lineTo(x - 4, y); g.moveTo(x + 4, y); g.lineTo(x + 18, y);
+      g.moveTo(x, y - 18); g.lineTo(x, y - 4); g.moveTo(x, y + 4); g.lineTo(x, y + 18); g.stroke();
+      g.strokeStyle = RED; g.lineWidth = 2; g.beginPath(); g.arc(x, y, r, 0, U.TAU); g.stroke();
+      const lbl = Math.round(input.x) + ', ' + Math.round(input.y) + (input.down ? '  ▼' : '');
+      const lx = x + 14 + 70 > stage.w ? x - 84 : x + 14, ly = y + 28 > stage.h ? y - 22 : y + 20;
+      g.fillStyle = INK; rr(lx, ly - 9, 70, 18, 6); g.fill();
+      text(lbl, lx + 35, ly + .5, 10.5, PAPER, 'center', 900);
+    }
+  }
+
+  const loop = E.Loop({ update, render, input }).start();
+  window.__core = { stage, input, loop, results };
+})();
+</script>
+</body>
+</html>
