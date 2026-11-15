@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome no Japão · ferramentas de pata (pata, hashi, tigela, pá, duas pás, carrinho, britadeira)</title>
+<style>html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/terrain.js"></script>
+<script src="../engine/rig.js"></script>
+<script src="../game/tools-hand.js"></script>
+<script>
+/* Demo de game/tools-hand.js: cada degrau trabalhando num barranco de arroz (E.Heap), ligando e desligando o "segurar".
+   URL: ?only=pata|hashi|tigela|pa|duaspas|carrinho|britadeira  &z=zoom  &t=segundos (avança e congela)  &pilot=paleta
+        &s=escala  &face=-1  &spd=speedMul  &pw=power 0..1  &boost=0..1  &dig=0 (nunca cava)  &debug=1
+        ?props=1 mostra G.Props e os 13 ícones
+   Automação: __demo.step(seg) avança o tempo em passos fixos de 1/60 (e congela o tempo real); __demo.scenes[i].m = instância. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame;
+  const W = 960, H = 540, LINE = E.LINE_CSS;
+  const q = new URLSearchParams(location.search);
+  const ONLY = q.get('only'), SPD = +(q.get('spd') || 1), FACE = +(q.get('face') || 1) < 0 ? -1 : 1, NODIG = q.get('dig') === '0';
+  const PW = q.has('pw') ? +q.get('pw') : 1, BOOST = +(q.get('boost') || 0);
+  const stage = E.Stage({ width: W, height: H, bg: PAL.ink || '#3B2818' });
+  const g = stage.g;
+  const input = E.Input(stage);
+  const SOIL = '#C7A26A', SOIL_D = '#A8834F';
+  const mixc = {}; const mix = (a, b, t) => mixc[a + b + t] || (mixc[a + b + t] = U.mixCss(a, b, t));
+
+  // reach = distância de trabalho até o barranco; span = largura de mundo que cabe no painel; rate = px²/s cavados (exagerado pra ver)
+  const CFG = {
+    pata: { reach: 12, span: 104, rate: 110 }, hashi: { reach: 24, span: 112, rate: 130 }, tigela: { reach: 22, span: 124, rate: 420 },
+    pa: { reach: 26, span: 140, rate: 700 }, duaspas: { reach: 30, span: 156, rate: 800 }, carrinho: { reach: 58, span: 170, rate: 900 },
+    britadeira: { reach: 0, span: 176, rate: 110 },
+  };
+
+  function makeScene(id, o) {
+    o = o || {};
+    const tool = G.Tools[id], cfg = CFG[id], sc = o.scale || 1, face = o.face || 1, jack = id === 'britadeira';
+    const m = tool.create({ pilot: o.pilot || 'kome', scale: sc });
+    const heap = E.Heap({ width: 700, colW: 2, x0: -350, y0: 0, seed: 11 });
+    const shape = jack ? (x => 36 + 3 * Math.sin(x * 0.05)) : (x => { const d = (x * face) - 30; return d > 0 ? Math.min(120, d * 0.8 + 6 * Math.sin(d * 0.07)) : 0; });
+    heap.generate(shape); heap.settle && heap.settle(400);
+    const parts = E.Particles(700);
+    const S = { id, tool, m, heap, parts, t: 0, x: jack ? -60 * face : -cfg.reach * sc * face - 30 * face, face, sc, log: [], logT: 0, cam: { x: 0, z: 1 }, span: cfg.span * (0.55 + 0.45 * sc) };
+    const inp = { x: S.x, y: 0, face, tx: 0, ty: 0, digging: false, power: PW, speedMul: SPD, vx: 0, floor: x => heap.surf(x), load: 0, t: 0, parts, boost: BOOST };
+    S.inp = inp; S.cam.x = S.x + face * S.span * 0.1;
+    function faceX() {
+      for (let d = 0; d < 400; d += 2) { const x = S.x + face * d; if (heap.height(x) > 5) return x; }
+      return S.x + face * 400;
+    }
+    S.update = dt => {
+      S.t += dt;
+      const per = Math.max(2.6, tool.meta.cycle * 5) + 1.5;
+      const on = !NODIG && (S.t % per) < per - 1.5;
+      if (jack) {
+        inp.digging = on;
+        const want = on ? 0 : 26 * face * ((S.t % per) > per - 1.1 ? 1 : 0);          // fura parado, depois anda um pouco
+        inp.vx = U.damp(inp.vx, want, 6, dt); S.x += inp.vx * dt;
+        if (Math.abs(S.x) > 150) { S.x = -150 * face; heap.restore(); }
+      } else {
+        const fx = faceX(), xT = fx - face * cfg.reach * sc;
+        inp.digging = on && Math.abs(xT - S.x) < 8 * sc;
+        const want = m.busy ? 0 : U.clamp((xT - S.x) * 4, -50 * sc, 50 * sc);
+        inp.vx = U.damp(inp.vx, want, 6, dt); S.x += inp.vx * dt;
+      }
+      inp.x = S.x; inp.y = heap.surf(S.x); inp.t = S.t;
+      inp.tx = S.x + face * 30; inp.ty = inp.y - 10;
+      tool.update(m, dt, inp);
+      const b = tool.bite(m);
+      if (b.active) heap.dig(b.x, cfg.rate * sc * sc * dt * (jack ? 1 : 1), jack ? b.r * 0.7 : b.r, { pow: 20 });
+      for (const ev of m.ev) { if (ev === 'tat' || ev === 'squeak') continue; S.log.unshift(ev); if (S.log.length > 4) S.log.pop(); S.logT = 1.2; }
+      S.logT -= dt;
+      heap.relax(dt);
+      if (!jack && heap.frac() < 0.55) heap.restore();
+      parts.update(dt, inp.floor);
+      S.cam.x = U.damp(S.cam.x, S.x + face * S.span * (jack ? -0.06 : 0.1), 3, dt);
+    };
+    S.draw = (v) => {
+      g.fillStyle = PAL.sky; g.fillRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0);
+      g.fillStyle = mix(PAL.sky, PAL.skyL, 0.5); g.fillRect(v.x0, -70, v.x1 - v.x0, 80);
+      g.fillStyle = mix(PAL.grassL, PAL.sky, 0.55); g.beginPath(); g.moveTo(v.x0, 10);
+      for (let x = v.x0; x <= v.x1 + 6; x += 6) g.lineTo(x, -34 - 16 * Math.sin((x - S.cam.x * 0.7) * 0.02 + 1) - 6 * Math.sin((x - S.cam.x * 0.7) * 0.05));
+      g.lineTo(v.x1 + 6, 10); g.closePath(); g.fill();
+      heap.draw(g, v, S.t);
+      g.fillStyle = SOIL; g.fillRect(v.x0, 0, v.x1 - v.x0, v.y1);
+      g.fillStyle = PAL.grass; g.fillRect(v.x0, 0, v.x1 - v.x0, 2.5);
+      g.fillStyle = SOIL_D; g.fillRect(v.x0, 6, v.x1 - v.x0, 1.5);
+      g.fillStyle = LINE; g.fillRect(v.x0, -0.5, v.x1 - v.x0, 1);
+      tool.draw(g, m);
+      parts.draw(g, v);
+      if (q.get('debug')) {
+        const b = tool.bite(m), d = tool.dump(m), s = tool.seat(m);
+        g.strokeStyle = b.active ? PAL.red : PAL.cream; g.lineWidth = 0.6; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.stroke();
+        if (d) { g.strokeStyle = d.active ? PAL.gold : PAL.grayL; g.beginPath(); g.arc(d.x, d.y, 3, 0, 7); g.stroke(); }
+        g.strokeStyle = PAL.pink; g.beginPath(); g.arc(s.x, s.y, 2, 0, 7); g.stroke();
+      }
+    };
+    return S;
+  }
+
+  const ids = ['pata', 'hashi', 'tigela', 'pa', 'duaspas', 'carrinho', 'britadeira'];
+  const optO = { pilot: q.get('pilot') || 'kome', scale: +(q.get('s') || 1), face: FACE };
+  let panels = [];
+  const PROPS = q.has('props');
+  if (PROPS) panels = [];
+  else if (ONLY && G.Tools[ONLY]) panels = [{ s: makeScene(ONLY, optO), x: 0, y: 0, w: W, h: H }];
+  else {
+    for (let i = 0; i < 4; i++) panels.push({ s: makeScene(ids[i], optO), x: i * 240.5, y: 0, w: 238.5, h: 268 });
+    for (let i = 0; i < 3; i++) panels.push({ s: makeScene(ids[4 + i], optO), x: i * 320.7, y: 272, w: 318.6, h: 268 });
+  }
+  for (const p of panels) p.s.cam.z = q.has('z') ? +q.get('z') : (ONLY ? Math.min(4, p.w / p.s.span * 0.62) : p.w / p.s.span);
+
+  let frozen = false;
+  function update(dt) { for (const p of panels) p.s.update(dt); }
+  const view = { x0: 0, x1: 0, y0: 0, y1: 0 };
+  function renderProps() {
+    g.fillStyle = mix(PAL.sky, PAL.skyL, 0.5); g.fillRect(0, 0, W, H);
+    g.imageSmoothingEnabled = false;
+    const P = G.Props, list = [['sack', 'plain'], ['sack', 'golden'], ['sack', 'legendary'], ['onigiri'], ['coin'], ['crate'], ['pallet'], ['sold'], ['hardhat']];
+    let x = 50;
+    const nx = it => { const n = list[list.indexOf(it) + 1]; return n ? P[n[0]](n[1]).ax : 0; };
+    for (const it of list) {
+      const p = P[it[0]](it[1]), k = 4;
+      g.fillStyle = PAL.grass; g.fillRect(x - p.ax * k - 6, 250, p.cv.width * k + 12, 6);
+      g.drawImage(p.cv, x - p.ax * k, 250 - p.ay * k, p.cv.width * k, p.cv.height * k);
+      g.fillStyle = PAL.pink; g.fillRect(x - 1, 249, 2, 2);
+      Draw.text(g, it[0] + (it[1] ? ':' + it[1] : ''), x, 272, { size: 10, col: PAL.cream, sw: 3 });
+      x += (p.cv.width - p.ax) * k + 22 + nx(it) * k;
+    }
+    P.ids.forEach((id, i) => {
+      const cv = P.icon(id), bx = 30 + i * 70;
+      g.fillStyle = PAL.cream; g.fillRect(bx, 340, 60, 60); g.strokeStyle = LINE; g.lineWidth = 2; g.strokeRect(bx, 340, 60, 60);
+      g.drawImage(cv, bx + 6, 346, 48, 48);
+      g.drawImage(cv, bx + 22, 430, 16, 16);
+      Draw.text(g, id, bx + 30, 414, { size: 9.5, col: PAL.cream, sw: 3 });
+    });
+    Draw.text(g, 'G.Props (4x, ponto rosa = âncora) e G.Props.icon(id) (3x e 1x)', 20, 30, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
+  }
+  function render() {
+    stage.begin();
+    if (PROPS) return renderProps();
+    for (const p of panels) {
+      const s = p.s, c = s.cam, gy = p.h * 0.74;
+      g.save();
+      g.beginPath(); g.rect(p.x, p.y, p.w, p.h); g.clip();
+      g.translate(p.x + p.w / 2, p.y + gy); g.scale(c.z, c.z); g.translate(-c.x, 0);
+      view.x0 = c.x - p.w / 2 / c.z; view.x1 = c.x + p.w / 2 / c.z; view.y0 = -gy / c.z; view.y1 = (p.h - gy) / c.z;
+      Draw.lod(c.z);
+      s.draw(view, s.t);
+      g.restore();
+      Draw.lod(1);
+      Draw.text(g, s.tool.name, p.x + 10, p.y + 18, { size: 15, align: 'left', col: PAL.cream, sw: 4 });
+      Draw.text(g, "'" + s.id + "' fase " + s.m.ph.toFixed(2) + (s.inp.digging ? ' CAVANDO' : ' solto'), p.x + 10, p.y + 35, { size: 10, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+      if (s.logT > 0) Draw.text(g, s.log.join(' '), p.x + 10, p.y + 50, { size: 10, align: 'left', col: PAL.white, sw: 3, weight: 700 });
+      g.fillStyle = LINE; g.fillRect(p.x + 10, p.y + p.h - 12, 84, 6); g.fillStyle = s.tool.bite(s.m).active ? PAL.red : PAL.gold; g.fillRect(p.x + 12, p.y + p.h - 10, 80 * s.m.ph, 2);
+    }
+  }
+  const loop = E.Loop({ update: dt => { if (!frozen) update(dt); }, render, input });
+  window.__demo = {
+    scenes: panels.map(p => p.s), loop, stage,
+    step(sec) { frozen = true; const n = Math.round(sec * 60); for (let i = 0; i < n; i++) update(1 / 60); return true; },
+  };
+  if (q.has('t')) window.__demo.step(+q.get('t'));
+  loop.start();
+})();
+</script>
+</body>
+</html>
