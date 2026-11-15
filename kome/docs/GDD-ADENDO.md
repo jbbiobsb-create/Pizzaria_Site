@@ -59,3 +59,18 @@ velocidade, grãos dourados) pra pessoa sentir o poder na hora.
 6. Primeira mordida garantida "MORDIDA PERFEITA" com chuva de grãos dourados e a tela tremendo: o jogador segura o clique e
    vê a montanha, que mal arranhou em uma hora, perder um pedaço enorme em segundos.
 7. Conquista + entrada no álbum + a barra da montanha, que estava parada, despenca visivelmente.
+
+## 7. Achados enterrados (cosméticos) — pedido do dono
+- A montanha tem ~24 "achados" enterrados em posições fixas pela semente (profundidades crescentes; os melhores no mochi e no núcleo).
+  Com a habilidade "Faro de Shiba" eles brilham de leve através do arroz. Ao cavar perto: o Kome fareja (pose sniff), sai um baú/objeto
+  quicando, 1-2 s de suspense (treme, brilha) e abre com fanfarra: "ACHOU: Óculos de Sol!". Recompensa variável com antecipação.
+- Tipos (todos só visuais, trocáveis num "Guarda-roupa do Kome" dentro do álbum):
+  - **Chapéus** (desenhados na âncora `hatTop` do shiba.js, por cima/no lugar do kasa): capacete de obra, boné, coroa, chapéu de
+    chef, de pirata, de festa, tigela de ramen virada, cone de trânsito, laço.
+  - **Óculos/rosto** (âncora `eye`): óculos de sol, monóculo, óculos de natação, máscara de ladrão, bigode.
+  - **Costas** (âncora `back`): capa de super-herói que balança com a velocidade, mochila, asas, cachecol, bandeirinha.
+  - **Cores do Kome**: as paletas que já existem em E.PALS (goma, kuro, shiro, aka, cha, yuki, sakura, matcha, kin, sumi).
+  - **Pinturas de máquina**: trator rosa, escavadeira de bolinhas, Bagger dourada, caminhão com chamas (troca de cores na criação).
+  - **Achados bobos de coleção** (vão pro álbum com uma frase): bola de tênis, osso, chinelo, controle remoto, meia sem par.
+- Os ajudantes podem herdar o que o Kome não está usando. O que ele veste aparece em todas as cutscenes.
+- Barato de fazer: sprites Pix pequenos + âncoras que já existem. Ordem: cores (grátis) → chapéus → óculos → capas → pinturas.
