@@ -34,8 +34,8 @@
   /* ---------- mundo ---------- */
   const floor = x => -(9 * Math.sin(x * 0.011) + 5 * Math.sin(x * 0.029 + 1.3) + 2.5 * Math.sin(x * 0.07 + 4));
   const slope = x => (floor(x + 3) - floor(x - 3)) / 6;
-  cam.bounds = { x0: -900, x1: 900, y1: 150 };
-  cam.snapTo(0, -62, 2);
+  cam.bounds = { x0: -900, x1: 900 };
+  cam.snapTo(0, -65, 2);
 
   const kome = E.Actor({ x: -40, pal: 'kome' });
   Object.assign(kome, { x: -40, autoPose: true, idlePose: 'stand' });
@@ -125,7 +125,7 @@
     ['cinema', 'KeyE', 'E', 's', 'toggle', on => fx.letterbox(on)],
     ['vinheta', 'KeyR', 'R', 's', 'toggle', on => fx.vignette(on ? 0.75 : 0)],
     ['foco', 'KeyT', 'T', 's', 'toggle', on => { const s = komeScreen(); fx.speedlines(on, { x: s.x, y: s.y, col2: 'rgba(59,40,24,.4)' }); if (on && state.toggles.veloz) setToggle('veloz', false, true); }],
-    ['veloz', 'KeyY', 'Y', 's', 'toggle', on => { fx.speedlines(on, { dir: Math.PI, n: 54 }); if (on && state.toggles.foco) setToggle('foco', false, true); }],
+    ['veloz', 'KeyY', 'Y', 's', 'toggle', on => { fx.speedlines(on, { dir: Math.PI, n: 80, col2: 'rgba(59,40,24,.45)' }); if (on && state.toggles.foco) setToggle('foco', false, true); }],
     ['impacto', 'KeyU', 'U', 's', () => {
       const s = komeScreen(); fx.impact(s.x, s.y + 30, 1); cam.addTrauma(0.75); cam.punch(0.07); kome.squash = 0.32;
       ps.puff(kome.x, kome.y - 2, 18, 13); ps.burst(kome.x, kome.y - 6, 40, { shape: 'grain', c: [PAL.rice, PAL.riceS], speed: [120, 420], up: 220, w: 3.2, h: 1.6, land: true, bounce: 0.3, life: 3, ol: true });
@@ -238,7 +238,7 @@
     ps.update(dt, floor);
     state.msU = U.lerp(state.msU, performance.now() - t0, 0.08);
     fl.update(dt);
-    if (state.camMode === 'follow') cam.follow(kome.x + kome.face * 14, kome.y - 30 - 32 / cam.z, dt, 3.5);
+    if (state.camMode === 'follow') cam.follow(kome.x + kome.face * 14, kome.y - 130 / cam.z, dt, 3.5);
     cam.update(dt);
     fx.update(dt);
     loop.timeScale = fx.timeScale;
@@ -247,9 +247,9 @@
 
   /* ---------- cenário ---------- */
   function drawSky() {
-    const bands = [PAL.sky, '#B2DCEB', '#C6E5EC', '#DCEBE2', '#F0EAD2', PAL.skyL];
-    const bh = 300 / bands.length;
-    bands.forEach((c, i) => { g.fillStyle = c; g.fillRect(0, i === 0 ? 0 : 80 + i * bh, W, i === bands.length - 1 ? H : bh + 81); });
+    // faixas chapadas (sem gradiente liso): azul em cima, creme quente no horizonte
+    const bands = ['#B2DCEB', '#C6E5EC', '#DCEBE2', '#F0EAD2', PAL.skyL];
+    for (let i = 0; i < bands.length; i++) { g.fillStyle = bands[i]; g.fillRect(0, 90 + i * 58, W, H); }
   }
   function drawFar(g, v) {            // sol, Fuji e nuvens (bem longe: quase não mexem)
     const t = state.t;

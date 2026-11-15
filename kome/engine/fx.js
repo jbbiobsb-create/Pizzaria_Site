@@ -974,14 +974,15 @@
         }
       } else {
         const ca = Math.cos(sl.dir), sa = Math.sin(sl.dir), span = Math.sqrt(W * W + H * H), half = span / 2;
+        const perp = (Math.abs(sa) * W + Math.abs(ca) * H) / 2;   // meia largura da tela atravessada pelos riscos
         for (let pass = 0; pass < (sl.col2 ? 2 : 1); pass++) {
           g.fillStyle = pass ? sl.col2 : sl.col;
           g.beginPath();
           for (let i = pass; i < sl.n; i += sl.col2 ? 2 : 1) {
             const h1 = hash(i * 7.31 + 3), h2 = hash(i * 3.17 + 40), h3 = hash(i * 11.3 + 90);
             // mais riscos nas bordas, o meio fica livre pro personagem
-            const u = (h1 < 0.5 ? -1 : 1) * (0.16 + 0.84 * Math.sqrt(h1 < 0.5 ? h1 * 2 : (h1 - 0.5) * 2)) * half * 0.62;
-            const len = (120 + h2 * 380) * (0.4 + 0.6 * k), th = (1.2 + h3 * 3.2) * k, sp = 1500 + h2 * 1700;
+            const u = (h1 < 0.5 ? -1 : 1) * (0.1 + 0.9 * Math.sqrt(h1 < 0.5 ? h1 * 2 : (h1 - 0.5) * 2)) * perp;
+            const len = (120 + h2 * 380) * (0.4 + 0.6 * k), th = (1.4 + h3 * h3 * 5) * k, sp = 1500 + h2 * 1700;
             const d = ((sl.t * sp + h3 * (span + 500)) % (span + 500)) - half - 250;
             const px = W / 2 + ca * d - sa * u, py = H / 2 + sa * d + ca * u;
             g.moveTo(px + ca * len * 0.5, py + sa * len * 0.5);
