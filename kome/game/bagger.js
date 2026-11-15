@@ -30,20 +30,20 @@
   function sh(c, k) { const key = c + '|' + k; let v = shc.get(key); if (v === undefined) { v = U.shade(c, k); shc.set(key, v); } return v; }
 
   /* ---------------- geometria (modelo: x pra frente, y negativo = pra cima) ---------------- */
-  const TH = 52, TW = 88;                         // esteira principal
-  const RING = -142;                              // topo do anel de giro (tudo acima balança junto)
+  const TH = 66, TW = 108;                         // esteira principal
+  const RING = -142, LIFT = 30;                             // topo do anel de giro (tudo acima balança junto)
   const PX = 60, PY = -310;                       // pino da lança da roda
-  const BL = 560, WR = 110, NB = 18, STEP = TAU / NB;
+  const BL = 560, WR = 134, WS = 1.2, NB = 18, STEP = TAU / NB;
   const LMIN = -18 * DEG, LMAX = 32 * DEG;
   const M1B = [66, -318], M1T = [244, -636];      // mastro inclinado pra frente
   const M2B = [-34, -292], M2T = [-34, -664];     // torre vertical
   const K0 = [-44, -326], K1 = [-340, -388];      // lança do contrapeso
-  const NEAR_TR = [-212, -122, 34, 124], FAR_TR = [-90, 2]; // x das esteiras (2 grupos na frente, 1 atrás)
+  const NEAR_TR = [-256, -146, 38, 148], FAR_TR = [-110, 2]; // x das esteiras (2 grupos na frente, 1 atrás)
   const LD_TR = [-694, -610], LTH = 40;           // esteiras da unidade de carregamento
   const BR_A = [-112, -206], BR_B = [-594, -218]; // ponte de descarga
   const LB_A = [-650, -184], LB_B = [-752, -132]; // lança de descarga da unidade
   const DECKS = [                                 // conveses: x0, x1, topo, base, cor
-    [-194, 174, -204, -142, 'grayD'], [-162, 140, -256, -204, 'gray'], [-118, 98, -298, -256, 'grayD']];
+    [-222, 200, -204, -142, 'grayD'], [-184, 162, -256, -204, 'gray'], [-134, 112, -298, -256, 'grayD']];
   const C_LAT = PAL.steel, C_LATF = sh(PAL.steel, 0.3), C_HOUSE = PAL.steelL, C_RAIL = PAL.yel, C_WEB = PAL.steelD;
   const C_WARM = PAL.goldL, C_RICE = PAL.rice;
   const P2 = [[0, 0], [0, 0]], PA = [0, 0], PB = [0, 0], TMP = { x: 0, y: 0 };
@@ -72,37 +72,39 @@
   }
   function blit(g, s) { g.drawImage(s.cv, s.x, s.y, s.w, s.h); }
 
-  const BOX_UNDER = [-296, -160, 270, 4], BOX_UPPER = [-420, -712, 290, -132], BOX_BOOM = [-36, -132, 572, 62];
-  const BOX_WHEEL = [-124, -124, 124, 124], BOX_GUARD = [430, -76, 566, 40], BOX_BRIDGE = [-776, -366, -84, 4];
-  const BOX_SCAF = [-200, -348, 200, -132], BOX_SCAF2 = [16, -384, 124, -292], BOX_TRK = [-216, -70, 216, 2], BOX_LTRK = [-700, -42, -524, 2];
+  const BOX_UNDER = [-340, -190, 312, 4], BOX_UPPER = [-420, -712, 290, -132], BOX_BOOM = [-36, -132, 572, 62];
+  const BOX_WHEEL = [-152, -152, 152, 152], BOX_GUARD = [430, -76, 596, 40], BOX_BRIDGE = [-776, -366, -84, 4];
+  const BOX_SCAF = [-200, -348, 200, -132], BOX_SCAF2 = [16, -384, 124, -292], BOX_TRK = [-262, -86, 262, 2], BOX_LTRK = [-700, -42, -524, 2];
 
   function yoke(g, cx, half, top, col) {
-    Draw.poly(g, [[cx - half, -TH + 6], [cx + half, -TH + 6], [cx + 24, top], [cx - 24, top]], col, { shade: sh(col, -0.2) });
-    Draw.circle(g, cx, -TH - 12, 8, PAL.blkL, { hi: false });
-    Draw.circle(g, cx - half + 16, -TH + 2, 5, PAL.steelD, { ol: 1.2 }); Draw.circle(g, cx + half - 16, -TH + 2, 5, PAL.steelD, { ol: 1.2 });
+    Draw.poly(g, [[cx - half, -TH + 8], [cx + half, -TH + 8], [cx + 30, top], [cx - 30, top]], col, { shade: sh(col, -0.2) });
+    Draw.circle(g, cx, -TH - 18, 11, PAL.blkL, { hi: false }); Draw.circle(g, cx, -TH - 18, 4, PAL.steelL, { ol: 1 });
+    Draw.circle(g, cx - half + 22, -TH + 2, 7, PAL.steelD, { ol: 1.2 }); Draw.circle(g, cx + half - 22, -TH + 2, 7, PAL.steelD, { ol: 1.2 });
   }
   function drawUnder(g) {
+    const RU = RING - LIFT;
     // grupo de trás (mais claro), colunas, travessa
-    yoke(g, 0, 86, -98, sh(PAL.gray, 0.3));
-    Draw.box(g, -22, -104, 44, 20, sh(PAL.gray, 0.3));
-    // subestrutura: caixão trapezoidal
-    Draw.poly(g, [[-228, -88], [228, -88], [176, -130], [-176, -130]], PAL.gray, { shade: PAL.grayD, hi: PAL.grayL });
-    Draw.box(g, -150, -128, 300, 40, PAL.gray, { panels: 10, rivets: true });
-    for (let i = -3; i <= 3; i++) Draw.box(g, i * 46 - 3, -128, 6, 40, PAL.grayD, { ol: 1, top: false });
-    Draw.box(g, -236, -94, 472, 10, PAL.grayD, { rivets: 12 });
-    yoke(g, -123, 90, -90, PAL.grayD); yoke(g, 123, 90, -90, PAL.grayD);
+    yoke(g, 0, 104, -118, sh(PAL.gray, 0.3));
+    Draw.box(g, -26, -126, 52, 22, sh(PAL.gray, 0.3));
+    // subestrutura: caixão trapezoidal fundo, com nervuras
+    Draw.poly(g, [[-272, -106], [272, -106], [204, RU + 10], [-204, RU + 10]], PAL.gray, { shade: PAL.grayD, hi: PAL.grayL });
+    Draw.box(g, -186, RU + 12, 372, -118 - RU, PAL.gray, { panels: 12, rivets: true });
+    for (let i = -4; i <= 4; i++) Draw.box(g, i * 44 - 3.5, RU + 12, 7, -118 - RU, PAL.grayD, { ol: 1, top: false });
+    Draw.box(g, -282, -112, 564, 12, PAL.grayD, { rivets: 12 });
+    yoke(g, -147, 108, -108, PAL.grayD); yoke(g, 147, 108, -108, PAL.grayD);
+    Draw.box(g, -160, -106, 26, 10, PAL.blkL, { ol: 1.2 }); Draw.box(g, 134, -106, 26, 10, PAL.blkL, { ol: 1.2 });
     // anel de giro (engrenagem escura com graxa)
-    Draw.box(g, -122, RING - 2, 244, 16, PAL.blkL, { r: 2 });
-    g.fillStyle = PAL.blk; for (let x = -116; x < 118; x += 9) g.fillRect(x, RING + 3, 4, 8);
-    Draw.box(g, -132, RING - 4, 264, 5, PAL.steelD, { ol: 1.4 });
+    Draw.box(g, -142, RU - 2, 284, 18, PAL.blkL, { r: 2 });
+    g.fillStyle = PAL.blk; for (let x = -136; x < 138; x += 10) g.fillRect(x, RU + 3, 5, 10);
+    Draw.box(g, -152, RU - 4, 304, 5, PAL.steelD, { ol: 1.4 });
     // escada de acesso do chão, com patamar
-    Draw.stairs(g, [-290, 0], [-238, -88], 12, { railCol: C_RAIL, lw: 2.2 });
-    Draw.stairs(g, [-234, -94], [-196, RING], 8, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [-336, 0], [-284, -106], 14, { railCol: C_RAIL, lw: 2.2 });
+    Draw.stairs(g, [-280, -112], [-222, RU], 9, { railCol: C_RAIL, lw: 2 });
     // carretel do cabo de força (a máquina liga na tomada)
-    Draw.box(g, 188, -124, 44, 34, PAL.steelD, { r: 2 });
-    Draw.circle(g, 210, -108, 19, PAL.red); Draw.ring(g, 210, -108, 13, 5, PAL.blk, { hi: false }); Draw.circle(g, 210, -108, 4, PAL.steelL, { ol: 1 });
-    Draw.cable(g, [224, -96], [266, -1], { sag: 10, lw: 3 });
-    Draw.hazard(g, -228, -84, 456, 4);
+    Draw.box(g, 226, -150, 48, 38, PAL.steelD, { r: 2 });
+    Draw.circle(g, 250, -132, 21, PAL.red); Draw.ring(g, 250, -132, 14, 5, PAL.blk, { hi: false }); Draw.circle(g, 250, -132, 4, PAL.steelL, { ol: 1 });
+    Draw.cable(g, [266, -118], [308, -1], { sag: 10, lw: 3 });
+    Draw.hazard(g, -272, -103, 544, 5);
   }
 
   function deckWindows(fn) {
@@ -168,22 +170,22 @@
       Draw.box(g, D[0] - 12, D[3] - 5, D[1] - D[0] + 24, 6, PAL.blkL, { ol: 1.4, r: 1 });   // passarela
       Draw.rail(g, [D[0] - 12, D[3] - 5], [D[1] + 12, D[3] - 5], { posts: Math.round((D[1] - D[0]) / 18), h: 11, col: C_RAIL, lw: 1.5 });
     }
-    Draw.stairs(g, [168, -147], [140, -209], 8, { railCol: C_RAIL, lw: 2 });
-    Draw.stairs(g, [-188, -147], [-162, -209], 8, { railCol: C_RAIL, lw: 2 });
-    Draw.stairs(g, [134, -209], [104, -261], 7, { railCol: C_RAIL, lw: 2 });
-    Draw.stairs(g, [-156, -209], [-124, -261], 7, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [194, -147], [162, -209], 8, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [-216, -147], [-184, -209], 8, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [156, -209], [118, -261], 7, { railCol: C_RAIL, lw: 2 });
+    Draw.stairs(g, [-178, -209], [-140, -261], 7, { railCol: C_RAIL, lw: 2 });
     // casas elétricas, dutos e chaminés no teto
     Draw.box(g, -104, -330, 60, 32, C_HOUSE, { r: 2, panels: 3 }); Draw.box(g, -108, -335, 68, 7, PAL.steelD, { r: 2 });
     Draw.box(g, -6, -322, 34, 24, PAL.steelD, { r: 2, panels: 2 });
     Draw.box(g, -92, -350, 8, 20, PAL.blkL, { r: 1 }); Draw.box(g, -74, -356, 8, 26, PAL.blkL, { r: 1 });
     Draw.window(g, -96, -322, 12, 9); Draw.window(g, -64, -322, 12, 9);
     // cabine secundária laranja no canto da frente
-    Draw.box(g, 140, -252, 44, 44, PAL.ora, { r: 4 }); Draw.window(g, 150, -246, 30, 20); Draw.box(g, 136, -256, 52, 6, PAL.oraD, { r: 2 });
+    Draw.box(g, 162, -252, 44, 44, PAL.ora, { r: 4 }); Draw.window(g, 172, -246, 30, 20); Draw.box(g, 158, -256, 52, 6, PAL.oraD, { r: 2 });
     // pórtico do pino da lança
     Draw.poly(g, [[22, -298], [102, -298], [84, -334], [38, -334]], PAL.gray, { shade: PAL.grayD });
     Draw.circle(g, PX, PY, 15, PAL.steelD); Draw.circle(g, PX, PY, 6, PAL.blk, { hi: false });
     // caixas de holofote
-    const L = [[174, -210], [-194, -210], [140, -262], [-162, -262], [-140, -456]];
+    const L = [[200, -210], [-222, -210], [162, -262], [-184, -262], [-140, -456]];
     for (const p of L) Draw.box(g, p[0] - 4, p[1] - 4, 8, 8, PAL.blk, { ol: 1.2, r: 1 });
   }
 
@@ -208,32 +210,43 @@
     Draw.box(g, 444, -14, 42, 40, PAL.steel, { r: 2, rivets: true, panels: 2 });
     Draw.rail(g, [438, -68], [498, -72], { posts: 5, h: 9, col: C_RAIL });
     Draw.box(g, 462, -50, 30, 6, PAL.red, { ol: 1.2, r: 1 });
+    Draw.poly(g, [[488, -15], [556, -11], [556, 11], [488, 17]], PAL.steel, { shade: PAL.steelD, hi: PAL.steelL });
+    Draw.circle(g, BL, 0, 25, PAL.steel); Draw.ring(g, BL, 0, 17, 4, PAL.steelD, { ol: 1.2, hi: false });
+    g.fillStyle = PAL.blk; for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + 0.2; g.beginPath(); g.arc(BL + Math.cos(a) * 21, Math.sin(a) * 21, 1.8, 0, TAU); g.fill(); }
+    Draw.circle(g, BL, 0, 8, PAL.ora, { ol: 1.3 });
   }
 
   function drawWheel(g) {
-    // 18 caçambas: boca aberta pro lado da rotação (-y local), lábio de aço com dentes
+    g.save(); g.scale(WS, WS);
+    // 18 caçambas fundas: boca aberta pro lado da rotação (-y local), lábio de aço claro com dentes grandes
     for (let i = 0; i < NB; i++) {
       g.save(); g.rotate(i * STEP);
-      Draw.poly(g, [[80, 12], [82, -17], [97, -22], [113, -17], [108, -3], [104, 9], [94, 16]], i % 2 ? PAL.ora : PAL.rust, { shade: PAL.rustD });
-      Draw.poly(g, [[84, -10], [95, -14], [103, -10], [98, 4], [86, 6]], PAL.rustD, { ol: 0 });
-      Draw.beam(g, ln(84, -18, 113, -18), 3.6, PAL.steelL, { ol: 1.4 });
-      Draw.poly(g, [[98, -19], [104, -19], [102, -27]], PAL.steel, { ol: 1.2 }); Draw.poly(g, [[108, -19], [114, -19], [113, -27]], PAL.steel, { ol: 1.2 });
+      Draw.poly(g, [[76, 14], [78, -18], [96, -24], [114, -18], [110, -2], [104, 11], [92, 18]], i % 2 ? PAL.ora : PAL.rust, { shade: PAL.rustD });
+      Draw.poly(g, [[82, -11], [95, -16], [105, -11], [99, 5], [84, 8]], sh(PAL.rustD, -0.15), { ol: 0 });
+      Draw.beam(g, ln(80, -19, 114, -19), 5.5, PAL.steelL, { ol: 1.5 });
+      Draw.poly(g, [[88, -21], [95, -21], [92, -31]], PAL.white, { ol: 1.3 });
+      Draw.poly(g, [[98, -21], [105, -21], [103, -32]], PAL.white, { ol: 1.3 }); Draw.poly(g, [[108, -21], [115, -21], [115, -32]], PAL.white, { ol: 1.3 });
       g.restore();
     }
-    Draw.ring(g, 0, 0, 90, 19, PAL.rust);
-    Draw.circle(g, 0, 0, 72, sh(PAL.rustD, -0.12), { hi: false });
-    for (let i = 0; i < 9; i++) {                                                         // raios em chapa
-      const a = i * TAU / 9 + 0.17, c = Math.cos(a), s = Math.sin(a), c2 = Math.cos(a + 0.2), s2 = Math.sin(a + 0.2), c3 = Math.cos(a - 0.2), s3 = Math.sin(a - 0.2);
-      Draw.poly(g, [[c2 * 24, s2 * 24], [c * 73, s * 73 - 0], [c3 * 24, s3 * 24]], PAL.rust, { ol: 1.4 });
-      Draw.beam(g, ln(c * 22, s * 22, c * 72, s * 72), 5, i % 3 ? PAL.rust : PAL.ora, { ol: 1.4 });
+    // aro grosso enferrujado, com chapas rebitadas
+    Draw.ring(g, 0, 0, 91, 26, PAL.rust);
+    g.strokeStyle = PAL.rustD; g.lineWidth = 2.2;
+    for (let i = 0; i < NB; i++) { const a = (i + 0.5) * STEP, c = Math.cos(a), q = Math.sin(a); g.beginPath(); g.moveTo(c * 67, q * 67); g.lineTo(c * 89, q * 89); g.stroke(); }
+    g.fillStyle = sh(PAL.rustD, -0.25); for (let i = 0; i < NB * 2; i++) { const a = i * STEP / 2 + 0.09; g.beginPath(); g.arc(Math.cos(a) * 85, Math.sin(a) * 85, 1.5, 0, TAU); g.fill(); }
+    Draw.ring(g, 0, 0, 68, 5, PAL.ora, { ol: 1.3 });
+    Draw.circle(g, 0, 0, 62, sh(PAL.rustD, -0.14), { hi: false });
+    for (let i = 0; i < 9; i++) {                                                         // raios em chapa, bem marcados
+      const a = i * TAU / 9 + 0.17, c = Math.cos(a), q = Math.sin(a), c2 = Math.cos(a + 0.24), s2 = Math.sin(a + 0.24), c3 = Math.cos(a - 0.24), s3 = Math.sin(a - 0.24);
+      Draw.poly(g, [[c2 * 30, s2 * 30], [c * 64, q * 64], [c3 * 30, s3 * 30]], PAL.rust, { ol: 1.4 });
+      Draw.beam(g, ln(c * 26, q * 26, c * 64, q * 64), 8, i % 3 ? PAL.ora : PAL.oraL, { ol: 1.5 });
     }
-    Draw.ring(g, 0, 0, 50, 6, PAL.rustD, { ol: 1.2 });
-    g.strokeStyle = sh(PAL.rustD, -0.3); g.lineWidth = 2.4; g.globalAlpha = 0.5;
-    for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3; g.beginPath(); g.arc(0, 0, 84 + (i % 3) * 3, a, a + 0.35); g.stroke(); }
+    Draw.ring(g, 0, 0, 47, 7, PAL.rustD, { ol: 1.3 });
+    g.strokeStyle = sh(PAL.rustD, -0.3); g.lineWidth = 2.6; g.globalAlpha = 0.5;
+    for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3; g.beginPath(); g.arc(0, 0, 76 + (i % 3) * 4, a, a + 0.35); g.stroke(); }
     g.globalAlpha = 1;
-    Draw.circle(g, 0, 0, 25, PAL.steelD);
-    g.fillStyle = PAL.blk; for (let i = 0; i < 8; i++) { const a = i * TAU / 8; g.beginPath(); g.arc(Math.cos(a) * 18, Math.sin(a) * 18, 2.4, 0, TAU); g.fill(); }
-    Draw.circle(g, 0, 0, 10, PAL.blkL); Draw.circle(g, 0, 0, 4, PAL.steelL, { ol: 1 });
+    Draw.circle(g, 0, 0, 31, PAL.steelD);                                                 // cubo grande
+    g.fillStyle = PAL.blk; for (let i = 0; i < 10; i++) { const a = i * TAU / 10; g.beginPath(); g.arc(Math.cos(a) * 24, Math.sin(a) * 24, 2.6, 0, TAU); g.fill(); }
+    g.restore();
   }
 
   function drawBridge(g) {
@@ -282,7 +295,7 @@
   function trackSprite(rs, i) {
     return sprite('trk' + i, rs, BOX_TRK, g => {
       const ph = i / TRK_N * PITCH;
-      for (const x of FAR_TR) Draw.track(g, x + 2, -TH - 13, TW, TH, ph, { col: sh(PAL.grayD, 0.25), belt: PAL.blkL });
+      for (const x of FAR_TR) Draw.track(g, x + 2, -TH - 15, TW, TH, ph, { col: sh(PAL.grayD, 0.25), belt: PAL.blkL });
       for (const x of NEAR_TR) Draw.track(g, x, -TH, TW, TH, ph, { col: PAL.yelD });
     });
   }
@@ -330,9 +343,9 @@
 
   /* ---------------- estado ---------------- */
   const WALK = [  // shibas nas passarelas: quadro ('b' corpo, 'o' lança, 'r' ponte), x0, x1, y, velocidade, fase, paleta
-    ['b', -198, 178, -147, 15, 0, 'goma'], ['b', -166, 144, -209, 12, 90, 'kuro'], ['b', -122, 100, -261, 10, 30, 'shiro'],
-    ['b', -190, 170, -147, 18, 200, 'cha'], ['o', 20, 450, 0, 16, 60, 'goma'], ['r', -560, -130, 0, 14, 10, 'kuro'],
-    ['b', -360, -250, -402, 8, 5, 'aka'], ['u', -200, 200, -92, 13, 44, 'shiro']];
+    ['b', -226, 204, -147, 15, 0, 'goma'], ['b', -188, 166, -209, 12, 90, 'kuro'], ['b', -138, 114, -261, 10, 30, 'shiro'],
+    ['b', -216, 196, -147, 18, 200, 'cha'], ['o', 20, 450, 0, 16, 60, 'goma'], ['r', -560, -130, 0, 14, 10, 'kuro'],
+    ['b', -360, -250, -402, 8, 5, 'aka'], ['u', -270, 270, -112, 13, 44, 'shiro']];
   const GRAIN = { shape: 'grain', c: [PAL.rice, PAL.rice, PAL.riceS], land: true, w: [5, 8], life: 1.6, ol: true, speed: [30, 120], spread: 0.6, dir: PI / 2 };
   const shO = { scale: 0.27, shadow: false, pal: 'goma', face: 1 }, komeO = { scale: 1.05, shadow: false, pal: 'kome', face: 1 };
 
@@ -357,7 +370,7 @@
   // modelo (parte de cima, com o balanço) -> mundo
   function toWorld(m, x, y, out) {
     const c = Math.cos(m.sway), s = Math.sin(m.sway), dy = y - RING;
-    out.x = m.x + m.face * (x * c - dy * s); out.y = m.y + RING + x * s + dy * c; return out;
+    out.x = m.x + m.face * (x * c - dy * s); out.y = m.y + RING - LIFT + x * s + dy * c; return out;
   }
   function wheelWorld(m, out) { boomPt(m, BL, 0, out); return toWorld(m, out.x + m.wobX, out.y + m.wobY, out); }
 
@@ -370,7 +383,7 @@
     m.y = inp.y || 0;
     const st = m.stage, face = m.face, full = st >= 3;
     // lança: mola pesada até o ângulo pedido
-    if (full && inp.ty !== undefined && inp.ty !== null) m.luffS.target = clamp(Math.asin(clamp((m.y + PY - inp.ty) / BL, -1, 1)), LMIN, LMAX);
+    if (full && inp.ty !== undefined && inp.ty !== null) m.luffS.target = clamp(Math.asin(clamp((m.y + PY - LIFT - inp.ty) / BL, -1, 1)), LMIN, LMAX);
     const pl = m.luff; m.luffS.update(dt);
     if (m.luffS.x < LMIN) { m.luffS.x = LMIN; if (m.luffS.v < 0) m.luffS.v = 0; }
     if (m.luffS.x > LMAX) { m.luffS.x = LMAX; if (m.luffS.v > 0) m.luffS.v = 0; }
@@ -421,7 +434,7 @@
       if (parts && m.spill >= 1) {
         const n = Math.floor(m.spill); m.spill -= n;
         wheelWorld(m, TMP);
-        const a = spillAt > -9 ? spillAt : 0.6, wx = TMP.x + face * Math.cos(a) * 104, wy = TMP.y + Math.sin(a) * 104;
+        const a = spillAt > -9 ? spillAt : 0.6, wx = TMP.x + face * Math.cos(a) * 126, wy = TMP.y + Math.sin(a) * 126;
         GRAIN.dir = PI / 2 - face * 0.5; GRAIN.speed[0] = 30; GRAIN.speed[1] = 150; GRAIN.spread = 0.9;
         parts.spray(wx, wy, n, GRAIN);
       }
@@ -445,7 +458,7 @@
     o.active = m.stage >= 3 && m.digIn && m.rpm > 0.25; o.phase = m.ph; return o;
   }
   function dump(m) { const o = m.dumpO; o.x = m.x + m.face * (LB_B[0] - 8); o.y = m.y + LB_B[1] + 6; o.active = m.flow > 0.03; return o; }
-  function cabinPt(m, out) { boomPt(m, 392, botChord(392) + 2, out); return out; }
+  function cabinPt(m, out) { boomPt(m, 352, botChord(352) + 2, out); return out; }
   function seat(m) {
     const o = m.seatO; cabinPt(m, TMP);
     toWorld(m, TMP.x - Math.sin(m.cabS.x) * 52, TMP.y + Math.cos(m.cabS.x) * 52, o); return o;
@@ -495,10 +508,10 @@
     // 2) esteiras + subestrutura
     blit(g, trackSprite(rs, fi));
     blit(g, sprite('under', rs, BOX_UNDER, drawUnder));
-    if (st === 1) blit(g, sprite('scaf', rs, BOX_SCAF, drawScaf));
+    if (st === 1) { g.translate(0, -LIFT); blit(g, sprite('scaf', rs, BOX_SCAF, drawScaf)); g.translate(0, LIFT); }
 
     // 3) parte de cima (balança inteira em volta do anel)
-    g.save(); g.translate(0, RING); g.rotate(m.sway); g.translate(0, -RING);
+    g.save(); g.translate(0, RING - LIFT); g.rotate(m.sway); g.translate(0, -RING);
     if (st >= 2) {
       blit(g, sprite('upper', rs, BOX_UPPER, drawUpper));
       // estais de trás: torre -> contrapeso / guincho; topo -> topo
@@ -524,13 +537,13 @@
       // arroz nas caçambas (sobe pela frente)
       const B = m.buckets; let any = false;
       g.fillStyle = LINE; g.beginPath();
-      for (let i = 0; i < NB; i++) { const v = B[i]; if (v < 0.05) continue; any = true; const a = m.rot + i * STEP - 0.15, r = 4 + 7 * Math.min(1.3, v), x = Math.cos(a) * 97, y = Math.sin(a) * 97; g.moveTo(x + r + 1.6, y); g.arc(x, y, r + 1.6, 0, TAU); }
+      for (let i = 0; i < NB; i++) { const v = B[i]; if (v < 0.05) continue; any = true; const a = m.rot + i * STEP - 0.15, r = 6 + 9 * Math.min(1.3, v), x = Math.cos(a) * 117, y = Math.sin(a) * 117; g.moveTo(x + r + 1.6, y); g.arc(x, y, r + 1.6, 0, TAU); }
       if (any) {
         g.fill(); g.fillStyle = C_RICE; g.beginPath();
-        for (let i = 0; i < NB; i++) { const v = B[i]; if (v < 0.05) continue; const a = m.rot + i * STEP - 0.15, r = 4 + 7 * Math.min(1.3, v), x = Math.cos(a) * 97, y = Math.sin(a) * 97; g.moveTo(x + r, y); g.arc(x, y, r, 0, TAU); }
+        for (let i = 0; i < NB; i++) { const v = B[i]; if (v < 0.05) continue; const a = m.rot + i * STEP - 0.15, r = 6 + 9 * Math.min(1.3, v), x = Math.cos(a) * 117, y = Math.sin(a) * 117; g.moveTo(x + r, y); g.arc(x, y, r, 0, TAU); }
         g.fill();
         g.fillStyle = PAL.riceS; g.beginPath();
-        for (let i = 0; i < NB; i++) { const v = B[i]; if (v < 0.05) continue; const a = m.rot + i * STEP - 0.15, r = 4 + 7 * Math.min(1.3, v), x = Math.cos(a) * 97 + r * 0.25, y = Math.sin(a) * 97 + r * 0.3; g.moveTo(x + r * 0.5, y); g.arc(x, y, r * 0.5, 0, TAU); }
+        for (let i = 0; i < NB; i++) { const v = B[i]; if (v < 0.05) continue; const a = m.rot + i * STEP - 0.15, r = 6 + 9 * Math.min(1.3, v), x = Math.cos(a) * 117 + r * 0.25, y = Math.sin(a) * 117 + r * 0.3; g.moveTo(x + r * 0.5, y); g.arc(x, y, r * 0.5, 0, TAU); }
         g.fill();
       }
       g.restore();
@@ -566,13 +579,13 @@
       let x = walker(m, w, t), y = w[3];
       if (k === 'o') { boomPt(m, x, botChord(x) - 1, TMP); x = TMP.x; y = TMP.y; }
       else if (k === 'r') { y = BR_A[1] + 23 + (x - BR_A[0]) * (BR_B[1] - BR_A[1] - 3.5) / (BR_B[0] - BR_A[0]); }
-      if (k === 'r' || k === 'u') { g.restore(); E.drawShiba(g, x, y, 'walk', t + i, shO); g.save(); g.translate(0, RING); g.rotate(m.sway); g.translate(0, -RING); }
+      if (k === 'r' || k === 'u') { g.restore(); E.drawShiba(g, x, y, 'walk', t + i, shO); g.save(); g.translate(0, RING - LIFT); g.rotate(m.sway); g.translate(0, -RING); }
       else E.drawShiba(g, x, y, 'walk', t + i, shO);
     }
     // 5) placas (nunca espelhadas)
     if (st >= 2) { signAt(g, m, -306, -366, 112, 40, 'KOME-293', SIGN_O); signAt(g, m, 30, -230, 80, 26, 'KOME', SIGN_O); }
     g.restore();
-    if (st === 1) signAt(g, m, 0, -250, 120, 34, 'EM MONTAGEM', SIGN_O);
+    if (st === 1) signAt(g, m, 0, -250 - LIFT, 120, 34, 'EM MONTAGEM', SIGN_O);
     g.restore();
     if (!m.deferGlow) glowIn(g, m);
     if (st >= 3 && m.bite01 !== null && m.bite01 !== undefined && m.rpm > 0.04) gauge(g, m);
@@ -580,7 +593,7 @@
   }
 
   /* ---------------- luzes ---------------- */
-  const FLOOD = [[174, -212, 7], [-194, -212, 7], [140, -264, 6], [-162, -264, 6], [-140, -458, 6], [-34, -500, 6], [-610, -300, 6], [-560, -182, 6], [-250, -410, 6]];
+  const FLOOD = [[200, -212, 7], [-222, -212, 7], [162, -264, 6], [-184, -264, 6], [-140, -458, 6], [-34, -500, 6], [-610, -300, 6], [-560, -182, 6], [-250, -410, 6]];
   const BEACON = [[M2T[0], M2T[1] - 38, 0], [M1T[0], M1T[1] - 22, 0.5], [-610, -362, 0.25], [-352, -500, 0.75]];
   const LT = { halo: 5.5, ol: 1.2 }, LTB = { halo: 7, ol: 1.2 }, LTS = { halo: 4, ol: 0 };
   function glow(g, m) { const z0 = Draw.zoom, m0 = Draw.minPx; Draw.lod(m.zoom, Math.max(m0, 0.62)); glowIn(g, m); Draw.lod(z0, m0); }
@@ -590,12 +603,12 @@
     if (st >= 3 && n > 0.05) for (let i = 6; i < 8; i++) Draw.light(g, FLOOD[i][0], FLOOD[i][1], FLOOD[i][2], C_WARM, n, LT);
     if (st >= 3) { const k = (t * 0.9 + BEACON[2][2]) % 1; Draw.light(g, BEACON[2][0], BEACON[2][1], 5, PAL.red, k < 0.5 ? 1 : 0, LTB); }
     if (st >= 3 && n > 0.05) for (let x = BR_A[0] - 40; x > BR_B[0]; x -= 88) Draw.light(g, x, BR_A[1] + 26, 3.5, C_WARM, n, LTS);
-    g.translate(0, RING); g.rotate(m.sway); g.translate(0, -RING);
+    g.translate(0, RING - LIFT); g.rotate(m.sway); g.translate(0, -RING);
     if (st >= 2) {
       if (n > 0.05) {
         g.globalAlpha = n; g.fillStyle = C_WARM;
         deckWindows((x, y, w, h, d, i) => { if ((i + d) % 4 !== 2 && (i * 5 + d) % 3 !== 0) g.fillRect(x + 1, y + 1, w - 2, h - 2); });
-        g.fillRect(151, -245, 28, 18); g.fillRect(-225, -437, 14, 10); g.fillRect(-167, -437, 14, 10);
+        g.fillRect(173, -245, 28, 18); g.fillRect(-225, -437, 14, 10); g.fillRect(-167, -437, 14, 10);
         g.globalAlpha = 1;
         for (let i = 0; i < 6; i++) Draw.light(g, FLOOD[i][0], FLOOD[i][1], FLOOD[i][2], C_WARM, n, LT);
         Draw.light(g, FLOOD[8][0], FLOOD[8][1], FLOOD[8][2], C_WARM, n, LT);
@@ -606,7 +619,7 @@
       if (n > 0.05) {
         // holofote da cabeça da lança iluminando o corte + fio de luzes da correia
         boomPt(m, 470, -70, TMP); const lx = TMP.x, ly = TMP.y; boomPt(m, BL + 30, 0, TMP);
-        g.globalAlpha = 0.16 * n; g.fillStyle = C_WARM; g.beginPath(); g.moveTo(lx, ly); g.lineTo(TMP.x + 110, TMP.y - 130); g.lineTo(TMP.x + 110, TMP.y + 150); g.closePath(); g.fill(); g.globalAlpha = 1;
+        g.globalAlpha = 0.16 * n; g.fillStyle = C_WARM; g.beginPath(); g.moveTo(lx, ly); g.lineTo(TMP.x + 130, TMP.y - 150); g.lineTo(TMP.x + 130, TMP.y + 170); g.closePath(); g.fill(); g.globalAlpha = 1;
         Draw.light(g, lx, ly, 8, C_WARM, n, LTB);
         for (let x = 60; x < 470; x += 82) { boomPt(m, x, botChord(x) + 6, TMP); Draw.light(g, TMP.x, TMP.y, 4, C_WARM, n, LTS); }
         cabinPt(m, TMP);
@@ -648,7 +661,7 @@
 
   G.Tools.bagger = {
     id: 'bagger', name: 'Bagger 293', kind: 'bagger', w: 1500, h: 700,
-    meta: { zoom: 0.26, shake: 1, cycle: 1 / (0.33 * NB), boom: BL, wheelR: WR, pivot: [PX, PY], luffMin: LMIN, luffMax: LMAX, maxCrawl: 40 },
+    meta: { zoom: 0.26, shake: 1, cycle: 1 / (0.33 * NB), boom: BL, wheelR: WR, pivot: [PX, PY - LIFT], luffMin: LMIN, luffMax: LMAX, maxCrawl: 40 },
     create, update, draw, glow, bite, dump, seat,
   };
 })();
