@@ -91,3 +91,20 @@ Regra de ouro: ir pra casa é PRÊMIO, nunca castigo. Não existe barra de cansa
 - Reconferir a economia: o bônus diário entra na simulação.
 - Ordem de implementação: depois do jogo básico funcionar; antes de missões e álbum. Se o orçamento apertar, vira v2
   (o jogo básico fica com céu fixo e a casa só como meta ao fundo).
+
+## 9. O arroz vai pra algum lugar (cadeia visível, sem gargalo) — pedido do dono
+Nada de arroz jogado no chão sumindo. Todo arroz cavado VIAJA até um ponto de venda no pátio, e o ¥ nasce lá.
+- **Feedback em dois tempos**: (1) na hora do golpe: grãos voam, contador de grãos sobe, som de cavar (resposta imediata);
+  (2) o arroz faz um arco/viaja até o coletor e o "+¥" estoura NO COLETOR com som de moeda (atraso máx. ~0,6 s nas ferramentas
+  de mão, pra não quebrar a sensação de causa e efeito). Com a câmera longe do pátio, um ícone do coletor na borda da tela
+  pisca e mostra o +¥.
+- **O destino evolui junto com a escada** (cada um é um sprite que fica no mundo e continua trabalhando):
+  cesto de palha nas costas do Kome → saco no chão que enche e é amarrado → barraquinha da obaa-san (fila de clientes
+  shibas levando onigiri) → kei-truck indo e voltando → silo com visor de nível → esteira do pé da montanha ao silo →
+  fábrica de onigiri (chaminé soltando onigiri de fumaça) → caminhões de mineração descarregando na moega → esteira tronco →
+  trem de arroz saindo cheio → (pós-final) navio no porto ao fundo.
+- **Sem gargalo punitivo**: o transporte nunca trava a escavação nem perde arroz. A capacidade é só visual + bônus: melhorar o
+  transporte (habilidades de Comércio) aumenta o preço de venda, e isso APARECE (mais caminhões, esteira mais rápida, fila maior).
+- **Pilha de espera**: se o jogador cava mais rápido do que o transporte anima, forma-se um monte (E.Pile) ao lado do coletor
+  que vai sendo consumido; monte grande = "ESTOQUE CHEIO: venda relâmpago x1,5" quando zera (recompensa, não castigo).
+- Ajudantes e máquinas antigas entregam no mesmo lugar: dá pra ver a formiguinha de shibas carregando.
