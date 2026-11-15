@@ -74,3 +74,20 @@ velocidade, grãos dourados) pra pessoa sentir o poder na hora.
   - **Achados bobos de coleção** (vão pro álbum com uma frase): bola de tênis, osso, chinelo, controle remoto, meia sem par.
 - Os ajudantes podem herdar o que o Kome não está usando. O que ele veste aparece em todas as cutscenes.
 - Barato de fazer: sprites Pix pequenos + âncoras que já existem. Ordem: cores (grátis) → chapéus → óculos → capas → pinturas.
+
+## 8. Dia de trabalho e volta pra casa (aprovado; pode ficar pra v2 se pesar)
+Regra de ouro: ir pra casa é PRÊMIO, nunca castigo. Não existe barra de cansaço que impede de cavar.
+- Dia de 8-10 min com o sol cruzando o céu (E.Nature.sky com tod). Partida ≈ 8-10 dias.
+- Pôr do sol = sino + **pagamento do dia**: resumo (cavado, melhor combo, achados) + bônus garantido (≈ 20-30 s de renda).
+- Kome vai pra casa: cena curta e pulável (15-20 s na 1ª vez de cada novidade, 5 s depois) no quintal; janta, deita, dorme.
+- De noite os ajudantes/máquinas continuam; ao acordar, cartão "enquanto você dormia" com o que renderam.
+- **Hora extra opcional**: continuar cavando depois do sino, à noite, com faróis; onigiri vale 2x.
+- **A casa cresce do zero ao luxo** (substitui/estende os estágios da casa do GDD §7):
+  0 caminha de cachorro ao relento → 1 casinha de cachorro com tigela → 2 barraca/cabana com lampião → 3 terreno com placa VENDIDO →
+  4 fundação → 5 estrutura de hinoki → 6 casa com telhado kawara e engawa → 7 jardim com lago de carpas → 8 onsen →
+  9 (pós-final) mansão de luxo: segundo andar, garagem da Bagger, piscina de arroz, heliponto do shiba.
+  Os estágios 0-2 são baratos e vêm nos primeiros minutos (dão meta cedo); os itens de quintal (cerejeira, tōrō, ponte,
+  carpas, varal, churrasqueira) são compras pequenas entre os estágios, visíveis na cena de casa.
+- Reconferir a economia: o bônus diário entra na simulação.
+- Ordem de implementação: depois do jogo básico funcionar; antes de missões e álbum. Se o orçamento apertar, vira v2
+  (o jogo básico fica com céu fixo e a casa só como meta ao fundo).
