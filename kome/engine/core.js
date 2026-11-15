@@ -163,11 +163,15 @@
       let i = 0;
       while (n >= 1e3 && i < last) { n /= 1e3; i++; }
       if (n >= 1e3) { // passou de deci: notação científica
-        const ex = Math.floor(Math.log10(n)), m = n / Math.pow(10, ex);
+        let ex = Math.floor(Math.log10(n)), m = n / Math.pow(10, ex);
+        if (m >= 9.995) { m = 1; ex++; }                        // 9,999e36 -> 1,00e37 (e não '10,00e36')
         return m.toFixed(2).replace('.', ',') + 'e' + (ex + i * 3);
       }
       let s = n.toFixed(n < 10 ? 2 : n < 100 ? 1 : 0);
-      if (+s >= 1e3 && i < last) { i++; s = '1.00'; }          // 999.999 -> 1,00 mi (e não '1000 mil')
+      if (+s >= 1e3) {                                          // 999.999 -> 1,00 mi (e não '1000 mil')
+        if (i === last) return '1,00e' + (i * 3 + 3);           // 999,9 deci arredonda pra fora da tabela
+        i++; s = '1.00';
+      }
       else if (+s >= 100 && s.indexOf('.') >= 0) s = (+s).toFixed(0); // 99,96 -> 100
       else if (+s >= 10 && s.length > 4) s = (+s).toFixed(1);  // 9,999 -> 10,0
       return s.replace('.', ',') + ' ' + FMT_UNITS[i];

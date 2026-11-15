@@ -311,10 +311,11 @@
     ell(18.5, 27 + by, 7, 6, FUR); ell(24, 22.5 + by, 7.2, 6.4, FUR);
     ell(22.5, 29.5 + by, 5, 2.4, CREAM); ell(28, 24.5 + by, 3.2, 4.4, CREAM);
     back(19, 19 + by);
-    leg(28, 22 + by, 40, 21.5 + by, true);
-    head(30, 11.5 + by, 'squint', 'teeth', 'back', true);
-    leg(29, 25 + by, 41, 25 + by, false);
-    A.pawX = 41; A.pawY = 23 + by; hold(42.5, 23 + by);
+    const sh = s(ph * 2) * 0.5;                            // tranco do esforço nos braços
+    leg(31, 20.5 + by, 41 + sh, 20.5 + by, true);
+    head(29.5, 11 + by, 'squint', 'teeth', 'back', true);
+    leg(28, 26.5 + by, 41.5 + sh, 26.5 + by, false);
+    A.pawX = 41.5 + sh; A.pawY = 23 + by; hold(43 + sh, 23 + by);
     if (extra) { const k = (t * 2.2) % 1; if (k < 0.6) { set(19 - k * 8, 6 + by + k * 5, TEARL); set(18 - k * 8, 5 + by + k * 5, WHITE); } }
   }
 
@@ -388,13 +389,13 @@
     sitBase(t, br, s(t * 3) * 0.7);
     lookArr[0] = 1; lookArr[1] = -1;
     head(30, hy, shut ? 'closed' : 'open', 'closed', 'up', true, 1, 0, lookArr);
-    leg(28.5, 29, 35.5, hy + 9, false);
-    A.pawX = 35.5; A.pawY = hy + 8;
-    if (extra) {
+    arm(27.5, 28.5, 33, 30.5, 36.5, hy + 9.5, false);
+    A.pawX = 36.5; A.pawY = hy + 8.5;
+    if (extra) {                                           // "..." aparecendo um a um acima do focinho
       const n = Math.floor(t * 2.2) % 4;
-      if (n > 0) set(41, 9, WHITE);
-      if (n > 1) rect(43, 5, 2, 2, WHITE);
-      if (n > 2) { rect(45, 0, 3, 2, WHITE); rect(46, -1, 1, 4, WHITE); }
+      if (n > 0) rect(38, 5, 2, 2, WHITE);
+      if (n > 1) rect(41.5, 3, 2, 2, WHITE);
+      if (n > 2) rect(45, 1, 2, 2, WHITE);
     }
   }
 
@@ -415,8 +416,9 @@
   function poseGasp(t, extra) {
     const tr = Math.round(s(t * 43)) * 0.5, by = -1.5;
     // rabo arrepiado
+    tri(5.5, 14.5 + by, 3.5, 11 + by, 8.5, 13 + by, FUR); tri(8, 13 + by, 9.5, 9.5 + by, 12, 13 + by, FUR); tri(12, 13.5 + by, 15.5, 11.5 + by, 14, 16 + by, FUR);
+    tri(5.5, 17 + by, 2.5, 16 + by, 6, 20 + by, FUR);
     tail(10, 17 + by, 0);
-    tri(5, 13 + by, 3, 9 + by, 8, 12 + by, FUR); tri(8, 12 + by, 9, 7.5 + by, 12, 12 + by, FUR); tri(12, 13 + by, 15.5, 9.5 + by, 14, 15 + by, FUR);
     leg(15, 29 + by, 12.5, 37, true); leg(19, 29 + by, 17.5, 37, false);
     // pelo arrepiado nas costas
     for (let i = 0; i < 4; i++) { const x = 14 + i * 3.6; tri(x - 1.6, 21.5 + by, x - 0.8, 16.6 + by + (i & 1), x + 1.8, 21 + by, FUR); }
@@ -472,13 +474,34 @@
     A.hasHold = false; A.pawX = 32; A.pawY = 36; A.backX = 20; A.backY = 19.5;
     const eyesO = LF.blink ? 'closed' : LF.half ? 'half' : 'open';
     if (mode === 'roll') {
-      const wig = s(t * 9) * 1.6, rb = s(t * 3) * 0.5;
-      tail(8, 32, s(t * 20) * 1.4);
-      ell(21, 31 + rb, 11, 5.6, FUR); ell(21, 28.5 + rb, 8, 3, CREAM);
-      leg(15, 28, 13 + wig, 22, false); leg(19, 28, 20 - wig, 21, false);
-      leg(25, 28, 24 + wig, 21, false); leg(29, 28, 31 - wig, 22, false);
-      head(35, 29 + rb, 'happy', 'tongue', 'back', false);
-      back(21, 25);
+      /* REDESENHADA a pedido do dono (a do rascunho, parada, parecia um cachorro morto): de barriga pra cima pedindo carinho.
+         Corpo em banana que balança de um lado pro outro, quatro patas dobradas pedalando, rabo abanando, chapéu torto. */
+      const rock = s(t * 5.5), rx = rock * 1.2, up = rock * 1.1, k = t * 13;
+      tail(8 + rx * 0.6, 29.5 - up, s(t * 30) * 1.9);
+      // corpo em banana: quadril e peito levantados, lombo redondo apoiado no chão, barrigão creme pra cima
+      ell(20.5 + rx, 33, 8.6, 4, FURS);
+      ell(14.5 + rx, 30.6 - up, 6.2, 5, FUR);
+      ell(26.5 + rx, 30 + up * 0.7, 7, 5.4, FUR);
+      ell(20.5 + rx, 32, 8.2, 4, FUR);
+      ell(20 + rx, 28.4 - up * 0.15, 8.4, 2.7, CREAM);
+      ell(27 + rx, 27.6 + up * 0.6, 3.4, 2.6, CREAM);
+      // patas pro alto, dobradas no punho, pedalando alternadas (cada uma na sua fase)
+      const paw = (hx0, hy0, ph, far) => {
+        const a = s(k + ph), b = Math.cos(k + ph), kx = hx0 + a * 1.5, ky = hy0 - 5.6 - b * 0.8;
+        arm(hx0, hy0, kx, ky, kx - 2.6 - a * 1.1, ky - 3 + b * 1.8, far);
+      };
+      paw(12.5 + rx, 28.4 - up, 0, true); paw(23.5 + rx, 27.4 + up * 0.4, 1.6, true);
+      paw(16.5 + rx, 28 - up * 0.8, Math.PI, false); paw(27.5 + rx, 27 + up * 0.6, Math.PI + 1.6, false);
+      // cabeça erguida pro lado de quem olha, olhos ^ ^, bocão aberto, orelhas caídas, chapéu torto acompanhando o balanço
+      head(35.6 + rx * 0.5, 26.4 + up * 0.8 - Math.abs(rock) * 0.5, 'happy', 'open', 'back', true, rock > 0 ? 2 : -2);
+      back(21 + rx, 35);
+      if (extra) {
+        // risquinhos de movimento perto das patas + coraçãozinho subindo
+        const f = Math.floor(t * 9) % 3;
+        if (f < 2) { set(5 + f, 14 + f, WHITE); set(18, 11 - f, WHITE); }
+        const hk = (t * 0.9) % 1, hxx = 24 + Math.round(s(t * 4) * 1.2), hyy = 10 - hk * 8;
+        if (hk < 0.75) { set(hxx - 1, hyy, PINK); set(hxx + 1, hyy, PINK); rect(hxx - 1, hyy + 1, 3, 1, PINK); set(hxx, hyy + 2, PINK); }
+      }
       return;
     }
     if (mode === 'bow' || mode === 'stretch') {

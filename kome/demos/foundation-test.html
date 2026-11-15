@@ -112,7 +112,7 @@
     ok(typeof U.fmt(Infinity) === 'string' && typeof U.fmt(undefined) === 'string');
     // nunca "1000 mil" nem 4+ dígitos antes do sufixo, em nenhuma fronteira
     for (let e = 4; e < 36; e++) for (const m of [0.9994, 0.9995, 0.99999, 1, 9.994, 9.995, 9.9999, 99.94, 99.95, 99.999, 999.4, 999.5, 999.99]) {
-      const s = U.fmt(m * Math.pow(10, e)); ok(/^(\d{1,3}(,\d{1,2})? [a-z]+|\d\.\d{3})$/.test(s), 'formato ruim: ' + s + ' (' + m + 'e' + e + ')');
+      const s = U.fmt(m * Math.pow(10, e)); ok(/^(\d{1,3}(,\d{1,2})? [a-z]+|\d\.\d{3}|\d,\d\de\d+)$/.test(s), 'formato ruim: ' + s + ' (' + m + 'e' + e + ')');
     }
   });
   await T('U.fmtTime', () => { eq(U.fmtTime(45), '45s'); eq(U.fmtTime(200), '3min 20s'); eq(U.fmtTime(3720), '1h 02min'); eq(U.fmtTime(0), '0s'); eq(U.fmtTime(59.9), '59s'); eq(U.fmtTime(-5), '0s'); ok(typeof U.fmtTime(NaN) === 'string'); });
@@ -611,7 +611,7 @@
   });
   await T('drawShiba: pés em (x,y) em todas as poses de chão', () => {
     const air = { jump: 1, slash: 1, climb: 1, drive: 1, dig: 1 /* a terra voando passa do chão, como no rascunho */ };
-    E.SHIBA_POSES.forEach(p => { if (air[p]) return; for (const t of [.1, .77, 2.3]) { const b = bbox(shot(p, t, { shadow: false, exact: true }, 120, 100, 60, 80)); ok(b.y1 >= 77 && b.y1 <= 80, p + ' @' + t + ': base em y=' + b.y1 + ' (esperado ~79)'); ok(b.x0 >= 60 - 27 && b.x1 <= 60 + 27, p + ': x ' + b.x0 + '..' + b.x1); ok(b.y0 >= 80 - 46, p + ' topo ' + b.y0); } });
+    E.SHIBA_POSES.forEach(p => { if (air[p]) return; for (const t of [.1, .77, 2.3]) { const b = bbox(shot(p, t, { shadow: false, exact: true }, 120, 100, 60, 80)); ok(b.y1 >= 77 && b.y1 <= 81, p + ' @' + t + ': base em y=' + b.y1 + ' (esperado 79..81)'); ok(b.x0 >= 60 - 27 && b.x1 <= 60 + 27, p + ': x ' + b.x0 + '..' + b.x1); ok(b.y0 >= 80 - 46, p + ' topo ' + b.y0); } });
     // a sombra fica no chão, centrada em x
     const s = shot('stand', 1, {}, 120, 100, 60, 80), ns = shot('stand', 1, { shadow: false }, 120, 100, 60, 80); ok(count(s) > count(ns), 'sombra'); const bs = bbox(s); ok(bs.y1 <= 82, 'sombra não afunda: ' + bs.y1);
   });
