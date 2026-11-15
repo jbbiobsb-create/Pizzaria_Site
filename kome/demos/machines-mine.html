@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome no Japão · máquinas de mineração (pá de cabo, caminhão)</title>
+<style>html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/terrain.js"></script>
+<script src="../engine/rig.js"></script>
+<script src="../game/machines-mine.js"></script>
+<script>
+/* Demo de game/machines-mine.js.
+   URL: ?only=pacabo|caminhao|par|escala  &z=zoom  &t=segundos (avança e congela)  &pilot=paleta  &s=escala  &face=-1  &spd=speedMul
+        &dig=0 (nunca cava)  &debug=1 (âncoras)  &night=1  &scale=0 (sem pickup do lado)  &free=1 (no 'par', a pá cava mesmo sem caminhão embaixo)
+   'par' = pá ajudante carregando o caminhão do Kome (pareamento de verdade: fill() a cada 'dump' da pá) + moega.
+   Automação: __demo.step(seg) avança em passos fixos de 1/60 (e congela o tempo real); __demo.scenes[i].m = instância. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame;
+  const W = 960, H = 540, LINE = E.LINE_CSS;
+  const q = new URLSearchParams(location.search);
+  const ONLY = q.get('only'), SPD = +(q.get('spd') || 1), FACE = +(q.get('face') || 1) < 0 ? -1 : 1, NODIG = q.get('dig') === '0';
+  const FREE = q.get('free') === '1', NIGHT = q.get('night') === '1', SHOW = q.get('scale') !== '0';
+  const stage = E.Stage({ width: W, height: H, bg: PAL.ink || '#3B2818' });
+  const g = stage.g;
+  const input = E.Input(stage);
+  const SOIL = '#C7A26A', SOIL_D = '#A8834F';
+  const mixc = {}; const mix = (a, b, t) => mixc[a + b + t] || (mixc[a + b + t] = U.mixCss(a, b, t));
+
+  function backdrop(v, camX, heap, t) {
+    g.fillStyle = PAL.sky; g.fillRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0);
+    g.fillStyle = mix(PAL.sky, PAL.skyL, 0.5); g.fillRect(v.x0, -160, v.x1 - v.x0, 170);
+    g.fillStyle = mix(PAL.grassL, PAL.sky, 0.55); g.beginPath(); g.moveTo(v.x0, 10);
+    for (let x = v.x0; x <= v.x1 + 16; x += 16) g.lineTo(x, -70 - 50 * Math.sin((x - camX * 0.7) * 0.005 + 1) - 18 * Math.sin((x - camX * 0.7) * 0.013));
+    g.lineTo(v.x1 + 16, 10); g.closePath(); g.fill();
+    if (heap) heap.draw(g, v, t);
+    g.fillStyle = SOIL; g.fillRect(v.x0, 0, v.x1 - v.x0, v.y1);
+    g.fillStyle = PAL.grass; g.fillRect(v.x0, 0, v.x1 - v.x0, 5);
+    g.fillStyle = SOIL_D; g.fillRect(v.x0, 12, v.x1 - v.x0, 3);
+    g.fillStyle = LINE; g.fillRect(v.x0, -0.8, v.x1 - v.x0, 1.6);
+  }
+  function mkHeap(face, hmax) {
+    const heap = E.Heap({ width: 1500, colW: 5, x0: -750, y0: 0, seed: 11 });
+    heap.generate(x => { const d = (x * face) - 40; return d > 0 ? Math.min(hmax, d * 1.1 + 14 * Math.sin(d * 0.05)) : 0; });
+    heap.settle && heap.settle(400);
+    return heap;
+  }
+  function faceX(heap, x, face) { for (let d = 0; d < 900; d += 5) { const xx = x + face * d; if (heap.height(xx) > 16) return xx; } return x + face * 900; }
+  function debug(S, tool, m) {
+    if (!q.get('debug')) return;
+    const b = tool.bite(m), d = tool.dump(m), s = tool.seat(m);
+    g.strokeStyle = b.active ? PAL.red : PAL.cream; g.lineWidth = 2; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.stroke();
+    if (d) { g.strokeStyle = d.active ? PAL.gold : PAL.grayL; g.beginPath(); g.arc(d.x, d.y, 8, 0, 7); g.stroke(); }
+    g.strokeStyle = PAL.pink; g.beginPath(); g.arc(s.x, s.y, 6, 0, 7); g.stroke();
+  }
+
+  /* --- uma máquina sozinha num barranco --- */
+  function makeScene(id, o) {
+    o = o || {};
+    const tool = G.Tools[id], sc = o.scale || 1, face = o.face || 1, shovel = id === 'pacabo';
+    const m = tool.create({ pilot: o.pilot || 'kome', scale: sc, showScale: SHOW });
+    const heap = mkHeap(face, shovel ? 360 : 300), parts = E.Particles(900);
+    const reach = (shovel ? 262 : 196) * sc;
+    const S = { id, tool, m, heap, parts, t: 0, x: -reach * face - 80 * face, face, sc, log: [], logT: 0, cam: { x: 0, z: 1 }, span: (shovel ? 1040 : 980) * sc, vh: (shovel ? 560 : 430) * sc };
+    const inp = { x: S.x, y: 0, face, tx: 0, ty: 0, digging: false, power: 1, speedMul: SPD, vx: 0, floor: x => heap.surf(x), load: 0, t: 0, parts, boost: 0, night: NIGHT };
+    S.inp = inp;
+    S.update = dt => {
+      S.t += dt;
+      const fx = faceX(heap, S.x, face), near = Math.abs(fx - S.x - face * reach) < 34 * sc;
+      if (shovel) { const per = tool.meta.cycle * 3 + 1.6; inp.digging = !NODIG && (S.t % per) < tool.meta.cycle * 3 - 0.4 && near; }
+      else inp.digging = !NODIG && (m.state === 'load' ? m.load < 1.04 : near);
+      const xT = fx - face * reach, maxV = (shovel ? 30 : 120) * sc;
+      const want = m.busy ? 0 : U.clamp((xT - S.x) * 3, -maxV, maxV);
+      inp.vx = U.damp(inp.vx, want, 5, dt);
+      S.x += inp.vx * dt;
+      inp.x = S.x; inp.y = heap.surf(S.x); inp.t = S.t; inp.tx = fx + face * 30; inp.ty = -60;
+      tool.update(m, dt, inp);
+      const b = tool.bite(m);
+      if (b.active) { if (shovel) heap.dig(b.x + face * b.r * 0.3, 14000 * sc * sc * dt, b.r, { pow: 20 }); else heap.dig(fx + face * 30, 2600 * sc * sc * dt, 60 * sc, { pow: 20 }); }
+      for (const ev of m.ev) { S.log.unshift(ev); if (S.log.length > 5) S.log.pop(); S.logT = 1.6; }
+      S.logT -= dt;
+      heap.relax(dt);
+      if (heap.frac() < 0.5) heap.restore();
+      parts.update(dt, inp.floor);
+      S.cam.x = U.damp(S.cam.x, S.x + face * (shovel ? 110 : -60 + m.off * 0.55) * sc, 3, dt);
+    };
+    S.draw = (v, t) => {
+      backdrop(v, S.cam.x, heap, S.t);
+      if (!shovel) G.Scale.moega.draw(g, S.x - face * (tool.meta.haul + 215) * sc, 0, { face, t: S.t, fill: m.state === 'dump' ? 0.8 : 0.3 });
+      tool.draw(g, m);
+      E.drawShiba(g, S.x - face * (shovel ? 300 : 40) * sc, shovel ? 0 : 26, 'wag', S.t, { scale: 1, face, pal: 'goma' });
+      parts.draw(g, v);
+      debug(S, tool, m);
+    };
+    S.status = () => "'" + id + "'  ciclo " + tool.meta.cycle + ' s  fase ' + m.ph.toFixed(2) + (m.state ? '  ' + m.state + '  carga ' + Math.round(m.load * 100) + '%' : '') + (inp.digging ? '  CAVANDO' : '  solto');
+    return S;
+  }
+
+  /* --- par: pá ajudante + caminhão do Kome + moega --- */
+  function makePair(o) {
+    o = o || {};
+    const face = o.face || 1, sc = o.scale || 1, TS = G.Tools.pacabo, TT = G.Tools.caminhao;
+    const sh = TS.create({ pilot: 'kuro', scale: sc }), tr = TT.create({ pilot: o.pilot || 'kome', scale: sc });
+    const heap = mkHeap(face, 380), parts = E.Particles(1200);
+    const reach = 262 * sc;
+    const S = { id: 'par', tool: TT, m: tr, sh, heap, parts, t: 0, x: -reach * face - 40 * face, face, sc, log: [], logT: 0, cam: { x: 0, z: 1 }, span: 1500 * sc, vh: 560 * sc };
+    const floor = x => heap.surf(x);
+    const iS = { x: S.x, y: 0, face, tx: 0, ty: 0, digging: false, power: 1, speedMul: SPD, vx: 0, floor, t: 0, parts, night: NIGHT };
+    const iT = { x: 0, y: 0, face, tx: 0, ty: 0, digging: false, power: 1, speedMul: SPD, vx: 0, floor, t: 0, parts, night: NIGHT, loader: true };
+    S.inp = iT;
+    const hopX = () => TT.parkX(S.x, face, sc, sc) - face * (TT.meta.haul + 215) * sc;
+    S.update = dt => {
+      S.t += dt;
+      const fx = faceX(heap, S.x, face), xT = fx - face * reach;
+      iS.vx = U.damp(iS.vx, sh.busy ? 0 : U.clamp((xT - S.x) * 3, -30, 30), 5, dt);
+      S.x += iS.vx * dt; iS.x = S.x; iS.y = floor(S.x);
+      // a pá só começa uma conchada nova se o caminhão está embaixo esperando carga
+      iS.digging = !NODIG && (FREE || tr.wantsLoad && tr.load < 1.0) && Math.abs(fx - S.x - face * reach) < 40 * sc;
+      TS.update(sh, dt, iS);
+      const b = TS.bite(sh);
+      if (b.active) heap.dig(b.x + face * b.r * 0.3, 14000 * sc * sc * dt, b.r, { pow: 20 });
+      iT.x = TT.parkX(S.x, face, sc, sc); iT.y = floor(iT.x); iT.tx = fx; iT.vx = iS.vx;
+      iT.digging = !NODIG && (tr.load < 1.0 || sh.busy && sh.ph < 0.76);
+      if (TS.dump(sh).active && tr.wantsLoad) TT.fill(tr, dt * SPD / (0.09 * 3.6) * 0.34);
+      TT.update(tr, dt, iT);
+      for (const ev of tr.ev) { S.log.unshift(ev); if (S.log.length > 5) S.log.pop(); S.logT = 1.6; }
+      S.logT -= dt;
+      heap.relax(dt); if (heap.frac() < 0.5) heap.restore();
+      parts.update(dt, floor);
+      S.cam.x = U.damp(S.cam.x, S.x - face * 200 * sc, 3, dt);
+    };
+    S.draw = (v, t) => {
+      backdrop(v, S.cam.x, heap, S.t);
+      G.Scale.moega.draw(g, hopX(), 0, { face, t: S.t, fill: tr.state === 'dump' ? 0.8 : 0.3 });
+      TS.draw(g, sh);
+      TT.draw(g, tr);
+      G.Scale.pickup.draw(g, S.x - face * 60 * sc, 26, { face: -face, t: S.t, pal: 'goma' });
+      E.drawShiba(g, S.x - face * 190 * sc, 24, 'wag', S.t, { scale: 1, face, pal: 'kome' });
+      G.Scale.keitruck.draw(g, S.x - face * 330 * sc, 26, { face, t: S.t, pal: 'kuro' });
+      parts.draw(g, v);
+      debug(S, TT, tr);
+    };
+    S.status = () => "pá (kuro) + 'caminhao' (kome)  " + tr.state + '  carga ' + Math.round(tr.load * 100) + '%  pá fase ' + sh.ph.toFixed(2);
+    return S;
+  }
+
+  /* --- régua de escala: G.Scale + Kome --- */
+  function makeLineup() {
+    const S = { id: 'escala', tool: { name: 'G.Scale: pickup · keitruck · moega' }, m: { ph: 0, ev: [] }, t: 0, log: [], logT: 0, cam: { x: 0, z: 1 }, span: 760, vh: 260, sc: 1 };
+    S.update = dt => { S.t += dt; };
+    S.draw = v => {
+      backdrop(v, 0, null, S.t);
+      G.Scale.moega.draw(g, -200, 0, { face: 1, t: S.t, fill: 0.5 + 0.5 * Math.sin(S.t) });
+      E.drawShiba(g, -20, 0, 'wag', S.t, { scale: 1, pal: 'kome' });
+      G.Scale.keitruck.draw(g, 70, 0, { face: 1, t: S.t, pal: 'kuro' });
+      G.Scale.pickup.draw(g, 220, 0, { face: 1, t: S.t, pal: 'goma' });
+      G.Scale.pickup.draw(g, 330, 0, { face: -1, t: S.t + 1 });
+    };
+    S.status = () => 'moega 300x160 · Kome 44 px · kei 82x44 · pickup 128x46';
+    return S;
+  }
+
+  const optO = { pilot: q.get('pilot') || 'kome', scale: +(q.get('s') || 1), face: FACE };
+  let panels;
+  if (ONLY === 'par') panels = [{ s: makePair(optO), x: 0, y: 0, w: W, h: H }];
+  else if (ONLY === 'escala') panels = [{ s: makeLineup(), x: 0, y: 0, w: W, h: H }];
+  else if (ONLY && G.Tools[ONLY]) panels = [{ s: makeScene(ONLY, optO), x: 0, y: 0, w: W, h: H }];
+  else panels = [{ s: makeScene('pacabo', optO), x: 0, y: 0, w: 478, h: H }, { s: makeScene('caminhao', optO), x: 482, y: 0, w: 478, h: 268 }, { s: makeLineup(), x: 482, y: 272, w: 478, h: 268 }];
+  for (const p of panels) p.s.cam.z = q.has('z') ? +q.get('z') : Math.min(p.w / p.s.span, p.h / p.s.vh);
+
+  let frozen = false;
+  function update(dt) { for (const p of panels) p.s.update(dt); }
+  const view = { x0: 0, x1: 0, y0: 0, y1: 0 };
+  function render() {
+    stage.begin();
+    for (const p of panels) {
+      const s = p.s, c = s.cam, gy = p.h * 0.86;
+      g.save();
+      g.beginPath(); g.rect(p.x, p.y, p.w, p.h); g.clip();
+      g.translate(p.x + p.w / 2, p.y + gy); g.scale(c.z, c.z); g.translate(-c.x, 0);
+      view.x0 = c.x - p.w / 2 / c.z; view.x1 = c.x + p.w / 2 / c.z; view.y0 = -gy / c.z; view.y1 = (p.h - gy) / c.z;
+      Draw.lod(c.z);
+      s.draw(view, s.t);
+      g.restore();
+      Draw.lod(1);
+      Draw.text(g, s.tool.name, p.x + 12, p.y + 20, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
+      Draw.text(g, s.status() + '  zoom ' + c.z.toFixed(2), p.x + 12, p.y + 38, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+      if (s.logT > 0) Draw.text(g, s.log.join('  '), p.x + 12, p.y + 54, { size: 10.5, align: 'left', col: PAL.white, sw: 3, weight: 700 });
+      g.fillStyle = LINE; g.fillRect(p.x + 12, p.y + p.h - 12, 104, 6); g.fillStyle = PAL.gold; g.fillRect(p.x + 14, p.y + p.h - 10, 100 * s.m.ph, 2);
+    }
+  }
+  const loop = E.Loop({ update: dt => { if (!frozen) update(dt); }, render, input });
+  window.__demo = {
+    scenes: panels.map(p => p.s), loop, stage,
+    step(sec) { frozen = true; const n = Math.round(sec * 60); for (let i = 0; i < n; i++) update(1 / 60); return true; },
+  };
+  if (q.has('t')) window.__demo.step(+q.get('t'));
+  loop.start();
+})();
+</script>
+</body>
+</html>
