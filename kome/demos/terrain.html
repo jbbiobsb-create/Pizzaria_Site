@@ -43,7 +43,7 @@
     const u = (x - (MX0 + MX1) / 2) / ((MX1 - MX0) / 2);          // -1..1
     const tri = 1.02 - Math.sqrt(u * u + 0.012) - 0.02 * (1 - u * u) * 0;
     const foot = U.smooth(U.clamp((1 - Math.abs(u)) / 0.035, 0, 1)); // pé arredondado
-    const bumps = 7 * Math.sin(x / 83) + 5 * Math.sin(x / 47 + 2) + 9 * Math.sin(x / 190 + 1);
+    const bumps = 5 * Math.sin(x / 130) + 3 * Math.sin(x / 71 + 2) + 10 * Math.sin(x / 290 + 1);
     return Math.max(0, (MH * Math.max(0, tri) + bumps) * foot);
   }
   function build() {
