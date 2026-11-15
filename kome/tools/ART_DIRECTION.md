@@ -20,3 +20,20 @@ Critérios de revisão visual. Toda peça de arte é renderizada, olhada em scre
 
 Estilo misto assumido: Kome e objetos pequenos são pixel art (`Pix`); máquinas gigantes são vetoriais articuladas (`Draw`)
 com o mesmo contorno e as mesmas cores chapadas.
+
+## Máquinas: articuladas, nunca "uma vara"
+
+Pedido explícito do dono do jogo: nada de braço duro tipo um palito colado na máquina.
+
+- Todo braço/lança é uma cadeia de peças com juntas (pinos visíveis), movida por **pistões hidráulicos que esticam e encolhem**
+  (`Draw.piston`) e resolvida por IK (`E.ik2`), com a caçamba/garfo/lâmina girando no próprio pino.
+- Trator: carregadeira frontal de verdade (dois braços, pistão de levante + pistão de báscula, caçamba que enche, levanta e
+  despeja), rodas girando com a velocidade, roda traseira grande, escapamento soltando fumaça em pulsos, capô vibrando,
+  carroceria balançando na suspensão (`E.Spring`) ao frear/arrancar e ao levantar carga.
+- Empilhadeira: mastro telescópico em dois estágios com correntes, garfos subindo e inclinando, contrapeso, giroflex.
+- Escavadeira: lança + braço + caçamba (3 juntas, 3 pistões), cabine girando sobre a esteira, esteiras com sapatas andando.
+- Pá de cabo: lança fixa em ângulo, braço (dipper) deslizando no berço, cabos de içamento com polias girando, caçamba com
+  fundo que abre pra despejar.
+- Caminhão: caçamba basculante com pistão telescópico, suspensão afundando com a carga, pneus gigantes com garras girando.
+- Movimento com peso: aceleração e desaceleração suaves (nada de teleporte de ângulo), atraso entre juntas, leve overshoot
+  e assentamento, tremor de motor em marcha lenta.
