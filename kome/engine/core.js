@@ -407,6 +407,7 @@
      Tween — gerenciador global de interpolações
      ====================================================================== */
   const tweens = [];
+  let generation = 0; // muda a cada clear(): um update em andamento para de percorrer a lista antiga
 
   // resolve ease por nome ou função
   function resolveEase(e) {
@@ -459,7 +460,7 @@
     this.t += dt;
     const k = this.dur > 0 ? Math.min(1, this.t / this.dur) : 1;
     this._apply(k);
-    if (k < 1) return;
+    if (k < 1 || this.dead) return; // dead: cancelado/morto de dentro do próprio onUpdate
     if (this.repeat !== 0 && this.dur > 0) {
       if (this.repeat > 0) this.repeat--;
       this.t -= this.dur; this.cycle++;
@@ -486,8 +487,8 @@
     },
     // update(dt): avança todos os tweens (o Loop chama sozinho)
     update(dt) {
-      const n = tweens.length; // tweens criados dentro de callbacks só andam no próximo frame
-      for (let i = 0; i < n && i < tweens.length; i++) {
+      const n = tweens.length, gen = generation; // tweens criados dentro de callbacks só andam no próximo frame
+      for (let i = 0; i < n && i < tweens.length && gen === generation; i++) {
         const tw = tweens[i];
         if (!tw.dead) tw._step(dt);
       }
@@ -498,7 +499,7 @@
     // killOf(obj): cancela todos os tweens de um objeto
     killOf(obj) { for (let i = 0; i < tweens.length; i++) if (tweens[i].obj === obj) tweens[i].dead = true; },
     // clear(): cancela tudo
-    clear() { for (let i = 0; i < tweens.length; i++) tweens[i].dead = true; tweens.length = 0; },
+    clear() { for (let i = 0; i < tweens.length; i++) tweens[i].dead = true; tweens.length = 0; generation++; },
   };
   Object.defineProperty(Tween, 'count', { get: () => tweens.length });
   E.Tween = Tween;
@@ -829,9 +830,11 @@
   /* ======================================================================
      Loop — requestAnimationFrame com dt limitado e passo fixo opcional
      ====================================================================== */
-  // E.Loop({update(dt), render(alpha, dt), fixed=0, maxDt=.05, input, maxSteps=5, onVisibility(hidden)}) -> loop
+  // E.Loop({update(dt), render(alpha, dt), fixed=0, maxDt=.05, input, maxSteps=5, tweens=true, onVisibility(hidden)}) -> loop
+  //   tweens:false = este loop NÃO avança o E.Tween global (use num segundo loop na mesma página, senão os tweens andam 2x)
   function Loop(o) {
     o = o || {};
+    const driveTweens = o.tweens !== false;
     const fixed = o.fixed || 0, maxDt = o.maxDt || 0.05, maxSteps = o.maxSteps || 5;
     const update = o.update || null, render = o.render || null, input = o.input || null;
     const raf = root.requestAnimationFrame ? root.requestAnimationFrame.bind(root) : fn => setTimeout(() => fn(Date.now()), 16);
@@ -861,7 +864,7 @@
         if (loop.paused || !(dt > 0)) dt = 0;
         loop.dt = dt;
         if (!loop.paused) {
-          Tween.update(dt);
+          if (driveTweens) Tween.update(dt);
           if (fixed > 0) {
             acc += dt;
             let n = 0;
@@ -983,7 +986,9 @@
       const d = def[k], t = target[k];
       if (t === undefined || t === null && d !== null) target[k] = d;
       else if (isPlain(d)) { if (isPlain(t)) mergeDefaults(t, d); else target[k] = d; }
-      else if (typeof d === 'number' && (typeof t !== 'number' || t !== t)) target[k] = d; // NaN/Infinity viram null no JSON
+      else if (typeof d === 'number') { if (typeof t !== 'number' || t !== t) target[k] = d; } // NaN/Infinity viram null no JSON
+      else if (Array.isArray(d)) { if (!Array.isArray(t)) target[k] = d; }
+      else if ((typeof d === 'string' || typeof d === 'boolean') && typeof t !== typeof d) target[k] = d;
     }
     return target;
   }

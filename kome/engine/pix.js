@@ -114,6 +114,7 @@
       }
     }
     const xs = []; // interseções da varredura do poly (reaproveitado)
+    const THIN = 1.5; // abaixo disso line/arc viram traço de 1px
 
     const P = {
       w, h,
@@ -184,9 +185,16 @@
         }
         return P;
       },
-      // P.line(x0,y0,x1,y1,wd,c): linha grossa de pontas redondas
+      // P.line(x0,y0,x1,y1,wd,c): linha grossa de pontas redondas; wd < 1.5 = linha de 1px conectada entre os pixels (x0,y0) e (x1,y1)
       line(x0, y0, x1, y1, wd, c) {
-        const v = pack(c), n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1;
+        const v = pack(c);
+        if (wd < THIN) { // pincel de disco não pega pixel nenhum em coordenada inteira: anda pixel a pixel
+          x0 = Math.floor(x0); y0 = Math.floor(y0); x1 = Math.floor(x1); y1 = Math.floor(y1); // o pixel que contém cada ponta
+          const m = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+          for (let i = 0; i <= m; i++) { const t = m ? i / m : 0; put(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, v); }
+          return P;
+        }
+        const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1;
         for (let i = 0; i <= n; i++) { const t = i / n; disc(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, wd / 2, wd / 2, v); }
         return P;
       },
@@ -202,7 +210,11 @@
       // P.arc(cx,cy,r,a0,a1,wd,c): arco (radianos, sentido horário na tela) com espessura wd
       arc(cx, cy, r, a0, a1, wd, c) {
         const v = pack(c), n = Math.max(2, Math.ceil(Math.abs(a1 - a0) * r * 2));
-        for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; disc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, wd / 2, wd / 2, v); }
+        for (let i = 0; i <= n; i++) {
+          const a = a0 + (a1 - a0) * i / n, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+          if (wd < THIN) put(Math.floor(x), Math.floor(y), v); // arco fino: 1px, o pixel que contém o ponto
+          else disc(x, y, wd / 2, wd / 2, v);
+        }
         return P;
       },
       // P.erase(x,y,w,h): apaga um retângulo (volta a ser transparente)
@@ -304,6 +316,19 @@
       },
       // P.clone() -> novo Pix com os mesmos pixels
       clone() { const q = Pix(w, h); q.buf.set(buf); return q; },
+      // P.pad(n=1) -> NOVO Pix com n px de margem vazia em volta (pro contorno não ser cortado quando a arte encosta na borda)
+      pad(n) {
+        n = n === undefined ? 1 : Math.max(0, n | 0);
+        const q = Pix(w + n * 2, h + n * 2), qb = q.buf, qw = w + n * 2;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) qb[(y + n) * qw + x + n] = buf[y * w + x];
+        return q;
+      },
+      // P.touchesEdge() -> bool: tem pixel pintado encostado na borda? (o contorno seria cortado ali)
+      touchesEdge() {
+        for (let x = 0; x < w; x++) if (buf[x] || buf[(h - 1) * w + x]) return true;
+        for (let y = 0; y < h; y++) if (buf[y * w] || buf[y * w + w - 1]) return true;
+        return false;
+      },
 
       /* ---------- saída ---------- */
       // P.canvas(outline=true, lineColor=E.LINE) -> HTMLCanvasElement (contorno 4-vizinhos como o do Kome)
@@ -423,8 +448,10 @@
 
   function rrPath(g, x, y, w, h, r) {
     g.beginPath();
-    if (r <= 0) { g.rect(x, y, w, h); return; }
+    if (w < 0) { x += w; w = -w; }
+    if (h < 0) { y += h; h = -h; }
     r = Math.min(r, w / 2, h / 2);
+    if (!(r > 0)) { g.rect(x, y, w, h); return; }
     g.moveTo(x + r, y);
     g.arcTo(x + w, y, x + w, y + h, r);
     g.arcTo(x + w, y + h, x, y + h, r);
@@ -513,6 +540,8 @@
   // Draw.ring(g, x, y, r, wd, col, {ol, hi=true}): anel de raio externo r e espessura wd
   Draw.ring = function (g, x, y, r, wd, col, o) {
     o = o || NO; col = col2(col);
+    if (!(r > 0)) return;
+    if (wd > r) wd = r;                       // mais grosso que o raio: vira disco
     const ol = olOf(o), rm = r - wd / 2;
     g.beginPath(); g.arc(x, y, rm, 0, TAU);
     if (ol > 0) { g.strokeStyle = LINE_CSS; g.lineWidth = wd + ol * 2; g.stroke(); }
@@ -605,7 +634,7 @@
     if (o.rivets) {
       const rr = Math.max(0.7, Math.min(1.5, h * 0.035));
       if (big(rr * 2.5)) {
-        const sp = typeof o.rivets === 'number' ? o.rivets : Math.max(8, rr * 9);
+        const sp = typeof o.rivets === 'number' ? Math.max(o.rivets, rr * 3) : Math.max(8, rr * 9);
         const n = Math.max(1, Math.floor((w - rr * 6) / sp)), gap = (w - rr * 6) / n;
         g.fillStyle = loOf(col, 0.45);
         g.beginPath();
@@ -894,7 +923,7 @@
     g.fillStyle = LINE_CSS; stadium(g, cx0, cx1, cy, Ri + ol * 0.5); g.fill();
     g.fillStyle = loOf(belt, 0.45); stadium(g, cx0, cx1, cy, Ri); g.fill();
     // 5) rodas
-    const rBig = Ri - Math.max(0.5, h * 0.02), rw = Math.min(h * 0.17, Ri * 0.5), rt = h * 0.075;
+    const rBig = Math.max(0.05, Ri - Math.max(0.5, h * 0.02)), rw = Math.min(h * 0.17, Ri * 0.5), rt = h * 0.075;
     const steel = PAL.steelD;
     // roletes de retorno (em cima)
     const nTop = Math.max(0, Math.round(Ls / (h * 1.3)));
@@ -1124,7 +1153,7 @@
     g.fillStyle = loOf(col, 0.2); rrPath(g, x, y, w, h, r); g.fill();
     g.fillStyle = col; rrPath(g, x, y, w, h - Math.min(h * 0.12, 3), r); g.fill();
     const pad = Math.max(1, Math.min(h * 0.12, 3));
-    if (o.border !== false && big(pad)) {
+    if (o.border !== false && big(pad) && w > pad * 4 && h > pad * 4) {
       g.strokeStyle = ink; g.lineWidth = Math.max(0.5, pad * 0.35);
       rrPath(g, x + pad, y + pad, w - pad * 2, h - pad * 2.6, Math.max(0, r - pad * 0.5)); g.stroke();
     }

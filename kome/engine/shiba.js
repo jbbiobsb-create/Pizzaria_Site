@@ -74,15 +74,16 @@
     for (let i = 0; i <= n; i++) { const t = i / n; ell(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, w / 2, w / 2, c); }
   }
 
-  // contorno 4-vizinhos + conversão índice -> RGBA empacotado, direto no Uint32 do ImageData
-  function blit(src, w, h, lut, dst) {
+  // contorno 4-vizinhos + conversão índice -> RGBA empacotado, direto no Uint32 do ImageData.
+  // under (opcional) = pixels que aparecem onde o sprite é vazio (a sombra do chão, já pronta em Uint32)
+  function blit(src, w, h, lut, dst, under) {
     const ln = lut[LINE];
     let i = 0;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++, i++) {
       const v = src[i];
       if (v) dst[i] = lut[v];
       else if ((x + 1 < w && src[i + 1]) || (x > 0 && src[i - 1]) || (y + 1 < h && src[i + w]) || (y > 0 && src[i - w])) dst[i] = ln;
-      else dst[i] = 0;
+      else dst[i] = under ? under[i] : 0;
     }
   }
 
@@ -218,7 +219,7 @@
     let ex = hx + 2, ey = hy - 1;
     const lk = ShibaPX.look || look;
     if (lk && (eyes === 'open' || eyes === 'wide')) { ex += lk[0]; ey += lk[1]; }
-    ShibaPX.mouth[0] = hx + 8; ShibaPX.mouth[1] = hy + 5 + OY;
+    if (!dry) { ShibaPX.mouth[0] = hx + 8; ShibaPX.mouth[1] = hy + 5 + OY; }   // global do rascunho: só o desenho de verdade atualiza
     if (eyes === 'open') { rect(ex - 1, ey - 1, 3, 4, EYE); rect(ex, ey, 1, 1, WHITE); rect(ex - 1, ey - 1, 1, 1, WHITE); }
     else if (eyes === 'half') { rect(ex - 1, ey + 1, 3, 2, EYE); rect(ex - 1, ey, 3, 1, LINE); set(ex, ey + 1, WHITE); }
     else if (eyes === 'happy') { set(ex - 1, ey + 2, EYE); set(ex, ey + 1, EYE); set(ex + 1, ey + 1, EYE); set(ex + 2, ey + 2, EYE); }
@@ -611,7 +612,7 @@
      ===================================================================== */
   const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   let img = null, img32 = null, tmpCv = null, tmpG = null;
-  const shadowCv = [null, null];
+  const shadowCv = [null, null], shadow32 = [null, null];   // sombra do chão (normal e 'sleep'): canvas e pixels prontos
   function ensureIO() {
     if (img) return;
     tmpCv = mkCanvas(W, H); tmpG = tmpCv.getContext('2d');
@@ -619,14 +620,15 @@
     for (let k = 0; k < 2; k++) {
       const c = shadowCv[k] = mkCanvas(W, H), g = c.getContext('2d');
       g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(23, 38.4 + OY, k ? 14 : 12, 1.4, 0, 0, Math.PI * 2); g.fill();
+      shadow32[k] = new Uint32Array(g.getImageData(0, 0, W, H).data.buffer);   // lido uma única vez, na inicialização
     }
   }
-  // rasteriza a pose no ImageData compartilhado (com contorno)
-  function raster(mode, t, K) {
+  // rasteriza a pose no ImageData compartilhado (com contorno); under = sombra embutida (ou null)
+  function raster(mode, t, K, under) {
     buf = bodyBuf; BW = W; BH = H; BOY = OY; dry = false;
     bodyBuf.fill(0);
     pose(mode === 'shake' ? 'stand' : mode, t, true);
-    blit(bodyBuf, W, H, K.lut, img32);
+    blit(bodyBuf, W, H, K.lut, img32, under);
   }
   // riscos de tremida da pose 'shake' (igual ao rascunho)
   function shakeMarks(g, t) {
@@ -645,14 +647,17 @@
     g.drawImage(tmpCv, ox, 0);
     if (mode === 'shake') shakeMarks(g, t);
   }
-  // caminho rápido usado pelo cache: 1 putImageData + sombra por baixo (destination-over)
+  // caminho rápido usado pelo cache: a sombra já vai dentro do buffer, então é 1 putImageData e pronto.
+  // Só a pose 'shake' (sprite deslocado, sombra parada) usa o caminho com composição.
   function frameFast(cv, g, mode, t, K, shadow) {
-    raster(mode, t, K);
-    const ox = mode === 'shake' ? Math.round(Math.sin(t * 52) * 1.6) : 0;
-    if (ox) g.clearRect(0, 0, W, H);
+    const sh = shadow && !NO_SHADOW[mode];
+    if (mode !== 'shake') { raster(mode, t, K, sh ? shadow32[mode === 'sleep' ? 1 : 0] : null); g.putImageData(img, 0, 0); return; }
+    raster(mode, t, K, null);
+    const ox = Math.round(Math.sin(t * 52) * 1.6);
+    g.clearRect(0, 0, W, H);
     g.putImageData(img, ox, 0);
-    if (shadow && !NO_SHADOW[mode]) { g.globalCompositeOperation = 'destination-over'; g.drawImage(shadowCv[mode === 'sleep' ? 1 : 0], 0, 0); g.globalCompositeOperation = 'source-over'; }
-    if (mode === 'shake') shakeMarks(g, t);
+    if (sh) { g.globalCompositeOperation = 'destination-over'; g.drawImage(shadowCv[0], 0, 0); g.globalCompositeOperation = 'source-over'; }
+    shakeMarks(g, t);
   }
   // ShibaPX.still(pal, mode='sit', scale=1) -> dataURL de um frame parado (ícones de UI)
   function still(pal, mode, scale) {
@@ -671,9 +676,9 @@
   /* Chave numérica: (t quantizado a 1/30 s) * 2^25 + bits de opções. A "vida ociosa" depende só de t,
      então dois shibas com a mesma paleta/pose/opções no mesmo t quantizado dividem o canvas.
      Anel FIFO de canvases 48x44: as chaves antigas (t passado) saem sozinhas. */
-  const CACHE_N = 640, KEY_MUL = 33554432;
-  let CACHE_FPS = 30;
-  const slotKey = new Float64Array(CACHE_N).fill(NaN), slotCv = new Array(CACHE_N).fill(null), slotG = new Array(CACHE_N).fill(null);
+  const KEY_MUL = 33554432, TQ_MAX = 134217727;          // tq acima disso não cabe na chave (2^53): desenha sem cache
+  let CACHE_N = 640, CACHE_FPS = 30;
+  let slotKey = new Float64Array(CACHE_N).fill(NaN), slotCv = new Array(CACHE_N).fill(null), slotG = new Array(CACHE_N).fill(null);
   const cacheMap = new Map();
   let cacheCur = 0;
   const stats = { hits: 0, misses: 0, exact: 0 };
@@ -681,22 +686,34 @@
   const NOOPTS = {};
   const idOf = (arr, v) => { const i = arr.indexOf(v); return i < 0 ? 15 : i + 1; };
 
+  // t são: número finito (NaN/undefined/Infinity viram 0)
+  function saneT(t) { t = +t; return t === t && t !== Infinity && t !== -Infinity ? t : 0; }
+  // o desenho pedido cai fora do cache? (opções contínuas, globais do rascunho ligados, paletas demais, t gigante)
+  function isExact(o, K, t) {
+    return !!(o.exact || o.tilt || o.look || ShibaPX.tilt || ShibaPX.look || ShibaPX.quiet || K.id > 255 || Math.abs(t) * CACHE_FPS > TQ_MAX);
+  }
+  // drawShiba.frameT(t, opts?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache)
+  function frameT(t, o) {
+    t = saneT(t); o = o || NOOPTS;
+    return isExact(o, compilePal(typeof o.pal === 'object' && o.pal ? o.pal : getPal(o.pal)), t) ? t : Math.round(t * CACHE_FPS) / CACHE_FPS;
+  }
+
   // devolve o canvas 48x44 do frame pedido (do cache, ou rasterizado agora). NÃO guarde: é reaproveitado.
   function frameCanvas(mode, t, o) {
     ensureIO();
+    t = saneT(t);
     const K = compilePal(typeof o.pal === 'object' && o.pal ? o.pal : getPal(o.pal));
     const hat = o.hat !== false, shadow = o.shadow !== false;
     const mouth = o.mouth || null, eyes = o.eyes || null, fast = o.fast ? 1 : 0;
     let pid = POSE_ID[mode];
     if (pid === undefined) { mode = 'stand'; pid = POSE_ID.stand; }
-    // globais do rascunho: valem só para ShibaPX.frame direto; aqui o desenho vem das opções
+    // globais do rascunho: hatOn/mouthOverride/eyesOverride vêm sempre das opções (como no drawShiba original);
+    // tilt/look globais, se o jogo os ligar, continuam valendo (compatibilidade) e desviam do cache
     const gH = ShibaPX.hatOn, gM = ShibaPX.mouthOverride, gE = ShibaPX.eyesOverride, gT = ShibaPX.tilt, gL = ShibaPX.look, gF = S.fast;
-    const exact = o.exact || o.tilt || o.look || K.id > 255 || ShibaPX.quiet;
     let cv;
-    if (exact) {
+    if (isExact(o, K, t)) {
       if (!exactCv) { exactCv = mkCanvas(W, H); exactG = exactCv.getContext('2d'); }
-      ShibaPX.hatOn = hat; ShibaPX.mouthOverride = mouth; ShibaPX.eyesOverride = eyes; ShibaPX.tilt = o.tilt || 0; ShibaPX.look = o.look || null; S.fast = fast;
-      exactG.clearRect(0, 0, W, H);
+      ShibaPX.hatOn = hat; ShibaPX.mouthOverride = mouth; ShibaPX.eyesOverride = eyes; ShibaPX.tilt = o.tilt || gT || 0; ShibaPX.look = o.look || gL || null; S.fast = fast;
       frameFast(exactCv, exactG, mode, t, K, shadow);
       stats.exact++; cv = exactCv;
     } else {
@@ -730,6 +747,20 @@
   // drawShiba.clear(): esvazia o cache de frames ; drawShiba.stats -> {hits, misses, exact}
   drawShiba.clear = function () { cacheMap.clear(); slotKey.fill(NaN); };
   drawShiba.stats = stats;
+  drawShiba.frameT = frameT;
+  // drawShiba.cacheSize -> frames guardados agora ; drawShiba.cacheMax (get/set, 64..4096): limite de canvases 48x44 do cache
+  //   (cada um ~8 KB; 640 = ~5 MB). Aumente se tiver muitos shibas fora de fase na MESMA pose/paleta: quem vem atrás reaproveita
+  //   os frames de quem vai na frente enquanto eles ainda estiverem no anel.
+  Object.defineProperty(drawShiba, 'cacheSize', { get() { return cacheMap.size; } });
+  Object.defineProperty(drawShiba, 'cacheMax', {
+    get() { return CACHE_N; },
+    set(v) {
+      v = Math.max(64, Math.min(4096, v | 0));
+      if (v === CACHE_N) return;
+      CACHE_N = v; cacheMap.clear(); cacheCur = 0;
+      slotKey = new Float64Array(v).fill(NaN); slotCv = new Array(v).fill(null); slotG = new Array(v).fill(null);
+    },
+  });
   // drawShiba.fps (get/set): quadros de animação por segundo guardados no cache (padrão 30; 20 economiza mais)
   Object.defineProperty(drawShiba, 'fps', { get() { return CACHE_FPS; }, set(v) { v = Math.max(1, Math.min(120, v | 0)); if (v !== CACHE_FPS) { CACHE_FPS = v; drawShiba.clear(); } } });
 
@@ -745,13 +776,15 @@
   const PAW = { x: 9, y: -6 }, MOUTH = { x: 11, y: -18 }, HEAD = { x: 10, y: -26 };
   // grade -> local (origem nos pés, sem escala, face=1): centro do pixel
   const GX = -22.5, GY = -37.9;
-  // shibaAnchor(pose,t,nome:'paw'|'mouth'|'head'|'back'|'hatTop'|'hold'|'eye', out?) -> {x,y} local (multiplique x por face)
-  function shibaAnchor(mode, t, name, out) {
+  // shibaAnchor(pose,t,nome:'paw'|'mouth'|'head'|'back'|'hatTop'|'hold'|'eye', out?, {hat,fast}?) -> {x,y} local (multiplique x por face)
+  //   t exato; pra colar algo num shiba desenhado pelo cache use t = drawShiba.frameT(t) (o Actor já faz isso)
+  function shibaAnchor(mode, t, name, out, o) {
     out = out || { x: 0, y: 0 };
-    const b0 = buf, w0 = BW, h0 = BH, o0 = BOY;
+    const b0 = buf, w0 = BW, h0 = BH, o0 = BOY, gH = ShibaPX.hatOn, gF = S.fast;
+    if (o) { ShibaPX.hatOn = o.hat !== false; S.fast = o.fast ? 1 : 0; }
     buf = bodyBuf; BW = W; BH = H; BOY = OY; dry = true;
-    pose(mode === 'shake' || POSE_ID[mode] === undefined ? 'stand' : mode, t, false);
-    dry = false; buf = b0; BW = w0; BH = h0; BOY = o0;
+    pose(mode === 'shake' || POSE_ID[mode] === undefined ? 'stand' : mode, saneT(t), false);
+    dry = false; buf = b0; BW = w0; BH = h0; BOY = o0; ShibaPX.hatOn = gH; S.fast = gF;
     let x, y;
     if (name === 'mouth') { x = A.mouthX; y = A.mouthY; }
     else if (name === 'head') { x = A.headX; y = A.headY; }
@@ -838,7 +871,7 @@
 
   // drawShibaHead(g,x,y,t,{scale=6,expr='normal',pal='kome',face=1,hat=true,alpha=1,rot=0,still=false}): close de rosto centrado em (x,y)
   function drawShibaHead(g, x, y, t, o) {
-    o = o || NOOPTS;
+    o = o || NOOPTS; t = saneT(t);
     ensureIO();
     if (!himg) { himg = tmpG.createImageData(HW, HH); himg32 = new Uint32Array(himg.data.buffer); }
     const expr = o.expr || 'normal', ei = Math.max(0, EXPRS.indexOf(expr));

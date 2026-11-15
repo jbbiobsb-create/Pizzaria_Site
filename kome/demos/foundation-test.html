@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome Engine · teste da fundação (core + pix + shiba)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
+  .ft-list {
+    position: absolute; left: 12px; top: 44px; width: 590px; height: 486px; overflow: hidden;
+    columns: 3; column-gap: 8px; font: 700 8px/1.32 'Zen Maru Gothic', 'Trebuchet MS', system-ui, sans-serif; color: #3B2818;
+  }
+  .ft-list div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; break-inside: avoid; }
+  .ft-list .ok::before { content: '● '; color: #6FA84B; }
+  .ft-list .bad { color: #B3261E; white-space: normal; font-weight: 900; }
+  .ft-list .bad::before { content: '✖ '; }
+  .ft-list .sec { font-weight: 900; margin-top: 3px; color: #A8650A; }
+</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script>
+/* ============================================================================
+   Teste de conformidade da fundação da Kome Engine.
+   Confere cada item das seções core/pix/shiba do ENGINE_CONTRACT.md (existência +
+   comportamento) e caça bugs de borda. Loga "[kome] foundation: PASS/FAIL nome".
+   Rodar:  node kome/tools/shot.js kome/demos/foundation-test.html saida.png --wait 6000
+   Opções: ?quick=1 pula o teste longo de cache (20 s simulados com 100 atores).
+   ============================================================================ */
+(async function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, Draw = E.Draw, PAL = E.PAL;
+  const q = new URLSearchParams(location.search);
+
+  /* ---------- mini framework ---------- */
+  const results = [];
+  let section = '';
+  function sec(name) { section = name; results.push({ sec: name }); }
+  function ok(cond, msg) { if (!cond) throw new Error(msg || 'falhou'); }
+  function eq(a, b, msg) { if (a !== b) throw new Error((msg || 'esperava') + ': ' + JSON.stringify(b) + ', veio ' + JSON.stringify(a)); }
+  function near(a, b, eps, msg) { if (!(Math.abs(a - b) <= (eps === undefined ? 1e-6 : eps))) throw new Error((msg || 'esperava ~') + b + ', veio ' + a); }
+  function isFn(o, names, where) { names.split(' ').forEach(n => { if (typeof o[n] !== 'function') throw new Error((where || '') + '.' + n + ' não é função'); }); }
+  function has(o, names, where) { names.split(' ').forEach(n => { if (!(n in o)) throw new Error((where || '') + '.' + n + ' não existe'); }); }
+  async function T(name, fn) {
+    let pass = true, err = '';
+    try { await fn(); } catch (e) { pass = false; err = e && e.message ? e.message : String(e); }
+    results.push({ name: section + ' · ' + name, pass, err });
+    console.log('[kome] foundation: ' + (pass ? 'PASS ' : 'FAIL ') + section + ' · ' + name + (pass ? '' : ' — ' + err));
+  }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const data = cv => { const t = document.createElement('canvas'); t.width = cv.width; t.height = cv.height; const g = t.getContext('2d', { willReadFrequently: true }); g.drawImage(cv, 0, 0); return g.getImageData(0, 0, t.width, t.height).data; };
+  function count(cv) { const d = data(cv); let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; }
+  function bbox(cv) {
+    const d = data(cv), w = cv.width, h = cv.height; let x0 = w, x1 = -1, y0 = h, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    return { x0, x1, y0, y1 };
+  }
+  function same(a, b) { const da = data(a), db = data(b); if (da.length !== db.length) return false; for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return false; return true; }
+  function px(cv, x, y) { const d = data(cv), i = (y * cv.width + x) * 4; return [d[i], d[i + 1], d[i + 2], d[i + 3]]; }
+
+  /* ---------- palco principal (windowed, contain) ---------- */
+  const stage = E.Stage({ width: 960, height: 540, bg: '#FFF6DC', maxDpr: 2 });
+  const input = E.Input(stage);
+  window.FT = { stage, input, taps: [], results };
+  input.on('tap', (x, y) => FT.taps.push([Math.round(x), Math.round(y)]));
+
+  /* ==========================================================================
+     CORE
+     ========================================================================== */
+  sec('core');
+  await T('E.version', () => eq(E.version, '1.0.0'));
+  await T('U existe (todas as funções do contrato)', () => {
+    isFn(U, 'clamp lerp invLerp remap smooth damp sign dist angLerp rnd irnd pick chance shuffle fmt fmtTime hex rgba css mix mixCss shade', 'U');
+    near(U.TAU, Math.PI * 2);
+    isFn(U.ease, 'lin in out inOut back backIn elastic bounce quadIn quadOut expoOut sine', 'U.ease');
+  });
+  await T('U math', () => {
+    eq(U.clamp(5, 0, 3), 3); eq(U.clamp(-1, 0, 3), 0); eq(U.lerp(2, 4, .5), 3); eq(U.invLerp(2, 4, 3), .5); eq(U.invLerp(2, 2, 3), 0);
+    eq(U.remap(5, 0, 10, 100, 200), 150); eq(U.smooth(.5), .5); eq(U.smooth(-1), 0); eq(U.smooth(9), 1);
+    eq(U.sign(-4), -1); eq(U.sign(0), 0); eq(U.dist(0, 0, 3, 4), 5);
+    // damp independente de fps: 1 passo de dt == 2 passos de dt/2
+    const a = U.damp(0, 10, 6, .1), b = U.damp(U.damp(0, 10, 6, .05), 10, 6, .05); near(a, b, 1e-9, 'damp fps');
+    near(U.damp(3, 10, 6, 0), 3);
+    // angLerp pelo caminho curto, inclusive com voltas a mais
+    near(Math.cos(U.angLerp(3, -3, .5)), -1, .01); near(U.angLerp(0, U.TAU * 3 + .2, 1), .2, 1e-9); near(U.angLerp(.1, -.1, .5), 0, 1e-9);
+  });
+  await T('U aleatório', () => {
+    for (let i = 0; i < 500; i++) {
+      const a = U.rnd(2, 3), b = U.irnd(1, 6); ok(a >= 2 && a < 3, 'rnd'); ok(b >= 1 && b <= 6 && b === Math.floor(b), 'irnd');
+    }
+    const seen = {}; for (let i = 0; i < 400; i++) seen[U.irnd(1, 3)] = 1; ok(seen[1] && seen[2] && seen[3], 'irnd inclusivo');
+    const src = [1, 2, 3, 4, 5, 6], arr = U.shuffle(src); ok(arr === src, 'shuffle devolve o mesmo array'); eq(arr.slice().sort().join(''), '123456');
+    ok([7, 8].indexOf(U.pick([7, 8])) >= 0); ok(U.chance(1) && !U.chance(0));
+  });
+  await T('U.ease: 0→0, 1→1, monotonia das simples', () => {
+    'lin in out inOut back backIn elastic bounce quadIn quadOut expoOut sine'.split(' ').forEach(k => {
+      near(U.ease[k](0), 0, 1e-3, k + '(0)'); near(U.ease[k](1), 1, 1e-3, k + '(1)');
+      for (let i = 0; i <= 20; i++) ok(isFinite(U.ease[k](i / 20)), k + ' finito');
+    });
+    'lin in out inOut quadIn quadOut expoOut sine'.split(' ').forEach(k => { let p = -1; for (let i = 0; i <= 50; i++) { const v = U.ease[k](i / 50); ok(v >= p - 1e-9, k + ' monótona'); p = v; } });
+    ok(U.ease.back(.6) > 1, 'back passa do alvo'); ok(U.ease.backIn(.3) < 0, 'backIn recua');
+  });
+  await T('U.fmt pt-BR', () => {
+    const c = { 0: '0', 7: '7', 999: '999', 1234: '1.234', 9999: '9.999', 10000: '10,0 mil', 12345: '12,3 mil', 123456: '123 mil', 4560000: '4,56 mi',
+      2.3e9: '2,30 bi', 7.7e12: '7,70 tri', 1e15: '1,00 quatri', 1e18: '1,00 quinti', 1e21: '1,00 sexti', 1e24: '1,00 septi', 1e27: '1,00 octi', 1e30: '1,00 noni', 1e33: '1,00 deci' };
+    for (const k in c) eq(U.fmt(+k), c[k], 'fmt(' + k + ')');
+    eq(U.fmt(999999), '1,00 mi'); eq(U.fmt(99999), '100 mil'); eq(U.fmt(9999999), '10,0 mi'); eq(U.fmt(999.9), '999');
+    ok(typeof U.fmt(1e40) === 'string' && U.fmt(1e40).length < 12, 'acima de deci'); eq(U.fmt(NaN), '0'); eq(U.fmt(-1500), '-1.500'); eq(U.fmt('1234'), '1.234');
+    ok(typeof U.fmt(Infinity) === 'string' && typeof U.fmt(undefined) === 'string');
+    // nunca "1000 mil" nem 4+ dígitos antes do sufixo, em nenhuma fronteira
+    for (let e = 4; e < 36; e++) for (const m of [0.9994, 0.9995, 0.99999, 1, 9.994, 9.995, 9.9999, 99.94, 99.95, 99.999, 999.4, 999.5, 999.99]) {
+      const s = U.fmt(m * Math.pow(10, e)); ok(/^(\d{1,3}(,\d{1,2})? [a-z]+|\d\.\d{3})$/.test(s), 'formato ruim: ' + s + ' (' + m + 'e' + e + ')');
+    }
+  });
+  await T('U.fmtTime', () => { eq(U.fmtTime(45), '45s'); eq(U.fmtTime(200), '3min 20s'); eq(U.fmtTime(3720), '1h 02min'); eq(U.fmtTime(0), '0s'); eq(U.fmtTime(59.9), '59s'); eq(U.fmtTime(-5), '0s'); ok(typeof U.fmtTime(NaN) === 'string'); });
+  await T('U cores (hex/rgba/css/mix/mixCss/shade)', () => {
+    eq(U.hex('#E3BC62').join(), '227,188,98,255'); eq(U.hex('#fff').join(), '255,255,255,255'); eq(U.hex('E3BC62').join(), '227,188,98,255');
+    eq(U.rgba('#ff0000', .5), 'rgba(255,0,0,0.5)'); eq(U.rgba([1, 2, 3, 255], .25), 'rgba(1,2,3,0.25)');
+    eq(U.css('#abc'), '#abc'); eq(U.css([255, 0, 16, 255]).toLowerCase(), '#ff0010'); ok(/^rgba\(/.test(U.css([1, 2, 3, 128])));
+    eq(U.mix('#000000', '#ffffff', .5).join(), '128,128,128,255'); eq(U.mix([0, 0, 0, 255], [10, 20, 30, 255], 1).join(), '10,20,30,255');
+    eq(U.mixCss('#000000', '#ffffff', 0).toLowerCase(), '#000000'); eq(U.mixCss('#000000', '#ffffff', 1).toLowerCase(), '#ffffff');
+    const d = U.hex(U.shade('#808080', -.5)), l = U.hex(U.shade('#808080', .5)); ok(d[0] < 128 && l[0] > 128, 'shade direção'); ok(d[0] > d[2], 'sombra puxa pro marrom'); eq(U.shade('#808080', 0).toLowerCase(), '#808080');
+    eq(U.hex(U.shade([128, 128, 128, 255], -1)).join(), '40,20,8,255');
+    // canvas aceita as strings devolvidas
+    const g = mk(2, 2).getContext('2d'); g.fillStyle = '#123456'; g.fillStyle = U.shade('#E3BC62', .3); ok(g.fillStyle !== '#123456'); g.fillStyle = '#123456'; g.fillStyle = U.rgba('#E3BC62', .3); ok(g.fillStyle !== '#123456');
+  });
+  await T('RNG mulberry32 determinístico', () => {
+    const a = E.RNG(42), b = E.RNG(42), c = E.RNG(43); const sa = [a(), a(), a()], sb = [b(), b(), b()]; eq(sa.join(), sb.join()); ok(sa[0] !== c());
+    isFn(a, 'range int pick chance fork', 'rng');
+    for (let i = 0; i < 300; i++) { const v = a(), r = a.range(5, 6), n = a.int(1, 3); ok(v >= 0 && v < 1 && r >= 5 && r < 6 && n >= 1 && n <= 3 && n === (n | 0)); }
+    ok([1, 2].indexOf(a.pick([1, 2])) >= 0); ok(a.chance(1) && !a.chance(0));
+    const f1 = E.RNG(7).fork(1), f2 = E.RNG(7).fork(1), f3 = E.RNG(7).fork(2); const v = f1(); eq(v, f2()); ok(v !== f3());
+    let m = 0; const r = E.RNG(1); for (let i = 0; i < 4000; i++) m += r(); near(m / 4000, .5, .03, 'média');
+  });
+  await T('hash 0..1 determinístico', () => { for (let i = -50; i < 200; i++) { const v = E.hash(i * 1.37); ok(v >= 0 && v < 1); } eq(E.hash(12), E.hash(12)); ok(E.hash(1) !== E.hash(2)); });
+  await T('Noise n1/n2/fbm1/fbm2: 0..1, contínuo, por semente', () => {
+    const N = E.Noise; isFn(N, 'n1 n2 fbm1 fbm2', 'Noise');
+    let lo = 1, hi = 0, prev = N.n1(0, 3);
+    for (let i = 1; i < 2000; i++) { const x = i * .01, v = N.n1(x, 3); ok(v >= 0 && v <= 1); ok(Math.abs(v - prev) < .05, 'n1 contínuo'); prev = v; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    ok(hi - lo > .5, 'n1 varia');
+    for (let i = 0; i < 400; i++) { const x = i * .13 - 20, y = i * .07 - 9; for (const v of [N.n2(x, y, 1), N.fbm1(x, 4, 2), N.fbm2(x, y, 4, 2)]) ok(v >= 0 && v <= 1, 'faixa'); }
+    eq(N.n2(1.5, 2.5, 9), N.n2(1.5, 2.5, 9)); ok(N.n1(1.5, 1) !== N.n1(1.5, 2), 'semente muda'); ok(isFinite(N.n1(.5)) && isFinite(N.fbm2(.5, .5)), 'defaults');
+    ok(Math.abs(N.n2(3.999, 1.2, 0) - N.n2(4.001, 1.2, 0)) < .02, 'n2 contínuo na borda da célula');
+  });
+  await T('Emitter on/off/once/emit/clear', () => {
+    const em = E.Emitter(); let n = 0, args = null; const off = em.on('a', (x, y) => { n++; args = [x, y]; });
+    em.emit('a', 1, 2); eq(n, 1); eq(args.join(), '1,2'); eq(typeof off, 'function'); off(); em.emit('a'); eq(n, 1);
+    let o = 0; em.once('b', () => o++); em.emit('b'); em.emit('b'); eq(o, 1);
+    let c = 0; em.on('c', () => c++); em.clear(); em.emit('c'); eq(c, 0); em.emit('nada');
+    // remover ouvinte durante o emit não pula o vizinho
+    let s = ''; const o1 = em.on('d', () => { s += '1'; o1(); }); em.on('d', () => { s += '2'; }); em.emit('d'); em.emit('d'); eq(s, '122');
+  });
+  await T('Pool get/free/size', () => {
+    let made = 0, resets = 0; const p = E.Pool(() => ({ id: ++made }), o => { resets++; o.v = 0; });
+    const a = p.get(), b = p.get(); eq(made, 2); eq(resets, 2); p.free(a); eq(p.size, 1); const c = p.get(); ok(c === a, 'reaproveita'); eq(made, 2); eq(p.size, 0); ok(b !== a);
+  });
+  await T('Tween.to/wait/update/killOf/clear', () => {
+    E.Tween.clear(); const o = { x: 0, y: 5 }; let ups = 0, done = 0;
+    const h = E.Tween.to(o, { x: 10 }, 1, { ease: 'lin', delay: .5, onUpdate() { ups++; }, onDone() { done++; } });
+    isFn(h, 'cancel', 'handle'); eq(h.done, false);
+    E.Tween.update(.25); eq(o.x, 0, 'delay'); E.Tween.update(.75); near(o.x, 5, 1e-9); ok(ups > 0); E.Tween.update(.6); eq(o.x, 10); eq(done, 1); eq(h.done, true); eq(o.y, 5);
+    E.Tween.update(1); eq(done, 1, 'onDone só 1x');
+    let w = 0; const hw = E.Tween.wait(.3, () => w++); E.Tween.update(.2); eq(w, 0); E.Tween.update(.2); eq(w, 1); ok(hw.done);
+    const p = { x: 0 }; const hc = E.Tween.to(p, { x: 1 }, 1); E.Tween.update(.5); hc.cancel(); const xv = p.x; E.Tween.update(.5); eq(p.x, xv, 'cancel para'); eq(hc.done, false);
+    const k = { x: 0 }; E.Tween.to(k, { x: 1 }, 1); E.Tween.to(k, { x: 1 }, 2); E.Tween.killOf(k); E.Tween.update(1); eq(k.x, 0, 'killOf');
+    const c = { x: 0 }; E.Tween.to(c, { x: 1 }, 1); E.Tween.clear(); E.Tween.update(1); eq(c.x, 0, 'clear');
+    const e1 = { x: 0 }; E.Tween.to(e1, { x: 1 }, 1, { ease: U.ease.quadIn }); E.Tween.update(.5); near(e1.x, .25, 1e-9, 'ease função'); E.Tween.clear();
+    const e2 = { x: 0 }; E.Tween.to(e2, { x: 1 }, 1, { ease: 'naoexiste' }); E.Tween.update(1); eq(e2.x, 1); E.Tween.clear();
+  });
+  await T('Tween bordas: dur 0, kill/clear dentro de callback, encadear', () => {
+    E.Tween.clear();
+    const a = { x: 0 }; let d = 0; E.Tween.to(a, { x: 7 }, 0, { onDone() { d++; } }); E.Tween.update(0.016); eq(a.x, 7, 'dur 0 chega'); eq(d, 1);
+    const n = { x: 0 }; E.Tween.to(n, { x: 7 }, -1); E.Tween.update(0.016); eq(n.x, 7, 'dur negativa'); let w0 = 0; E.Tween.wait(0, () => w0++); E.Tween.update(0); eq(w0, 1, 'wait(0)');
+    // killOf do próprio objeto e de um vizinho durante o update
+    const b = { x: 0 }, c = { x: 0 }; let bd = 0, cd = 0;
+    E.Tween.to(b, { x: 1 }, 1, { onUpdate() { E.Tween.killOf(c); E.Tween.killOf(b); }, onDone() { bd++; } });
+    E.Tween.to(c, { x: 1 }, 1, { onDone() { cd++; } });
+    E.Tween.update(2); eq(c.x, 0, 'vizinho morto não anda'); eq(bd, 0, 'cancelar no onUpdate do último frame não chama onDone'); eq(cd, 0); E.Tween.update(1);
+    // cancel() do handle dentro do próprio onUpdate
+    const s = { x: 0 }; let sd = 0; const hs = E.Tween.to(s, { x: 1 }, .1, { onUpdate() { hs.cancel(); }, onDone() { sd++; } }); E.Tween.update(1); eq(sd, 0, 'cancel no onUpdate'); eq(hs.done, false);
+    // clear() dentro de onDone + tween novo criado no mesmo callback sobrevive e só anda no frame seguinte
+    const e = { x: 0 }, f = { x: 0 }, z = { x: 0 }; E.Tween.to(z, { x: 1 }, 5);
+    E.Tween.to(e, { x: 1 }, .1, { onDone() { E.Tween.clear(); E.Tween.to(f, { x: 10 }, 1, { ease: 'lin' }); } });
+    E.Tween.update(.5); eq(e.x, 1); eq(f.x, 0, 'tween novo não anda no mesmo frame'); E.Tween.update(.5); near(f.x, 5, 1e-9); E.Tween.update(.5); eq(f.x, 10); ok(z.x < 1, 'clear matou z');
+    // cadeia de waits
+    let chain = ''; E.Tween.wait(.1, () => { chain += 'a'; E.Tween.wait(.1, () => { chain += 'b'; }); }); for (let i = 0; i < 5; i++) E.Tween.update(.1); eq(chain, 'ab');
+    // muitos tweens morrendo em ordens diferentes não vazam
+    for (let i = 0; i < 200; i++) E.Tween.to({ x: 0 }, { x: 1 }, .01 + (i % 7) * .01); for (let i = 0; i < 20; i++) E.Tween.update(.01);
+    if ('count' in E.Tween) eq(E.Tween.count, 0, 'lista vazia no fim');
+    // NaN/propriedade inexistente não explode
+    const u = {}; E.Tween.to(u, { q: 3 }, .1); E.Tween.update(.2); eq(u.q, 3); E.Tween.clear();
+  });
+  await T('Timers every/cooldown/E.Timer', () => {
+    let n = 0; const ev = E.every(.5, () => n++); isFn(ev, 'tick', 'every'); ev.tick(.4); eq(n, 0); ev.tick(.2); eq(n, 1); ev.tick(1); eq(n, 3); ev.tick(0); eq(n, 3);
+    const cd = E.cooldown(1); isFn(cd, 'ready use tick', 'cooldown'); ok(cd.ready()); ok(cd.use() !== false); ok(!cd.ready()); near(cd.frac, 0, 1e-9); cd.tick(.5); near(cd.frac, .5, 1e-9); ok(!cd.ready()); cd.tick(.6); ok(cd.ready()); near(cd.frac, 1, 1e-9);
+    ok(E.Timer && typeof E.Timer === 'object');
+  });
+  await T('Scenes add/go/push/pop/current/update/render', () => {
+    const S = E.Scenes.create ? E.Scenes.create() : E.Scenes; isFn(E.Scenes, 'add go push pop update render', 'Scenes'); ok('current' in E.Scenes);
+    let log = ''; const sc = n => ({ enter(a) { log += n + 'E' + (a || '') + ' '; }, exit() { log += n + 'X '; }, update(dt) { log += n + 'U' + dt + ' '; }, render(g) { log += n + 'R' + g + ' '; } });
+    S.add('a', sc('a')); S.add('b', sc('b')); S.add('c', sc('c'));
+    S.go('a', 1); ok(S.current, 'current'); S.update(2); S.render('g'); S.push('b', 3); S.update(1); S.render('g'); S.pop(); S.update(4); S.go('c'); S.render('g');
+    eq(log, 'aE1 aU2 aRg bE3 bU1 aRg bRg bX aU4 aX cE cRg ');
+    let threw = false; try { S.go('nao-existe'); } catch (e) { threw = true; } ok(threw, 'cena inexistente avisa'); S.pop(); S.pop(); S.update(1); S.render('g');
+  });
+
+  /* ---------- Save ---------- */
+  sec('core.Save');
+  const SK = 'kome.ftest.' + Math.floor(Math.random() * 1e9);
+  const cleanup = () => { try { for (const k of Object.keys(localStorage)) if (k.indexOf('kome.ftest.') === 0) localStorage.removeItem(k); } catch (e) { /* sem localStorage */ } };
+  await T('roundtrip + __t/__v + defaults profundos', () => {
+    const mkS = () => E.Save(SK, { version: 2, defaults: () => ({ rice: 0, up: { pa: 0, bowl: 1 }, list: [], name: 'kome' }) });
+    const a = mkS(); isFn(a, 'load save saveSoon clear exportStr importStr offlineSeconds', 'save');
+    const d = a.load(); ok(d === a.data, 'load devolve data'); eq(d.rice, 0); eq(d.up.bowl, 1);
+    d.rice = 123; d.up.pa = 9; d.list.push(4); ok(a.save() !== false);
+    const b = mkS(), e = b.load(); eq(e.rice, 123); eq(e.up.pa, 9); eq(e.list[0], 4); eq(e.__v, 2); ok(Math.abs(e.__t - Date.now()) < 5000, '__t');
+    // save antigo sem campos novos: defaults completam sem apagar o que existe
+    localStorage.setItem(SK, JSON.stringify({ rice: 5, up: { pa: 2 }, __v: 2, __t: Date.now() }));
+    const c = mkS().load(); eq(c.rice, 5); eq(c.up.pa, 2); eq(c.up.bowl, 1, 'default profundo'); eq(c.name, 'kome'); ok(Array.isArray(c.list));
+    // tipos estragados voltam ao default (NaN vira null no JSON; array que virou outra coisa)
+    localStorage.setItem(SK, JSON.stringify({ rice: null, up: 'x', list: { a: 1 }, name: 'z', __v: 2, __t: Date.now() }));
+    const f = mkS().load(); eq(f.rice, 0, 'null -> default'); eq(f.up.bowl, 1, 'objeto estragado'); ok(Array.isArray(f.list), 'array estragado'); eq(f.name, 'z');
+    // defaults() devolve objeto novo a cada vez (clear não compartilha referências)
+    const g1 = mkS(); g1.load(); g1.data.list.push(1); const fresh = g1.clear(); ok(fresh === g1.data); eq(fresh.list.length, 0, 'clear zera'); eq(localStorage.getItem(SK), null, 'clear apaga');
+  });
+  await T('migrate (com versão antiga) e save do futuro', () => {
+    localStorage.setItem(SK, JSON.stringify({ gold: 7, __v: 1, __t: Date.now() - 1000 }));
+    let seenV = -1; const s = E.Save(SK, { version: 3, migrate(old, v) { seenV = v === undefined ? old.__v : v; return { rice: old.gold * 10 }; }, defaults: () => ({ rice: 0, extra: 1 }) });
+    const d = s.load(); eq(d.rice, 70, 'migrou'); eq(d.extra, 1, 'defaults depois do migrate'); eq(d.__v, 3); eq(seenV, 1);
+    s.save(); let calls = 0; const s2 = E.Save(SK, { version: 3, migrate() { calls++; return {}; }, defaults: () => ({ rice: 0 }) }); eq(s2.load().rice, 70); eq(calls, 0, 'não migra de novo');
+    // migrate que mexe no próprio objeto e não devolve nada
+    localStorage.setItem(SK, JSON.stringify({ gold: 2, __v: 1 })); const s3 = E.Save(SK, { version: 2, migrate(old) { old.rice = old.gold; }, defaults: () => ({ rice: 0 }) }); eq(s3.load().rice, 2, 'migrate in-place');
+    // migrate que explode não derruba o jogo
+    localStorage.setItem(SK, JSON.stringify({ gold: 2, __v: 1 })); const s4 = E.Save(SK + 'x', { version: 2, migrate() { throw new Error('x'); }, defaults: () => ({ rice: 1 }) }); eq(s4.load().rice, 1);
+    // save sem __v (versão 0) passa pelo migrate
+    localStorage.setItem(SK, JSON.stringify({ gold: 4 })); let v0 = null; const s5 = E.Save(SK, { version: 1, migrate(old, v) { v0 = v; return old; }, defaults: () => ({}) }); s5.load(); ok(v0 === 0 || v0 === undefined, 'versão 0');
+  });
+  await T('lixo/corrupção, export/import, offlineSeconds, saveSoon', async () => {
+    const opt = { version: 1, defaults: () => ({ rice: 1 }) };
+    for (const junk of ['{{{', 'null', '[1,2]', '"str"', '42', '']) { localStorage.removeItem(SK + '.bak'); localStorage.setItem(SK, junk); const d = E.Save(SK, opt).load(); eq(d.rice, 1, 'lixo ' + junk); }
+    cleanup();
+    const a = E.Save(SK, opt); a.load(); a.data.rice = 55; a.data.txt = 'açaí 米 🍙'; const str = a.exportStr(); ok(typeof str === 'string' && str.length > 8);
+    const b = E.Save(SK + 'b', opt); b.load(); ok(b.importStr(str) !== false, 'import ok'); eq(b.data.rice, 55); eq(b.data.txt, 'açaí 米 🍙', 'unicode');
+    for (const bad of ['', 'zzzz!!', 'bnVsbA==', '{"a":']) { ok(b.importStr(bad) === false, 'import ruim devolve false: ' + bad); eq(b.data.rice, 55, 'import ruim não estraga'); }
+    // offlineSeconds: agora - último save
+    localStorage.setItem(SK, JSON.stringify({ rice: 2, __v: 1, __t: Date.now() - 100000 })); const c = E.Save(SK, opt); c.load(); near(c.offlineSeconds(), 100, 2, 'offline');
+    localStorage.setItem(SK, JSON.stringify({ rice: 2, __v: 1, __t: Date.now() + 9e6 })); const d = E.Save(SK, opt); d.load(); eq(d.offlineSeconds(), 0, 'relógio voltou: clamp 0');
+    localStorage.setItem(SK, JSON.stringify({ rice: 2, __v: 1, __t: 'ontem' })); const e = E.Save(SK, opt); e.load(); ok(e.offlineSeconds() >= 0 && e.offlineSeconds() < 5, '__t inválido');
+    // saveSoon grava depois do prazo, e várias chamadas viram uma gravação
+    cleanup(); const f = E.Save(SK, opt); f.load(); f.data.rice = 77; f.saveSoon(40); f.saveSoon(40); eq(localStorage.getItem(SK), null, 'ainda não gravou'); await sleep(120); eq(JSON.parse(localStorage.getItem(SK)).rice, 77, 'saveSoon gravou');
+  });
+  await T('localStorage quebrado não derruba (cota/negado)', () => {
+    const P = Storage.prototype, set = P.setItem, get = P.getItem;
+    try {
+      P.setItem = function () { throw new Error('QuotaExceededError'); };
+      const s = E.Save(SK + 'q', { defaults: () => ({ rice: 3 }) }); eq(s.load().rice, 3); s.data.rice = 4; s.save(); s.saveSoon(1); ok(typeof s.exportStr() === 'string'); eq(s.load().rice, 4, 'memória');
+      P.getItem = function () { throw new Error('SecurityError'); };
+      const s2 = E.Save(SK + 'r', { defaults: () => ({ rice: 5 }) }); eq(s2.load().rice, 5); s2.save(); s2.clear(); ok(s2.offlineSeconds() >= 0);
+    } finally { P.setItem = set; P.getItem = get; }
+    // save com valor não serializável (referência circular) devolve false e não lança
+    const s3 = E.Save(SK + 'c', { defaults: () => ({}) }); s3.load(); s3.data.self = s3.data; let r; try { r = s3.save(); } catch (e) { throw new Error('save lançou com circular'); } ok(r === false || r === undefined || r === true);
+  });
+  cleanup();
+
+  /* ---------- Loop ---------- */
+  sec('core.Loop');
+  await T('campos + step: maxDt, timeScale, paused, fixed, Tween', () => {
+    const dts = []; let renders = 0, alphaSeen = -1;
+    const L = E.Loop({ update(dt) { dts.push(dt); }, render(a) { renders++; alphaSeen = a; } });
+    has(L, 'start stop paused timeScale time fps frame', 'loop'); eq(L.paused, false); eq(L.timeScale, 1); eq(L.time, 0); eq(L.frame, 0);
+    L.step(1 / 60); near(dts[0], 1 / 60); L.step(5); near(dts[1], .05, 1e-9, 'maxDt'); L.timeScale = .5; L.step(.02); near(dts[2], .01); eq(L.frame, 3); eq(renders, 3); near(L.time, 1 / 60 + .05 + .01, 1e-9);
+    L.timeScale = 1; L.paused = true; L.step(.02); eq(dts.length, 3, 'pausado não atualiza'); eq(renders, 4, 'pausado desenha'); L.paused = false;
+    const o = { x: 0 }; E.Tween.clear(); E.Tween.to(o, { x: 1 }, .04, { ease: 'lin' }); L.step(.02); near(o.x, .5, 1e-9, 'Loop chama Tween.update'); E.Tween.clear();
+    const fx = []; const F = E.Loop({ fixed: 1 / 50, update(dt) { fx.push(dt); }, render(a) { alphaSeen = a; } });
+    F.step(.05); eq(fx.length, 2, 'passos fixos'); near(fx[0], .02); ok(alphaSeen >= 0 && alphaSeen <= 1, 'alpha 0..1'); F.step(.011); F.step(.011); eq(fx.length, 3);
+    const M = E.Loop({ maxDt: .1, update(dt) { dts.push(dt); } }); M.step(1); near(dts[dts.length - 1], .1); M.step(-1); ok(dts[dts.length - 1] >= 0, 'dt negativo'); M.step(NaN); ok(dts[dts.length - 1] === 0 || dts.length, 'NaN não explode'); ok(isFinite(M.time), 'time finito');
+    E.Loop({}).step(.01); E.Loop().step(.01);
+  });
+  await T('rAF: aba oculta/hitch não vira dt gigante; stop para', () => {
+    const rr = window.requestAnimationFrame, cc = window.cancelAnimationFrame; let cb = null, cancels = 0;
+    window.requestAnimationFrame = fn => { cb = fn; return 7; }; window.cancelAnimationFrame = () => { cb = null; cancels++; };
+    const dts = []; let L;
+    try {
+      L = E.Loop({ update(dt) { dts.push(dt); } });
+      const feed = ts => { const f = cb; cb = null; ok(f, 'sem rAF agendado'); f(ts); };
+      L.start(); L.start(); feed(1000); feed(1016.7); feed(1033.4); near(dts[1], .0167, 1e-4);
+      feed(1133.4); near(dts[3], .05, 1e-9, 'hitch 100ms limita a maxDt');
+      feed(61133.4); ok(dts[4] <= .05 + 1e-9, 'voltou depois de 60 s'); feed(61150); near(dts[5], .0166, 1e-3);
+      document.dispatchEvent(new Event('visibilitychange')); feed(99999); ok(dts[6] <= .05 + 1e-9, 'visibilitychange'); feed(99990); ok(dts[7] >= 0 && dts[7] <= .05, 'relógio pra trás');
+      ok(L.fps > 5 && L.fps < 1000, 'fps são'); near(L.time, dts.reduce((a, b) => a + b, 0), 1e-9, 'time = soma dos dt');
+      L.stop(); ok(cb === null || cancels > 0, 'stop cancela'); const n = dts.length; if (cb) cb(100100); eq(dts.length, n, 'parado não atualiza');
+      L.start(); feed(200000); feed(200016); ok(dts[dts.length - 1] <= .05, 'restart sem salto');
+      // erro no update não mata o loop
+      let boom = 0; const B = E.Loop({ update() { boom++; throw new Error('x'); } }); B.start(); try { feed(1); } catch (e) { /* esperado */ } ok(cb, 'continua agendado depois de erro'); B.stop();
+    } finally { if (L) L.stop(); window.requestAnimationFrame = rr; window.cancelAnimationFrame = cc; }
+  });
+
+  /* ---------- Stage ---------- */
+  sec('core.Stage');
+  await T('campos e defaults', () => {
+    has(stage, 'cv g w h dpr scale el toStage resize begin on', 'stage'); eq(stage.w, 960); eq(stage.h, 540); ok(stage.cv instanceof HTMLCanvasElement); ok(stage.g === stage.cv.getContext('2d')); ok(stage.el.contains(stage.cv));
+  });
+  await T('contain: escala, centralização e proporção na janela (' + innerWidth + 'x' + innerHeight + ')', () => {
+    const s = Math.min(innerWidth / 960, innerHeight / 540); near(stage.scale, s, 1e-6, 'scale');
+    const r = stage.cv.getBoundingClientRect(); near(r.width, 960 * s, .6, 'largura'); near(r.height, 540 * s, .6, 'altura');
+    near(r.left, (innerWidth - 960 * s) / 2, 1, 'centro x'); near(r.top, (innerHeight - 540 * s) / 2, 1, 'centro y'); ok(r.left >= -.5 && r.top >= -.5 && r.right <= innerWidth + .5 && r.bottom <= innerHeight + .5, 'cabe na janela');
+    ok(stage.dpr >= 1 && stage.dpr <= 2, 'dpr'); eq(stage.cv.width, Math.round(960 * stage.dpr)); eq(stage.cv.height, Math.round(540 * stage.dpr));
+    ok(stage.dpr >= Math.min(2, devicePixelRatio * s) - .26, 'resolução acompanha a tela: dpr ' + stage.dpr + ' vs ' + devicePixelRatio * s);
+  });
+  await T('toStage sob escala CSS (cantos, centro, fora)', () => {
+    const r = stage.cv.getBoundingClientRect(), o = {};
+    const at = (fx, fy) => stage.toStage({ clientX: r.left + r.width * fx, clientY: r.top + r.height * fy }, o);
+    at(0, 0); near(o.x, 0, .01); near(o.y, 0, .01); at(1, 1); near(o.x, 960, .01); near(o.y, 540, .01); at(.5, .25); near(o.x, 480, .01); near(o.y, 135, .01);
+    at(-.1, 1.5); near(o.x, -96, .01); near(o.y, 810, .01);
+    const p = stage.toStage({ clientX: r.left, clientY: r.top }); ok(p && isFinite(p.x) && isFinite(p.y), 'sem out');
+    if (stage.toClient) { const c = stage.toClient(240, 400); const b = stage.toStage({ clientX: c.x, clientY: c.y }, {}); near(b.x, 240, .01); near(b.y, 400, .01); }
+  });
+  await T('begin(): transform = dpr, limpa, reseta alpha', () => {
+    const g = stage.g; g.setTransform(3, 1, 2, 5, 9, 9); g.globalAlpha = .2; g.globalCompositeOperation = 'lighter'; g.fillStyle = '#f0f'; g.fillRect(0, 0, 9999, 9999);
+    const gg = stage.begin(); ok(gg === g || gg === undefined, 'devolve g'); const m = g.getTransform(); near(m.a, stage.dpr); near(m.d, stage.dpr); near(m.b, 0); near(m.e, 0); eq(g.globalAlpha, 1); eq(g.globalCompositeOperation, 'source-over');
+    eq(px(stage.cv, stage.cv.width - 2, stage.cv.height - 2).join(), '255,246,220,255', 'bg até o canto');
+  });
+  await T('pai com tamanho: contain / cover / none / pixelated / resize', async () => {
+    const box = document.createElement('div'); box.style.cssText = 'position:absolute;left:37px;top:53px;width:400px;height:300px;overflow:hidden;visibility:hidden'; document.body.appendChild(box);
+    try {
+      const st = E.Stage({ parent: box, width: 320, height: 180 }); ok(box.contains(st.cv), 'canvas no pai'); near(st.scale, 1.25, 1e-6, 'contain'); let r = st.cv.getBoundingClientRect();
+      near(r.width, 400, .6); near(r.left, 37, 1); near(r.top, 53 + (300 - 225) / 2, 1, 'centralizado no pai'); const o = st.toStage({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }, {}); near(o.x, 160, .01); near(o.y, 90, .01);
+      let fired = 0; const off = st.on('resize', () => fired++); box.style.width = '200px'; st.resize(); near(st.scale, .625, 1e-6, 'resize manual'); ok(fired >= 1, "on('resize')"); if (typeof off === 'function') off();
+      ok(st.dpr >= 1, 'dpr nunca < 1'); eq(st.cv.width, Math.round(320 * st.dpr)); if (st.destroy) st.destroy(); box.innerHTML = ''; box.style.width = '400px';
+      const cov = E.Stage({ parent: box, width: 320, height: 180, fit: 'cover' }); near(cov.scale, Math.max(400 / 320, 300 / 180), 1e-6, 'cover'); r = cov.cv.getBoundingClientRect(); ok(r.width >= 399.5 && r.height >= 299.5, 'cover cobre');
+      near(r.left + r.width / 2, 37 + 200, 1, 'cover centralizado'); if (cov.destroy) cov.destroy(); box.innerHTML = '';
+      const non = E.Stage({ parent: box, width: 320, height: 180, fit: 'none' }); near(non.scale, 1, 1e-6, 'none'); near(non.cv.getBoundingClientRect().width, 320, .6); if (non.destroy) non.destroy(); box.innerHTML = '';
+      const pxs = E.Stage({ parent: box, width: 160, height: 90, pixelated: true, maxDpr: 2 }); eq(pxs.cv.width, 160, 'pixelated: buffer = lógico'); eq(pxs.g.imageSmoothingEnabled, false); ok(/pixelated|crisp/.test(pxs.cv.style.imageRendering), 'image-rendering'); if (pxs.destroy) pxs.destroy(); box.innerHTML = '';
+      // canvas existente
+      const cv = document.createElement('canvas'); box.appendChild(cv); const ex = E.Stage({ canvas: cv, width: 100, height: 100 }); ok(ex.cv === cv, 'usa o canvas dado'); near(ex.scale, 3, 1e-6); ok(box.contains(cv)); if (ex.destroy) ex.destroy(); box.innerHTML = '';
+      // maxDpr limita o buffer
+      const md = E.Stage({ parent: box, width: 100, height: 100, maxDpr: 1 }); eq(md.cv.width, 100, 'maxDpr 1'); if (md.destroy) md.destroy();
+    } finally { box.remove(); }
+  });
+
+  /* ---------- Input ---------- */
+  sec('core.Input');
+  const cvRect = () => stage.cv.getBoundingClientRect();
+  const cpt = (sx, sy) => { const r = cvRect(); return { clientX: r.left + sx / 960 * r.width, clientY: r.top + sy / 540 * r.height }; };
+  const pev = (type, sx, sy, extra) => new PointerEvent(type, Object.assign({ pointerId: 1, pointerType: 'mouse', isPrimary: true, bubbles: true, cancelable: true, button: 0 }, cpt(sx, sy), extra || {}));
+  await T('campos', () => { has(input, 'x y down pressed released inside keys wheel', 'input'); isFn(input, 'keyPressed on endFrame', 'input'); eq(input.down, false); eq(input.pressed, false); });
+  await T('ponteiro: coords do stage + flags de 1 frame + eventos', () => {
+    input.endFrame(); let log = ''; const offs = ['down', 'up', 'move', 'tap'].map(n => input.on(n, (x, y) => { log += n[0] + Math.round(x) + ',' + Math.round(y) + ' '; }));
+    stage.cv.dispatchEvent(pev('pointermove', 100, 50)); near(input.x, 100, .01); near(input.y, 50, .01); ok(input.inside, 'inside');
+    stage.cv.dispatchEvent(pev('pointerdown', 300, 200)); ok(input.down && input.pressed && !input.released, 'down+pressed'); near(input.x, 300, .01); near(input.y, 200, .01);
+    input.endFrame(); ok(input.down && !input.pressed, 'pressed dura 1 frame'); input.endFrame(); ok(input.down, 'down continua');
+    stage.cv.dispatchEvent(pev('pointermove', 302, 201)); stage.cv.dispatchEvent(pev('pointerup', 302, 201)); ok(!input.down && input.released, 'released'); input.endFrame(); ok(!input.released, 'released dura 1 frame');
+    eq(log, 'm100,50 d300,200 m302,201 u302,201 t302,201 '); offs.forEach(f => f());
+    // clique completo dentro de um único frame: as duas flags ficam visíveis
+    stage.cv.dispatchEvent(pev('pointerdown', 10, 10)); stage.cv.dispatchEvent(pev('pointerup', 10, 10)); ok(input.pressed && input.released && !input.down, 'down+up no mesmo frame'); input.endFrame();
+    // arrastar longe não é tap; soltar fora do canvas ainda solta
+    let taps = 0; const ot = input.on('tap', () => taps++); stage.cv.dispatchEvent(pev('pointerdown', 10, 10)); stage.cv.dispatchEvent(pev('pointermove', 200, 200)); window.dispatchEvent(pev('pointerup', 2000, 2000)); ok(!input.down, 'up fora do canvas'); eq(taps, 0, 'arrasto não é tap'); ot(); input.endFrame();
+    // pointercancel solta sem tap; blur solta
+    stage.cv.dispatchEvent(pev('pointerdown', 10, 10)); stage.cv.dispatchEvent(pev('pointercancel', 10, 10)); ok(!input.down, 'cancel solta'); input.endFrame();
+    stage.cv.dispatchEvent(pev('pointerdown', 10, 10)); window.dispatchEvent(new Event('blur')); ok(!input.down, 'blur solta'); input.endFrame();
+    stage.cv.dispatchEvent(pev('pointerdown', 20, 20)); ok(input.down && input.pressed, 'funciona de novo depois do blur'); stage.cv.dispatchEvent(pev('pointerup', 20, 20)); input.endFrame();
+    // segundo dedo não rouba o ponteiro
+    const t1 = { pointerId: 11, pointerType: 'touch' }, t2 = { pointerId: 12, pointerType: 'touch', isPrimary: false };
+    stage.cv.dispatchEvent(pev('pointerdown', 100, 100, t1)); stage.cv.dispatchEvent(pev('pointerdown', 500, 400, t2)); near(input.x, 100, .01, 'segundo dedo não move'); stage.cv.dispatchEvent(pev('pointermove', 510, 410, t2)); near(input.x, 100, .01);
+    stage.cv.dispatchEvent(pev('pointerup', 510, 410, t2)); ok(input.down, 'soltar 2º dedo não solta o 1º'); stage.cv.dispatchEvent(pev('pointerup', 100, 100, t1)); ok(!input.down, 'soltou'); input.endFrame();
+    stage.cv.dispatchEvent(pev('pointerdown', 30, 30)); ok(input.down, 'mouse depois do toque'); stage.cv.dispatchEvent(pev('pointerup', 30, 30)); input.endFrame();
+  });
+  await T('teclado + wheel', () => {
+    let keys = ''; const off = input.on('key', c => { keys += c; });
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true })); ok(input.keys.Space === true, 'keys[code]'); ok(input.keyPressed('Space'), 'keyPressed');
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', repeat: true, bubbles: true })); eq(keys, 'Space', 'auto-repeat não repete evento');
+    input.endFrame(); ok(!input.keyPressed('Space') && input.keys.Space, 'keyPressed 1 frame'); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', key: ' ', bubbles: true })); ok(!input.keys.Space, 'keyup'); off();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', bubbles: true })); window.dispatchEvent(new Event('blur')); ok(!input.keys.KeyA, 'blur solta teclas'); input.endFrame();
+    stage.cv.dispatchEvent(new WheelEvent('wheel', Object.assign({ deltaY: 100, bubbles: true, cancelable: true }, cpt(5, 5)))); ok(input.wheel > 0, 'wheel'); input.endFrame(); eq(input.wheel, 0, 'wheel 1 frame');
+  });
+  await T('Loop({input}) zera as flags depois do update', () => {
+    let seen = 0, seen2 = 0; const L = E.Loop({ input, update() { if (input.pressed) seen++; } });
+    stage.cv.dispatchEvent(pev('pointerdown', 10, 10)); L.step(.016); L.step(.016); eq(seen, 1, 'pressed visto 1x'); stage.cv.dispatchEvent(pev('pointerup', 10, 10)); L.step(.016);
+    // passo fixo: um clique nunca se perde nem é visto 2x, mesmo em frames com 0 ou 2 passos
+    const F = E.Loop({ input, fixed: 1 / 30, update() { if (input.pressed) seen2++; } });
+    stage.cv.dispatchEvent(pev('pointerdown', 10, 10)); F.step(.01); F.step(.01); F.step(.05); F.step(.05); eq(seen2, 1, 'fixed: pressed visto exatamente 1x'); stage.cv.dispatchEvent(pev('pointerup', 10, 10)); F.step(.05); input.endFrame();
+  });
+
+  /* ==========================================================================
+     PIX
+     ========================================================================== */
+  sec('pix');
+  await T('LINE / LINE_CSS / PAL (todas as chaves, valores do rascunho)', () => {
+    eq(E.LINE.join(), '59,40,24,255'); eq(E.LINE_CSS.toUpperCase(), '#3B2818');
+    const keys = 'line rice riceS riceD gold goldL goldD wood woodD woodL red redD redL steel steelD steelL yel yelD yelL ora oraD oraL blk blkL gray grayD grayL rust rustD glass glassD grass grassD grassL leaf leafD sakura sakuraD water waterD waterL sky skyL sand stone stoneD stoneL cream ink fur furS white pink bowl bowlL sack sackD mochi mochiD press pressD night sun'.split(' ');
+    keys.forEach(k => ok(/^#[0-9a-fA-F]{6}$/.test(PAL[k]), 'PAL.' + k + ' = ' + PAL[k]));
+    const draft = { wood: '#A9763F', woodD: '#7A5228', red: '#C8423A', redD: '#93302A', steel: '#C3CBD4', steelD: '#808A96', yel: '#EDB93A', yelD: '#B88A1E', ora: '#E2742E', oraD: '#B0531C', blk: '#3A332D', blkL: '#5A524A', rice: '#FFFDF6', riceS: '#E6DCC4', bowl: '#3F5E92', bowlL: '#6487C0', rust: '#B9652A', rustD: '#8A4A1E', gray: '#8E949C', grayD: '#676D75', glass: '#A8D8EA' };
+    for (const k in draft) eq(PAL[k].toUpperCase(), draft[k], 'PAL.' + k); eq(PAL.line.toUpperCase(), '#3B2818');
+  });
+  await T('Pix: métodos encadeáveis + set/get', () => {
+    const P = E.Pix(16, 12); isFn(P, 'set rect ell tri poly line ring arc rrect dither shadeBelow bevel replace mirrorX stamp mask get canvas', 'P');
+    const chain = P.set(1, 1, '#ff0000').rect(0, 0, 1, 1, '#00ff00').ell(8, 6, 2, 2, '#0000ff').tri(0, 11, 3, 11, 0, 8, '#111111').poly([[10, 0], [15, 0], [15, 4]], '#222222').line(0, 5, 4, 5, 1, '#333333')
+      .ring(8, 6, 5, 1, '#444444').arc(8, 6, 3, 0, 1, 1, '#555555').rrect(11, 7, 4, 4, 1, '#666666').dither(0, 0, 2, 2, '#777777').shadeBelow('#0000ff', .3).bevel().replace('#ff0000', '#ff00ff').mirrorX().stamp(E.Pix(2, 2).set(0, 0, '#ffffff'), 0, 0).mask(() => true);
+    ok(chain === P, 'encadeia');
+    const Q = E.Pix(4, 4).set(1, 2, '#E3BC62'); eq(Q.get(1, 2).join(), '227,188,98,255'); ok(!Q.get(0, 0), 'vazio = null'); ok(!Q.get(-1, 0) && !Q.get(4, 4), 'fora = null');
+    Q.set(2, 2, [1, 2, 3, 255]); eq(Q.get(2, 2).join(), '1,2,3,255', 'cor em array'); Q.set(-5, 99, '#fff').rect(-10, -10, 100, 100, '#000000'); eq(Q.get(3, 3).join(), '0,0,0,255', 'recorte nas bordas');
+    eq(E.Pix(3, 3).set(0, 0, '#000000').get(0, 0).join(), '0,0,0,255', 'preto opaco não é vazio');
+  });
+  await T('Pix formas: rect/ell/tri/poly/line/ring/arc/rrect contam certo', () => {
+    const n = P => { let c = 0; for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) if (P.get(x, y)) c++; return c; };
+    eq(n(E.Pix(10, 10).rect(2, 3, 4, 5, '#fff')), 20); const e = n(E.Pix(20, 20).ell(10, 10, 5, 5, '#fff')); ok(e > 68 && e < 90, 'ell ' + e);
+    const el = E.Pix(21, 21).ell(10.5, 10.5, 6, 4, '#fff'); for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) eq(!!el.get(x, y), !!el.get(20 - x, y), 'ell simétrica'), eq(!!el.get(x, y), !!el.get(x, 20 - y), 'ell simétrica y');
+    const t = n(E.Pix(10, 10).tri(0, 0, 8, 0, 0, 8, '#fff')); ok(t > 28 && t < 46, 'tri ' + t); eq(n(E.Pix(10, 10).tri(0, 0, 8, 0, 0, 8, '#fff')), n(E.Pix(10, 10).tri(0, 8, 8, 0, 0, 0, '#fff')), 'tri independe da ordem');
+    const p1 = E.Pix(12, 12).poly([[1, 1], [9, 1], [9, 9], [1, 9]], '#fff'); eq(n(p1), 64, 'poly quadrado'); const conc = E.Pix(12, 12).poly([[0, 0], [10, 0], [10, 10], [5, 3], [0, 10]], '#fff'); ok(!conc.get(5, 8) && conc.get(1, 5) && conc.get(9, 5), 'poly côncavo');
+    const ln = E.Pix(10, 10).line(1, 5, 8, 5, 1, '#fff'); ok(ln.get(1, 5) && ln.get(8, 5) && !ln.get(5, 3), 'line'); ok(n(E.Pix(10, 10).line(1, 5, 8, 5, 3, '#fff')) > n(ln) * 2, 'line grossa');
+    const rg = E.Pix(20, 20).ring(10, 10, 8, 2, '#fff'); ok(!rg.get(10, 10) && rg.get(3, 10) && rg.get(17, 10), 'ring'); const ar = E.Pix(20, 20).arc(10, 10, 7, 0, Math.PI / 2, 1, '#fff'); ok(ar.get(17, 10) && ar.get(10, 17) && !ar.get(3, 10), 'arc horário de 0 a 90°');
+    const rr = E.Pix(10, 10).rrect(0, 0, 10, 10, 3, '#fff'); ok(!rr.get(0, 0) && rr.get(5, 0) && rr.get(0, 5) && rr.get(5, 5) && !rr.get(9, 9), 'rrect'); eq(n(E.Pix(10, 10).rrect(1, 1, 6, 4, 0, '#fff')), 24, 'rrect r=0');
+  });
+  await T('Pix dither (5 padrões + mask) / shadeBelow / bevel / replace / mirrorX / stamp / mask', () => {
+    const n = P => { let c = 0; for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) if (P.get(x, y)) c++; return c; };
+    eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff')), 32, 'checker'); eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', 'checker')), 32); eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', '25')), 16, '25%'); eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', '75')), 48, '75%');
+    eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', 'hlines')), 32); const v = E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', 'vlines'); ok(!!v.get(0, 0) !== !!v.get(1, 0) && !!v.get(0, 0) === !!v.get(0, 1), 'vlines');
+    const m = E.Pix(8, 8).rect(0, 0, 4, 8, '#ff0000').dither(0, 0, 8, 8, '#00ff00', 'checker', { mask: true }); eq(n(m), 32, 'mask não pinta fora'); let g = 0; for (let y = 0; y < 8; y++) for (let x = 0; x < 4; x++) if (m.get(x, y)[1] === 255) g++; eq(g, 16);
+    const sb = E.Pix(16, 16).rect(2, 2, 12, 12, '#808080').shadeBelow('#808080', .3); ok(sb.get(3, 3)[0] === 128 && sb.get(13, 13)[0] < 128, 'shadeBelow escurece baixo/direita'); eq(n(sb), 144, 'shadeBelow não muda a silhueta');
+    const bv = E.Pix(10, 10).rect(1, 1, 8, 8, '#808080').bevel(); ok(bv.get(1, 1)[0] > 128 && bv.get(8, 8)[0] < 128 && bv.get(4, 4)[0] === 128, 'bevel'); eq(n(bv), 64);
+    const rp = E.Pix(4, 4).rect(0, 0, 4, 4, '#ff0000').set(1, 1, '#00ff00').replace('#ff0000', '#0000ff'); eq(rp.get(0, 0).join(), '0,0,255,255'); eq(rp.get(1, 1).join(), '0,255,0,255');
+    const mx = E.Pix(5, 3).set(0, 1, '#ff0000').set(1, 0, '#00ff00').mirrorX(); eq(mx.get(4, 1).join(), '255,0,0,255'); eq(mx.get(3, 0).join(), '0,255,0,255'); ok(!mx.get(0, 1), 'mirrorX');
+    const st = E.Pix(6, 6).rect(0, 0, 6, 6, '#111111').stamp(E.Pix(3, 3).set(1, 1, '#ffffff'), 2, 2); eq(st.get(3, 3).join(), '255,255,255,255'); eq(st.get(2, 2).join(), '17,17,17,255', 'stamp: vazio não cobre'); E.Pix(4, 4).stamp(E.Pix(3, 3).rect(0, 0, 3, 3, '#fff'), 3, 3).stamp(E.Pix(3, 3).rect(0, 0, 3, 3, '#fff'), -2, -2);
+    const mk2 = E.Pix(4, 4).rect(0, 0, 4, 4, '#fff').mask((x, y) => x < 2); eq(n(mk2), 8, 'mask');
+  });
+  await T('canvas(): contorno 4-vizinhos, cor, bordas, sem contorno', () => {
+    const cv = E.Pix(9, 9).rect(3, 3, 3, 3, '#ff0000').canvas(); ok(cv instanceof HTMLCanvasElement); eq(cv.width, 9); eq(cv.height, 9);
+    eq(px(cv, 4, 4).join(), '255,0,0,255'); eq(px(cv, 2, 4).join(), '59,40,24,255', 'contorno esquerda = LINE'); eq(px(cv, 6, 4).join(), '59,40,24,255'); eq(px(cv, 4, 2).join(), '59,40,24,255'); eq(px(cv, 4, 6).join(), '59,40,24,255');
+    eq(px(cv, 2, 2)[3], 0, 'canto diagonal fica vazio (4-vizinhos)'); eq(px(cv, 1, 4)[3], 0, 'só 1px'); eq(count(cv), 9 + 12);
+    eq(count(E.Pix(9, 9).rect(3, 3, 3, 3, '#ff0000').canvas(false)), 9, 'outline=false'); eq(px(E.Pix(5, 5).set(2, 2, '#fff').canvas(true, [0, 255, 0, 255]), 1, 2).join(), '0,255,0,255', 'lineColor array'); eq(px(E.Pix(5, 5).set(2, 2, '#fff').canvas(true, '#0000ff'), 1, 2).join(), '0,0,255,255', 'lineColor hex');
+    // bordas: pixel na última coluna não vaza contorno pra primeira coluna da linha de baixo (e vice-versa)
+    const e1 = E.Pix(4, 4).set(3, 1, '#fff').canvas(); eq(px(e1, 0, 2)[3], 0, 'sem wrap direita->esquerda'); eq(px(e1, 0, 1)[3], 0); eq(px(e1, 2, 1)[3], 255); eq(px(e1, 3, 0)[3], 255); eq(px(e1, 3, 2)[3], 255); eq(count(e1), 4);
+    const e2 = E.Pix(4, 4).set(0, 2, '#fff').canvas(); eq(px(e2, 3, 1)[3], 0, 'sem wrap esquerda->direita'); eq(count(e2), 4);
+    const e3 = E.Pix(3, 3).rect(0, 0, 3, 3, '#fff').canvas(); eq(count(e3), 9, 'cheio: nada a contornar'); eq(px(e3, 0, 0).join(), '255,255,255,255');
+    const e4 = E.Pix(1, 1).set(0, 0, '#fff').canvas(); eq(count(e4), 1); eq(count(E.Pix(3, 3).canvas()), 0, 'vazio');
+    // buraco interno também ganha contorno; canvas() não altera o Pix (pode chamar 2x)
+    const P = E.Pix(7, 7).rect(1, 1, 5, 5, '#fff'); P.buf[3 * 7 + 3] = 0; const h1 = P.canvas(), h2 = P.canvas(); eq(px(h1, 3, 3).join(), '59,40,24,255', 'buraco'); ok(same(h1, h2), 'canvas() idempotente'); ok(!P.get(3, 3), 'Pix intacto');
+  });
+  await T('Pix.outline(buf,w,h,c)', () => {
+    const P = E.Pix(5, 5).set(2, 2, '#ff0000'), o = E.Pix.outline(P.buf, 5, 5, E.LINE); ok(o !== P.buf, 'novo buffer'); eq(o.length, 25); ok(o[2 * 5 + 1] && o[1 * 5 + 2] && !o[1 * 5 + 1] && o[2 * 5 + 2] === P.buf[2 * 5 + 2], 'vizinhos');
+    const legacy = new Array(9).fill(null); legacy[4] = [1, 2, 3, 255]; const lo = E.Pix.outline(legacy, 3, 3, E.LINE); ok(lo[1] && lo[3] && lo[5] && lo[7] && !lo[0], 'formato legado');
+  });
+  await T('sprite: cache por nome, fn 1x, clear', () => {
+    E.sprite.clear('ft-a'); E.sprite.clear('ft-b'); let calls = 0; const mkA = P => { calls++; P.rect(2, 2, 4, 4, '#ff0000'); };
+    const a = E.sprite('ft-a', 8, 8, mkA), a2 = E.sprite('ft-a', 8, 8, mkA); ok(a instanceof HTMLCanvasElement && a === a2, 'mesmo canvas'); eq(calls, 1); eq(a.width, 8); eq(count(a), 16 + 16, 'com contorno');
+    const b = E.sprite('ft-b', 8, 8, mkA, false); ok(b !== a); eq(count(b), 16, 'outline=false');
+    E.sprite.clear('ft-a'); const a3 = E.sprite('ft-a', 8, 8, mkA); ok(a3 !== a, 'clear(nome) refaz'); eq(calls, 3); ok(E.sprite('ft-b', 8, 8, mkA, false) === b, 'clear(nome) não toca nos outros');
+    for (const weird of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) { const w = E.sprite(weird, 4, 4, P => P.set(1, 1, '#fff')); ok(w instanceof HTMLCanvasElement, 'nome "' + weird + '"'); ok(E.sprite(weird, 4, 4, () => { throw new Error('refez'); }) === w); E.sprite.clear(weird); }
+    E.sprite.clear('ft-a'); E.sprite.clear('ft-b'); E.sprite.clear('nao-existe');
+  });
+  await T('drawSprite: âncora nos pés, flip, escala, rot, alpha, estado', () => {
+    const sp = E.Pix(6, 4).rect(0, 0, 6, 4, '#ff0000').set(5, 0, '#0000ff').canvas(false); const c = mk(40, 40), g = c.getContext('2d');
+    E.drawSprite(g, sp, 20, 30); let b = bbox(c); eq([b.x0, b.x1, b.y0, b.y1].join(), '17,22,26,29', 'padrão: centro-x, base em y'); eq(px(c, 22, 26).join(), '0,0,255,255');
+    g.clearRect(0, 0, 40, 40); E.drawSprite(g, sp, 20, 30, { flip: true }); b = bbox(c); eq([b.x0, b.x1, b.y0, b.y1].join(), '17,22,26,29', 'flip no lugar'); eq(px(c, 17, 26).join(), '0,0,255,255', 'flip espelha');
+    g.clearRect(0, 0, 40, 40); E.drawSprite(g, sp, 20, 30, { ax: 0, ay: 0, sx: 2, sy: 3 }); b = bbox(c); eq([b.x0, b.x1, b.y0, b.y1].join(), '20,31,30,39', 'ax/ay + sx/sy'); eq(px(c, 21, 31).join(), '255,0,0,255', 'nearest (sem borrão)');
+    g.clearRect(0, 0, 40, 40); E.drawSprite(g, sp, 20, 20, { ax: 0, ay: 0, rot: Math.PI / 2 }); b = bbox(c); eq([b.x0, b.x1, b.y0, b.y1].join(), '16,19,20,25', 'rot 90° em torno da âncora');
+    g.clearRect(0, 0, 40, 40); g.globalAlpha = .8; g.imageSmoothingEnabled = true; E.drawSprite(g, sp, 20, 30, { alpha: .5 }); near(px(c, 20, 28)[3], 255 * .4, 2, 'alpha multiplica'); near(g.globalAlpha, .8, 1e-6, 'restaura alpha'); eq(g.imageSmoothingEnabled, true, 'restaura smoothing'); g.globalAlpha = 1;
+    g.clearRect(0, 0, 40, 40); E.drawSprite(g, sp, 20, 30, { alpha: 0 }); eq(count(c), 0, 'alpha 0'); const m = g.getTransform(); ok(m.a === 1 && m.e === 0, 'transform intacta');
+    g.clearRect(0, 0, 40, 40); E.drawSprite(g, sp, 20, 30, { sx: -1 }); eq(px(c, 17, 26).join(), '0,0,255,255', 'sx negativo = flip');
+  });
+
+  /* ---------- Draw ---------- */
+  sec('pix.Draw');
+  const A2 = [0, 0], B2 = [0, 0], PTS = [[0, 0], [0, 0], [0, 0]];
+  const pt = (p, x, y) => { p[0] = x; p[1] = y; return p; };
+  // cada primitiva desenhada numa área de ~100x70 em torno de (0,0); s = escala das medidas
+  const PRIMS = {
+    beam: (g, s) => Draw.beam(g, [pt(PTS[0], -40 * s, 20 * s), pt(PTS[1], 0, -20 * s), pt(PTS[2], 40 * s, 10 * s)], 8 * s, PAL.yel),
+    truss: (g, s) => Draw.truss(g, pt(A2, -45 * s, 10 * s), pt(B2, 45 * s, -15 * s), 18 * s, 3 * s, PAL.yel),
+    trussX: (g, s) => Draw.truss(g, pt(A2, 45 * s, 10 * s), pt(B2, -45 * s, -15 * s), 18 * s, 3 * s, PAL.red, { cross: true, taper: 1, bays: 5 }),
+    lattice: (g, s) => Draw.lattice(g, -10 * s, -30 * s, 20 * s, 60 * s, 14 * s, 2.5 * s, PAL.ora),
+    box: (g, s) => Draw.box(g, -40 * s, -25 * s, 80 * s, 50 * s, PAL.yel, { rivets: true, panels: 3, stripes: 'bottom', r: 3 * s }),
+    poly: (g, s) => Draw.poly(g, [pt(PTS[0], -30 * s, 25 * s), pt(PTS[1], 0, -28 * s), pt(PTS[2], 35 * s, 25 * s)], PAL.red, { shade: true }),
+    circle: (g, s) => Draw.circle(g, 0, 0, 24 * s, PAL.red),
+    ring: (g, s) => Draw.ring(g, 0, 0, 26 * s, 7 * s, PAL.steel),
+    cable: (g, s) => Draw.cable(g, pt(A2, -40 * s, -20 * s), pt(B2, 40 * s, -10 * s), { sag: 14 * s, lw: 2 * s }),
+    wheel: (g, s) => Draw.wheel(g, 0, 0, 28 * s, .4),
+    track: (g, s) => Draw.track(g, -45 * s, -14 * s, 90 * s, 28 * s, 7 * s),
+    piston: (g, s) => Draw.piston(g, pt(A2, -38 * s, 18 * s), pt(B2, 36 * s, -16 * s), 9 * s, { len: 40 * s }),
+    window: (g, s) => Draw.window(g, -30 * s, -20 * s, 60 * s, 40 * s),
+    light: (g, s) => Draw.light(g, 0, 0, 8 * s, PAL.red, true),
+    stairs: (g, s) => Draw.stairs(g, pt(A2, -38 * s, 26 * s), pt(B2, 30 * s, -14 * s), 7, { lw: 2 * s, railH: 7 * s }),
+    rail: (g, s) => Draw.rail(g, pt(A2, -40 * s, 10 * s), pt(B2, 40 * s, 10 * s), { h: 14 * s, lw: 2 * s }),
+    sign: (g, s) => Draw.sign(g, -40 * s, -14 * s, 80 * s, 28 * s, 'KOME'),
+    text: (g, s) => Draw.text(g, '+¥12', 0, 0, { size: 26 * s, sw: 5 * s }),
+    shadow: (g, s) => Draw.shadow(g, 0, 20 * s, 36 * s, 6 * s),
+  };
+  await T('todas as primitivas do contrato existem; OL = 2', () => { eq(Draw.OL, 2); isFn(Draw, 'beam truss lattice box poly circle ring cable wheel track piston window light stairs rail sign text pattern shadow', 'Draw'); });
+  // estado do contexto que as primitivas não podem deixar sujo
+  function guarded(g, fn) {
+    g.save(); g.lineDashOffset = 7; const m0 = g.getTransform();
+    fn();
+    const m1 = g.getTransform(); const okT = ['a', 'b', 'c', 'd', 'e', 'f'].every(k => Math.abs(m0[k] - m1[k]) < 1e-9);
+    const st = { transform: okT, alpha: g.globalAlpha === 1, comp: g.globalCompositeOperation === 'source-over', stack: g.lineDashOffset === 7, shadow: g.shadowBlur === 0, filter: !g.filter || g.filter === 'none' };
+    g.restore(); st.stack2 = g.lineDashOffset === 0;
+    const bad = Object.keys(st).filter(k => !st[k]); if (bad.length) throw new Error('estado do canvas sujo: ' + bad.join(','));
+  }
+  for (const name in PRIMS) {
+    await T(name + ': normal / espelhado / zoom minúsculo / estado limpo', () => {
+      const c = mk(140, 100), g = c.getContext('2d'); Draw.lod(1, 0);
+      g.setTransform(1, 0, 0, 1, 70, 50); guarded(g, () => PRIMS[name](g, 1)); const n1 = count(c), b1 = bbox(c); ok(n1 > 30, 'não desenhou (' + n1 + ' px)'); ok(b1.x0 > 4 && b1.x1 < 136 && b1.y0 > 1 && b1.y1 < 99, 'vazou da área: ' + JSON.stringify(b1));
+      // contorno marrom presente (menos em cabo colorido/sombra/luz, que não têm fill de LINE garantido)
+      if (!/shadow|light/.test(name)) { const d = data(c); let ln = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && Math.abs(d[i] - 59) < 6 && Math.abs(d[i + 1] - 40) < 6 && Math.abs(d[i + 2] - 24) < 6) ln++; ok(ln > 8, 'sem contorno LINE (' + ln + ')'); }
+      // espelhado (face = -1): mesma área coberta, espelhada
+      const c2 = mk(140, 100), g2 = c2.getContext('2d'); g2.setTransform(-1, 0, 0, 1, 70, 50); guarded(g2, () => PRIMS[name](g2, 1)); const n2 = count(c2), b2 = bbox(c2);
+      ok(Math.abs(n2 - n1) <= Math.max(12, n1 * .03), 'espelhado cobre área diferente: ' + n1 + ' vs ' + n2); near(b2.x0, 139 - b1.x1, 1.01, 'bbox espelhada x0'); near(b2.x1, 139 - b1.x0, 1.01, 'bbox espelhada x1'); near(b2.y0, b1.y0, 1.01); near(b2.y1, b1.y1, 1.01);
+      // de cabeça pra baixo e escala negativa nos dois eixos não explodem
+      const c3 = mk(140, 100), g3 = c3.getContext('2d'); g3.setTransform(-1, 0, 0, -1, 70, 50); guarded(g3, () => PRIMS[name](g3, 1)); ok(count(c3) > 30, 'escala -1,-1');
+      // zoom minúsculo com LOD: medidas 20x maiores vistas a z = .05 ocupam a mesma área na tela
+      const c4 = mk(140, 100), g4 = c4.getContext('2d'); Draw.lod(.05, .6); g4.setTransform(.05, 0, 0, .05, 70, 50); guarded(g4, () => PRIMS[name](g4, 20)); Draw.lod(1, 0); const n4 = count(c4); ok(n4 > n1 * .5 && n4 < n1 * 1.6, 'LOD mudou a silhueta: ' + n1 + ' vs ' + n4);
+      // objeto pequeno visto de longe (a Bagger a z = .15): não some nem vira borrão gigante
+      const c5 = mk(140, 100), g5 = c5.getContext('2d'); Draw.lod(.15, .6); g5.setTransform(.15, 0, 0, .15, 70, 50); guarded(g5, () => PRIMS[name](g5, 1)); Draw.lod(1, 0); const n5 = count(c5), b5 = bbox(c5);
+      if (name !== 'shadow' && name !== 'text') ok(n5 >= 3, 'sumiu de longe (' + n5 + ' px)'); ok(n5 < 700 && (n5 === 0 || (b5.x1 - b5.x0 < 40 && b5.y1 - b5.y0 < 30)), 'grande demais de longe: ' + n5 + ' ' + JSON.stringify(b5));
+    });
+  }
+  await T('entradas degeneradas não lançam nem sujam o estado', () => {
+    const c = mk(60, 60), g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 30, 30); const P0 = [0, 0], P1 = [0, 0];
+    guarded(g, () => {
+      Draw.beam(g, [], 4, PAL.yel); Draw.beam(g, [[1, 1]], 4, PAL.yel); Draw.beam(g, [[1, 1], [1, 1]], 0, PAL.yel);
+      Draw.truss(g, P0, P1, 10, 2, PAL.yel); Draw.truss(g, [0, 0], [20, 0], 0, 0, PAL.yel); Draw.truss(g, [0, 0], [3, 0], 40, 2, PAL.yel, { bays: 1 });
+      Draw.lattice(g, 0, 0, 0, 0, 0, 0, PAL.yel); Draw.lattice(g, 0, 0, 10, 30, 0, 2, PAL.yel); Draw.lattice(g, 0, 0, 30, 10, 8, 20, PAL.yel);
+      Draw.box(g, 0, 0, 0, 0, PAL.yel); Draw.box(g, 5, 5, -10, -10, PAL.yel, { r: 99, rivets: true, panels: 50, stripes: true }); Draw.box(g, 0, 0, 1, 1, PAL.yel, { rivets: 0.001, panels: 2 });
+      Draw.poly(g, [], PAL.red); Draw.poly(g, [[0, 0]], PAL.red, { shade: true, hi: true }); Draw.circle(g, 0, 0, 0, PAL.red); Draw.ring(g, 0, 0, 2, 10, PAL.red); Draw.ring(g, 0, 0, 0, 0, PAL.red);
+      Draw.cable(g, P0, P1); Draw.cable(g, P0, [5, 5], { sag: -40, lw: 0 }); Draw.wheel(g, 0, 0, 0, 0); Draw.wheel(g, 0, 0, 1, 99, { spokes: 0, tread: false }); Draw.wheel(g, 0, 0, 20, NaN);
+      Draw.track(g, 0, 0, 0, 0, 0); Draw.track(g, 0, 0, 5, 20, -1e9); Draw.track(g, 0, 0, 60, 10, 1e12, { wheels: 0 }); Draw.track(g, 0, 0, 60, 10);
+      Draw.piston(g, P0, P1, 4); Draw.piston(g, [0, 0], [1, 0], 8, { len: 50 }); Draw.piston(g, [0, 0], [20, 0], 0);
+      Draw.window(g, 0, 0, 0, 0); Draw.window(g, 0, 0, 2, 2, { frame: PAL.ora }); Draw.light(g, 0, 0, 0, PAL.red, 1); Draw.light(g, 0, 0, 3, null, .5); Draw.light(g, 0, 0, 3, PAL.red, false); Draw.light(g, 0, 0, 3, PAL.red, 7);
+      Draw.stairs(g, P0, P1, 0); Draw.stairs(g, [0, 0], [10, -10], 1); Draw.stairs(g, [10, -10], [0, 0], 400); Draw.stairs(g, [0, 0], [10, 0], 3);
+      Draw.rail(g, P0, P1); Draw.rail(g, [0, 0], [10, 0], { posts: 0 }); Draw.rail(g, [0, 0], [10, 0], { posts: 1, h: 0 });
+      Draw.sign(g, 0, 0, 0, 0, 'x'); Draw.sign(g, 0, 0, 30, 10, ''); Draw.sign(g, 0, 0, 30, 10); Draw.sign(g, 0, 0, 4, 40, 'texto muito comprido que não cabe');
+      Draw.text(g, '', 0, 0); Draw.text(g, 123, 0, 0); Draw.text(g, 'a', 0, 0, { size: 0.01, sw: 0, rot: 1, stroke: null }); Draw.shadow(g, 0, 0, 0, 0); Draw.shadow(g, 0, 0, 5, 2, 0);
+    });
+    // sem opts e com cor em array
+    guarded(g, () => { Draw.box(g, 0, 0, 10, 10, [200, 100, 50, 255]); Draw.beam(g, [[0, 0], [10, 0]], 3, [200, 100, 50, 255]); Draw.circle(g, 0, 0, 5, [200, 100, 50, 255]); });
+  });
+  await T('contorno: OL em unidades de mundo, ol:0 desliga, minPx segura de longe', () => {
+    const c = mk(60, 60), g = c.getContext('2d'); Draw.lod(1, 0); Draw.box(g, 20, 20, 20, 20, '#ff0000', { top: false, shade: false });
+    eq(px(c, 19, 30).join(), '59,40,24,255'); eq(px(c, 18, 30).join(), '59,40,24,255', '2px de contorno'); eq(px(c, 17, 30)[3], 0, 'não 3px'); eq(px(c, 30, 30).join(), '255,0,0,255'); eq(px(c, 41, 30).join(), '59,40,24,255'); eq(px(c, 42, 30)[3], 0);
+    g.clearRect(0, 0, 60, 60); Draw.box(g, 20, 20, 20, 20, '#ff0000', { ol: 0, top: false, shade: false }); eq(px(c, 19, 30)[3], 0, 'ol:0'); eq(count(c), 400);
+    g.clearRect(0, 0, 60, 60); const old = Draw.OL; Draw.OL = 4; Draw.box(g, 20, 20, 20, 20, '#ff0000'); eq(px(c, 16, 30).join(), '59,40,24,255', 'Draw.OL global'); eq(px(c, 15, 30)[3], 0); Draw.OL = old;
+    // a z=.1 um contorno de 2 unidades teria .2px; minPx .6 garante pelo menos ~.6px de tela
+    const far = minPx => { const cc = mk(60, 60), gg = cc.getContext('2d'); Draw.lod(.1, minPx); gg.setTransform(.1, 0, 0, .1, 0, 0); Draw.box(gg, 200, 200, 200, 200, '#ff0000', { top: false, shade: false }); Draw.lod(1, 0); return px(cc, 19, 30)[3]; };
+    ok(far(.6) > far(0) + 40, 'minPx engrossa o contorno de longe: ' + far(0) + ' -> ' + far(.6)); eq(Draw.minPx, 0, 'lod(1,0) volta ao normal'); eq(Draw.zoom, 1);
+  });
+  await T('box: luz em cima, sombra embaixo, w/h negativos', () => {
+    const c = mk(60, 60), g = c.getContext('2d'); Draw.lod(1, 0); Draw.box(g, 10, 10, 40, 40, '#808080'); const top = px(c, 30, 11), mid = px(c, 30, 30), bot = px(c, 30, 48);
+    ok(top[0] > mid[0] && bot[0] < mid[0], 'luz/sombra'); eq(mid.join(), '128,128,128,255', 'meio chapado'); ok(bot[0] > bot[2], 'sombra marrom');
+    const c2 = mk(60, 60), g2 = c2.getContext('2d'); Draw.box(g2, 50, 50, -40, -40, '#808080'); ok(same(c, c2), 'w/h negativos = mesma caixa');
+    const c3 = mk(60, 60), g3 = c3.getContext('2d'); Draw.box(g3, 10, 10, 40, 40, '#808080', { top: '#00ff00', shade: '#0000ff' }); eq(px(c3, 30, 11).join(), '0,255,0,255'); eq(px(c3, 30, 48).join(), '0,0,255,255');
+  });
+  await T('truss/beam: luz sempre no lado de cima (qualquer ordem de a/b e espelhado)', () => {
+    const lum = p => p[0] + p[1] + p[2];
+    const run = (flip, rev) => { const c = mk(120, 60), g = c.getContext('2d'); g.setTransform(flip ? -1 : 1, 0, 0, 1, flip ? 120 : 0, 0); const a = [10, 30], b = [110, 30]; Draw.truss(g, rev ? b : a, rev ? a : b, 24, 8, '#808080', { taper: 1, joints: false }); return [lum(px(c, 60, 16)), lum(px(c, 60, 44))]; };
+    for (const f of [0, 1]) for (const r of [0, 1]) { const v = run(f, r); ok(v[0] > 128 * 3 && v[1] < 128 * 3, 'flip ' + f + ' rev ' + r + ': ' + v); }
+    const bm = rev => { const c = mk(120, 40), g = c.getContext('2d'); const p = rev ? [[110, 20], [10, 20]] : [[10, 20], [110, 20]]; Draw.beam(g, p, 16, '#808080'); return [lum(px(c, 60, 15)), lum(px(c, 60, 25))]; };
+    for (const r of [0, 1]) { const v = bm(r); ok(v[0] > 384 && v[1] < 384, 'beam rev ' + r + ': ' + v); }
+  });
+  await T('track/wheel animam com phase/rot; track é periódica', () => {
+    const tr = ph => { const c = mk(140, 60), g = c.getContext('2d'); Draw.track(g, 10, 10, 120, 36, ph); return c; };
+    ok(!same(tr(0), tr(3)), 'phase anima'); ok(count(tr(0)) > 2000); const wh = r => { const c = mk(80, 80), g = c.getContext('2d'); Draw.wheel(g, 40, 40, 34, r); return c; }; ok(!same(wh(0), wh(.2)), 'rot anima');
+    near(count(wh(0)), count(wh(1.1)), 60, 'roda não muda de tamanho girando'); const b = bbox(wh(.3)); ok(b.x0 >= 3 && b.x1 <= 76, 'r inclui garras + contorno');
+  });
+  await T('text: opções, alinhamento, rot; não vaza alpha', () => {
+    const c = mk(200, 60), g = c.getContext('2d'); Draw.text(g, 'ARROZ', 100, 30, { size: 20 }); const b = bbox(c); near((b.x0 + b.x1) / 2, 100, 3, 'center'); near((b.y0 + b.y1) / 2, 30, 4, 'middle');
+    g.clearRect(0, 0, 200, 60); Draw.text(g, 'ARROZ', 100, 30, { size: 20, align: 'left' }); ok(bbox(c).x0 >= 96, 'left'); g.clearRect(0, 0, 200, 60); Draw.text(g, 'ARROZ', 100, 30, { size: 20, align: 'right' }); ok(bbox(c).x1 <= 104, 'right');
+    g.clearRect(0, 0, 200, 60); Draw.text(g, 'A', 100, 30, { size: 20, col: '#ff0000', stroke: '#0000ff', sw: 6 }); const d = data(c); let r = 0, bl = 0; for (let i = 0; i < d.length; i += 4) { if (d[i] > 200 && d[i + 2] < 60 && d[i + 3] > 200) r++; if (d[i + 2] > 200 && d[i] < 60 && d[i + 3] > 200) bl++; } ok(r > 20 && bl > 20, 'col + stroke');
+    g.clearRect(0, 0, 200, 60); guarded(g, () => Draw.text(g, 'IIIIIIII', 100, 30, { size: 14, rot: Math.PI / 2, alpha: .5 })); const bb = bbox(c); ok(bb.y1 - bb.y0 > bb.x1 - bb.x0, 'rot'); eq(g.globalAlpha, 1);
+  });
+  await T('pattern: CanvasPattern cacheado por nome, ladrilha; shadow', () => {
+    const c = mk(100, 100), g = c.getContext('2d'); Draw.pattern.clear && Draw.pattern.clear('ft-p');
+    const p = Draw.pattern(g, 'ft-p', PAL.rice, PAL.riceS, PAL.white); ok(p instanceof CanvasPattern); ok(Draw.pattern(g, 'ft-p', PAL.rice, PAL.riceS, PAL.white) === p, 'cache'); g.fillStyle = p; g.fillRect(0, 0, 100, 100); eq(count(c), 10000);
+    const d = data(c); let diff = 0; for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) { const i = (y * 100 + x) * 4, j = ((y + 48) * 100 + x + 48) * 4; if (d[i] !== d[j] || d[i + 1] !== d[j + 1]) diff++; } eq(diff, 0, 'período = size (48)');
+    const set = new Set(); for (let i = 0; i < d.length; i += 4) set.add(d[i] << 16 | d[i + 1] << 8 | d[i + 2]); ok(set.size >= 3, 'tem textura');
+    for (const sh of ['grain', 'dots', 'hatch']) { const q2 = Draw.pattern(g, 'ft-p-' + sh, PAL.gold, PAL.goldD, PAL.goldL, { shape: sh, size: 32, n: 60 }); ok(q2 instanceof CanvasPattern, sh); }
+    ok(Draw.pattern(g, 'ft-p-def', PAL.gold) instanceof CanvasPattern, 'c2/c3 opcionais'); const c2 = mk(40, 20), g2 = c2.getContext('2d'); g2.fillStyle = p; g2.fillRect(0, 0, 40, 20); eq(count(c2), 800, 'padrão serve em outro canvas');
+    const s = mk(60, 30), gs = s.getContext('2d'); Draw.shadow(gs, 30, 15, 20, 6); const b = bbox(s); ok(count(s) > 200, 'shadow'); const a = px(s, 30, 15); near(a[3], 255 * .18, 3, 'alpha .18'); gs.clearRect(0, 0, 60, 30); Draw.shadow(gs, 30, 15, 20, 6, .5); near(px(s, 30, 15)[3], 127, 3, 'alpha custom');
+  });
+  await T('light: apagada vs acesa (halo), on parcial', () => {
+    const li = on => { const c = mk(80, 80), g = c.getContext('2d'); Draw.light(g, 40, 40, 6, PAL.sun, on); return c; };
+    const off = li(false), on = li(true), half = li(.5); ok(count(on) > count(off) * 3, 'halo'); ok(px(on, 40, 40)[0] > px(off, 40, 40)[0], 'acesa é mais clara'); ok(px(half, 40, 20)[3] < px(on, 40, 20)[3] + 1 && px(half, 40, 24)[3] > 0, 'on 0..1');
+    ok(same(li(0), off), 'on=0 apagada');
+  });
+
+  /* ==========================================================================
+     SHIBA
+     ========================================================================== */
+  sec('shiba');
+  const PX = E.ShibaPX, OLD = 'sit wag sign lie stand walk run jump dig sniff surprise dizzy sword swordrun windup slash eat pant roll bow stretch scratch yawn howl sleep dance dance2 shake'.split(' ');
+  const NEWP = 'drive push carry cheer point think gasp cry proud climb wave'.split(' ');
+  const shot = (pose, t, o, w, h, x, y) => { const c = mk(w || 96, h || 80), g = c.getContext('2d'); E.drawShiba(g, x === undefined ? 48 : x, y === undefined ? 60 : y, pose, t, o); return c; };
+  await T('ShibaPX {W:48,H:44,frame,still}', () => {
+    eq(PX.W, 48); eq(PX.H, 44); isFn(PX, 'frame still', 'ShibaPX'); const c = mk(48, 44); PX.frame(c, 'sit', 1, E.PALS.kome); ok(count(c) > 400, 'frame desenha');
+    const url = PX.still('goma', 'sit', 1); ok(/^data:image\/png/.test(url), 'still -> dataURL'); ok(/^data:image/.test(PX.still('kome')), 'still defaults');
+  });
+  await T('PALS: kome goma kuro shiro + aka cha yuki (formato {h,g,o,c,k,n,p})', () => {
+    'kome goma kuro shiro aka cha yuki'.split(' ').forEach(n => { const p = E.PALS[n]; ok(p, 'PALS.' + n); 'h g o c k n p'.split(' ').forEach(k => ok(/^#[0-9a-fA-F]{6}$/.test(p[k]), n + '.' + k)); });
+    eq(E.PALS.kome.h, '#E3BC62'); eq(E.PALS.kome.o, '#D9A066'); eq(E.PALS.kuro.o, '#34302C'); eq(E.PALS.shiro.h, '#7FA7C9'); eq(E.PALS.goma.c, '#EFE0C4');
+    const sig = n => { const c = shot('sit', 1, { pal: n, exact: true }); return px(c, 44, 46).join(); }; const set = new Set(Object.keys(E.PALS).map(sig)); ok(set.size >= 6, 'paletas mudam o desenho (' + set.size + ')');
+  });
+  await T('SHIBA_POSES: 28 antigas + 11 novas, todas desenham', () => {
+    ok(Array.isArray(E.SHIBA_POSES)); OLD.concat(NEWP).forEach(p => ok(E.SHIBA_POSES.indexOf(p) >= 0, 'falta pose ' + p)); eq(new Set(E.SHIBA_POSES).size, E.SHIBA_POSES.length, 'sem repetidas');
+    E.SHIBA_POSES.forEach(p => { for (const t of [0, .37, 1.9, 5.21, 33.3]) { const c = shot(p, t); const n = count(c); ok(n > 350 && n < 1500, p + ' @' + t + ': ' + n + ' px'); } });
+  });
+  await T('poses novas são distintas entre si e das antigas', () => {
+    const sig = {}; E.SHIBA_POSES.forEach(p => { sig[p] = data(shot(p, 1.234, { exact: true })); });
+    const diff = (a, b) => { let n = 0; for (let i = 3; i < a.length; i += 4) if (a[i] !== b[i] || a[i - 1] !== b[i - 1]) n++; return n; };
+    NEWP.forEach(p => E.SHIBA_POSES.forEach(q2 => { if (p !== q2) ok(diff(sig[p], sig[q2]) > 60, p + ' ≈ ' + q2); }));
+  });
+  await T('drawShiba: pés em (x,y) em todas as poses de chão', () => {
+    const air = { jump: 1, slash: 1, climb: 1, drive: 1, dig: 1 /* a terra voando passa do chão, como no rascunho */ };
+    E.SHIBA_POSES.forEach(p => { if (air[p]) return; for (const t of [.1, .77, 2.3]) { const b = bbox(shot(p, t, { shadow: false, exact: true }, 120, 100, 60, 80)); ok(b.y1 >= 77 && b.y1 <= 80, p + ' @' + t + ': base em y=' + b.y1 + ' (esperado ~79)'); ok(b.x0 >= 60 - 27 && b.x1 <= 60 + 27, p + ': x ' + b.x0 + '..' + b.x1); ok(b.y0 >= 80 - 46, p + ' topo ' + b.y0); } });
+    // a sombra fica no chão, centrada em x
+    const s = shot('stand', 1, {}, 120, 100, 60, 80), ns = shot('stand', 1, { shadow: false }, 120, 100, 60, 80); ok(count(s) > count(ns), 'sombra'); const bs = bbox(s); ok(bs.y1 <= 82, 'sombra não afunda: ' + bs.y1);
+  });
+  await T('drawShiba opts: face, scale, squash, rot, pal, hat, mouth, eyes, alpha, shadow', () => {
+    const base = shot('stand', 1.5, {}, 120, 100, 60, 80), d0 = data(base);
+    // face -1 = espelho exato em torno de x
+    const fl = data(shot('stand', 1.5, { face: -1 }, 120, 100, 60, 80)); let bad = 0; for (let y = 0; y < 100; y++) for (let a = -30; a < 30; a++) { const i = (y * 120 + 60 + a) * 4, j = (y * 120 + 60 - a - 1) * 4; if (d0[i + 3] !== fl[j + 3] || d0[i] !== fl[j]) bad++; } eq(bad, 0, 'face=-1 espelha em torno de x');
+    const b1 = bbox(shot('stand', 1.5, { shadow: false }, 240, 200, 120, 160)), b2 = bbox(shot('stand', 1.5, { shadow: false, scale: 2 }, 240, 200, 120, 160)); near(b2.x1 - b2.x0 + 1, (b1.x1 - b1.x0 + 1) * 2, 1, 'scale 2 largura'); near(b2.y1, 159, 1, 'scale: pés no lugar');
+    eq(px(shot('stand', 1.5, { scale: 3 }, 240, 200, 120, 160), 120, 120)[3], 255, 'nearest: pixels cheios');
+    const sq = bbox(shot('stand', 1.5, { shadow: false, squash: .3 }, 240, 200, 120, 160)); ok(sq.y1 - sq.y0 < b1.y1 - b1.y0 && sq.x1 - sq.x0 > b1.x1 - b1.x0, 'squash achata e alarga'); near(sq.y1, 159, 1, 'squash: pés no lugar');
+    const rt = bbox(shot('stand', 1.5, { shadow: false, rot: Math.PI / 2 }, 240, 200, 120, 160)); ok(rt.y1 - rt.y0 > rt.x1 - rt.x0, 'rot 90° deita'); ok(rt.x0 >= 120 - 2, 'rot gira em torno dos pés');
+    ok(!same(base, shot('stand', 1.5, { pal: 'kuro' }, 120, 100, 60, 80)), 'pal nome'); ok(!same(base, shot('stand', 1.5, { pal: { h: '#00ff00', g: '#008800', o: '#ff00ff', c: '#ffffff', k: '#000000', n: '#000000', p: '#ff0000' } }, 120, 100, 60, 80)), 'pal objeto');
+    ok(same(base, shot('stand', 1.5, { pal: 'nao-existe' }, 120, 100, 60, 80)), 'pal desconhecida = kome'); ok(same(base, shot('stand', 1.5, undefined, 120, 100, 60, 80)), 'sem opts'); ok(same(shot('stand', 1.5, {}, 120, 100, 60, 80), shot('pose-que-nao-existe', 1.5, {}, 120, 100, 60, 80)), 'pose desconhecida = stand');
+    const nh = shot('stand', 1.5, { hat: false }, 120, 100, 60, 80); ok(!same(base, nh), 'hat:false'); ok(bbox(nh).y0 > bbox(base).y0 - 1, 'sem chapéu não é mais alto');
+    E.SHIBA_MOUTHS && E.SHIBA_MOUTHS.forEach(m => { const c = shot('stand', 1.5, { mouth: m }, 120, 100, 60, 80); ok(count(c) > 400, 'mouth ' + m); }); ok(!same(base, shot('stand', 1.5, { mouth: 'yawn' }, 120, 100, 60, 80)), 'mouth muda');
+    E.SHIBA_EYES && E.SHIBA_EYES.forEach(m => { const c = shot('stand', 1.5, { eyes: m }, 120, 100, 60, 80); ok(count(c) > 400, 'eyes ' + m); }); ok(!same(base, shot('stand', 1.5, { eyes: 'happy' }, 120, 100, 60, 80)), 'eyes muda');
+    const al = shot('stand', 1.5, { alpha: .5, shadow: false }, 120, 100, 60, 80); near(px(al, 60, 70)[3], 128, 3, 'alpha'); eq(count(shot('stand', 1.5, { alpha: 1 }, 120, 100, 60, 80)), count(base));
+    // não suja o contexto
+    const c = mk(60, 60), g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.globalAlpha = .7; E.drawShiba(g, 30, 50, 'sit', 1, { alpha: .5, rot: .3, scale: 2, face: -1 }); near(g.globalAlpha, .7, 1e-6); eq(g.imageSmoothingEnabled, true); const m = g.getTransform(); ok(m.a === 1 && m.b === 0 && m.e === 0, 'transform');
+  });
+  await T('cache: frame cacheado == exato no mesmo t quantizado; t estranho não explode', () => {
+    const fps = E.drawShiba.fps || 30; let bad = 0;
+    for (const p of ['sit', 'walk', 'run', 'dig', 'drive', 'cry', 'shake', 'sleep']) for (let i = 0; i < 12; i++) { const t = (i * 7 + 3) / fps; if (!same(shot(p, t, {}), shot(p, t, { exact: true }))) bad++; if (!same(shot(p, t, { hat: false, mouth: 'open', pal: 'goma' }), shot(p, t, { hat: false, mouth: 'open', pal: 'goma', exact: true }))) bad++; }
+    eq(bad, 0, 'cache difere do exato');
+    for (const t of [-3.2, 0, 1e7 + .5, NaN, undefined, Infinity]) { const c = shot('walk', t, {}); ok(count(c) > 300, 't=' + t); }
+    ok(same(shot('walk', -1, {}), shot('walk', -1, { exact: true })), 't negativo');
+  });
+  await T('estado global do ShibaPX não vaza entre draws', () => {
+    const snap = () => [PX.hatOn, PX.mouthOverride, PX.eyesOverride, PX.tilt, PX.look, PX.quiet].join('|'); const s0 = snap();
+    const refA = shot('stand', 3.1, { exact: true }), refB = shot('sit', 3.1, { exact: true }), fr0 = mk(48, 44); PX.frame(fr0, 'sit', 3.1, E.PALS.kome);
+    const nasty = [{ hat: false, mouth: 'yawn', eyes: 'shock', fast: 1 }, { tilt: 1, look: [1, -1], mouth: 'gasp' }, { exact: true, hat: false, eyes: 'spiral', mouth: 'teeth' }, { pal: 'kuro', hat: false }];
+    nasty.forEach((o, i) => {
+      shot('drive', 3.1 + i, o); shot('think', 3.1 + i, o); eq(snap(), s0, 'globais depois de opts ' + i);
+      ok(same(refA, shot('stand', 3.1, { exact: true })), 'stand exato mudou depois de opts ' + i); ok(same(refB, shot('sit', 3.1, { exact: true })), 'sit exato mudou depois de opts ' + i);
+      const fr = mk(48, 44); PX.frame(fr, 'sit', 3.1, E.PALS.kome); ok(same(fr0, fr), 'ShibaPX.frame direto mudou depois de opts ' + i);
+    });
+    // o cacheado depois de um draw com opções diferentes não herda nada
+    E.drawShiba.clear && E.drawShiba.clear(); shot('stand', 3.1, { hat: false, mouth: 'yawn', eyes: 'shock' }); ok(same(shot('stand', 3.1, {}), shot('stand', 3.1, { exact: true })), 'cache herdou opções');
+    // drawShibaHead, shibaAnchor e Actor no meio não mudam nada
+    const m0 = PX.mouth ? PX.mouth.join() : ''; const c = mk(300, 300), g = c.getContext('2d'); (E.SHIBA_EXPRS || ['happy', 'shock', 'cry']).forEach(e => E.drawShibaHead(g, 150, 150, 2.2, { expr: e, hat: false, pal: 'kuro' }));
+    for (const n of ['paw', 'mouth', 'head', 'back', 'hatTop']) E.shibaAnchor('carry', 4.4, n); const ac = E.Actor({ x: 50, y: 50, pose: 'drive', fast: 1, hat: false, mouth: 'tongue' }); ac.update(.1); ac.draw(g);
+    eq(snap(), s0, 'globais depois de head/anchor/actor'); ok(same(refA, shot('stand', 3.1, { exact: true })), 'stand depois de head/anchor/actor'); const fr = mk(48, 44); PX.frame(fr, 'sit', 3.1, E.PALS.kome); ok(same(fr0, fr), 'frame direto depois de head/anchor/actor');
+    if (PX.mouth) { PX.frame(fr, 'sit', 3.1, E.PALS.kome); const m1 = PX.mouth.join(); E.shibaAnchor('lie', 9, 'paw'); eq(PX.mouth.join(), m1, 'shibaAnchor mexeu em ShibaPX.mouth'); }
+    // globais do rascunho continuam valendo quando o usuário os liga (compatibilidade)
+    PX.hatOn = false; const frNoHat = mk(48, 44); PX.frame(frNoHat, 'sit', 3.1, E.PALS.kome); PX.hatOn = true; ok(!same(fr0, frNoHat), 'ShibaPX.hatOn=false no frame direto');
+    PX.tilt = 1; const tilted = shot('stand', 3.1, {}); PX.tilt = 0; ok(!same(tilted, shot('stand', 3.1, {})), 'ShibaPX.tilt global respeitado pelo drawShiba'); ok(same(shot('stand', 3.1, {}), shot('stand', 3.1, { exact: true })), 'e não fica no cache');
+    PX.look = [1, 0]; const looked = shot('stand', 3.1, {}); PX.look = null; ok(!same(looked, shot('stand', 3.1, {})), 'ShibaPX.look global respeitado');
+    PX.quiet = true; shot('sit', 30.7, {}); PX.quiet = false; ok(same(shot('sit', 30.7, {}), shot('sit', 30.7, { exact: true })), 'quiet não envenena o cache');
+  });
+  await T('drawShibaHead: todas as expressões, centrado, opções', () => {
+    const exprs = 'happy shock determined cry smug sleepy normal'.split(' '); const sigs = new Set();
+    exprs.forEach(e => { const c = mk(320, 300), g = c.getContext('2d'); E.drawShibaHead(g, 160, 150, 1.1, { expr: e, scale: 6, still: true }); const n = count(c); ok(n > 9000, e + ': ' + n + ' px'); const b = bbox(c); ok(b.x0 < 160 && b.x1 > 160 && b.y0 < 150 && b.y1 > 150, e + ' cobre (x,y)'); sigs.add(n + ':' + px(c, 172, 144).join() + px(c, 200, 180).join() + px(c, 222, 96).join()); });
+    ok(sigs.size >= 6, 'expressões distintas: ' + sigs.size);
+    const hd = o => { const c = mk(320, 300), g = c.getContext('2d'); E.drawShibaHead(g, 160, 150, 1.1, Object.assign({ still: true }, o)); return c; };
+    const a = hd({}), bb = bbox(a); ok(bb.x1 - bb.x0 > 100, 'scale padrão é close'); near((bb.x0 + bb.x1) / 2, 160, 34, 'centro x'); ok(!same(a, hd({ pal: 'kuro' })), 'pal'); ok(!same(a, hd({ hat: false })), 'hat'); ok(!same(a, hd({ expr: 'cry' })), 'expr');
+    const f = data(hd({ face: -1 })), d0 = data(a); let bad = 0; for (let y = 0; y < 300; y += 3) for (let k = -120; k < 120; k += 3) { if (d0[(y * 320 + 160 + k) * 4 + 3] !== f[(y * 320 + 160 - k - 1) * 4 + 3]) bad++; } ok(bad < 40, 'face=-1 espelha em torno de x (' + bad + ')');
+    const s2 = bbox(hd({ scale: 3 })); near(s2.x1 - s2.x0, (bb.x1 - bb.x0) / 2, 4, 'scale'); const c = mk(320, 300), g = c.getContext('2d'); E.drawShibaHead(g, 160, 150, 0); E.drawShibaHead(g, 160, 150, 5, { expr: 'nao-existe' }); ok(count(c) > 5000, 'defaults');
+    g.globalAlpha = .6; g.imageSmoothingEnabled = true; E.drawShibaHead(g, 160, 150, 2, { expr: 'happy' }); near(g.globalAlpha, .6, 1e-6); eq(g.imageSmoothingEnabled, true, 'estado');
+  });
+  await T('PAW / MOUTH / HEAD + shibaAnchor(pose,t,nome)', () => {
+    eq(E.PAW.x, 9); eq(E.PAW.y, -6); eq(E.MOUTH.x, 11); eq(E.MOUTH.y, -18); eq(E.HEAD.x, 10); eq(E.HEAD.y, -26);
+    E.SHIBA_POSES.forEach(p => { for (const t of [0, .4, 3.3]) for (const n of ['paw', 'mouth', 'head', 'back', 'hatTop']) { const a = E.shibaAnchor(p, t, n); ok(a && isFinite(a.x) && isFinite(a.y), p + '.' + n); ok(a.x >= -25 && a.x <= 27 && a.y >= -47 && a.y <= 3, p + '.' + n + ' fora do sprite: ' + a.x.toFixed(1) + ',' + a.y.toFixed(1)); } });
+    const hs = E.shibaAnchor('stand', 1, 'head'), ht = E.shibaAnchor('stand', 1, 'hatTop'), mo = E.shibaAnchor('stand', 1, 'mouth'), bk = E.shibaAnchor('stand', 1, 'back'), pw = E.shibaAnchor('stand', 1, 'paw');
+    ok(ht.y < hs.y - 6, 'hatTop acima da cabeça'); ok(mo.x > hs.x && mo.y > hs.y, 'boca à frente/abaixo'); ok(bk.x < hs.x, 'costas atrás'); ok(pw.y > -6, 'pata no chão em stand'); near(hs.x, E.HEAD.x, 3, 'head ~ HEAD'); near(hs.y, E.HEAD.y, 5);
+    ok(E.shibaAnchor('carry', 1, 'paw').y < -30, 'carry: pata no alto'); ok(E.shibaAnchor('point', 1, 'paw').x > 14, 'point: pata à frente');
+    // âncora cai em cima de pixel desenhado (cabeça) e a pata fica na borda do desenho
+    E.SHIBA_POSES.forEach(p => { const t = 1.3, c = shot(p, t, { exact: true, shadow: false }, 120, 100, 60, 80), h = E.shibaAnchor(p, t, 'head'); ok(px(c, Math.floor(60 + h.x), Math.floor(80 + h.y))[3] === 255, p + ': head fora do desenho'); });
+    const a1 = E.shibaAnchor('nao-existe', 1, 'paw'), a2 = E.shibaAnchor('stand', 1, 'nao-existe'); ok(isFinite(a1.x) && isFinite(a2.x), 'nomes desconhecidos');
+  });
+  await T('Actor: campos, update, draw, hold, say', () => {
+    const a = E.Actor({ x: 100, y: 120, pal: 'goma', pose: 'walk', vx: 30 }); has(a, 'x y face pose t pal scale squash rot vx vy hold', 'actor'); isFn(a, 'say update draw', 'actor'); eq(a.x, 100); eq(a.pal, 'goma'); eq(a.scale, 1); eq(a.face, 1);
+    const t0 = a.t; a.update(.5); near(a.x, 115, 1e-9, 'vx'); near(a.t, t0 + .5, 1e-9, 't'); a.vx = -30; a.vy = 10; a.update(.1); eq(a.face, -1, 'face segue vx'); near(a.y, 121, 1e-9, 'vy');
+    const d = E.Actor(); ok(isFinite(d.x) && d.pose && d.pal, 'defaults');
+    const c = mk(240, 200), g = c.getContext('2d'); const b = E.Actor({ x: 120, y: 160, pose: 'stand', t: 1 }); b.draw(g); const n0 = count(c); ok(n0 > 400, 'draw'); const bb = bbox(c); ok(bb.y1 >= 157 && bb.y1 <= 162, 'pés em y');
+    // hold: sprite aparece perto da pata, acompanha face e escala
+    const item = E.Pix(5, 5).rect(0, 0, 5, 5, '#00ff00').canvas(false); b.hold = item; g.clearRect(0, 0, 240, 200); b.draw(g);
+    const green = cv => { const dd = data(cv); let sx = 0, sy = 0, n = 0; for (let i = 0; i < dd.length; i += 4) if (dd[i + 1] === 255 && dd[i] === 0 && dd[i + 3] === 255) { const p = i / 4; sx += p % cv.width; sy += Math.floor(p / cv.width); n++; } return { n, x: sx / n, y: sy / n }; };
+    let gr = green(c); ok(gr.n >= 12, 'hold desenhado (' + gr.n + ')'); const pw = E.shibaAnchor('stand', 1, 'paw'); near(gr.x, 120 + pw.x, 6, 'hold na pata x'); near(gr.y, 160 + pw.y, 6, 'hold na pata y');
+    b.face = -1; g.clearRect(0, 0, 240, 200); b.draw(g); const gl = green(c); near(gl.x, 120 - pw.x, 6, 'hold espelha com face'); b.face = 1; b.scale = 2; g.clearRect(0, 0, 240, 200); b.draw(g); gr = green(c); near(gr.x, 120 + pw.x * 2, 9, 'hold escala'); ok(gr.n > 60, 'hold escala junto');
+    b.scale = 1; b.hold = { cv: item, ax: 2, ay: 2 }; g.clearRect(0, 0, 240, 200); b.draw(g); ok(green(c).n >= 12, 'hold {cv,ax,ay}'); b.hold = null;
+    // say: balão aparece acima da cabeça e some depois do tempo
+    g.clearRect(0, 0, 240, 200); const r = b.say('Au au!', .5); ok(r === b || r === undefined, 'say encadeia'); b.update(.25); b.draw(g); const nb = count(c), bt = bbox(c); ok(nb > n0 + 300, 'balão desenhado'); ok(bt.y0 < 160 - 50, 'balão acima da cabeça');
+    b.update(.5); g.clearRect(0, 0, 240, 200); b.draw(g); ok(count(c) < n0 + 80, 'balão some'); b.say('x', 0); b.update(.01); b.draw(g); b.say('', 1); b.update(.1); b.draw(g); b.say('palavra-gigante-sem-espaço-nenhum-que-não-quebra', 1); b.update(.3); b.draw(g);
+    b.say(12345, 1); b.update(.3); b.draw(g); eq(g.globalAlpha, 1, 'alpha'); const m = g.getTransform(); ok(m.a === 1 && m.e === 0, 'transform');
+    // squash/rot/scale do ator chegam no desenho
+    const sA = E.Actor({ x: 120, y: 160, pose: 'stand', t: 1, scale: 2, shadow: false }); g.clearRect(0, 0, 240, 200); sA.draw(g); const b2 = bbox(c); ok(b2.x1 - b2.x0 > 60, 'scale'); if ('visible' in sA) { sA.visible = false; g.clearRect(0, 0, 240, 200); sA.draw(g); eq(count(c), 0, 'visible=false'); }
+  });
+  await T('Actor.hold segue a pata sem tremer (âncora no mesmo t do frame cacheado)', () => {
+    // em 'walk' a pata sobe e desce: o item tem que ficar sempre colado na âncora do frame que foi desenhado
+    const item = E.Pix(3, 3).rect(0, 0, 3, 3, '#00ff00').canvas(false), fps = E.drawShiba.fps || 30; let worst = 0;
+    for (let i = 0; i < 90; i++) {
+      const t = 2 + i / 97, a = E.Actor({ x: 60, y: 80, pose: 'sign', t, hold: item, shadow: false }), c = mk(120, 100), g = c.getContext('2d'); a.draw(g);
+      const dd = data(c); let sx = 0, sy = 0, n = 0; for (let k = 0; k < dd.length; k += 4) if (dd[k + 1] === 255 && dd[k] === 0) { const p = k / 4; sx += p % 120 + .5; sy += Math.floor(p / 120) + .5; n++; }
+      const q2 = E.shibaAnchor('sign', Math.round(t * fps) / fps, 'hold'); worst = Math.max(worst, Math.abs(sx / n - (60 + q2.x)), Math.abs(sy / n - (80 + q2.y)));
+    }
+    ok(worst < .76, 'item descolou da pata do frame desenhado: ' + worst.toFixed(2) + ' px');
+  });
+
+  /* ---------- cache: memória limitada e desempenho ---------- */
+  sec('shiba.cache');
+  if (!q.has('quick')) await T('100 atores por 20 s simulados: cache limitado', () => {
+    const real = document.createElement.bind(document); let made = 0; document.createElement = function (tag) { if (String(tag).toLowerCase() === 'canvas') made++; return real(tag); };
+    try {
+      E.drawShiba.clear && E.drawShiba.clear(); const r = E.RNG(5), pals = Object.keys(E.PALS), actors = [], c = mk(960, 540), g = c.getContext('2d');
+      for (let i = 0; i < 100; i++) actors.push(E.Actor({ x: r.range(20, 940), y: r.range(60, 530), pose: r.pick(E.SHIBA_POSES), pal: r.pick(pals), face: r.chance(.5) ? 1 : -1, t: r.range(0, 50), hat: r.chance(.8) }));
+      const t0 = performance.now(); let frames = 0, worst = 0;
+      for (let f = 0; f < 1200; f++) {
+        const f0 = performance.now(); if (f % 90 === 0) for (let i = 0; i < 100; i += 7) actors[i].pose = r.pick(E.SHIBA_POSES);
+        if (f % 4 === 0) g.clearRect(0, 0, 960, 540); for (let i = 0; i < 100; i++) { actors[i].update(1 / 60); actors[i].draw(g); } frames++; worst = Math.max(worst, performance.now() - f0);
+      }
+      const ms = (performance.now() - t0) / frames, st = E.drawShiba.stats || {};
+      FT.cache = { canvasesCreated: made, msPerFrame: +ms.toFixed(2), worstFrame: +worst.toFixed(1), hits: st.hits, misses: st.misses, size: E.drawShiba.cacheSize };
+      console.log('[kome] foundation: cache 100 atores x 1200 frames: ' + ms.toFixed(2) + ' ms/frame (pior ' + worst.toFixed(1) + '), canvases criados ' + made + ', cache ' + E.drawShiba.cacheSize + '/' + E.drawShiba.cacheMax);
+      ok(made <= (E.drawShiba.cacheMax || 640) + 8, 'canvases criados sem limite: ' + made);
+      if (E.drawShiba.cacheSize !== undefined) ok(E.drawShiba.cacheSize <= E.drawShiba.cacheMax, 'cacheSize ' + E.drawShiba.cacheSize);
+      ok(ms < 12, 'lento demais: ' + ms.toFixed(2) + ' ms por frame de 100 atores');
+    } finally { document.createElement = real; }
+  });
+  await T('1000 paletas-objeto diferentes não estouram o cache nem quebram', () => {
+    const real = document.createElement.bind(document); let made = 0; document.createElement = function (tag) { if (String(tag).toLowerCase() === 'canvas') made++; return real(tag); };
+    try { const c = mk(96, 80), g = c.getContext('2d'); for (let i = 0; i < 1000; i++) { const h = '#' + ((i * 2654435761 >>> 8) & 0xffffff).toString(16).padStart(6, '0'); E.drawShiba(g, 48, 60, 'sit', 1, { pal: { h, g: '#444444', o: h, c: '#ffffff', k: '#000000', n: '#000000', p: '#ff8888' } }); E.drawShibaHead(g, 48, 40, 1, { scale: 1, pal: { h, g: '#444444', o: h, c: '#ffffff', k: '#000000', n: '#000000', p: '#ff8888' } }); } ok(count(c) > 300); ok(made <= 1500, 'canvases: ' + made); }
+    finally { document.createElement = real; }
+  });
+  await T('bench: 100 shibas/frame (poses, paletas e t diferentes)', () => {
+    const c = mk(960, 540), g = c.getContext('2d'), pals = Object.keys(E.PALS), P = E.SHIBA_POSES; const run = (exact, frames) => { const t0 = performance.now(); for (let f = 0; f < frames; f++) { const t = 10 + f / 60; for (let i = 0; i < 100; i++) E.drawShiba(g, 20 + (i % 20) * 46, 60 + Math.floor(i / 20) * 96, P[i % P.length], t + i * .173, { pal: pals[i % pals.length], face: i & 1 ? 1 : -1, exact }); } return (performance.now() - t0) / frames; };
+    run(false, 30); const cached = run(false, 240), exact = run(true, 60); FT.bench = { cached: +cached.toFixed(2), exact: +exact.toFixed(2) };
+    console.log('[kome] foundation: bench 100 shibas/frame = ' + cached.toFixed(2) + ' ms (cache) | ' + exact.toFixed(2) + ' ms (exato)'); ok(cached < 8, 'cache lento: ' + cached.toFixed(2) + ' ms');
+  });
+
+  /* ==========================================================================
+     Resumo + mostruário visual (os três módulos juntos, espelhado e de longe)
+     ========================================================================== */
+  const tests = results.filter(r => r.name), fails = tests.filter(r => !r.pass);
+  FT.pass = tests.length - fails.length; FT.fail = fails.length; FT.failed = fails.map(f => f.name + ' — ' + f.err);
+  console.log('[kome] foundation: RESUMO ' + FT.pass + '/' + tests.length + ' PASS' + (fails.length ? ' · ' + fails.length + ' FAIL' : ' · tudo ok') + ' (janela ' + innerWidth + 'x' + innerHeight + ', dpr ' + devicePixelRatio + ', escala ' + stage.scale.toFixed(3) + ')');
+
+  const list = stage.layer('ft-list');
+  results.forEach(r => { const d = document.createElement('div'); if (r.sec) { d.className = 'sec'; d.textContent = r.sec; } else { d.className = r.pass ? 'ok' : 'bad'; d.textContent = r.name.replace(/^[^·]+· /, '') + (r.pass ? '' : ' — ' + r.err); } list.appendChild(d); });
+
+  const sprOni = E.sprite('ft-onigiri', 16, 16, P => { P.tri(8, 1, 1, 14, 15, 14, PAL.rice).rrect(1, 9, 14, 6, 3, PAL.rice).rect(5, 9, 6, 6, PAL.leafD).shadeBelow(PAL.rice, .12); });
+  const crane = (g, t) => {            // mini guindaste com todas as primitivas (pés em 0,0, virado pra +x)
+    Draw.track(g, -46, -16, 92, 16, t * 20); Draw.box(g, -34, -44, 56, 28, PAL.yel, { rivets: true, panels: 3, stripes: 'bottom' }); Draw.window(g, 4, -40, 14, 12);
+    Draw.lattice(g, -30, -96, 10, 52, 9, 1.6, PAL.ora); Draw.truss(g, pt(A2, -20, -50), pt(B2, 70, -92), 10, 2, PAL.yel); Draw.cable(g, pt(A2, -25, -96), pt(B2, 70, -92), { lw: 1 }); Draw.cable(g, pt(A2, 70, -92), pt(B2, 70, -30), { lw: 1 });
+    Draw.piston(g, pt(A2, -6, -42), pt(B2, 24 + Math.sin(t) * 4, -66), 4, { len: 16 }); Draw.light(g, -25, -99, 2.4, PAL.red, Math.sin(t * 6) > 0); Draw.wheel(g, 70, -22, 8, t * 2); Draw.sign(g, -30, -40, 28, 9, 'KOME');
+  };
+  let tAcc = 0;
+  E.Loop({ input, update(dt) { tAcc += dt; }, render() {
+    const g = stage.begin(), t = tAcc;
+    Draw.lod(1, 0);
+    Draw.text(g, 'fundação: core + pix + shiba', 12, 22, { size: 17, align: 'left', col: '#3B2818', stroke: '#FFFAE6', sw: 4 });
+    Draw.text(g, FT.pass + '/' + tests.length + ' PASS' + (FT.fail ? ' · ' + FT.fail + ' FAIL' : ''), 600, 22, { size: 17, align: 'right', col: FT.fail ? '#B3261E' : '#4E8A2E', stroke: '#FFFAE6', sw: 4 });
+    Draw.box(g, 614, 10, 336, 520, '#BFE3F2', { r: 8, top: false, shade: false });
+    // normal, espelhado e de longe
+    const sc = (x, y, z, face) => { g.save(); g.translate(x, y); g.scale(z * face, z); Draw.lod(z, .6); Draw.shadow(g, 10, 0, 70, 5); crane(g, t); Draw.lod(1, 0); g.restore(); };
+    Draw.box(g, 614, 150, 336, 8, PAL.grass, { ol: 0 }); sc(700, 150, 1, 1); sc(870, 150, 1, -1);
+    Draw.box(g, 614, 215, 336, 8, PAL.grass, { ol: 0 }); sc(660, 215, .35, 1); sc(735, 215, .35, -1); sc(790, 215, .15, 1); sc(825, 215, .15, -1);
+    for (let i = 0; i < 6; i++) E.drawShiba(g, 850 + i * 17, 215, 'walk', t + i * .3, { scale: .3 });
+    Draw.text(g, 'z=1 · z=.35 · z=.15 (normal e espelhado) + shibas a .3', 782, 236, { size: 10, col: '#3B2818', stroke: null });
+    // todas as poses, metade espelhada
+    E.SHIBA_POSES.forEach((p, i) => { const x = 640 + (i % 8) * 40, y = 292 + Math.floor(i / 8) * 46; E.drawShiba(g, x, y, p, t + i * .31, { face: i & 1 ? -1 : 1, pal: Object.keys(E.PALS)[i % 11] }); });
+    E.drawShibaHead(g, 660, 494, t, { scale: 2, expr: 'happy' }); E.drawShibaHead(g, 740, 494, t, { scale: 2, expr: 'shock', face: -1, pal: 'kuro' });
+    E.drawSprite(g, sprOni, 800, 520, { sx: 2, sy: 2 }); E.drawSprite(g, sprOni, 840, 520, { sx: 2, sy: 2, flip: true, rot: Math.sin(t * 3) * .3 });
+    if (input.down) Draw.circle(g, input.x, input.y, 6, PAL.red);
+    for (let i = 0; i < FT.taps.length; i++) Draw.ring(g, FT.taps[i][0], FT.taps[i][1], 7, 2, PAL.gold);
+  } }).start();
+  FT.done = true;
+})();
+</script>
+</body>
+</html>
