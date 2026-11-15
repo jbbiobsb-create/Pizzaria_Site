@@ -754,10 +754,13 @@
      ===================================================================== */
   /* Chave numérica: (t quantizado a 1/30 s) * 2^25 + bits de opções. A "vida ociosa" depende só de t,
      então dois shibas com a mesma paleta/pose/opções no mesmo t quantizado dividem o canvas.
-     Anel FIFO de canvases 48x44: as chaves antigas (t passado) saem sozinhas. */
+     Anel de canvases 48x44: as chaves antigas (t passado) saem sozinhas; um frame que volta a ser usado quando
+     já está velho ganha vida nova (refresh). É isso que faz uma multidão na mesma pose/paleta, cada um na sua
+     fase, custar quase só o shiba "da frente": os outros reaproveitam os frames que ele já rasterizou. */
   const KEY_MUL = 33554432, TQ_MAX = 134217727;          // tq acima disso não cabe na chave (2^53): desenha sem cache
   let CACHE_N = 640, CACHE_FPS = 30;
   let slotKey = new Float64Array(CACHE_N).fill(NaN), slotCv = new Array(CACHE_N).fill(null), slotG = new Array(CACHE_N).fill(null);
+  let slotSeq = new Float64Array(CACHE_N), cacheSeq = 0;   // "idade" de cada slot (nº de ordem da última inserção/refresh)
   const cacheMap = new Map();
   let cacheCur = 0;
   const stats = { hits: 0, misses: 0, exact: 0 };
@@ -775,6 +778,20 @@
   function frameT(t, o) {
     t = saneT(t); o = o || NOOPTS;
     return isExact(o, compilePal(typeof o.pal === 'object' && o.pal ? o.pal : getPal(o.pal)), t) ? t : Math.round(t * CACHE_FPS) / CACHE_FPS;
+  }
+
+  // frame velho que voltou a ser usado: troca de lugar com o slot que seria o próximo a sair e vira o mais novo
+  function refreshSlot(i) {
+    const j = cacheCur; cacheCur = (cacheCur + 1) % CACHE_N;
+    if (j !== i) {
+      const cv = slotCv[j], cg = slotG[j], key = slotKey[j], sq = slotSeq[j];
+      slotCv[j] = slotCv[i]; slotG[j] = slotG[i]; slotKey[j] = slotKey[i];
+      slotCv[i] = cv; slotG[i] = cg; slotKey[i] = key; slotSeq[i] = sq;
+      cacheMap.set(slotKey[j], j);
+      if (key === key) cacheMap.set(key, i);               // NaN = slot vazio
+    }
+    slotSeq[j] = ++cacheSeq;
+    return j;
   }
 
   // devolve o canvas 48x44 do frame pedido (do cache, ou rasterizado agora). NÃO guarde: é reaproveitado.
@@ -799,12 +816,16 @@
       const tq = Math.round(t * CACHE_FPS);
       const bits = K.id | (pid << 8) | (hat ? 16384 : 0) | (shadow ? 32768 : 0) | ((mouth ? idOf(MOUTHS, mouth) : 0) << 16) | ((eyes ? idOf(EYES, eyes) : 0) << 20) | (fast << 24);
       const key = tq * KEY_MUL + bits;
-      const hit = cacheMap.get(key);
-      if (hit !== undefined) { stats.hits++; return slotCv[hit]; }
+      let hit = cacheMap.get(key);
+      if (hit !== undefined) {
+        stats.hits++;
+        if (cacheSeq - slotSeq[hit] > (CACHE_N >> 1)) hit = refreshSlot(hit);
+        return slotCv[hit];
+      }
       const i = cacheCur; cacheCur = (cacheCur + 1) % CACHE_N;
       if (!slotCv[i]) { slotCv[i] = mkCanvas(W, H); slotG[i] = slotCv[i].getContext('2d'); }
       else cacheMap.delete(slotKey[i]);
-      slotKey[i] = key; cacheMap.set(key, i);
+      slotKey[i] = key; slotSeq[i] = ++cacheSeq; cacheMap.set(key, i);
       ShibaPX.hatOn = hat; ShibaPX.mouthOverride = mouth; ShibaPX.eyesOverride = eyes; ShibaPX.tilt = 0; ShibaPX.look = null; S.fast = fast;
       frameFast(slotCv[i], slotG[i], mode, tq / CACHE_FPS, K, shadow);
       stats.misses++; cv = slotCv[i];
@@ -840,7 +861,7 @@
       v = Math.max(64, Math.min(4096, v | 0));
       if (v === CACHE_N) return;
       CACHE_N = v; cacheMap.clear(); cacheCur = 0;
-      slotKey = new Float64Array(v).fill(NaN); slotCv = new Array(v).fill(null); slotG = new Array(v).fill(null);
+      slotKey = new Float64Array(v).fill(NaN); slotCv = new Array(v).fill(null); slotG = new Array(v).fill(null); slotSeq = new Float64Array(v);
     },
   });
   // drawShiba.fps (get/set): quadros de animação por segundo guardados no cache (padrão 30; 20 economiza mais)

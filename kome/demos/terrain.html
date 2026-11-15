@@ -206,6 +206,7 @@
     if (S.msgT > 0) S.msgT -= dt;
 
     // câmera
+    if (S.free) { cam.x = S.free.x; cam.y = S.free.y; cam.z = S.free.z; return; } // câmera livre (screenshots): demo.S.free = {x,y,z}
     const tz = ZOOMS[S.zi].z, tg = camTarget(tmp);
     cam.z = Math.exp(U.damp(Math.log(cam.z), Math.log(tz), 5, dt));
     cam.x = U.damp(cam.x, tg.x, 5, dt); cam.y = U.damp(cam.y, tg.y, 5, dt);
