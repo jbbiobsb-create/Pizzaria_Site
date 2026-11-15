@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Kome Engine · pix.js (folha de estilo)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }
+</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, D = E.Draw, C = E.PAL, TAU = Math.PI * 2;
+  const W = 960, H = 540, BG = '#F6F1E4', INK = C.ink;
+  const stage = E.Stage({ width: W, height: H, bg: BG, maxDpr: 2 });
+  const g = stage.g;
+
+  /* ------------------------------------------------------------------
+     Página atual: ?page=1|2|3, teclas 1/2/3, setas, clique nas abas
+     ------------------------------------------------------------------ */
+  const PAGES = ['Paleta + sprites Pix', 'Primitivas Draw', 'Composição + zoom'];
+  let page = U.clamp((parseInt((location.search.match(/page=(\d)/) || [])[1], 10) || 1) - 1, 0, PAGES.length - 1);
+  window.setPage = n => { page = U.clamp(n - 1, 0, PAGES.length - 1); };
+  addEventListener('keydown', e => {
+    if (e.key >= '1' && e.key <= '3') page = +e.key - 1;
+    else if (e.key === 'ArrowRight' || e.key === ' ') page = (page + 1) % PAGES.length;
+    else if (e.key === 'ArrowLeft') page = (page + PAGES.length - 1) % PAGES.length;
+  });
+  stage.cv.addEventListener('pointerdown', e => {
+    const p = stage.toStage(e);
+    if (p.y < 40) { for (let i = 0; i < PAGES.length; i++) if (p.x >= tabX(i) && p.x < tabX(i) + TABW) page = i; }
+    else page = (page + 1) % PAGES.length;
+  });
+  const TABW = 172, tabX = i => W - 16 - (PAGES.length - i) * (TABW + 6) + 6;
+
+  /* ------------------------------------------------------------------
+     Molduras da folha de estilo
+     ------------------------------------------------------------------ */
+  const T_LABEL = { size: 11, col: INK, sw: 0, weight: 700 };
+  const T_TITLE = { size: 12, col: C.cream, sw: 0, weight: 900, align: 'left' };
+  const T_SMALL = { size: 8.5, col: '#6B5540', sw: 0, weight: 700 };
+
+  function card(x, y, w, h, title) {
+    g.fillStyle = 'rgba(42,26,16,.18)'; D.rrect(g, x + 3, y + 4, w, h, 8); g.fill();
+    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 4, 9); g.fill();
+    g.fillStyle = C.cream; D.rrect(g, x, y, w, h, 7); g.fill();
+    if (title) {
+      g.fillStyle = INK; D.rrect(g, x, y, w, 20, 7); g.fill(); g.fillRect(x, y + 10, w, 10);
+      D.text(g, title, x + 9, y + 10.5, T_TITLE);
+    }
+  }
+  function header(t) {
+    g.fillStyle = INK; g.fillRect(0, 0, W, 38);
+    g.fillStyle = C.gold; g.fillRect(0, 38, W, 3);
+    D.text(g, 'KOME ENGINE', 16, 20, { size: 18, col: C.gold, sw: 0, align: 'left' });
+    D.text(g, 'pix.js · folha de estilo', 152, 21, { size: 12, col: C.riceS, sw: 0, align: 'left', weight: 700 });
+    for (let i = 0; i < PAGES.length; i++) {
+      const x = tabX(i), on = i === page;
+      g.fillStyle = on ? C.gold : '#4A3626'; D.rrect(g, x, 8, TABW, 23, 6); g.fill();
+      D.text(g, (i + 1) + ' · ' + PAGES[i], x + TABW / 2, 20, { size: 11, col: on ? INK : C.riceS, sw: 0, weight: 900 });
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Sprites Pix de prova
+     ------------------------------------------------------------------ */
+  const S = {
+    onigiri: () => E.sprite('d-onigiri', 26, 25, P => {
+      P.poly([[13, 1], [24, 19], [21, 23], [5, 23], [2, 19]], C.rice).ell(13, 6, 5, 4.5, C.rice).ell(6, 19, 4.5, 4.5, C.rice).ell(20, 19, 4.5, 4.5, C.rice);
+      P.shadeBelow(C.rice, 0.12, 2);
+      P.rect(8, 15, 10, 9, '#2E3B2A').rect(9, 15, 8, 2, '#44563D').set(10, 18, '#44563D').set(14, 20, '#44563D');
+      P.set(11, 6, C.riceS).set(15, 9, C.riceS).set(9, 11, C.riceS).rect(11, 3, 2, 1, C.white);
+    }),
+    tigela: () => E.sprite('d-tigela', 30, 24, P => {
+      P.ell(15, 9, 11, 7, C.rice).ell(11, 6, 4, 2, C.white).shadeBelow(C.rice, 0.12, 2);
+      P.set(18, 5, C.riceS).set(21, 8, C.riceS).set(8, 9, C.riceS).set(15, 7, C.riceS);
+      P.poly([[1, 10], [29, 10], [25, 19], [21, 21], [9, 21], [5, 19]], C.bowl).rect(1, 10, 28, 2, C.bowlL);
+      P.rect(4, 14, 22, 1, C.rice).rect(6, 16, 3, 1, C.bowlL).rect(21, 16, 3, 1, U.shade(C.bowl, -0.25));
+      P.rect(10, 21, 10, 3, U.shade(C.bowl, -0.2)).rect(10, 21, 10, 1, C.bowl);
+    }),
+    pa: () => E.sprite('d-pa', 16, 40, P => {
+      P.rrect(3, 0, 10, 4, 1.5, C.woodD).rect(5, 1, 6, 1, C.wood);
+      P.line(8, 3, 8, 25, 2.6, C.wood).rect(7, 4, 1, 20, C.woodL);
+      P.rect(6, 23, 4, 3, C.steelD);
+      P.poly([[1, 25], [15, 25], [15, 33], [8, 39.5], [1, 33]], C.steel).rect(2, 25, 12, 2, C.steelL).line(8, 27, 8, 36, 1, C.steelD);
+      P.set(13, 30, C.steelD).set(13, 31, C.steelD).set(12, 33, C.steelD).set(11, 34, C.steelD).set(10, 35, C.steelD);
+    }),
+    saco: () => E.sprite('d-saco', 30, 34, P => {
+      P.ell(15, 22, 13, 11, C.sack).ell(15, 12, 9, 6, C.sack).rect(3, 27, 24, 6, C.sack);
+      P.shadeBelow(C.sack, 0.2, 3);
+      P.rect(9, 6, 12, 3, C.sackD).rect(9, 6, 12, 1, C.woodD);
+      P.tri(10, 6, 5, 1, 12, 5, C.sack).tri(20, 6, 25, 1, 18, 5, C.sack).tri(13, 6, 15, 2, 17, 6, C.sack);
+      P.ell(15, 21, 6.5, 6.5, C.rice).ell(15, 21, 4.5, 4.5, C.red).rect(14, 18, 2, 6, C.rice).rect(12, 20, 6, 2, C.rice);
+      P.ell(8, 15, 2, 1.2, U.shade(C.sack, 0.4));
+    }),
+    lanterna: () => E.sprite('d-lanterna', 22, 34, P => {
+      P.line(11, 0, 11, 4, 1, C.woodD);
+      P.ell(11, 18, 9.5, 11, C.red).shadeBelow(C.red, 0.26, 3);
+      for (let y = 10; y <= 26; y += 4) P.dither(1, y, 20, 1, C.redD, 'hlines', { mask: true });
+      P.ell(7, 13, 2, 3.5, C.redL);
+      P.rect(6, 5, 10, 3, C.blk).rect(6, 5, 10, 1, C.blkL).rect(6, 28, 10, 3, C.blk).rect(6, 28, 10, 1, C.blkL);
+      P.rect(9, 14, 4, 9, C.goldL).rect(10, 15, 2, 7, C.gold);
+      P.line(11, 31, 11, 33, 1, C.gold);
+    }),
+    moeda: () => E.sprite('d-moeda', 22, 22, P => {
+      P.ell(11, 11, 10, 10, C.gold).ring(11, 11, 10, 2, C.goldD).ring(11, 11, 9.4, 1, C.goldL);
+      P.arc(11, 11, 8.6, Math.PI * 0.1, Math.PI * 0.6, 1.2, C.goldD);
+      P.rect(8, 8, 6, 6, C.goldD).rect(9, 9, 4, 4, C.ink).rect(8, 8, 6, 1, U.shade(C.goldD, -0.3));
+      P.rect(5, 6, 2, 1, C.white).rect(4, 7, 1, 2, C.white);
+    }),
+    bento: () => E.sprite('d-bento', 34, 24, P => {
+      P.rrect(1, 3, 32, 20, 3, C.blk).rrect(1, 3, 32, 4, 2, C.blkL).rect(2, 20, 30, 2, U.shade(C.blk, -0.3));
+      P.rrect(3, 6, 15, 14, 2, C.rice).dither(4, 14, 13, 5, C.riceS, '25', { mask: true });
+      P.ell(10.5, 12, 2.4, 2.4, C.red).set(10, 11, C.redL);
+      P.rrect(19, 6, 12, 6, 1.5, C.yel).rect(20, 8, 10, 1, C.yelD).rect(20, 6, 10, 1, C.yelL).rect(24, 6, 1, 6, C.yelD);
+      P.rrect(19, 13, 6, 7, 1.5, C.grass).set(20, 15, C.grassL).set(22, 17, C.grassD).set(21, 14, C.grassL).set(23, 15, C.grassD);
+      P.rrect(26, 13, 5, 7, 1.5, C.ora).rect(27, 14, 3, 1, C.oraL).set(28, 17, C.oraD).set(29, 18, C.oraD);
+    }),
+    sakura: () => E.sprite('d-sakura', 24, 24, P => {
+      for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + k * TAU / 5, x = 12 + Math.cos(a) * 6.2, y = 12 + Math.sin(a) * 6.2;
+        P.ell(x, y, 4.4, 4.4, C.sakura);
+        P.set(12 + Math.cos(a) * 10.6, 12 + Math.sin(a) * 10.6, null);
+      }
+      P.ell(12, 12, 4, 4, C.sakura).shadeBelow(C.sakura, 0.16, 1);
+      for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + k * TAU / 5;
+        P.line(12 + Math.cos(a) * 2, 12 + Math.sin(a) * 2, 12 + Math.cos(a) * 5.5, 12 + Math.sin(a) * 5.5, 1, C.sakuraD);
+        P.erase(Math.round(12 + Math.cos(a) * 10.4 - 0.5), Math.round(12 + Math.sin(a) * 10.4 - 0.5), 1, 1);
+      }
+      P.ell(12, 12, 2.2, 2.2, C.pink).rect(11, 11, 2, 2, C.goldL);
+    }),
+    caixote: () => E.sprite('d-caixote', 30, 28, P => {
+      P.rect(1, 2, 28, 25, C.wood).bevel(0.3, 0.3);
+      P.rect(4, 5, 22, 19, C.woodD).rect(5, 6, 20, 17, C.woodL);
+      for (let x = 10; x < 24; x += 5) P.rect(x, 6, 1, 17, C.wood);
+      P.line(6, 22, 24, 7, 3, C.wood).line(6, 21, 23, 7, 1, U.shade(C.wood, 0.25));
+      P.rect(1, 2, 28, 3, C.wood).rect(1, 24, 28, 3, C.wood).rect(1, 2, 3, 25, C.wood).rect(26, 2, 3, 25, C.wood);
+      P.rect(1, 2, 28, 1, U.shade(C.wood, 0.3)).rect(1, 26, 28, 1, C.woodD).rect(28, 3, 1, 23, C.woodD);
+      P.set(2, 3, C.woodD).set(27, 3, C.woodD).set(2, 25, C.ink).set(27, 25, C.ink);
+    }),
+    mochi: () => E.sprite('d-mochi', 28, 28, P => {
+      P.rect(3, 23, 22, 4, C.wood).rect(3, 23, 22, 1, C.woodL).rect(6, 26, 16, 1, C.woodD);
+      P.ell(14, 18, 11, 6, C.mochi).ell(14, 11, 8, 5, C.mochi);
+      P.shadeBelow(C.mochi, 0.14, 2);
+      P.ell(14, 5, 3.6, 3.4, C.ora).ell(13, 4, 1.4, 1.2, C.oraL).set(16, 7, C.oraD).set(15, 7, C.oraD);
+      P.rect(14, 1, 2, 1, C.leaf).set(13, 1, C.leafD);
+      P.rect(7, 15, 3, 1, C.white).rect(9, 8, 2, 1, C.white);
+    }),
+    bule: () => E.sprite('d-bule', 34, 26, P => {
+      P.line(25, 12, 32, 8, 3.4, C.woodD).line(26, 12, 32, 8.5, 1.4, C.wood);       // cabo lateral (kyusu)
+      P.poly([[6, 12], [1, 7], [3, 6], [9, 10]], C.bowl);                           // bico
+      P.ell(16, 15, 11, 9, C.bowl).shadeBelow(C.bowl, 0.26, 3);
+      P.rect(8, 22, 16, 3, U.shade(C.bowl, -0.3)).rect(9, 22, 14, 1, C.bowl);
+      P.ell(16, 7, 8, 2.4, C.bowlL).ell(16, 6.4, 6, 1.4, U.shade(C.bowlL, 0.3));
+      P.ell(16, 3.4, 2.2, 2, C.gold).set(15, 3, C.goldL);
+      P.ell(10, 13, 2, 3, C.bowlL).rect(8, 17, 16, 1, C.rice).rect(14, 15, 4, 1, C.rice).rect(14, 19, 4, 1, C.rice);
+    }),
+    pickup: () => E.sprite('d-pickup', 54, 30, P => {
+      // caçamba com arroz
+      P.ell(17, 11, 12, 4.5, C.rice).ell(13, 9, 4, 1.6, C.white).shadeBelow(C.rice, 0.12, 1);
+      P.rect(2, 12, 30, 9, C.steelL).rect(2, 12, 30, 2, C.white).rect(2, 19, 30, 2, C.steel);
+      for (let x = 9; x < 30; x += 7) P.rect(x, 14, 1, 5, C.steel);
+      // cabine
+      P.poly([[32, 21], [32, 4], [43, 4], [50, 12], [52, 13], [52, 21]], C.rice);
+      P.rect(32, 4, 11, 1, C.white).rect(32, 19, 20, 2, C.riceS);
+      P.poly([[35, 6], [42, 6], [47, 12], [35, 12]], C.glass).rect(35, 11, 12, 1, C.glassD).line(37, 11, 40, 7, 1, C.white);
+      P.rect(40, 14, 3, 1, C.grayD).rect(50, 14, 2, 3, C.gold).rect(2, 14, 1, 3, C.red);
+      P.line(33, 13, 33, 20, 1, C.riceS);
+      // chassi e rodas
+      P.rect(1, 21, 52, 3, C.blk).rect(1, 21, 52, 1, C.blkL).rect(51, 21, 3, 2, C.gray);
+      for (const x of [12, 42]) P.ell(x, 24, 5, 5, C.blk).ring(x, 24, 5, 1, C.blkL).ell(x, 24, 2.4, 2.4, C.steel).set(x - 0.5, 23.5, C.grayD);
+    }),
+  };
+  const SPRITES = [
+    ['onigiri', 'onigiri'], ['tigela', 'tigela de arroz'], ['pa', 'pá'], ['saco', 'saco de arroz'],
+    ['lanterna', 'chōchin'], ['moeda', 'moeda'], ['bento', 'bentō'], ['sakura', 'flor de sakura'],
+    ['caixote', 'caixote'], ['mochi', 'kagami mochi'], ['bule', 'bule (kyūsu)'], ['pickup', 'kei truck'],
+  ];
+
+  /* ------------------------------------------------------------------
+     Página 1: paleta + sprites
+     ------------------------------------------------------------------ */
+  const PAL_KEYS = Object.keys(C);
+  function page1(t) {
+    // paleta
+    card(14, 52, 486, 476, 'E.PAL · ' + PAL_KEYS.length + ' cores (contorno LINE #3B2818 em tudo)');
+    const cols = 8, cw = 58, ch = 54, ox = 24, oy = 80;
+    for (let i = 0; i < PAL_KEYS.length; i++) {
+      const k = PAL_KEYS[i], x = ox + (i % cols) * cw, y = oy + Math.floor(i / cols) * (ch + 1);
+      D.box(g, x + 2, y + 2, cw - 10, 28, C[k], { r: 4, ol: 1.5 });
+      D.text(g, k, x + cw / 2 - 3, y + 38, T_LABEL);
+      D.text(g, C[k].toUpperCase(), x + cw / 2 - 3, y + 48, T_SMALL);
+    }
+    // sprites
+    card(514, 52, 432, 476, 'E.Pix + E.sprite · pixel art com contorno 4-vizinhos (x3)');
+    const sw = 104, sh = 148;
+    for (let i = 0; i < SPRITES.length; i++) {
+      const cv = S[SPRITES[i][0]](), cx = 514 + 12 + (i % 4) * sw + sw / 2, by = 52 + 28 + Math.floor(i / 4) * sh + 112;
+      const bob = Math.sin(t * 2 + i * 0.9) * 2;
+      D.shadow(g, cx, by + 2, cv.width * 1.25, 5, 0.16);
+      E.drawSprite(g, cv, cx, by + bob - 2, { sx: 3, sy: 3 });
+      E.drawSprite(g, cv, cx + 34, by + 16, { ax: cv.width, ay: cv.height });   // tamanho real (x1)
+      D.text(g, SPRITES[i][1], cx - 6, by + 22, T_LABEL);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Página 2: primitivas Draw
+     ------------------------------------------------------------------ */
+  const CELL_W = 184, CELL_H = 116, GX = 14, GY = 52, GAP = 3;
+  const pA = [0, 0], pB = [0, 0], pts3 = [[0, 0], [0, 0], [0, 0]], pts2 = [[0, 0], [0, 0]];
+  const PRIMS = [
+    ['beam', (x, y, t) => {
+      pts3[0][0] = x - 70; pts3[0][1] = y + 22; pts3[1][0] = x - 10; pts3[1][1] = y - 26; pts3[2][0] = x + 68; pts3[2][1] = y - 12;
+      D.beam(g, pts3, 11, C.yel);
+      pts2[0][0] = x - 20; pts2[0][1] = y + 26; pts2[1][0] = x + 70; pts2[1][1] = y + 26;
+      D.beam(g, pts2, 7, C.gray, { cap: 'butt' });
+    }],
+    ['truss', (x, y) => {
+      pA[0] = x - 78; pA[1] = y - 12; pB[0] = x + 78; pB[1] = y - 26; D.truss(g, pA, pB, 30, 4, C.yel);
+      pA[0] = x - 78; pA[1] = y + 24; pB[0] = x + 78; pB[1] = y + 24; D.truss(g, pA, pB, 20, 3, C.gray, { cross: true, taper: 1 });
+    }],
+    ['lattice', (x, y) => {
+      D.lattice(g, x - 70, y - 38, 26, 78, 22, 3.5, C.ora);
+      D.lattice(g, x - 28, y - 30, 104, 22, 22, 3, C.gray);
+      D.lattice(g, x - 28, y + 6, 104, 30, 30, 3.5, C.red, { cross: true });
+    }],
+    ['box', (x, y) => {
+      D.box(g, x - 80, y - 36, 82, 44, C.ora, { panels: 4, rivets: true });
+      D.box(g, x + 14, y - 36, 62, 30, C.gray, { stripes: 'bottom', rivets: true });
+      D.box(g, x - 80, y + 18, 60, 20, C.red, { r: 6 });
+      D.box(g, x - 8, y + 8, 84, 30, C.yel, { panels: 3, top: C.yelL, shade: C.yelD });
+    }],
+    ['poly', (x, y) => {
+      D.poly(g, [[x - 70, y - 30], [x - 14, y - 30], [x - 4, y + 4], [x - 30, y + 32], [x - 62, y + 26]], C.yel, { shade: true, hi: true });
+      D.poly(g, [[x + 12, y + 32], [x + 40, y - 34], [x + 72, y + 32]], C.red, { shade: C.redD });
+    }],
+    ['circle · ring', (x, y) => {
+      D.circle(g, x - 46, y - 2, 30, C.red);
+      D.circle(g, x + 2, y + 18, 13, C.gold);
+      D.ring(g, x + 48, y - 4, 30, 9, C.steel);
+      D.ring(g, x + 48, y - 4, 13, 4, C.yel);
+    }],
+    ['cable', (x, y, t) => {
+      D.box(g, x - 76, y - 36, 6, 72, C.wood); D.box(g, x + 70, y - 36, 6, 72, C.wood);
+      pA[0] = x - 73; pB[0] = x + 73;
+      pA[1] = pB[1] = y - 30; D.cable(g, pA, pB, { sag: 0 });
+      pA[1] = pB[1] = y - 22; D.cable(g, pA, pB, { sag: 12 + Math.sin(t * 2) * 2, lw: 2 });
+      pA[1] = y - 10; pB[1] = y + 20; D.cable(g, pA, pB, { sag: 14, lw: 2.5, col: C.red, ol: 1 });
+    }],
+    ['wheel', (x, y, t) => {
+      D.wheel(g, x - 44, y - 2, 38, t * 1.4);
+      D.wheel(g, x + 26, y + 14, 22, t * 2.4, { hub: C.ora, spokes: 5 });
+      D.wheel(g, x + 68, y + 24, 12, t * 4, { hub: C.steel, tread: false, spokes: 4 });
+    }],
+    ['track', (x, y, t) => {
+      D.track(g, x - 82, y - 40, 164, 44, t * 40, { col: C.yelD });
+      D.track(g, x - 60, y + 14, 120, 24, -t * 30, { col: C.ora });
+    }],
+    ['piston', (x, y, t) => {
+      const e = 0.5 + 0.5 * Math.sin(t * 1.6);
+      pA[0] = x - 76; pA[1] = y + 28; pB[0] = x - 76 + 80 + e * 62; pB[1] = y + 28 - (80 + e * 62) * 0.32;
+      D.piston(g, pA, pB, 13, { len: 78 });
+      pA[0] = x + 72; pA[1] = y - 32; pB[0] = x + 72; pB[1] = y - 32 + 34 + e * 26;
+      D.piston(g, pA, pB, 9, { len: 32, col: C.red });
+    }],
+    ['window', (x, y) => {
+      D.box(g, x - 82, y - 38, 76, 76, C.ora, { r: 5 });
+      D.window(g, x - 74, y - 30, 60, 40);
+      D.window(g, x + 12, y - 34, 64, 30, { frame: C.woodD });
+      D.window(g, x + 16, y + 10, 24, 24, { r: 12 }); D.window(g, x + 50, y + 10, 24, 24, { col: C.goldL, glare: false });
+    }],
+    ['light', (x, y, t) => {
+      g.fillStyle = C.night; D.rrect(g, x - 84, y - 40, 168, 80, 6); g.fill();
+      D.light(g, x - 52, y, 9, C.red, Math.sin(t * 6) > 0);
+      D.light(g, x, y, 9, C.gold, 0.6 + 0.4 * Math.sin(t * 3));
+      D.light(g, x + 52, y, 9, '#7BD88F', false);
+    }],
+    ['stairs', (x, y) => {
+      D.box(g, x + 10, y - 22, 72, 8, C.gray);
+      pA[0] = x - 76; pA[1] = y + 36; pB[0] = x + 12; pB[1] = y - 24;
+      D.stairs(g, pA, pB, 9, { railH: 16 });
+      pA[0] = x + 14; pA[1] = y - 24; pB[0] = x + 80; pB[1] = y - 24; D.rail(g, pA, pB, { h: 16, posts: 5, lw: 1.4 });
+      g.fillStyle = C.grassD; g.fillRect(x - 84, y + 36, 168, 3);
+    }],
+    ['rail', (x, y) => {
+      D.box(g, x - 80, y + 10, 160, 9, C.grayD, { rivets: 12 });
+      pA[0] = x - 78; pA[1] = y + 8; pB[0] = x + 78; pB[1] = y + 8; D.rail(g, pA, pB, { h: 26, posts: 8, lw: 2.2 });
+      pA[0] = x - 78; pA[1] = y + 34; pB[0] = x + 78; pB[1] = y + 34; D.rail(g, pA, pB, { h: 9, posts: 12, lw: 1.2, col: C.steel, mid: false });
+    }],
+    ['sign', (x, y) => {
+      D.sign(g, x - 82, y - 36, 100, 32, 'KOME-293', { rivets: true });
+      D.sign(g, x + 26, y - 36, 54, 32, '米', { col: C.red, ink: C.cream });
+      D.sign(g, x - 82, y + 6, 70, 28, 'PERIGO', { col: C.yel, ink: C.blk });
+      D.sign(g, x - 4, y + 6, 84, 28, 'ARROZ ¥120', { col: C.wood, ink: C.cream, r: 1 });
+    }],
+    ['text', (x, y, t) => {
+      D.text(g, '+¥1.234', x, y - 20 + Math.sin(t * 3) * 2, { size: 26, col: C.gold, shadow: 3, sw: 6 });
+      D.text(g, 'ARROZ!', x - 36, y + 20, { size: 20, rot: -0.12, col: C.cream });
+      D.text(g, 'x10', x + 44, y + 20, { size: 22, col: C.redL, rot: 0.14, sw: 5 });
+    }],
+    ['pattern', (x, y) => {
+      g.fillStyle = D.pattern(g, 'demo-arroz', C.rice, C.riceS, C.white);
+      g.strokeStyle = E.LINE_CSS; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(x - 84, y + 36); g.quadraticCurveTo(x - 50, y - 60, x - 22, y + 36); g.closePath(); g.stroke(); g.fill();
+      g.fillStyle = D.pattern(g, 'demo-ouro', C.gold, C.goldD, C.goldL, { shape: 'dots', n: 90 });
+      g.beginPath(); g.arc(x + 10, y, 26, 0, TAU); g.stroke(); g.fill();
+      g.fillStyle = D.pattern(g, 'demo-palha', C.sack, C.sackD, C.cream, { shape: 'hatch', n: 60 });
+      g.beginPath(); g.rect(x + 46, y - 30, 36, 62); g.stroke(); g.fill();
+    }],
+    ['shadow · drawSprite', (x, y, t) => {
+      const j = Math.abs(Math.sin(t * 3)) * 14;
+      D.shadow(g, x - 50, y + 32, 22 - j * 0.5, 5 - j * 0.12, 0.2);
+      E.drawSprite(g, S.onigiri(), x - 50, y + 32 - j, { sx: 2, sy: 2 });
+      D.shadow(g, x + 6, y + 32, 20, 5);
+      E.drawSprite(g, S.caixote(), x + 6, y + 18, { sx: 1.6, sy: 1.6, rot: Math.sin(t * 2) * 0.25, ay: 14 });
+      D.shadow(g, x + 58, y + 32, 26, 5);
+      E.drawSprite(g, S.pickup(), x + 58, y + 33, { flip: Math.sin(t * 0.8) > 0 });
+    }],
+    ['hazard', (x, y) => {
+      D.hazard(g, x - 82, y - 34, 164, 14);
+      D.hazard(g, x - 82, y - 6, 164, 8, { a: C.red, b: C.rice, sw: 6 });
+      D.box(g, x - 82, y + 14, 164, 22, C.yel, { stripes: true, r: 4 });
+    }],
+    ['lod(zoom): z=.15 → 2', (x, y, t) => {
+      const zs = [0.15, 0.4, 1];
+      let ox = x - 78;
+      for (const z of zs) {
+        g.save(); g.translate(ox, y + 34); g.scale(z, z); D.lod(z, 0.7);
+        D.track(g, 0, -34, 120, 34, t * 30, { col: C.yelD });
+        D.box(g, 10, -70, 100, 34, C.yel, { panels: 3, rivets: true });
+        D.lattice(g, 44, -190, 30, 120, 26, 4, C.yel);
+        g.restore();
+        ox += 120 * z + 14;
+      }
+      D.lod(1, 0);
+    }],
+  ];
+  function page2(t) {
+    for (let i = 0; i < PRIMS.length; i++) {
+      const cx = GX + (i % 5) * (CELL_W + GAP), cy = GY + Math.floor(i / 5) * (CELL_H + GAP + 2);
+      card(cx + 2, cy, CELL_W - 4, CELL_H, 'Draw.' + PRIMS[i][0]);
+      g.save();
+      g.beginPath(); g.rect(cx + 2, cy + 20, CELL_W - 4, CELL_H - 20); g.clip();
+      PRIMS[i][1](cx + CELL_W / 2, cy + 20 + (CELL_H - 20) / 2, t);
+      g.restore();
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Página 3: mini guindaste (treliça + torre + cabos + caixas + escada + guarda-corpo)
+     Coordenadas de mundo: chão em y=0, pra cima é negativo.
+     ------------------------------------------------------------------ */
+  const q0 = [0, 0], q1 = [0, 0], q2 = [0, 0], q3 = [0, 0];
+  function crane(t) {
+    const boomA = -0.5 + Math.sin(t * 0.5) * 0.12;                 // ângulo da lança
+    const piv = [34, -150], L = 250;
+    const tip = [piv[0] + Math.cos(boomA) * L, piv[1] + Math.sin(boomA) * L];
+    const apex = [-8, -318];
+    D.shadow(g, 10, 4, 170, 10, 0.16);
+    // contralança + contrapeso
+    q0[0] = -4; q0[1] = -150; q1[0] = -150; q1[1] = -176;
+    D.truss(g, q0, q1, 26, 4, C.grayD, { taper: 0.7 });
+    D.box(g, -190, -196, 56, 44, C.gray, { stripes: 'bottom', rivets: true, panels: 2 });
+    // cabos de trás e da lança
+    q0[0] = -160; q0[1] = -196; D.cable(g, apex, q0, { lw: 1.8 });
+    q0[0] = piv[0] + Math.cos(boomA) * L * 0.55; q0[1] = piv[1] + Math.sin(boomA) * L * 0.55 - 8; D.cable(g, apex, q0, { lw: 1.6 });
+    q0[0] = tip[0] - 6; q0[1] = tip[1] - 6; D.cable(g, apex, q0, { lw: 1.8 });
+    // esteiras
+    D.track(g, -120, -40, 240, 40, t * 18, { col: C.yelD });
+    // chassi giratório
+    D.box(g, -100, -62, 200, 22, C.grayD, { rivets: 14 });
+    // torre treliçada
+    D.lattice(g, -28, -318, 40, 170, 30, 5, C.yel);
+    // casa de máquinas
+    D.box(g, -96, -150, 150, 88, C.yel, { panels: 5, rivets: true, stripes: 'bottom' });
+    D.sign(g, -84, -134, 64, 20, 'KOME-01', { rivets: true });
+    D.box(g, -8, -128, 50, 34, C.yelD, { panels: 6, top: false });       // grade do motor
+    // pistão que levanta a lança
+    q0[0] = 60; q0[1] = -96; q1[0] = piv[0] + Math.cos(boomA) * 96; q1[1] = piv[1] + Math.sin(boomA) * 96 + 6;
+    D.piston(g, q0, q1, 12, { len: 64, col: C.ora });
+    // lança
+    D.truss(g, piv, tip, 34, 5, C.yel, { taper: 0.45 });
+    D.circle(g, piv[0], piv[1], 9, C.grayD);
+    D.circle(g, tip[0], tip[1], 7, C.grayD);
+    // cabine
+    D.box(g, 54, -150, 56, 60, C.ora, { r: 4, rivets: true });
+    D.window(g, 62, -142, 40, 28);
+    D.box(g, 50, -156, 64, 8, C.oraD, { r: 2 });
+    // passarela + escada
+    q0[0] = -96; q0[1] = -150; q1[0] = 50; q1[1] = -150; D.rail(g, q0, q1, { h: 14, posts: 9, lw: 1.6 });
+    q0[0] = -150; q0[1] = 0; q1[0] = -100; q1[1] = -62; D.stairs(g, q0, q1, 8, { railH: 13, lw: 2.4 });
+    // gancho com carga balançando
+    const sway = Math.sin(t * 1.3) * 10, hy = -70 + Math.sin(t * 0.7) * 22;
+    q0[0] = tip[0]; q0[1] = tip[1]; q1[0] = tip[0] + sway; q1[1] = hy;
+    D.cable(g, q0, q1, { lw: 1.6 });
+    D.box(g, q1[0] - 7, hy, 14, 10, C.red, { r: 2 });
+    q2[0] = q1[0] - 14; q2[1] = hy + 26; q3[0] = q1[0] + 14; q3[1] = hy + 26;
+    q0[0] = q1[0]; q0[1] = hy + 9; D.cable(g, q0, q2, { lw: 1.2 }); D.cable(g, q0, q3, { lw: 1.2 });
+    E.drawSprite(g, S.caixote(), q1[0], hy + 52, { sx: 1.4, sy: 1.4, rot: sway * 0.006 });
+    // luzes de aviso
+    D.light(g, apex[0], apex[1] - 8, 5, C.red, Math.sin(t * 5) > 0);
+    D.light(g, 82, -162, 4, C.gold, 1);
+    D.light(g, -162, -202, 4, C.red, Math.sin(t * 5 + 2) > 0);
+    // caminhãozinho e sacos pra dar escala
+    E.drawSprite(g, S.pickup(), 196, 1);
+    E.drawSprite(g, S.saco(), -206, 1);
+    E.drawSprite(g, S.saco(), -228, 1, { flip: true });
+  }
+  function ground(x0, x1) {
+    g.fillStyle = C.grass; g.fillRect(x0, 0, x1 - x0, 400);
+    g.fillStyle = C.grassL; g.fillRect(x0, 0, x1 - x0, 3);
+    g.fillStyle = E.LINE_CSS; g.fillRect(x0, -1.5, x1 - x0, 1.5);
+  }
+  function view(x, y, w, h, title, z, cx, cy, t) {
+    card(x, y, w, h, title);
+    g.save();
+    g.beginPath(); g.rect(x, y + 20, w, h - 20); g.clip();
+    g.fillStyle = C.sky; g.fillRect(x, y + 20, w, h - 20);
+    g.fillStyle = C.skyL; g.fillRect(x, y + 20 + (h - 20) * 0.62, w, (h - 20) * 0.38);
+    g.translate(x + w / 2, y + 20 + (h - 20) / 2);
+    g.scale(z, z); g.translate(-cx, -cy);
+    D.lod(z, 0.75);
+    ground(cx - w / z, cx + w / z);
+    crane(t);
+    D.lod(1, 0);
+    g.restore();
+  }
+  function page3(t) {
+    view(14, 52, 560, 476, 'guindaste: truss + lattice + cable + box + track + piston + stairs + rail + sign + light  (z = 1)', 1.18, 30, -160, t);
+    view(588, 52, 358, 150, 'de longe (z = 0.15) · Draw.lod(z, minPx)', 0.15, 0, -200, t);
+    view(588, 216, 358, 312, 'de perto (z = 2.4)', 2.4, 10, -78, t);
+  }
+
+  /* ------------------------------------------------------------------
+     Loop
+     ------------------------------------------------------------------ */
+  let time = 0;
+  window.setTime = v => { time = v; };
+  E.Loop({
+    update(dt) { time += dt; },
+    render() {
+      stage.begin();
+      g.fillStyle = BG; g.fillRect(0, 0, W, H);
+      header();
+      if (page === 0) page1(time); else if (page === 1) page2(time); else page3(time);
+    },
+  }).start();
+})();
+</script>
+</body>
+</html>
