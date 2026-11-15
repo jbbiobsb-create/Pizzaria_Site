@@ -327,11 +327,13 @@
     { // carrinho de mão
       const p = piles[0], cx = bx + 54, by = 104, tilt = p.pile.tilt * 0.5;
       g.save(); g.translate(cx + 30, by + 4); g.rotate(tilt); g.translate(-(cx + 30), -(by + 4));
-      g.save(); g.beginPath(); g.moveTo(cx - 36, by - 52); g.lineTo(cx + 40, by - 52); g.lineTo(cx + 40, by - 30); g.lineTo(cx + 26, by); g.lineTo(cx - 26, by); g.lineTo(cx - 36, by - 30); g.closePath(); g.clip();
-      p.pile.draw(g, cx, by - 2, 70, 30);
+      g.save(); g.beginPath(); g.moveTo(cx - 36, by - 52); g.lineTo(cx + 40, by - 52); g.lineTo(cx + 40, by); g.lineTo(cx - 36, by); g.closePath(); g.clip();
+      g.fillStyle = C.redD; g.fillRect(cx - 34, by - 40, 72, 30);
+      p.pile.draw(g, cx, by - 12, 68, 26);
       g.restore();
-      D.poly(g, [[cx - 38, by - 30], [cx + 40, by - 30], [cx + 26, by + 2], [cx - 26, by + 2]], C.red, { ol: 2, shade: C.redD });
-      g.fillStyle = C.redL; g.fillRect(cx - 33, by - 28, 68, 3);
+      D.poly(g, [[cx - 38, by - 40], [cx - 34, by - 40], [cx - 34, by - 20], [cx - 38, by - 20]], C.redD, { ol: 2 }); D.poly(g, [[cx + 36, by - 40], [cx + 40, by - 40], [cx + 40, by - 20], [cx + 36, by - 20]], C.redD, { ol: 2 });
+      D.poly(g, [[cx - 38, by - 22], [cx + 40, by - 22], [cx + 26, by + 2], [cx - 26, by + 2]], C.red, { ol: 2, shade: C.redD });
+      g.fillStyle = C.redL; g.fillRect(cx - 33, by - 20, 68, 3);
       D.beam(g, [[cx - 30, by - 4], [cx - 52, by - 20]], 3.5, C.wood, { ol: 1.6 });
       g.restore();
       D.wheel(g, cx + 30, by + 12, 10, t * (p.dump ? 6 : 0.4), { hub: C.steel, spokes: 4, ol: 1.6 });
@@ -341,10 +343,12 @@
       const p = piles[1], cx = bx + 156, by = 106, tilt = -p.pile.tilt * 0.42;
       g.save(); g.translate(cx - 44, by + 2); g.rotate(tilt); g.translate(-(cx - 44), -(by + 2));
       g.save(); g.beginPath(); g.rect(cx - 44, by - 70, 88, 70); g.clip();
-      p.pile.draw(g, cx, by - 2, 84, 26);
+      g.fillStyle = C.yelD; g.fillRect(cx - 44, by - 30, 88, 20);
+      p.pile.draw(g, cx, by - 8, 86, 24);
       g.restore();
-      D.box(g, cx - 46, by - 22, 92, 24, C.yel, { ol: 2, panels: 4, rivets: true });
-      D.poly(g, [[cx + 46, by - 22], [cx + 62, by - 34], [cx + 62, by - 29], [cx + 46, by - 14]], C.yelD, { ol: 2 });
+      D.box(g, cx - 48, by - 32, 5, 22, C.yelD, { ol: 2 }); D.box(g, cx + 43, by - 32, 5, 22, C.yelD, { ol: 2 });
+      D.box(g, cx - 48, by - 13, 96, 15, C.yel, { ol: 2, panels: 4, rivets: true });
+      D.poly(g, [[cx + 48, by - 32], [cx + 64, by - 42], [cx + 64, by - 37], [cx + 48, by - 24]], C.yelD, { ol: 2 });
       g.restore();
       D.wheel(g, cx - 26, by + 9, 9, t * 0.5, { ol: 1.6 }); D.wheel(g, cx + 26, by + 9, 9, t * 0.5, { ol: 1.6 });
       D.text(g, p.name + ' ' + Math.round(p.pile.frac * 100) + '%', cx, 127, { size: 9.5, col: p.pile.frac >= 1 ? C.oraD : INK, sw: 0, weight: 800 });

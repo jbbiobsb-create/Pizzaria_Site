@@ -209,12 +209,12 @@
   let LA = 'g', LAs = 0.25, LB = 'g', LBs = 0.25, LBa = 0, LNear = 1;
   function pickLod(S) {
     const q = Math.pow(2, Math.max(0, Math.round(Math.log2(1 / S))));
-    if (S >= 2.6) { LA = 'g'; LAs = 0.25; LBa = 0; }
-    else if (S >= 2.1) { LA = 'g'; LAs = 0.5; LB = 'g'; LBs = 0.25; LBa = (S - 2.1) / 0.5; }
+    if (S >= 2.55) { LA = 'g'; LAs = 0.25; LBa = 0; }
+    else if (S >= 2.25) { LA = 'g'; LAs = 0.5; LB = 'g'; LBs = 0.25; LBa = (S - 2.25) / 0.3; }
     else if (S >= 0.85) { LA = 'g'; LAs = 0.5; LB = 's'; LBs = q; LBa = U.clamp((1.7 - S) / 0.85, 0, 1) * 0.42; } // médio: grão graúdo, acalmado pela textura macia
     else if (S >= 0.65) { LA = 's'; LAs = q; LB = 'g'; LBs = 0.5; LBa = ((S - 0.65) / 0.2) * 0.58; }
     else { LA = 's'; LAs = q; LBa = 0; }
-    LNear = U.clamp((S - 2.1) / 0.5, 0, 1); // 1 = grãos no tamanho real
+    LNear = U.clamp((S - 2.25) / 0.3, 0, 1); // 1 = grãos no tamanho real
   }
   function matTex(g, m, variant) {
     const t = m._tx || (m._tx = {});
@@ -785,10 +785,11 @@
       }
 
       // peso da profundidade: dois degraus de tom chapado abaixo da superfície atual (mais escuro e apertado lá embaixo)
-      const d1 = Math.max(26, 18 * pxw), d2 = Math.max(80, 60 * pxw);
-      g.fillStyle = 'rgba(74,46,20,.075)';
-      bodyPath(g, d1); g.fill();
-      bodyPath(g, d2); g.fill();
+      const dk = Math.max(1, 0.7 * pxw);
+      g.fillStyle = 'rgba(74,46,20,.08)';
+      bodyPath(g, 18 * dk); g.fill();
+      bodyPath(g, 46 * dk); g.fill();
+      bodyPath(g, 105 * dk); g.fill();
       // sombra na base
       const bs = Math.max(10, Math.min(60, heap.maxH * 0.03));
       g.fillStyle = 'rgba(74,46,20,.09)';
@@ -905,7 +906,7 @@
           for (let j = 0; j < nn; j++) {
             const f = (time * (2.2 + hsh * 1.6) + hsh * 7 + j * 0.5) % 1;
             const x = px[k] + dir * (f - 0.5) * colW * step * 2.4;
-            const kx = k + (dir * (f - 0.5) > 0 ? dir : 0), y = (kx >= 0 && kx < M ? (py[k] + py[kx]) * 0.5 : py[k]) - Math.abs(Math.sin(f * Math.PI * 2)) * (big ? 2.4 : 2.5 * pxw) - rs;
+            const kx = k + (dir * (f - 0.5) > 0 ? dir : 0), y = (kx >= 0 && kx < M ? (py[k] + py[kx]) * 0.5 : py[k]) - Math.abs(Math.sin(f * Math.PI * 2)) * (big ? 2.4 : 2.5 * pxw) - rs - (big ? 0 : ol * 1.3);
             if (big) { const an = f * 9 * dir; g.moveTo(x + 1.7 * Math.cos(an), y + 1.7 * Math.sin(an)); g.ellipse(x, y, 1.7, 0.85, an, 0, TAU); }
             else g.rect(x - rs, y - rs, rs * 2, rs * 2);
             cnt++;
@@ -1247,7 +1248,7 @@
   //   E.Terrain.fill(g, {tex, col}, escala?) preenche o caminho atual com o LOD certo pra escala
   E.Terrain = {
     texture,
-    fill(g, mat, scale) { pickLod(scale || scaleOf(g)); if (!mat._tx) mat._tx = null; fillMat(g, mat); },
+    fill(g, mat, scale) { pickLod(scale || scaleOf(g)); fillMat(g, mat); },
     clearCache() { texCache.clear(); },
   };
 })();
