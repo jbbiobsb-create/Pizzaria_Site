@@ -12,467 +12,416 @@
 <script src="../engine/core.js"></script>
 <script src="../engine/pix.js"></script>
 <script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
 <script src="../engine/terrain.js"></script>
 <script>
 /* Demo do terrain.js
-   ponteiro segurado = cava · 1-5 = ferramenta · R = roda de caçambas (digCircle) · Z ou rolagem = zoom
-   A/D ou borda da tela = anda · G = grãos voltam pra pilha (liga/desliga) · K = salvar+carregar · N = nova montanha
-   query: ?zoom=0|1|2  ?tool=1..5  ?wheel=1  ?pre=1 (já começa com crateras)                                        */
+   segure o ponteiro pra cavar · 1-5 ferramenta · R roda de caçambas · Z zoom · G devolver grãos · 0 reiniciar
+   query: ?z=3|1|far  &x=<x de mundo>  &tool=1..5  &wheel=1  &dig=<segundos de cava automática antes do 1º frame> */
 (function () {
   'use strict';
   const E = KomeEngine, U = E.U, D = E.Draw, C = E.PAL, TAU = Math.PI * 2;
-  const W = 960, H = 540;
-  const Q = new URLSearchParams(location.search);
-  const stage = E.Stage({ width: W, height: H, bg: '#BFE3EE', maxDpr: 2 });
+  const W = 960, H = 540, INK = C.ink;
+  const stage = E.Stage({ width: W, height: H, bg: '#9FD3E8', maxDpr: 2 });
   const g = stage.g;
   const input = E.Input(stage);
+  const qs = k => { const m = location.search.match(new RegExp('[?&]' + k + '=([^&]*)')); return m ? decodeURIComponent(m[1]) : null; };
 
   /* ------------------------------------------------------------------
-     Mundo (números do GDD): 8400 de largura, colunas de 4 px = 2100 colunas
+     Mundo: a montanha do GDD (2100 colunas de 4 px), camadas por profundidade, núcleo em elipse, 28 bolsões
      ------------------------------------------------------------------ */
-  const WW = 8400, COLW = 4, MX0 = 1800, MX1 = 8000, MH = 2600;
+  const WW = 8400, MX0 = 1800, MX1 = 8000, MH = 2400;
   const MATS = [
-    { id: 'solto', name: 'Arroz Solto', d0: 0, d1: 150, hard: 1, val: 1, slope: 3.6, col: '#F6F1E4', col2: '#E0D6BC', col3: '#FFFFFF' },
-    { id: 'prensado', name: 'Arroz Prensado', d0: 150, d1: 600, hard: 2.5, val: 1.6, slope: 6, col: '#E9DCBE', col2: '#D2C198', col3: '#F6EDD6' },
-    { id: 'mochi', name: 'MOCHI DURO', d0: 600, d1: 1e9, hard: 8, val: 3.5, slope: 9, col: '#EFD9D2', col2: '#E0C2B8', col3: '#FBEDE8' },
-    { id: 'koshi', name: 'Núcleo Koshihikari', ellipse: { cx: 4900, cy: 0, rx: 1150, ry: 900 }, hard: 24, val: 6, slope: 12, col: '#E8B93A', col2: '#C4922A', col3: '#FFE68A' },
+    { id: 'solto', name: 'Arroz Solto', d0: 0, d1: 150, hard: 1, val: 1, slope: 3.6, col: '#F6F1E4' },
+    { id: 'prensado', name: 'Arroz Prensado', d0: 150, d1: 600, hard: 2.5, val: 1.6, slope: 6, col: '#E9DCBE' },
+    { id: 'mochi', name: 'MOCHI DURO', d0: 600, d1: 1e9, hard: 8, val: 3.5, slope: 9, col: '#EFD9D2' },
+    { id: 'koshi', name: 'Núcleo Koshihikari', ellipse: { cx: 4900, cy: 0, rx: 1150, ry: 900 }, hard: 24, val: 6, slope: 12, col: '#E8B93A' },
   ];
-  const heap = E.Heap({ width: WW, colW: COLW, layers: MATS });
-  let seed = 3;
+  const heap = E.Heap({ width: WW, colW: 4, layers: MATS });
+  function shape(x) {
+    if (x < MX0 || x > MX1) return 0;
+    const u = (x - (MX0 + MX1) / 2) / ((MX1 - MX0) / 2);          // -1..1
+    const tri = 1.02 - Math.sqrt(u * u + 0.012) - 0.02 * (1 - u * u) * 0;
+    const foot = U.smooth(U.clamp((1 - Math.abs(u)) / 0.035, 0, 1)); // pé arredondado
+    const bumps = 7 * Math.sin(x / 83) + 5 * Math.sin(x / 47 + 2) + 9 * Math.sin(x / 190 + 1);
+    return Math.max(0, (MH * Math.max(0, tri) + bumps) * foot);
+  }
   function build() {
-    const r = E.RNG(seed), ph = [r() * 9, r() * 9, r() * 9];
-    heap.generate(x => {
-      if (x < MX0 || x > MX1) return 0;
-      const t = (x - MX0) / (MX1 - MX0);
-      return MH * Math.pow(Math.sin(Math.PI * t), 1.35) * (1 + 0.05 * Math.sin(t * 17 + ph[0]) + 0.035 * Math.sin(t * 41 + ph[1]) + 0.02 * Math.sin(t * 97 + ph[2]));
-    }, { maxSlope: 3.4 });
-    heap.pockets.length = 0;
-    heap.addPocket({ x: 2395, y: 232, r: 34 });      // um bolsão raso perto do pé, pra ver de perto
-    heap.addPocket({ x: 2090, y: 62, r: 22 });
-    heap.scatterPockets({ n: 28, r: [35, 90], minDepth: 60, seed: seed * 11 });
+    heap.clearPockets();
+    heap.generate(shape);
+    const r = E.RNG(77);
+    let tries = 0;
+    while (heap.pockets.length < 28 && tries++ < 400) {
+      const x = MX0 + 200 + r() * (MX1 - MX0 - 400), rad = 35 + r() * 55, H0 = heap.h0[heap.col(x)];
+      const y = H0 * (0.08 + r() * 0.84);
+      if (H0 - y < 60 + rad * 0.3 || y < rad) continue;
+      let ok = true;
+      for (const p of heap.pockets) if (U.dist(p.x, p.y, x, y) < p.r + rad + 30) ok = false;
+      if (ok) heap.addPocket({ x, y, r: rad, mult: 8 });
+    }
   }
   build();
 
-  const grains = E.Grains(null, heap, { max: 900 });
-  const piles = [
-    { name: 'Carrinho', pile: E.Pile({ cap: 2600, cols: 16, seed: 1 }), dump: 0 },
-    { name: 'Caminhão', pile: E.Pile({ cap: 14000, cols: 26, seed: 2, slope: 0.04 }), dump: 0 },
-    { name: 'Silo', pile: E.Pile({ cap: 60000, cols: 14, seed: 3, slope: 0.02, max: 1.0 }), dump: 0 },
-  ];
+  const ps = E.Particles ? E.Particles(900) : null;
+  const grains = E.Grains(ps, heap, { max: 900 });
+  const kome = E.Actor({ x: 2010, y: 0, pose: 'stand', scale: 1 });
+  kome.x = +(qs('x') || 2010);
 
   /* ------------------------------------------------------------------
      Estado da demo
      ------------------------------------------------------------------ */
   const TOOLS = [
-    { name: 'Pata', r: 8, A: 110, pow: 1 },
-    { name: 'Pá', r: 15, A: 260, pow: 2 },
-    { name: 'Carrinho', r: 28, A: 620, pow: 3 },
-    { name: 'Trator', r: 44, A: 1300, pow: 4 },
-    { name: 'Escavadeira', r: 72, A: 2800, pow: 8 },
+    { r: 6, A: 90, pow: 1, name: 'Pata' }, { r: 11, A: 240, pow: 2, name: 'Pá' }, { r: 19, A: 560, pow: 3, name: 'Carrinho' },
+    { r: 36, A: 1600, pow: 8, name: 'Escavadeira' }, { r: 72, A: 5200, pow: 16, name: 'Pá de cabo' },
   ];
-  const ZOOMS = [{ name: 'perto', z: 1.7 }, { name: 'médio', z: 0.52 }, { name: 'longe', z: 0.142 }];
-  const S = {
-    tool: U.clamp((+Q.get('tool') || 3) - 1, 0, 4), wheel: Q.get('wheel') === '1', zi: U.clamp(+Q.get('zoom') || 0, 0, 2),
-    deposit: true, focus: 2260, t: 0, earned: 0, last: null, lastT: 0, saveInfo: '', saveT: 0,
-    wheelX: 2600, wheelY: -300, spin: 0, rot: 0, bite: 0, boing: 0,
-  };
-  const cam = { x: S.focus, y: -200, z: ZOOMS[S.zi].z };
-  const kome = E.Actor({ x: 2200, y: 0, pose: 'stand', pal: 'kome' });
+  const ZOOMS = [{ z: 3, name: 'perto ×3' }, { z: 1, name: 'médio ×1' }, { z: 0.108, name: 'longe' }];
+  const S = { tool: 1, wheel: false, zi: 0, redeposit: true, dug: 0, yen: 0, msg: '', msgT: 0, last: null, wheelRot: 0, wheelSpd: 0, bite: 0,
+    msRelax: 0, msDraw: 0, emitAcc: 0, goldAcc: 0, digging: false, px: 0, py: 0 };
+  const zq = qs('z'); if (zq) S.zi = zq === 'far' ? 2 : zq === '1' ? 1 : 0;
+  if (qs('tool')) S.tool = U.clamp(+qs('tool') - 1, 0, 4);
+  if (qs('wheel')) S.wheel = true;
+  const cam = { x: kome.x, y: -60, z: ZOOMS[S.zi].z, ax: W / 2, ay: H * 0.62 };
   const view = { x0: 0, x1: 0, y0: 0, y1: 0 };
-  const ms = { relax: 0, draw: 0, fx: 0 };
-  const floats = [];
-  for (let i = 0; i < 14; i++) floats.push({ t: 0, x: 0, y: 0, txt: '', col: '' });
-  let floatI = 0;
-  function floater(x, y, txt, col) { const f = floats[floatI++ % floats.length]; f.t = 1; f.x = x; f.y = y; f.txt = txt; f.col = col || C.cream; }
+  function camTarget(out) {
+    if (S.zi === 2) { out.x = (MX0 + MX1) / 2 - 150; out.y = -MH * 0.5 + 250; }
+    else { out.x = kome.x; out.y = heap.surf(kome.x) - (S.zi === 0 ? 18 : 60); }
+    return out;
+  }
+  { const t = camTarget({}); cam.x = t.x; cam.y = t.y; }
 
-  const toWorldX = sx => cam.x + (sx - W / 2) / cam.z;
-  const toWorldY = sy => cam.y + (sy - H / 2) / cam.z;
+  // pilhas nos recipientes do painel
+  const piles = [
+    { name: 'Carrinho', pile: E.Pile({ cap: 2500, cols: 16, seed: 3 }), dump: 0, t: 0 },
+    { name: 'Caçamba', pile: E.Pile({ cap: 30000, cols: 22, seed: 5, slope: 0.04 }), dump: 0, t: 0 },
+    { name: 'Silo', pile: E.Pile({ cap: 400000, cols: 18, seed: 9, slope: 0.03, max: 1 }), dump: 0, t: 0 },
+  ];
+  piles[1].pile.set(0.35); piles[2].pile.set(0.4);
 
   /* ------------------------------------------------------------------
-     HUD: botões desenhados no canvas
+     Botões (desenhados no canvas, estilo Kome)
      ------------------------------------------------------------------ */
-  const buttons = [];
-  function btn(id, x, y, w, h, label, on, fn) { buttons.push({ id, x, y, w, h, label, on, fn }); }
-  for (let i = 0; i < 5; i++) btn('t' + i, 604 + i * 34, 10, 30, 30, String(i + 1), () => !S.wheel && S.tool === i, () => { S.tool = i; S.wheel = false; });
-  btn('wheel', 778, 10, 58, 30, 'Roda', () => S.wheel, () => { S.wheel = !S.wheel; });
-  btn('zoom', 840, 10, 110, 30, () => 'Zoom: ' + ZOOMS[S.zi].name, () => false, () => { S.zi = (S.zi + 1) % ZOOMS.length; });
-  btn('dep', 604, 44, 170, 22, () => 'Grãos voltam pra pilha: ' + (S.deposit ? 'sim' : 'não'), () => S.deposit, () => { S.deposit = !S.deposit; });
-  btn('save', 778, 44, 84, 22, 'Salvar+ler', () => false, saveLoad);
-  btn('new', 866, 44, 84, 22, 'Nova', () => false, () => { seed++; build(); grains.clear(); });
-  function hitButton(x, y) { for (const b of buttons) if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b; return null; }
-  function saveLoad() {
-    const s = heap.serialize(), before = heap.remaining();
-    const ok = heap.deserialize(s);
-    S.saveInfo = (ok ? 'save ok: ' : 'save FALHOU: ') + U.fmt(s.length) + ' chars · erro ' + Math.abs(heap.remaining() - before).toFixed(1) + ' px²';
-    S.saveT = 4;
-    return { ok, len: s.length, err: Math.abs(heap.remaining() - before) };
-  }
+  const btns = [];
+  function addBtn(id, x, y, w, h, label, fn, on) { btns.push({ id, x, y, w, h, label, fn, on, press: 0 }); }
+  for (let i = 0; i < 5; i++) addBtn('t' + i, 14 + i * 40, H - 48, 36, 36, '', () => { S.tool = i; S.wheel = false; }, () => !S.wheel && S.tool === i);
+  addBtn('wheel', 222, H - 48, 72, 36, 'Roda', () => { S.wheel = !S.wheel; }, () => S.wheel);
+  addBtn('zoom', 302, H - 48, 112, 36, () => 'Zoom: ' + ZOOMS[S.zi].name, () => { S.zi = (S.zi + 1) % 3; });
+  addBtn('redep', 422, H - 48, 132, 36, () => 'Devolver grãos: ' + (S.redeposit ? 'sim' : 'não'), () => { S.redeposit = !S.redeposit; }, () => S.redeposit);
+  addBtn('reset', 562, H - 48, 84, 36, 'Reiniciar', () => { build(); grains.clear(); S.dug = S.yen = 0; });
+  function btnAt(x, y) { for (const b of btns) if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b; return null; }
+  let uiHold = false;
+  input.on('down', (x, y) => { const b = btnAt(x, y); uiHold = !!b; if (b) { b.fn(); b.press = 1; } });
+  input.on('up', () => { uiHold = false; });
+  input.on('key', code => {
+    if (code >= 'Digit1' && code <= 'Digit5') { S.tool = +code.slice(5) - 1; S.wheel = false; }
+    else if (code === 'KeyR') S.wheel = !S.wheel;
+    else if (code === 'KeyZ') S.zi = (S.zi + 1) % 3;
+    else if (code === 'KeyG') S.redeposit = !S.redeposit;
+    else if (code === 'Digit0') { build(); grains.clear(); }
+  });
 
   /* ------------------------------------------------------------------
-     Update
+     Simulação
      ------------------------------------------------------------------ */
-  let hudDown = false;
-  function collect(vol) {
-    S.earned += vol;
-    // enche o carrinho, depois o caminhão, depois o silo
-    let rest = vol;
-    for (const p of piles) { if (p.dump > 0) continue; rest -= p.pile.add(rest, 0.35 + 0.3 * Math.random(), 0.2); if (rest <= 1e-6) break; }
+  const tmp = { x: 0, y: 0 };
+  function feedPiles(v) {
+    for (const p of piles) if (!p.dump) p.pile.add(v, 0.5 + 0.22 * Math.sin(p.t * 2.3 + p.pile.cap), 0.14);
   }
+  // um passo de cava no ponto (wx, wy) do mundo
   function digAt(wx, wy, dt) {
-    let r;
+    let res;
     if (S.wheel) {
-      r = heap.digCircle(S.wheelX, S.wheelY, 110, 5200 * S.spin * dt, { pow: 24 });
+      const r = wheelR();
+      S.wheelSpd = U.damp(S.wheelSpd, 1, 2.2, dt);
+      S.bite = heap.bite(wx, wy, r, -1);
+      res = heap.digCircle(wx, wy, r, 9000 * (r / 110) * (r / 110) * S.wheelSpd * dt, { pow: 24 });
+      if (res.fell > 0 && Math.random() < 0.6) grains.emit(wx + U.rnd(-r, r) * 0.7, wy - r * 0.6, 2, { vx: 0, vy: 30, spread: 50, internal: true, size: r > 60 ? 2.2 : 1 });
     } else {
-      const T = TOOLS[S.tool];
-      r = heap.dig(wx, T.A * dt, T.r, { pow: T.pow });
+      const t = TOOLS[S.tool];
+      res = heap.dig(wx, t.A * dt, t.r, { pow: t.pow });
     }
-    if (r.got > 0) {
-      const ex = S.wheel ? S.wheelX - 60 : wx, ey = S.wheel ? S.wheelY - 96 : heap.surf(wx) - 2;
-      const big = S.wheel ? 2.2 : 0.9 + S.tool * 0.28;
-      const n = Math.min(26, 1 + Math.round(r.got / (S.wheel ? 9 : 4 + S.tool * 3)));
-      const back = S.deposit ? 0.45 : 0;
-      const dir = S.wheel ? -1 : (wx < kome.x ? -1 : 1);
-      const nb = back ? Math.max(1, Math.round(n * 0.5)) : 0;
-      if (nb) grains.emit(ex, ey, nb, { vx: dir * (60 + 40 * big), vy: -170 - 60 * big, spread: 70 + 30 * big, deposit: true, vol: r.got * back, size: big, gold: r.gold / r.got });
-      grains.emit(ex, ey, n - nb, { vx: -dir * 30, vy: -150 - 70 * big, spread: 90 + 30 * big, size: big * 0.9, gold: r.gold / r.got, life: 1.1 });
-      collect(r.got * (1 - back));
-      S.last = { got: r.got / dt, val: r.val / dt, hard: r.hard, gold: r.gold, mats: Object.keys(r.byMat).filter(k => r.byMat[k] > 0).map(k => heap.layer(k).name).join(' + ') };
-      S.lastT = 2;
-      if (r.pocket && r.pocket.flash > 0.9) floater(r.pocket.x, -r.pocket.y - r.pocket.r, 'BOLSÃO DOURADO ×' + (r.pocket.mult || heap.goldMult), C.goldL);
-    } else if (r.blocked > 0 && S.boing <= 0) {
-      S.boing = 0.9;
-      floater(S.wheel ? S.wheelX : wx, (S.wheel ? S.wheelY : heap.surf(wx)) - 26 / cam.z, 'duro demais!', C.redL);
+    if (res.got > 0) {
+      S.dug += res.got; S.yen += res.val * 0.2;
+      const back = S.redeposit ? 0.45 : 0;
+      feedPiles(res.got * (1 - back));
+      // grãos: uns voam e voltam pra montanha (deposit), outros são só enfeite
+      const far = cam.z < 0.5, per = far ? 260 : S.zi === 1 ? 26 : 5;
+      S.emitAcc += res.got / per;
+      let nE = Math.min(14, S.emitAcc | 0); S.emitAcc -= nE; if (S.emitAcc > 20) S.emitAcc = 20;
+      const r = S.wheel ? wheelR() : TOOLS[S.tool].r, sy = heap.surf(wx), dir = kome.face || 1;
+      const sp = far ? 520 : S.zi === 1 ? 250 : 150, sz = far ? 7 : S.zi === 1 ? 1.7 : 1;
+      if (nE > 0) {
+        const nd = back > 0 ? Math.max(1, Math.round(nE * 0.6)) : 0;
+        if (nd) grains.emit(wx, sy - 2, nd, { vx: -dir * sp * 0.55, vy: -sp * 1.25, spread: sp * 0.7, deposit: true, vol: res.got * back * (nE / Math.max(nE, res.got / per)), size: sz });
+        if (nE - nd > 0) grains.emit(wx + U.rnd(-r, r) * 0.5, sy - 2, nE - nd, { vx: dir * sp * 0.3, vy: -sp, spread: sp * 0.9, size: sz, gold: res.gold > 0 && Math.random() < 0.7 });
+      } else if (back > 0) heap.add(wx - dir * r * 1.6, res.got * back, r);
+      if (res.gold > 0 && !far) { S.goldAcc += res.gold / 14; const ng = Math.min(6, S.goldAcc | 0); S.goldAcc -= ng; if (ng) grains.emit(wx, sy - 3, ng, { vy: -sp * 1.3, spread: sp, gold: true, internal: true, size: sz * 1.2 }); }
+      if (res.pocket && res.pocket.flash > 0.95) { S.msg = 'BOLSÃO DOURADO! ×' + res.pocket.mult; S.msgT = 2.2; if (ps) ps.burst(res.pocket.x, heap.y0 - res.pocket.y, 26, { c: [C.gold, C.goldL, '#FFFFFF'], shape: 'star', speed: 260 * Math.max(1, 0.5 / cam.z), w: 6 * Math.max(1, 0.6 / cam.z), life: 0.9 }); }
     }
+    if (res.blocked > 0 && res.got < res.blocked * 0.2 && res.hardMat) {
+      if (S.msgT <= 0.3) { S.msg = 'Duro demais! ' + res.hardMat.name + ' pede mais força'; S.msgT = 1.4; kome.say('duro demais!', 1.2); kome.hop(60); }
+    }
+    S.last = res;
   }
+  function wheelR() { return S.zi === 0 ? 30 : S.zi === 1 ? 70 : 110; }
 
-  function update(dt) {
-    S.t += dt;
-    for (const c of ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5']) if (input.keyPressed(c)) { S.tool = +c.slice(5) - 1; S.wheel = false; }
-    if (input.keyPressed('KeyR')) S.wheel = !S.wheel;
-    if (input.keyPressed('KeyZ')) S.zi = (S.zi + 1) % ZOOMS.length;
-    if (input.keyPressed('KeyG')) S.deposit = !S.deposit;
-    if (input.keyPressed('KeyK')) saveLoad();
-    if (input.keyPressed('KeyN')) { seed++; build(); grains.clear(); }
-    if (input.wheel) S.zi = U.clamp(S.zi + (input.wheel > 0 ? 1 : -1), 0, ZOOMS.length - 1);
+  function update(dt, auto) {
+    const z = cam.z;
+    let down = input.down && !uiHold, sx = input.x, sy = input.y;
+    let wx = cam.x + (sx - cam.ax) / z, wy = cam.y + (sy - cam.ay) / z;
+    if (auto) { down = true; wx = auto.x; wy = auto.y !== undefined ? auto.y : heap.surf(auto.x) + 4; }
+    S.px = wx; S.py = wy; S.digging = down;
 
-    if (input.pressed) { const b = hitButton(input.x, input.y); hudDown = !!b || (input.x > 590 && input.y < 70); if (b) b.fn(); }
-    if (!input.down) hudDown = false;
-    const digging = input.down && !hudDown;
-
-    // câmera: anda com A/D ou encostando o ponteiro na borda
-    const far = S.zi === 2;
-    let pan = input.axis('KeyA', 'KeyD') || input.axis('ArrowLeft', 'ArrowRight');
-    if (!pan && input.inside && !far && input.y > 80) { if (input.x < 70) pan = -(70 - input.x) / 70; else if (input.x > W - 70) pan = (input.x - (W - 70)) / 70; }
-    S.focus = U.clamp(S.focus + pan * 420 / Math.max(0.4, cam.z) * dt, MX0 - 200, MX1 + 200);
-    const tz = ZOOMS[S.zi].z;
-    cam.z = U.damp(cam.z, tz, 4.5, dt);
-    const tx = far ? 4900 : S.focus, ty = far ? -(H / 2 - 58) / cam.z : heap.surf(S.focus) - 0.1 * H / cam.z;
-    cam.x = U.damp(cam.x, tx, far ? 3 : 7, dt);
-    cam.y = U.damp(cam.y, Math.min(ty, -(H / 2 - 150) / cam.z * 0.0 + ty), 5, dt);
-    const maxY = -(H / 2 - 64) / cam.z;                       // não deixa o chão subir além do rodapé
-    if (cam.y > maxY) cam.y = maxY;
-
-    const wx = toWorldX(input.x), wy = toWorldY(input.y);
-
-    // roda de caçambas
-    if (S.wheel) {
-      S.wheelX = U.damp(S.wheelX, U.clamp(wx, MX0 - 300, MX1 + 300), 3.2, dt);
-      S.wheelY = U.damp(S.wheelY, Math.min(wy, -60), 3.2, dt);
-      S.spin = U.damp(S.spin, digging ? 1 : 0, digging ? 1.6 : 2.4, dt);
-      S.rot += S.spin * dt * 2.1;
-      S.bite = heap.bite(S.wheelX, S.wheelY, 110, -1);
-    } else S.spin = 0;
-
-    if (S.boing > 0) S.boing -= dt;
-    if (digging) digAt(wx, wy, dt);
-
-    // Kome anda por cima da montanha até onde o ponteiro cava
-    const goal = digging && !S.wheel ? wx + (kome.x < wx ? -1 : 1) * (TOOLS[S.tool].r * 0.7 + 12) : kome.x;
-    const dxk = goal - kome.x;
-    kome.vx = Math.abs(dxk) > 6 ? U.clamp(dxk * 4, -260, 260) : 0;
-    kome.update(dt);
-    kome.x = U.clamp(kome.x, 40, WW - 40);
-    kome.y = heap.surf(kome.x);
-    kome.rot = U.damp(kome.rot, -Math.atan(heap.slope(kome.x)) * 0.45, 8, dt);
-    if (Math.abs(kome.vx) > 30) kome.pose = Math.abs(kome.vx) > 150 ? 'run' : 'walk';
-    else if (digging && !S.wheel) { kome.pose = 'dig'; kome.face = wx >= kome.x ? 1 : -1; }
-    else kome.pose = S.wheel ? 'surprise' : (S.t % 9 < 4 ? 'wag' : 'stand');
-
-    let t0 = performance.now();
-    heap.relax(dt);
-    ms.relax += (performance.now() - t0 - ms.relax) * 0.08;
-    // poeirinha de grãos onde a avalanche corre
-    if (heap.flow > 6 && Math.random() < Math.min(0.7, heap.flow / 300)) grains.emit(heap.flowX, heap.surf(heap.flowX) - 2, 1, { vy: -50, spread: 50, size: 0.8, life: 0.7 });
-    t0 = performance.now();
-    grains.update(dt);
-    ms.fx += (performance.now() - t0 - ms.fx) * 0.08;
-
-    // recipientes: enchem, tremem, e quando lotam vão embora despejar
-    for (const p of piles) {
-      p.pile.update(dt);
-      if (p.dump > 0) { p.pile.take(p.pile.cap * dt * 1.4); if (p.pile.v <= 0) p.dump = 0; }
-      else if (p.pile.frac >= p.pile.max - 0.02) p.dump = 1;
+    // Kome corre até o lado do ponto de cava
+    const reach = (S.wheel ? wheelR() : TOOLS[S.tool].r) * 0.6 + 14;
+    const tx = down ? wx - reach * (wx >= kome.x ? 1 : -1) : kome.x, dxk = tx - kome.x;
+    const sp = z < 0.5 ? 1400 : 260;
+    kome.vx = Math.abs(dxk) > 3 ? U.clamp(dxk * 6, -sp, sp) : 0;
+    kome.x = U.clamp(kome.x + 0, 40, WW - 40);
+    if (down) {
+      digAt(wx, wy, dt);
+      kome.face = wx >= kome.x ? 1 : -1;
+      kome.pose = Math.abs(kome.vx) > 60 ? 'run' : 'dig';
+    } else {
+      kome.pose = Math.abs(kome.vx) > 60 ? 'run' : 'stand';
+      S.wheelSpd = U.damp(S.wheelSpd, 0, 1.5, dt);
     }
-    for (const f of floats) if (f.t > 0) { f.t -= dt * 0.7; f.y -= 22 * dt / cam.z; }
-    if (S.lastT > 0) S.lastT -= dt;
-    if (S.saveT > 0) S.saveT -= dt;
+    S.wheelRot += S.wheelSpd * dt * 2.4;
+    kome.update(dt);
+    kome.y = U.damp(kome.y, heap.surf(kome.x), 22, dt);
+
+    const t0 = performance.now();
+    heap.relax(dt);
+    S.msRelax += (performance.now() - t0 - S.msRelax) * 0.06;
+    grains.update(dt);
+    if (ps) ps.update(dt, grains.floor);
+
+    for (const p of piles) {
+      p.t += dt;
+      const pl = p.pile;
+      if (!p.dump && pl.frac >= (p.name === 'Silo' ? 0.97 : 1.12)) p.dump = 1;
+      if (p.dump) { pl.tilt = U.damp(pl.tilt, 1, 5, dt); pl.take(pl.cap * dt * 1.3, 0.92); if (pl.v <= pl.cap * 0.01) { pl.clear(); p.dump = 0; } }
+      else pl.tilt = U.damp(pl.tilt, 0, 6, dt);
+      pl.update(dt);
+    }
+    if (S.msgT > 0) S.msgT -= dt;
+
+    // câmera
+    const tz = ZOOMS[S.zi].z, tg = camTarget(tmp);
+    cam.z = Math.exp(U.damp(Math.log(cam.z), Math.log(tz), 5, dt));
+    cam.x = U.damp(cam.x, tg.x, 5, dt); cam.y = U.damp(cam.y, tg.y, 5, dt);
   }
 
   /* ------------------------------------------------------------------
-     Cenário
+     Desenho
      ------------------------------------------------------------------ */
-  const SKY = ['#8FCBE4', '#A6D8EA', '#BFE3EE', '#D9EDEA', '#F1EFD8', '#FBE8C8'];
   function sky(t) {
-    const bh = (H - 40) / SKY.length;
-    for (let i = 0; i < SKY.length; i++) { g.fillStyle = SKY[i]; g.fillRect(0, i * bh, W, bh + 1); }
-    // sol com halo em degraus
-    const sx = 742 - (cam.x - 4900) * 0.004, sy = 118;
-    g.fillStyle = 'rgba(255,240,190,.28)'; g.beginPath(); g.arc(sx, sy, 54 + Math.sin(t * 0.8) * 2, 0, TAU); g.fill();
-    g.fillStyle = 'rgba(255,240,190,.4)'; g.beginPath(); g.arc(sx, sy, 38, 0, TAU); g.fill();
-    g.fillStyle = '#FFF3C4'; g.beginPath(); g.arc(sx, sy, 26, 0, TAU); g.fill();
-    // nuvens gordinhas
-    for (let i = 0; i < 6; i++) {
-      const sp = 5 + (i % 3) * 3, cx = ((i * 211 + t * sp - cam.x * 0.012 * (1 + i % 2)) % (W + 300) + W + 300) % (W + 300) - 150, cy = 44 + (i * 47) % 150;
-      const s = 0.7 + (i % 3) * 0.28;
-      g.fillStyle = 'rgba(255,253,246,.85)';
-      g.beginPath();
-      g.ellipse(cx, cy, 44 * s, 13 * s, 0, 0, TAU); g.ellipse(cx - 18 * s, cy - 9 * s, 20 * s, 13 * s, 0, 0, TAU);
-      g.ellipse(cx + 14 * s, cy - 12 * s, 24 * s, 16 * s, 0, 0, TAU);
-      g.fill();
+    const bands = ['#8CC8E2', '#9FD3E8', '#B5DEEC', '#CBE8EE', '#E2EFE6', '#F4EBD2'];
+    for (let i = 0; i < bands.length; i++) { g.fillStyle = bands[i]; g.fillRect(0, (H * 0.78 * i) / bands.length, W, H); }
+    // sol com halo chapado
+    g.fillStyle = 'rgba(255,250,230,.35)'; g.beginPath(); g.arc(760, 96, 62 + Math.sin(t * 0.8) * 2, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(255,250,230,.5)'; g.beginPath(); g.arc(760, 96, 44, 0, TAU); g.fill();
+    g.fillStyle = '#FFF3C4'; g.beginPath(); g.arc(760, 96, 30, 0, TAU); g.fill();
+    // nuvens gordinhas andando
+    for (let i = 0; i < 5; i++) {
+      const x = ((i * 260 + t * (6 + i * 2) - cam.x * 0.02) % (W + 300) + W + 300) % (W + 300) - 150, y = 50 + ((i * 53) % 110), s = 0.7 + (i % 3) * 0.25;
+      g.fillStyle = 'rgba(255,255,255,.85)';
+      g.beginPath(); g.ellipse(x, y, 46 * s, 13 * s, 0, 0, TAU); g.ellipse(x - 18 * s, y - 8 * s, 20 * s, 13 * s, 0, 0, TAU); g.ellipse(x + 12 * s, y - 11 * s, 24 * s, 16 * s, 0, 0, TAU); g.fill();
     }
-    // morros distantes azulados (parallax)
-    for (let L = 0; L < 2; L++) {
-      const f = 0.03 + L * 0.05, zf = 0.55 + cam.z * 0.25, base = H - 40 - (-cam.y * cam.z - (H / 2 - 64)) * (0.05 + L * 0.04);
-      g.fillStyle = L ? '#A8CBB8' : '#B5D6DC';
-      g.beginPath(); g.moveTo(0, H);
-      for (let x = 0; x <= W; x += 12) {
-        const wxx = x + cam.x * f;
-        g.lineTo(x, base - (30 + L * 8 + 46 * E.Noise.fbm1(wxx * 0.006 + L * 9, 3, 5 + L)) * zf);
-      }
-      g.lineTo(W, H); g.closePath(); g.fill();
+    // morros distantes com parallax (mais claros e azulados = névoa de distância)
+    const hills = [[0.05, '#BFD9D6', 0.74, 60], [0.12, '#A6C9B4', 0.8, 46], [0.25, '#8DB58E', 0.86, 34]];
+    for (const [f, col, base, amp] of hills) {
+      const gy = cam.ay + (0 - cam.y) * cam.z * f * 0.4 + (base - 0.62) * H * (1 - f);
+      g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
+      for (let x = 0; x <= W; x += 16) { const wx = x + cam.x * f * cam.z * 0.5; g.lineTo(x, Math.min(H, gy) - amp * (0.5 + 0.5 * Math.sin(wx / 140 + f * 30) + 0.3 * Math.sin(wx / 53 + f * 9))); }
+      g.lineTo(W, H); g.fill();
     }
   }
   function ground(t) {
-    // chão de terra batida com grama; tufos balançam no vento
-    g.fillStyle = C.grass; g.fillRect(view.x0 - 10, 0, view.x1 - view.x0 + 20, 2000);
-    g.fillStyle = C.grassD; g.fillRect(view.x0 - 10, 10 / Math.max(0.3, cam.z) * 0.5 + 8, view.x1 - view.x0 + 20, 2000);
-    g.fillStyle = C.grassL; g.fillRect(view.x0 - 10, 0, view.x1 - view.x0 + 20, Math.max(2.5, 1.5 / cam.z));
-    if (cam.z > 0.3) {
-      g.strokeStyle = C.grassD; g.lineWidth = 1.6; g.lineCap = 'round';
-      g.beginPath();
-      const a = Math.floor(view.x0 / 23) * 23;
-      for (let x = a; x < view.x1; x += 23) {
-        if (heap.height(x) > 1) continue;
-        const sway = Math.sin(t * 1.8 + x * 0.05) * 2.2, hx = x + (x * 7 % 11);
-        g.moveTo(hx, 0); g.lineTo(hx + sway, -6 - (x % 5));
-        g.moveTo(hx + 3, 0); g.lineTo(hx + 4 + sway * 1.2, -4 - (x % 3));
+    // chão na frente da base: grama + terra (cobre o pé da montanha)
+    const x0 = view.x0 - 10, w = view.x1 - view.x0 + 20, lw = 1.25 / Math.min(1, cam.z);
+    g.fillStyle = C.woodD; g.fillRect(x0, 0, w, (view.y1 > 0 ? view.y1 : 0) + 10);
+    g.fillStyle = C.grassD; g.fillRect(x0, 0, w, Math.max(7, 5 / cam.z));
+    g.fillStyle = C.grass; g.fillRect(x0, 0, w, Math.max(4, 3 / cam.z));
+    g.fillStyle = C.line; g.fillRect(x0, -lw * 0.5, w, lw);
+    if (cam.z > 0.6) { // tufos de grama balançando fora da montanha
+      g.strokeStyle = C.grassD; g.lineWidth = 1; g.lineCap = 'round'; g.beginPath();
+      for (let x = Math.floor(view.x0 / 9) * 9; x < view.x1; x += 9) {
+        if (heap.height(x) > 0.5) continue;
+        const hh = 3 + E.hash(x) * 4, sw = Math.sin(t * 2 + x * 0.05) * 1.6;
+        g.moveTo(x, 0); g.quadraticCurveTo(x + sw * 0.4, -hh * 0.6, x + sw, -hh);
       }
       g.stroke();
     }
-    g.fillStyle = C.line; g.fillRect(view.x0 - 10, -Math.max(0.6, 0.6 / cam.z), view.x1 - view.x0 + 20, Math.max(1.2, 1.2 / cam.z));
   }
-
-  // roda de caçambas (vetorial, cores chapadas, contorno Kome) com a lança indo pra direita
   function drawWheel(t) {
-    const x = S.wheelX, y = S.wheelY, R = 110, ol = Math.max(1.6, 1.6 / cam.z);
-    const shake = S.spin * (S.bite > 0.85 ? 3 : 0.8);
-    const jx = Math.sin(t * 47) * shake, jy = Math.cos(t * 53) * shake;
-    g.save(); g.translate(x + jx, y + jy);
-    g.lineJoin = 'round'; g.lineCap = 'round';
-    // lança treliçada
-    D.truss(g, [30, -6], [1400, -360], 46, 8, C.yel, { ol });
-    // caçambas
-    for (let k = 0; k < 18; k++) {
-      const a = S.rot + k * TAU / 18;
-      g.save(); g.rotate(a); g.translate(0, -R + 9);
-      g.beginPath(); g.moveTo(-15, 6); g.lineTo(13, 6); g.lineTo(15, -12); g.lineTo(-4, -15); g.lineTo(-17, -5); g.closePath();
-      g.fillStyle = C.steelD; g.fill(); g.strokeStyle = C.line; g.lineWidth = ol; g.stroke();
-      if (S.spin > 0.2 && S.bite > 0.15 && Math.cos(a) < 0.35) { g.fillStyle = C.rice; g.beginPath(); g.ellipse(-2, -8, 10, 5, 0, Math.PI, 0); g.fill(); g.stroke(); }
+    const r = wheelR(), x = S.px, y = S.py, ol = Math.max(1.6, 1.4 / cam.z), nb = 12;
+    g.save(); g.translate(x, y);
+    // lança (treliça) saindo pra direita
+    D.lod(cam.z);
+    D.truss(g, [r * 0.1, 0], [r * 4.2, -r * 1.3], r * 0.5, r * 0.07, C.yel, { taper: 1.3, cross: true, ol });
+    g.rotate(S.wheelRot + Math.sin(t * 40) * 0.004 * S.wheelSpd);
+    for (let i = 0; i < nb; i++) { // caçambas
+      const a = (i / nb) * TAU;
+      g.save(); g.rotate(a); g.translate(r * 0.86, 0);
+      D.poly(g, [[-r * 0.04, -r * 0.14], [r * 0.16, -r * 0.1], [r * 0.2, r * 0.1], [-r * 0.04, r * 0.16]], C.red, { ol, shade: C.redD });
+      g.fillStyle = C.rice; g.fillRect(r * 0.0, -r * 0.1, r * 0.1, r * 0.06);
       g.restore();
     }
-    // aro, raios, cubo
-    g.strokeStyle = C.line; g.lineWidth = 15 + ol * 2; g.beginPath(); g.arc(0, 0, R - 20, 0, TAU); g.stroke();
-    g.strokeStyle = C.yel; g.lineWidth = 15; g.beginPath(); g.arc(0, 0, R - 20, 0, TAU); g.stroke();
-    g.strokeStyle = C.yelL; g.lineWidth = 3.5; g.beginPath(); g.arc(0, 0, R - 15, Math.PI * 1.05, Math.PI * 1.6); g.stroke();
-    for (let k = 0; k < 6; k++) {
-      const a = S.rot + k * TAU / 6, cx = Math.cos(a), sy = Math.sin(a);
-      g.strokeStyle = C.line; g.lineWidth = 8 + ol * 2; g.beginPath(); g.moveTo(cx * 18, sy * 18); g.lineTo(cx * (R - 27), sy * (R - 27)); g.stroke();
-      g.strokeStyle = C.yelD; g.lineWidth = 8; g.stroke();
-    }
-    D.circle(g, 0, 0, 24, C.steel, { ol });
-    D.circle(g, 0, 0, 9, C.blk, { ol, hi: false });
+    D.ring(g, 0, 0, r * 0.86, r * 0.1, C.yel, { ol });
+    g.strokeStyle = C.line; g.lineWidth = ol * 2 + r * 0.045; g.lineCap = 'round';
+    g.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 0.76, Math.sin(a) * r * 0.76); } g.stroke();
+    g.strokeStyle = C.yelD; g.lineWidth = r * 0.045;
+    g.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 0.76, Math.sin(a) * r * 0.76); } g.stroke();
+    D.circle(g, 0, 0, r * 0.2, C.steel, { ol });
     g.restore();
-    // medidor de mordida: arco em volta da roda
-    const b = S.bite, perfect = b >= 0.4 && b <= 0.7, colB = b > 0.85 ? C.red : perfect ? C.gold : b < 0.3 ? C.grayL : C.cream;
+    // medidor da mordida em arco
+    const b = S.bite, good = b >= 0.4 && b <= 0.7;
     g.lineCap = 'round';
-    g.strokeStyle = 'rgba(42,26,16,.55)'; g.lineWidth = 9 / Math.max(0.4, cam.z); g.beginPath(); g.arc(x, y, R + 26, Math.PI * 0.75, Math.PI * 1.25); g.stroke();
-    g.strokeStyle = colB; g.lineWidth = 5 / Math.max(0.4, cam.z); g.beginPath(); g.arc(x, y, R + 26, Math.PI * 1.25 - Math.PI * 0.5 * U.clamp(b, 0.02, 1), Math.PI * 1.25); g.stroke();
+    g.strokeStyle = C.line; g.lineWidth = Math.max(5, 5 / cam.z); g.beginPath(); g.arc(x, y, r * 1.22, Math.PI * 0.75, Math.PI * 1.75); g.stroke();
+    g.strokeStyle = good ? C.gold : C.cream; g.lineWidth = Math.max(2.6, 2.6 / cam.z); g.beginPath(); g.arc(x, y, r * 1.22, Math.PI * 0.75, Math.PI * (0.75 + Math.max(0.01, b))); g.stroke();
+    D.text(g, (good ? 'MORDIDA PERFEITA ' : 'mordida ') + Math.round(b * 100) + '%', x, y - r * 1.5, { size: Math.max(9, 11 / cam.z), col: good ? C.goldL : C.cream, sw: Math.max(3, 3 / cam.z) });
+  }
+  function drawCursor(t) {
+    if (S.wheel) return;
+    const tl = TOOLS[S.tool], x = S.px, y = heap.surf(x);
+    const lw = Math.max(0.8, 1.5 / cam.z), pulse = 1 + Math.sin(t * 6) * 0.06;
+    g.strokeStyle = 'rgba(59,40,24,.8)'; g.lineWidth = lw * 2.2; g.setLineDash([lw * 3, lw * 3]); g.lineDashOffset = -t * 14 * lw;
+    g.beginPath(); g.ellipse(x, y, tl.r * pulse, tl.r * 0.35 * pulse, 0, 0, TAU); g.stroke();
+    g.strokeStyle = C.cream; g.lineWidth = lw; g.stroke();
+    g.setLineDash([]);
   }
 
-  /* ------------------------------------------------------------------
-     Recipientes com E.Pile (canto inferior direito, em tela)
-     ------------------------------------------------------------------ */
-  function containers(t) {
-    const bx = 644, by = H - 12;
-    g.fillStyle = 'rgba(42,26,16,.82)'; D.rrect(g, bx - 10, by - 92, 316, 98, 9); g.fill();
-    g.fillStyle = 'rgba(255,250,238,.10)'; D.rrect(g, bx - 7, by - 89, 310, 92, 7); g.fill();
-    D.text(g, 'E.Pile: pilha que assenta', bx + 148, by - 80, { size: 10, col: C.goldL, sw: 0, weight: 800 });
-
-    // carrinho de mão
-    {
-      const p = piles[0], x = bx + 6, y = by - 20, w = 62, hm = 26, k = p.dump > 0 ? Math.min(1, p.dump) : 0;
-      g.save(); g.translate(x + w / 2, y); g.rotate(p.dump > 0 ? -0.35 : Math.sin(t * 30) * p.pile.wob * 0.02); g.translate(-(x + w / 2), -y);
-      p.pile.draw(g, x + 4, y - 1, w - 8, hm, { t, lw: 1.5 });
-      g.beginPath(); g.moveTo(x - 4, y - hm - 2); g.lineTo(x + w + 6, y - hm - 2); g.lineTo(x + w - 5, y + 1); g.lineTo(x + 6, y + 1); g.closePath();
-      g.save(); g.clip(); g.fillStyle = 'rgba(0,0,0,0)'; g.restore();
-      g.lineJoin = 'round'; g.strokeStyle = C.line; g.lineWidth = 5; g.stroke(); g.strokeStyle = C.red; g.lineWidth = 2.6; g.stroke();
-      g.strokeStyle = C.line; g.lineWidth = 4.5; g.beginPath(); g.moveTo(x + w + 4, y - hm); g.lineTo(x + w + 22, y - hm - 5); g.stroke();
-      g.strokeStyle = C.wood; g.lineWidth = 2.2; g.stroke();
-      D.circle(g, x + 12, y + 9, 7.5, C.blk, { ol: 1.5 }); D.circle(g, x + 12, y + 9, 2.6, C.steel, { ol: 1, hi: false, shade: false });
-      g.restore();
-    }
-    // caçamba do caminhão
-    {
-      const p = piles[1], x = bx + 104, y = by - 18, w = 104, hm = 30;
-      const sag = p.pile.frac * 2.2 + Math.sin(t * 34) * p.pile.wob * 0.8, lift = p.dump > 0 ? 0.32 : 0;
-      g.save(); g.translate(x + w, y + sag); g.rotate(lift); g.translate(-(x + w), -(y + sag));
-      p.pile.draw(g, x + 3, y + sag - 1, w - 6, hm, { t, lw: 1.5 });
-      g.lineJoin = 'round';
-      g.beginPath(); g.moveTo(x - 8, y - hm - 8 + sag); g.lineTo(x - 2, y - hm + sag); g.lineTo(x, y + 2 + sag); g.lineTo(x + w, y + 2 + sag); g.lineTo(x + w + 3, y - hm + sag);
-      g.strokeStyle = C.line; g.lineWidth = 6.5; g.stroke(); g.strokeStyle = C.ora; g.lineWidth = 3.8; g.stroke();
-      g.strokeStyle = C.oraL; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x + 3, y + 1 + sag); g.lineTo(x + w - 3, y + 1 + sag); g.stroke();
-      g.restore();
-      D.wheel(g, x + 22, y + 13, 10, t * (p.dump > 0 ? 3 : 0), { ol: 1.4, hub: C.yel });
-      D.wheel(g, x + w - 20, y + 13, 10, t * (p.dump > 0 ? 3 : 0), { ol: 1.4, hub: C.yel });
-    }
-    // visor do silo
-    {
-      const p = piles[2], x = bx + 234, y = by - 12, w = 56, hm = 58;
-      g.fillStyle = C.line; D.rrect(g, x - 6, y - hm - 8, w + 12, hm + 14, 8); g.fill();
-      g.fillStyle = C.steel; D.rrect(g, x - 4, y - hm - 6, w + 8, hm + 10, 6); g.fill();
-      g.fillStyle = C.steelD; g.fillRect(x - 4, y - 3, w + 8, 5);
-      g.fillStyle = C.line; D.rrect(g, x - 1.5, y - hm - 1.5, w + 3, hm + 3, 4); g.fill();
-      g.fillStyle = '#5C7F96'; D.rrect(g, x, y - hm, w, hm, 3); g.fill();
-      g.save(); D.rrect(g, x, y - hm, w, hm, 3); g.clip();
-      p.pile.draw(g, x, y, w, hm, { t, lw: 1.5, lip: hm });
-      g.fillStyle = 'rgba(255,255,255,.22)'; g.beginPath(); g.moveTo(x + 6, y - hm); g.lineTo(x + 18, y - hm); g.lineTo(x + 2, y); g.lineTo(x - 10, y); g.closePath(); g.fill();
-      g.restore();
-      for (let k = 1; k < 4; k++) { g.fillStyle = C.line; g.fillRect(x + w - 7, y - hm * k / 4, 7, 1.2); }
-    }
-    const names = [[bx + 40, 'carrinho'], [bx + 156, 'caminhão'], [bx + 262, 'silo']];
-    for (let i = 0; i < 3; i++) {
-      const p = piles[i];
-      D.text(g, names[i][1] + ' ' + Math.round(p.pile.frac * 100) + '%', names[i][0], by - 92 + 24, { size: 8.5, col: p.dump > 0 ? C.goldL : C.cream, sw: 0, weight: 700 });
-    }
+  function panel(x, y, w, h, title) {
+    g.fillStyle = 'rgba(42,26,16,.22)'; D.rrect(g, x + 2, y + 4, w, h, 9); g.fill();
+    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 4, 10); g.fill();
+    g.fillStyle = C.cream; D.rrect(g, x, y, w, h, 8); g.fill();
+    if (title) { g.fillStyle = INK; D.rrect(g, x, y, w, 19, 8); g.fill(); g.fillRect(x, y + 9, w, 10); D.text(g, title, x + 9, y + 10, { size: 11, col: C.gold, sw: 0, align: 'left' }); }
   }
-
-  /* ------------------------------------------------------------------
-     HUD
-     ------------------------------------------------------------------ */
-  function panel(x, y, w, h) {
-    g.fillStyle = 'rgba(42,26,16,.82)'; D.rrect(g, x, y, w, h, 9); g.fill();
-    g.fillStyle = 'rgba(255,250,238,.10)'; D.rrect(g, x + 3, y + 3, w - 6, h - 6, 7); g.fill();
-  }
-  const TL = { size: 10, col: C.cream, sw: 0, weight: 700, align: 'left' };
-  const TG = { size: 10, col: C.goldL, sw: 0, weight: 900, align: 'left' };
-  function meter(x, y, label, val, max, unit, good) {
-    D.text(g, label, x, y, TL);
-    g.fillStyle = 'rgba(0,0,0,.35)'; D.rrect(g, x + 52, y - 4.5, 74, 9, 4); g.fill();
-    const f = U.clamp(val / max, 0, 1);
-    g.fillStyle = good ? C.grassL : f > 0.75 ? C.redL : f > 0.4 ? C.yel : C.grassL;
-    D.rrect(g, x + 53, y - 3.5, Math.max(4, 72 * f), 7, 3.5); g.fill();
-    D.text(g, val.toFixed(unit === 'fps' ? 0 : 2) + ' ' + unit, x + 132, y, TG);
-  }
+  const TXT = { size: 11, col: INK, sw: 0, weight: 800, align: 'left' };
+  const TXTR = { size: 11, col: INK, sw: 0, weight: 900, align: 'right' };
   function hud(t) {
-    panel(8, 8, 232, 122);
-    D.text(g, 'KOME ENGINE', 20, 23, { size: 14, col: C.gold, sw: 0, align: 'left' });
-    D.text(g, 'terrain.js', 128, 24, { size: 11, col: C.riceS, sw: 0, align: 'left', weight: 700 });
-    meter(20, 42, 'FPS', loop.fps, 60, 'fps', loop.fps > 55);
-    meter(20, 56, 'relax', ms.relax, 4, 'ms');
-    meter(20, 70, 'desenho', ms.draw, 8, 'ms');
-    meter(20, 84, 'grãos', ms.fx, 4, 'ms');
-    D.text(g, heap.n + ' colunas · ' + heap.stats.pts + ' pontos (passo ' + heap.stats.step + ', LOD ×' + heap.stats.lod + ')', 20, 100, TL);
-    D.text(g, 'resta ' + (heap.frac() * 100).toFixed(2) + '% · ' + grains.count + ' grãos' + (heap.active ? ' · avalanche' : ''), 20, 114, TL);
+    D.lod(1);
+    // medidores
+    panel(12, 12, 208, 132, 'KOME ENGINE · terrain.js');
+    const rows = [
+      ['FPS', loop.fps.toFixed(0)], ['relax()', S.msRelax.toFixed(2) + ' ms'], ['draw()', S.msDraw.toFixed(2) + ' ms'],
+      ['colunas', heap.n + (heap.moving ? ' · escorrendo' : ' · parada')], ['resta', (heap.frac() * 100).toFixed(2) + '%'],
+      ['grãos no ar', String(grains.count + (ps ? ps.count || 0 : 0))], ['¥', U.fmt(S.yen)],
+    ];
+    rows.forEach((r, i) => { D.text(g, r[0], 22, 42 + i * 14.5, TXT); D.text(g, r[1], 210, 42 + i * 14.5, TXTR); });
+    // última cava por material
+    panel(12, 152, 208, 78, 'Material na pata');
+    const top = heap.topMat(S.px);
+    g.fillStyle = INK; D.rrect(g, 21, 177, 18, 18, 4); g.fill(); g.fillStyle = top.col; D.rrect(g, 23, 179, 14, 14, 3); g.fill();
+    D.text(g, top.name, 45, 187, TXT);
+    D.text(g, 'dureza ' + top.hard + ' · valor ×' + top.val + ' · talude ' + top.slope, 22, 205, { size: 9.5, col: '#6B5540', sw: 0, weight: 700, align: 'left' });
+    const tl = S.wheel ? { pow: 24, name: 'Roda de caçambas' } : TOOLS[S.tool];
+    const k = tl.pow / top.hard;
+    D.text(g, tl.name + ': ' + (k >= 1 ? '100%' : k >= heap.minK ? Math.round(k * 100) + '%' : 'boing!'), 22, 219, { size: 9.5, col: k < heap.minK ? C.red : '#6B5540', sw: 0, weight: 800, align: 'left' });
 
-    for (const b of buttons) {
-      const on = b.on(), lab = typeof b.label === 'function' ? b.label() : b.label;
-      g.fillStyle = C.line; D.rrect(g, b.x - 1.5, b.y - 1.5, b.w + 3, b.h + 4.5, 7); g.fill();
-      g.fillStyle = on ? C.gold : C.cream; D.rrect(g, b.x, b.y, b.w, b.h, 6); g.fill();
-      g.fillStyle = on ? C.goldL : '#FFFFFF'; D.rrect(g, b.x + 2, b.y + 1.5, b.w - 4, 3, 2); g.fill();
-      D.text(g, lab, b.x + b.w / 2, b.y + b.h / 2 + 1, { size: b.h > 24 ? 12 : 9.5, col: C.ink, sw: 0, weight: 800 });
+    // recipientes com E.Pile
+    panel(W - 318, 12, 306, 124, 'E.Pile · pilha que assenta');
+    const bx = W - 318;
+    { // carrinho de mão
+      const p = piles[0], cx = bx + 54, by = 104, tilt = p.pile.tilt * 0.5;
+      g.save(); g.translate(cx + 30, by + 4); g.rotate(tilt); g.translate(-(cx + 30), -(by + 4));
+      g.save(); g.beginPath(); g.moveTo(cx - 36, by - 52); g.lineTo(cx + 40, by - 52); g.lineTo(cx + 40, by - 30); g.lineTo(cx + 26, by); g.lineTo(cx - 26, by); g.lineTo(cx - 36, by - 30); g.closePath(); g.clip();
+      p.pile.draw(g, cx, by - 2, 70, 30);
+      g.restore();
+      D.poly(g, [[cx - 38, by - 30], [cx + 40, by - 30], [cx + 26, by + 2], [cx - 26, by + 2]], C.red, { ol: 2, shade: C.redD });
+      g.fillStyle = C.redL; g.fillRect(cx - 33, by - 28, 68, 3);
+      D.beam(g, [[cx - 30, by - 4], [cx - 52, by - 20]], 3.5, C.wood, { ol: 1.6 });
+      g.restore();
+      D.wheel(g, cx + 30, by + 12, 10, t * (p.dump ? 6 : 0.4), { hub: C.steel, spokes: 4, ol: 1.6 });
+      D.text(g, p.name, cx, 127, { size: 9.5, col: INK, sw: 0, weight: 800 });
+    }
+    { // caçamba de caminhão
+      const p = piles[1], cx = bx + 156, by = 106, tilt = -p.pile.tilt * 0.42;
+      g.save(); g.translate(cx - 44, by + 2); g.rotate(tilt); g.translate(-(cx - 44), -(by + 2));
+      g.save(); g.beginPath(); g.rect(cx - 44, by - 70, 88, 70); g.clip();
+      p.pile.draw(g, cx, by - 2, 84, 26);
+      g.restore();
+      D.box(g, cx - 46, by - 22, 92, 24, C.yel, { ol: 2, panels: 4, rivets: true });
+      D.poly(g, [[cx + 46, by - 22], [cx + 62, by - 34], [cx + 62, by - 29], [cx + 46, by - 14]], C.yelD, { ol: 2 });
+      g.restore();
+      D.wheel(g, cx - 26, by + 9, 9, t * 0.5, { ol: 1.6 }); D.wheel(g, cx + 26, by + 9, 9, t * 0.5, { ol: 1.6 });
+      D.text(g, p.name + ' ' + Math.round(p.pile.frac * 100) + '%', cx, 127, { size: 9.5, col: p.pile.frac >= 1 ? C.oraD : INK, sw: 0, weight: 800 });
+    }
+    { // visor do silo
+      const p = piles[2], cx = bx + 256, cy = 72, r = 30;
+      D.box(g, cx - 40, 36, 80, 78, C.steel, { ol: 2, panels: 3, rivets: true });
+      g.fillStyle = INK; g.beginPath(); g.arc(cx, cy, r + 5, 0, TAU); g.fill();
+      g.fillStyle = '#3F4A52'; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
+      g.save(); g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.clip();
+      p.pile.draw(g, cx, cy + r, r * 2, r * 2 * 0.92);
+      g.fillStyle = 'rgba(255,255,255,.22)'; g.beginPath(); g.ellipse(cx - 10, cy - 13, 13, 6, -0.6, 0, TAU); g.fill();
+      g.restore();
+      D.ring(g, cx, cy, r + 5, 5, C.steelD, { ol: 0 });
+      D.text(g, p.name, cx, 127, { size: 9.5, col: INK, sw: 0, weight: 800 });
+    }
+    // grãos caindo nos recipientes enquanto cava
+    if (S.digging && S.last && S.last.got > 0) {
+      g.fillStyle = C.rice; g.strokeStyle = C.line; g.lineWidth = 0.8;
+      for (let i = 0; i < 9; i++) {
+        const k = i % 3, f = (t * 2.6 + i * 0.37) % 1, x = bx + [54, 156, 256][k] + Math.sin(i * 9.1) * 7 + 14 * Math.sin(piles[k].t * 2.3 + piles[k].pile.cap) * (k < 2 ? 1 : 0.4), y = 34 + f * f * [34, 40, 30][k];
+        g.beginPath(); g.ellipse(x, y, 2.4, 1.1, f * 8 + i, 0, TAU); g.stroke(); g.fill();
+      }
     }
 
-    // material sob o ponteiro + último resultado
-    panel(8, H - 62, 392, 54);
-    const wx = toWorldX(input.x), wy = toWorldY(input.y), ci = heap.col(wx), alt = -wy;
-    const inside = alt > 0 && alt < heap.h[ci], m = inside ? heap.matAt(ci, alt) : heap.surfaceMat(wx);
-    const pk = inside ? heap.pocketAt(wx, alt) : null;
-    g.fillStyle = C.line; D.rrect(g, 18, H - 54, 16, 16, 4); g.fill();
-    g.fillStyle = pk ? C.gold : m.col; D.rrect(g, 20, H - 52, 12, 12, 3); g.fill();
-    D.text(g, (pk ? 'Bolsão dourado ×' + (pk.mult || heap.goldMult) + ' em ' : '') + m.name + '  ·  dureza ' + m.hard + '  ·  valor ×' + m.val + '  ·  talude ' + m.slope + ' px/col', 40, H - 45, TL);
-    const T = TOOLS[S.tool];
-    const head = S.wheel ? 'Roda de caçambas r110 · mordida ' + Math.round(S.bite * 100) + '%' + (S.bite >= 0.4 && S.bite <= 0.7 ? ' PERFEITA' : S.bite > 0.85 ? ' (afogada)' : '')
-      : T.name + ' · raio ' + T.r + ' · força ' + T.pow;
-    D.text(g, head, 20, H - 30, TG);
-    if (S.last && S.lastT > 0) D.text(g, U.fmt(Math.round(S.last.got)) + ' px²/s · ¥' + U.fmt(Math.round(S.last.val * 0.2)) + '/s · ' + S.last.mats + (S.last.gold > 0 ? ' · OURO' : ''), 20, H - 17, TL);
-    else D.text(g, S.saveT > 0 ? S.saveInfo : 'segure o ponteiro pra cavar · 1-5 ferramenta · R roda · Z zoom · A/D anda · G · K · N', 20, H - 17, { size: 9, col: C.riceS, sw: 0, weight: 700, align: 'left' });
+    // botões
+    for (const b of btns) {
+      b.press = Math.max(0, b.press - 0.12);
+      const on = b.on && b.on(), oy = b.press * 2;
+      g.fillStyle = INK; D.rrect(g, b.x - 2, b.y - 2 + 3, b.w + 4, b.h + 4, 9); g.fill();
+      g.fillStyle = INK; D.rrect(g, b.x - 2, b.y - 2 + oy, b.w + 4, b.h + 4, 9); g.fill();
+      g.fillStyle = on ? C.gold : C.cream; D.rrect(g, b.x, b.y + oy, b.w, b.h, 7); g.fill();
+      g.fillStyle = on ? C.goldL : '#FFFFFF'; D.rrect(g, b.x + 3, b.y + 2 + oy, b.w - 6, 4, 2); g.fill();
+      if (b.id[0] === 't' && b.id.length === 2) {
+        const i = +b.id[1], rr = 3 + i * 2.6;
+        g.fillStyle = INK; g.beginPath(); g.arc(b.x + b.w / 2, b.y + b.h / 2 + 1 + oy, rr + 1.6, 0, TAU); g.fill();
+        g.fillStyle = C.rice; g.beginPath(); g.arc(b.x + b.w / 2, b.y + b.h / 2 + 1 + oy, rr, 0, TAU); g.fill();
+        D.text(g, String(i + 1), b.x + 8, b.y + 9 + oy, { size: 9, col: INK, sw: 0 });
+      } else D.text(g, typeof b.label === 'function' ? b.label() : b.label, b.x + b.w / 2, b.y + b.h / 2 + 1 + oy, { size: 11, col: INK, sw: 0, weight: 900 });
+    }
+    D.text(g, 'segure pra cavar · 1-5 ferramenta · R roda · Z zoom · G devolver · 0 reiniciar', W - 12, H - 14, { size: 10, col: C.cream, sw: 3, align: 'right', weight: 800 });
+    if (S.msgT > 0) {
+      const a = Math.min(1, S.msgT * 3), pop = 1 + Math.max(0, S.msgT - 1.9) * 1.2;
+      D.text(g, S.msg, W / 2, 190, { size: 22 * pop, col: S.msg[0] === 'B' ? C.goldL : C.cream, sw: 6, alpha: a, shadow: 3 });
+    }
   }
 
-  /* ------------------------------------------------------------------
-     Render
-     ------------------------------------------------------------------ */
+  const drawOpts = { haze: null, pockets: 'all' };
+  const hazeFar = { col: '#BFE2EE', a0: 0, a1: 0.2 };
   function render() {
-    const t = S.t;
+    const t = loop.time, z = cam.z;
     stage.begin();
     sky(t);
-    const z = cam.z;
-    view.x0 = cam.x - W / 2 / z; view.x1 = cam.x + W / 2 / z; view.y0 = cam.y - H / 2 / z; view.y1 = cam.y + H / 2 / z;
-    D.lod(z);
     g.save();
-    g.translate(W / 2, H / 2); g.scale(z, z); g.translate(-cam.x, -cam.y);
-    ground(t);
+    g.translate(cam.ax, cam.ay); g.scale(z, z); g.translate(-cam.x, -cam.y);
+    view.x0 = cam.x - cam.ax / z; view.x1 = cam.x + (W - cam.ax) / z; view.y0 = cam.y - cam.ay / z; view.y1 = cam.y + (H - cam.ay) / z;
+    D.lod(z);
+    drawOpts.haze = z < 0.3 ? hazeFar : null;
     const t0 = performance.now();
-    heap.draw(g, view, t, { zoom: z * stage.dpr, haze: z < 0.3 ? { col: '#BFE3EE', top: U.remap(z, 0.3, 0.14, 0, 0.3), base: 0 } : 0 });
-    ms.draw += (performance.now() - t0 - ms.draw) * 0.08;
+    heap.draw(g, view, t, drawOpts);
+    S.msDraw += (performance.now() - t0 - S.msDraw) * 0.06;
+    ground(t);
     if (S.wheel) drawWheel(t);
     kome.draw(g);
-    grains.draw(g, view, { zoom: z * stage.dpr });
-    // mira da ferramenta
-    if (!S.wheel && input.inside && input.y > 72) {
-      const wx = toWorldX(input.x), r = TOOLS[S.tool].r, sy = heap.surf(wx);
-      g.strokeStyle = S.boing > 0 ? C.red : 'rgba(59,40,24,.55)'; g.lineWidth = 1.6 / z; g.setLineDash([5 / z, 4 / z]);
-      g.beginPath(); g.moveTo(wx - r, sy - 10 / z); g.lineTo(wx - r, sy + 6 / z); g.moveTo(wx + r, sy - 10 / z); g.lineTo(wx + r, sy + 6 / z);
-      g.moveTo(wx - r, sy - 10 / z); g.lineTo(wx + r, sy - 10 / z); g.stroke(); g.setLineDash([]);
-    }
-    for (const f of floats) if (f.t > 0) {
-      const pop = 1 + 0.5 * U.ease.back(Math.min(1, (1 - f.t) * 5));
-      D.text(g, f.txt, f.x, f.y, { size: 9 * pop / z, col: f.col, sw: 3.4 / z, alpha: Math.min(1, f.t * 3) });
-    }
+    grains.draw(g, view);
+    if (ps) ps.draw(g);
+    drawCursor(t);
     g.restore();
-    // vinheta suave em degraus
-    g.fillStyle = 'rgba(42,26,16,.05)'; g.fillRect(0, 0, W, 10); g.fillRect(0, H - 10, W, 10); g.fillRect(0, 0, 10, H); g.fillRect(W - 10, 0, 10, H);
-    containers(t);
     hud(t);
   }
 
-  const loop = E.Loop({ update, render, input });
-
-  /* ------------------------------------------------------------------
-     Estado inicial opcional + ganchos pra automação (shot.js --eval)
-     ------------------------------------------------------------------ */
-  function simulate(fn, sec) { const dt = 1 / 60; for (let k = 0; k < sec * 60; k++) { fn(dt); heap.relax(dt); grains.update(dt); for (const p of piles) p.pile.update(dt); } }
-  function preDig() {
-    simulate(dt => { const r = heap.dig(2220, 1500 * dt, 44, { pow: 4 }); if (r.got) collect(r.got * 0.5); }, 9);
-    simulate(dt => heap.dig(2420, 900 * dt, 28, { pow: 3 }), 6);
-    simulate(dt => heap.dig(2080, 500 * dt, 15, { pow: 2 }), 4);
-    simulate(dt => heap.digCircle(3050, -820, 110, 9000 * dt, { pow: 24 }), 14);
-    simulate(dt => heap.digCircle(3400, -1040, 110, 9000 * dt, { pow: 24 }), 10);
-    simulate(dt => heap.digCircle(6700, -700, 110, 9000 * dt, { pow: 24 }), 16);
-    simulate(dt => heap.dig(5600, 30000 * dt, 220, { pow: 16 }), 14);
-    simulate(() => {}, 4);
-  }
-  if (Q.get('pre') === '1') preDig();
-  window.demo = { E, heap, grains, piles, S, cam, kome, saveLoad, preDig, simulate, loop, ms };
+  const loop = E.Loop({ update: dt => update(dt), render, input });
+  // cava automática antes do primeiro frame (pra screenshots): ?dig=segundos
+  function sim(x, secs, y) { for (let i = 0; i < secs * 60; i++) update(1 / 60, { x, y }); }
+  if (qs('dig')) sim(+(qs('x') || 2010) + 40, +qs('dig'));
+  window.demo = { E, heap, cam, S, kome, grains, piles, sim, loop,
+    setZoom(i) { S.zi = i; cam.z = ZOOMS[i].z; const tg = camTarget({}); cam.x = tg.x; cam.y = tg.y; },
+    look(x) { kome.x = x; kome.y = heap.surf(x); const tg = camTarget({}); cam.x = tg.x; cam.y = tg.y; } };
+  heap.prewarm(g);
   loop.start();
 })();
 </script>

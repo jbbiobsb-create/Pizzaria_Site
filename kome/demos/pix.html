@@ -202,7 +202,7 @@
       const cv = S[SPRITES[i][0]](), cx = 514 + 12 + (i % 4) * sw + sw / 2, by = 52 + 28 + Math.floor(i / 4) * sh + 112;
       const bob = Math.sin(t * 2 + i * 0.9) * 2;
       D.shadow(g, cx, by + 2, cv.width * (cv.width > 34 ? 0.8 : 1.25), 5, 0.16);
-      const sc = cv.width > 34 ? 1.8 : 3;
+      const sc = cv.width > 34 ? 1.8 : Math.min(3, 104 / cv.height);             // sprite alto (pá) encolhe pra caber na célula
       E.drawSprite(g, cv, cx, by + bob - 2, { sx: sc, sy: sc });
       E.drawSprite(g, cv, cx + 46, by - 112, { ax: cv.width, ay: 0 });           // tamanho real (x1)
       D.text(g, SPRITES[i][1], cx, by + 20, T_LABEL);

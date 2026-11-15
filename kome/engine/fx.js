@@ -413,7 +413,7 @@
         }
         const pa = g.globalAlpha;
         // 2) fumaça e poeira por baixo
-        if (under) drawUnder(g, cull, pa);
+        if (under) drawUnder(g, pa);
         // 3) lotes: um caminho e um fill por (cor, alfa, contorno)
         if (m) {
           for (let k = 0; k < nk; k++) cnt[k + 1] += cnt[k];
@@ -434,7 +434,7 @@
           if (cur !== SKIP) { if (cur & 1) g.stroke(); g.fill(); }
         }
         // 4) anéis, moedas e textos por cima
-        if (over) drawOver(g, cull, pa);
+        if (over) drawOver(g, pa);
         g.globalAlpha = pa;
       },
       // clear(): remove tudo
@@ -584,7 +584,7 @@
 
     /* ---------- formas especiais ---------- */
     // poeira (puff) e fumaça (smoke): duas bolinhas chapadas (sombra + base), sem gradiente
-    function drawUnder(g, cull, pa) {
+    function drawUnder(g, pa) {
       let last = -1;
       for (let pass = 0; pass < 2; pass++) {
         last = -1;
@@ -620,7 +620,7 @@
       }
     }
     // anéis, moedas e textos
-    function drawOver(g, cull, pa) {
+    function drawOver(g, pa) {
       g.lineJoin = 'round'; g.lineCap = 'round';
       for (let i = 0; i < n; i++) {
         const sh = shape[i];

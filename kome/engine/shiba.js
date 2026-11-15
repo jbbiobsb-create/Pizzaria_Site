@@ -201,7 +201,7 @@
   const MOUTHS = ['closed', 'open', 'smile', 'tongue', 'yawn', 'grit', 'teeth', 'frown', 'gasp', 'smug', 'none'];
 
   /* head(hx,hy,eyes,mouth,ears,hat,tilt,tw,look): a cabeça de perfil com chapéu kasa.
-     eyes: ver EYES · mouth: ver MOUTHS · ears: 'up'|'back' */
+     eyes: ver EYES · mouth: ver MOUTHS · ears: 'up'|'back'|'none' */
   function head(hx, hy, eyes, mouth, ears, hatOpt, tilt, tw, look) {
     if (eyes === undefined) eyes = 'open';
     if (mouth === undefined) mouth = 'closed';
@@ -213,7 +213,8 @@
     if (ShibaPX.eyesOverride) eyes = ShibaPX.eyesOverride;
     A.headX = hx; A.headY = hy; A.mouthX = hx + 8; A.mouthY = hy + 5; A.hatX = hx - 1 + tilt * 0.5; A.hatY = hat ? hy - 14 : hy - 8;
     // orelha de trás
-    if (ears === 'back') { tri(hx - 6, hy - 3, hx - 11, hy - 6, hx - 3, hy - 6, FURS); }
+    if (ears === 'none') { /* sem orelhas: quem chama desenha as suas (ex.: roll, caídas pela gravidade) */ }
+    else if (ears === 'back') { tri(hx - 6, hy - 3, hx - 11, hy - 6, hx - 3, hy - 6, FURS); }
     else { tri(hx - 6 + tilt, hy - 6, hx - 4 + tilt, hy - 13, hx - 1, hy - 7, FURS); tri(hx - 5 + tilt, hy - 7, hx - 4 + tilt, hy - 11, hx - 2, hy - 7, CREAMS); }
     ell(hx, hy, 8.6, 8.2, FUR);
     ell(hx + 0.5, hy + 4.6, 6.4, 3.6, CREAM);
@@ -271,8 +272,41 @@
     // chapéu: kasa cônico de lavrador de arroz
     if (hat) { tri(hx - 9, hy - 6, hx + 8, hy - 7, hx - 1 + tilt * 0.5, hy - 14, HAT); line(hx - 9, hy - 6, hx + 8, hy - 7, 1.4, HATS); line(hx - 1 + tilt * 0.5, hy - 14, hx - 3, hy - 7, 1, HATL); set(hx - 1 + tilt * 0.5, hy - 14, HATS); }
     // orelha da frente por cima do chapéu
-    if (ears !== 'back') { tri(hx + 1 + tilt, hy - 7, hx + 4 + tilt + tw, hy - 14, hx + 7, hy - 6, FUR); tri(hx + 2.5 + tilt, hy - 7, hx + 4 + tilt + tw * 0.8, hy - 11.5, hx + 5.6, hy - 7, CREAM); }
+    if (ears === 'none') { /* nada */ }
+    else if (ears !== 'back') { tri(hx + 1 + tilt, hy - 7, hx + 4 + tilt + tw, hy - 14, hx + 7, hy - 6, FUR); tri(hx + 2.5 + tilt, hy - 7, hx + 4 + tilt + tw * 0.8, hy - 11.5, hx + 5.6, hy - 7, CREAM); }
     else tri(hx - 1, hy - 5, hx - 7, hy - 8, hx + 2, hy - 7, FUR);
+  }
+
+  /* headX(hx,hy,o): a MESMA cabeça de head(), mas carimbada virada/rodada em volta do centro (hx,hy).
+     o = { eyes, mouth, ears, hat, tilt, tw, look (os mesmos de head) · flipX, flipY: espelha · rot: radianos, horário na tela }
+     Desenha a cabeça num buffer temporário e copia pixel a pixel (vizinho mais próximo), então serve pra qualquer pose
+     com a cabeça de ponta-cabeça (roll), de lado, olhando pra trás (flipX)... Sem rot o carimbo é exato (sem serrilhado).
+     As âncoras (headX/Y, mouthX/Y, hatX/Y) e ShibaPX.mouth saem já transformadas. */
+  const HXW = 40, HXC = 20, headXBuf = new Uint8Array(HXW * HXW);
+  function headX(hx, hy, o) {
+    o = o || {};
+    const fx = o.flipX ? -1 : 1, fy = o.flipY ? -1 : 1, rot = o.rot || 0, co = Math.cos(rot), si = Math.sin(rot);
+    // sem rotação o pivô cai num canto de pixel (carimbo 1:1); com rotação fica no centro fracionário
+    const px = rot ? hx : Math.round(hx), py = rot ? hy : Math.round(hy);
+    const sb = buf, sw = BW, sh = BH, so = BOY;
+    if (!dry) { headXBuf.fill(0); buf = headXBuf; BW = HXW; BH = HXW; BOY = 0; }
+    head(HXC, HXC, o.eyes, o.mouth, o.ears, o.hat, o.tilt, o.tw, o.look);
+    buf = sb; BW = sw; BH = sh; BOY = so;
+    // âncoras: do espaço da cabeça (centro HXC) pro da pose
+    const ax = (x, y) => px + (x - HXC) * fx * co - (y - HXC) * fy * si, ay = (x, y) => py + (x - HXC) * fx * si + (y - HXC) * fy * co;
+    const mx = A.mouthX, my = A.mouthY, tx = A.hatX, ty = A.hatY;
+    A.headX = px; A.headY = py; A.mouthX = ax(mx, my); A.mouthY = ay(mx, my); A.hatX = ax(tx, ty); A.hatY = ay(tx, ty);
+    if (dry) return;
+    ShibaPX.mouth[0] = A.mouthX; ShibaPX.mouth[1] = A.mouthY + OY;
+    const R = HXC - 1, x0 = Math.max(0, Math.floor(px - R)), x1 = Math.min(BW - 1, Math.ceil(px + R));
+    const y0 = Math.max(-BOY, Math.floor(py - R)), y1 = Math.min(BH - 1 - BOY, Math.ceil(py + R));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const dx = x + 0.5 - px, dy = y + 0.5 - py;
+      const u = Math.floor(HXC + (dx * co + dy * si) * fx), v = Math.floor(HXC + (-dx * si + dy * co) * fy);
+      if (u < 0 || v < 0 || u >= HXW || v >= HXW) continue;
+      const c = headXBuf[v * HXW + u];
+      if (c) buf[(y + BOY) * BW + x] = c;
+    }
   }
 
   /* =====================================================================
@@ -420,13 +454,16 @@
   // gasp: choque. Olho arregalado, orelha pra trás, pelo arrepiado, boca aberta, rabo em pé
   function poseGasp(t, extra) {
     const tr = Math.round(s(t * 43)) * 0.5, by = -1.5;
-    // rabo arrepiado
-    tri(5.5, 14.5 + by, 3.5, 11 + by, 8.5, 13 + by, FUR); tri(8, 13 + by, 9.5, 9.5 + by, 12, 13 + by, FUR); tri(12, 13.5 + by, 15.5, 11.5 + by, 14, 16 + by, FUR);
-    tri(5.5, 17 + by, 2.5, 16 + by, 6, 20 + by, FUR);
-    tail(10, 17 + by, 0);
+    // rabo eriçado: a bolota de sempre, com uma coroa de tufos curtinhos espetados em volta (estilo susto de desenho animado)
+    const tcx = 10, tcy = 16.5 + by;
+    for (let i = 0; i < 6; i++) {
+      const a = -3.25 + i * 0.62, r1 = 7.3 - (i & 1) * 0.9, c0 = Math.cos(a), s0 = Math.sin(a);
+      tri(tcx + Math.cos(a - 0.34) * 4.3, tcy + Math.sin(a - 0.34) * 4.3, tcx + c0 * r1, tcy + s0 * r1, tcx + Math.cos(a + 0.34) * 4.3, tcy + Math.sin(a + 0.34) * 4.3, FUR);
+    }
+    tail(tcx, tcy, 0);
     leg(15, 29 + by, 12.5, 37, true); leg(19, 29 + by, 17.5, 37, false);
     // pelo arrepiado nas costas
-    for (let i = 0; i < 4; i++) { const x = 14 + i * 3.6; tri(x - 1.6, 21.5 + by, x - 0.8, 16.6 + by + (i & 1), x + 1.8, 21 + by, FUR); }
+    for (let i = 0; i < 3; i++) { const x = 15.5 + i * 3.6; tri(x - 1.7, 21.5 + by, x - 0.7, 18 + by + (i & 1) * 0.7, x + 1.8, 21.2 + by, FUR); }
     ell(21, 26 + by, 10.5, 6.6, FUR); ell(21, 30 + by, 7.5, 2.8, CREAM); ell(29, 25 + by, 3.6, 4.6, CREAM);
     back(20, 19 + by);
     leg(26, 29 + by, 28.5, 37, true); leg(29, 29 + by, 33, 37, false);
@@ -482,24 +519,38 @@
       /* REDESENHADA a pedido do dono (a do rascunho, parada, parecia um cachorro morto): de barriga pra cima pedindo carinho.
          Corpo em banana que balança de um lado pro outro, quatro patas dobradas pedalando, rabo abanando, chapéu torto. */
       const rock = s(t * 5.5), rx = rock * 1.2, up = rock * 1.1, k = t * 13;
-      tail(8 + rx * 0.6, 29.5 - up, s(t * 30) * 1.9);
+      tail(7 + rx * 0.6, 29.5 - up, s(t * 30) * 1.9);
       // corpo em banana: quadril e peito levantados, lombo redondo apoiado no chão, barrigão creme pra cima
-      ell(20.5 + rx, 33, 8.6, 4, FURS);
-      ell(14.5 + rx, 30.6 - up, 6.2, 5, FUR);
-      ell(26.5 + rx, 30 + up * 0.7, 7, 5.4, FUR);
-      ell(20.5 + rx, 32, 8.2, 4, FUR);
-      ell(20 + rx, 28.4 - up * 0.15, 8.4, 2.7, CREAM);
-      ell(27 + rx, 27.6 + up * 0.6, 3.4, 2.6, CREAM);
+      ell(19 + rx, 33, 8.2, 4, FURS);
+      ell(13.5 + rx, 30.6 - up, 6.2, 5, FUR);
+      ell(24.5 + rx, 30 + up * 0.7, 6.6, 5.4, FUR);
+      ell(19 + rx, 32, 7.8, 4, FUR);
+      ell(18.5 + rx, 28.4 - up * 0.15, 7.8, 2.7, CREAM);
+      ell(24.5 + rx, 27.6 + up * 0.6, 3.2, 2.6, CREAM);
       // patas pro alto, dobradas no punho, pedalando alternadas (cada uma na sua fase)
       const paw = (hx0, hy0, ph, far) => {
         const a = s(k + ph), b = Math.cos(k + ph), kx = hx0 + a * 1.5, ky = hy0 - 5.6 - b * 0.8;
         arm(hx0, hy0, kx, ky, kx - 2.6 - a * 1.1, ky - 3 + b * 1.8, far);
       };
-      paw(12.5 + rx, 28.4 - up, 0, true); paw(23.5 + rx, 27.4 + up * 0.4, 1.6, true);
-      paw(16.5 + rx, 28 - up * 0.8, Math.PI, false); paw(27.5 + rx, 27 + up * 0.6, Math.PI + 1.6, false);
-      // cabeça erguida pro lado de quem olha, olhos ^ ^, bocão aberto, orelhas caídas, chapéu torto acompanhando o balanço
-      head(35.6 + rx * 0.5, 26.4 + up * 0.8 - Math.abs(rock) * 0.5, 'happy', 'open', 'back', true, rock > 0 ? 2 : -2);
-      back(21 + rx, 35);
+      paw(11.5 + rx, 28.4 - up, 0, true); paw(21 + rx, 27.4 + up * 0.4, 1.6, true);
+      paw(15.5 + rx, 28 - up * 0.8, Math.PI, false); paw(24.5 + rx, 27 + up * 0.6, Math.PI + 1.6, false);
+      /* cabeça DE PONTA-CABEÇA (ele está de costas no chão): cocuruto apoiado no chapéu amassado, queixo e focinho pro alto.
+         É a cabeça de sempre carimbada com flipY (headX); orelhas, língua e chapéu são desenhados aqui porque obedecem à gravidade. */
+      const hx = Math.round(32.6 + rx * 0.5), hy = Math.round(25.6 + up * 0.7);
+      ell(hx - 1.5, hy + 0.6, 8.6, 8.2, FURD);                                   // sombra do pescoço: separa a cabeça do peito
+      const ej = s(t * 5.5 - 0.9) * 1.1;                                         // orelhas moles, balançam atrasadas
+      tri(hx - 7, hy + 4, hx - 2, hy + 6, hx - 5.5 + ej, hy + 11, FURS);         // orelha de trás, caída pro chão
+      headX(hx, hy, { eyes: 'happy', mouth: 'open', ears: 'none', hat: false, flipY: true });
+      // chapéu kasa amassado embaixo do cocuruto (cone de ponta pra baixo), escorregando com o balanço
+      const kx = hx + 1.5 - rock * 1.2, ky = hy + 6;
+      tri(kx - 8, ky, kx + 9, ky + 0.6, kx, 37.2, HAT); line(kx - 8, ky, kx + 9, ky + 0.6, 1.4, HATS); line(kx - 2.5, ky + 1.6, kx - 0.5, 36.4, 1, HATL); set(kx, 37, HATS);
+      // orelha da frente por cima do chapéu, pendurada
+      tri(hx + 1, hy + 5, hx + 7, hy + 4.4, hx + 4.4 + ej, hy + 10.6, FUR); line(hx + 3.2, hy + 7, hx + 4.2 + ej, hy + 9.4, 1, FURS);
+      // língua mole escapando da boca e caindo pela frente do focinho, pro lado do chão
+      const lg = Math.floor(t * 6) % 2;
+      rect(hx + 9, hy - 7, 2, 1, PINK); rect(hx + 10, hy - 6, 2, 2 + lg, PINK);
+      A.hatX = kx; A.hatY = ky;
+      back(19.5 + rx, 35);
       if (extra) {
         // risquinhos de movimento perto das patas + coraçãozinho subindo
         const f = Math.floor(t * 9) % 3;
@@ -762,13 +813,16 @@
     return cv;
   }
 
-  // drawShiba(g,x,y,pose,t,{face=1,scale=1,squash=0,rot=0,pal='kome',hat=true,mouth,eyes,alpha=1,shadow=true,fast,exact}): pés em (x,y)
+  // drawShiba(g,x,y,pose,t,{face=1,scale=1,squash=0,rot=0,pal='kome',hat=true,mouth,eyes,alpha=1,shadow=true,fast,exact,smooth}): pés em (x,y)
+  //   smooth: true/false força; sem ele, pixel duro em tamanho normal e redução suave quando o shiba fica minúsculo
+  //   (scale × zoom da câmera informado em E.Draw.lod < .75), senão o contorno de 1px some aos pedaços
   function drawShiba(g, x, y, mode, t, o) {
     o = o || NOOPTS;
     const cv = frameCanvas(mode, t, o);
     const sc = o.scale || 1, face = o.face || 1, sq = o.squash || 0;
+    const smooth = o.smooth !== undefined ? !!o.smooth : sc * (E.Draw ? E.Draw.zoom : 1) < 0.75;
     g.save(); g.translate(x, y); if (o.rot) g.rotate(o.rot);
-    g.scale(face * sc * (1 + sq * 0.6), sc * (1 - sq)); g.imageSmoothingEnabled = false;
+    g.scale(face * sc * (1 + sq * 0.6), sc * (1 - sq)); g.imageSmoothingEnabled = smooth;
     if (o.alpha !== undefined && o.alpha < 1) g.globalAlpha *= o.alpha;
     g.drawImage(cv, -23, -(38.4 + 4)); g.restore();
   }
@@ -1000,7 +1054,7 @@
      11. Actor
      ===================================================================== */
   const anchorTmp = { x: 0, y: 0 };
-  const drawOpts = { face: 1, scale: 1, squash: 0, rot: 0, pal: 'kome', hat: true, mouth: null, eyes: null, alpha: 1, shadow: true, fast: 0 };
+  const drawOpts = { face: 1, scale: 1, squash: 0, rot: 0, pal: 'kome', hat: true, mouth: null, eyes: null, alpha: 1, shadow: true, fast: 0, smooth: undefined };
   const bubbleOpts = { k: 1, side: 1 };                  // reaproveitados: nada de alocar por frame
   const anchorOpts = { hat: true, fast: 0, pal: 'kome' };
 
@@ -1054,7 +1108,7 @@
         if (!a.visible) return;
         const o = drawOpts;
         o.face = a.face; o.scale = a.scale; o.squash = a.squash; o.rot = a.rot; o.pal = a.pal; o.hat = a.hat; o.mouth = a.mouth; o.eyes = a.eyes;
-        o.alpha = a.alpha; o.shadow = a.shadow && a.z === 0; o.fast = a.fast;
+        o.alpha = a.alpha; o.shadow = a.shadow && a.z === 0; o.fast = a.fast; o.smooth = a.smooth;
         const h = a.hold, y = a.y - a.z;
         if (a.z > 0 && a.shadow) {                         // sombra fica no chão durante o pulinho
           const k = 1 / (1 + a.z * 0.03);

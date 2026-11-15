@@ -279,6 +279,7 @@
     F.step(.05); eq(fx.length, 2, 'passos fixos'); near(fx[0], .02); ok(alphaSeen >= 0 && alphaSeen <= 1, 'alpha 0..1'); F.step(.011); F.step(.011); eq(fx.length, 3);
     const M = E.Loop({ maxDt: .1, update(dt) { dts.push(dt); } }); M.step(1); near(dts[dts.length - 1], .1); M.step(-1); ok(dts[dts.length - 1] >= 0, 'dt negativo'); M.step(NaN); ok(dts[dts.length - 1] === 0 || dts.length, 'NaN não explode'); ok(isFinite(M.time), 'time finito');
     E.Loop({}).step(.01); E.Loop().step(.01);
+    const o2 = { x: 0 }; E.Tween.clear(); E.Tween.to(o2, { x: 1 }, 1, { ease: 'lin' }); E.Loop({ tweens: false }).step(.05); eq(o2.x, 0, 'tweens:false não avança o Tween global'); E.Tween.clear();
   });
   await T('rAF: aba oculta/hitch não vira dt gigante; stop para', () => {
     const rr = window.requestAnimationFrame, cc = window.cancelAnimationFrame; let cb = null, cancels = 0;
@@ -415,6 +416,15 @@
     const rg = E.Pix(20, 20).ring(10, 10, 8, 2, '#fff'); ok(!rg.get(10, 10) && rg.get(3, 10) && rg.get(17, 10), 'ring'); const ar = E.Pix(20, 20).arc(10, 10, 7, 0, Math.PI / 2, 1, '#fff'); ok(ar.get(17, 10) && ar.get(10, 17) && !ar.get(3, 10), 'arc horário de 0 a 90°');
     const rr = E.Pix(10, 10).rrect(0, 0, 10, 10, 3, '#fff'); ok(!rr.get(0, 0) && rr.get(5, 0) && rr.get(0, 5) && rr.get(5, 5) && !rr.get(9, 9), 'rrect'); eq(n(E.Pix(10, 10).rrect(1, 1, 6, 4, 0, '#fff')), 24, 'rrect r=0');
   });
+  await T('Pix traço fino: line/arc de 1px sempre conectados; pad/touchesEdge', () => {
+    const n = P => { let c = 0; for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) if (P.get(x, y)) c++; return c; };
+    eq(n(E.Pix(12, 12).line(2, 3, 9, 3, 1, '#fff')), 8, 'horizontal de 1px em coordenada inteira'); eq(n(E.Pix(12, 12).line(4, 1, 4, 10, 1, '#fff')), 10, 'vertical');
+    eq(n(E.Pix(12, 12).line(1, 1, 10, 10, 1, '#fff')), 10, 'diagonal'); eq(n(E.Pix(12, 12).line(9, 3, 2, 3, 1, '#fff')), 8, 'ordem invertida'); eq(n(E.Pix(12, 12).line(5, 5, 5, 5, 1, '#fff')), 1, 'ponto');
+    const d = E.Pix(20, 20).line(1, 2, 17, 9, 1, '#fff'); for (let x = 1; x <= 17; x++) { let c = 0; for (let y = 0; y < 20; y++) if (d.get(x, y)) c++; eq(c, 1, 'sem buraco na coluna ' + x); }
+    eq(n(E.Pix(12, 12).line(-5, 3, 30, 3, 1, '#fff')), 12, 'recorta');
+    const a = E.Pix(21, 21).arc(10, 10, 8, 0, Math.PI * 2, 1, '#fff'); ok(a.get(18, 10) && a.get(2, 10) && a.get(10, 2) && a.get(10, 18) && !a.get(10, 10), 'arco fino fechado e simétrico'); ok(n(a) >= 40, 'arco contínuo (' + n(a) + ')');
+    const p = E.Pix(4, 3).rect(0, 0, 4, 3, '#ff0000'); ok(p.touchesEdge(), 'touchesEdge'); const q2 = p.pad(); eq(q2.w, 6); eq(q2.h, 5); ok(!q2.touchesEdge() && q2.get(1, 1) && !q2.get(0, 0), 'pad(1)'); eq(count(q2.canvas()), 12 + 14, 'contorno inteiro depois do pad'); ok(!E.Pix(5, 5).set(2, 2, '#fff').touchesEdge());
+  });
   await T('Pix dither (5 padrões + mask) / shadeBelow / bevel / replace / mirrorX / stamp / mask', () => {
     const n = P => { let c = 0; for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) if (P.get(x, y)) c++; return c; };
     eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff')), 32, 'checker'); eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', 'checker')), 32); eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', '25')), 16, '25%'); eq(n(E.Pix(8, 8).dither(0, 0, 8, 8, '#fff', '75')), 48, '75%');
@@ -443,6 +453,16 @@
   await T('Pix.outline(buf,w,h,c)', () => {
     const P = E.Pix(5, 5).set(2, 2, '#ff0000'), o = E.Pix.outline(P.buf, 5, 5, E.LINE); ok(o !== P.buf, 'novo buffer'); eq(o.length, 25); ok(o[2 * 5 + 1] && o[1 * 5 + 2] && !o[1 * 5 + 1] && o[2 * 5 + 2] === P.buf[2 * 5 + 2], 'vizinhos');
     const legacy = new Array(9).fill(null); legacy[4] = [1, 2, 3, 255]; const lo = E.Pix.outline(legacy, 3, 3, E.LINE); ok(lo[1] && lo[3] && lo[5] && lo[7] && !lo[0], 'formato legado');
+  });
+  await T('redução suave automática: sprite/shiba minúsculos não perdem o contorno; tamanho normal continua pixel duro', () => {
+    const sp = E.Pix(16, 16).ring(8, 8, 7, 1, '#000000').canvas(false); Draw.lod(1, 0);
+    const dr = o => { const c = mk(40, 40), g = c.getContext('2d'); E.drawSprite(g, sp, 20, 30, o); return c; };
+    const semi = cv => { const d = data(cv); let k = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0 && d[i] < 255) k++; return k; };
+    eq(semi(dr({ sx: 2, sy: 2 })), 0, 'x2: pixel duro'); eq(semi(dr({})), 0, 'x1: pixel duro'); ok(semi(dr({ sx: .3, sy: .3 })) > 4, 'x.3: suave'); eq(semi(dr({ sx: .3, sy: .3, smooth: false })), 0, 'smooth:false força duro'); ok(semi(dr({ sx: 2, sy: 2, smooth: true })) > 0, 'smooth:true força suave');
+    Draw.lod(.2, 0); ok(semi(dr({ sx: 2, sy: 2 })) > 0, 'zoom da câmera conta'); Draw.lod(1, 0);
+    const sh = o => { const c = mk(60, 60), g = c.getContext('2d'); E.drawShiba(g, 30, 50, 'stand', 1, Object.assign({ shadow: false }, o)); return c; };
+    eq(semi(sh({})), 0, 'shiba x1 duro'); eq(semi(sh({ scale: 1.5 })), 0, 'shiba x1.5 duro'); ok(semi(sh({ scale: .3 })) > 4, 'shiba x.3 suave'); eq(semi(sh({ scale: .3, smooth: false })), 0, 'shiba smooth:false');
+    ok(count(sh({ scale: .25 })) > 40, 'shiba minúsculo ainda aparece');
   });
   await T('sprite: cache por nome, fn 1x, clear', () => {
     E.sprite.clear('ft-a'); E.sprite.clear('ft-b'); let calls = 0; const mkA = P => { calls++; P.rect(2, 2, 4, 4, '#ff0000'); };
@@ -583,6 +603,9 @@
     const li = on => { const c = mk(80, 80), g = c.getContext('2d'); Draw.light(g, 40, 40, 6, PAL.sun, on); return c; };
     const off = li(false), on = li(true), half = li(.5); ok(count(on) > count(off) * 3, 'halo'); ok(px(on, 40, 40)[0] > px(off, 40, 40)[0], 'acesa é mais clara'); ok(px(half, 40, 20)[3] < px(on, 40, 20)[3] + 1 && px(half, 40, 24)[3] > 0, 'on 0..1');
     ok(same(li(0), off), 'on=0 apagada');
+    const real = document.createElement.bind(document); let made = 0; document.createElement = function (tag) { if (String(tag).toLowerCase() === 'canvas') made++; return real(tag); };
+    try { const c = mk(40, 40), g = c.getContext('2d'); for (let r = 0; r < 3; r++) for (let i = 0; i < 400; i++) Draw.light(g, 20, 20, 4, U.mixCss('#ff0000', '#00ff00', i / 400), true); ok(made > 100, 'cada cor gera um halo'); } finally { document.createElement = real; }
+    const c9 = mk(40, 40), g9 = c9.getContext('2d'); for (let i = 0; i < 2000; i++) Draw.text(g9, 'x', 20, 20, { size: 8 + i * .01 }); ok(count(c9) > 0, 'tamanho de fonte animado');
   });
 
   /* ==========================================================================
@@ -638,6 +661,10 @@
     for (const p of ['sit', 'walk', 'run', 'dig', 'drive', 'cry', 'shake', 'sleep']) for (let i = 0; i < 12; i++) { const t = (i * 7 + 3) / fps; if (!same(shot(p, t, {}), shot(p, t, { exact: true }))) bad++; if (!same(shot(p, t, { hat: false, mouth: 'open', pal: 'goma' }), shot(p, t, { hat: false, mouth: 'open', pal: 'goma', exact: true }))) bad++; }
     eq(bad, 0, 'cache difere do exato');
     for (const t of [-3.2, 0, 1e7 + .5, NaN, undefined, Infinity]) { const c = shot('walk', t, {}); ok(count(c) > 300, 't=' + t); }
+    ok(same(shot('walk', 1e7 + .5, {}), shot('walk', 1e7 + .5, { exact: true })), 't gigante não colide chave do cache'); ok(same(shot('walk', NaN, {}), shot('walk', 0, {})), 'NaN = 0');
+    near(E.drawShiba.frameT(1.01), Math.round(1.01 * fps) / fps, 1e-12, 'frameT quantiza'); eq(E.drawShiba.frameT(1.01, { exact: true }), 1.01, 'frameT exato');
+    const max0 = E.drawShiba.cacheMax; E.drawShiba.cacheMax = 64; eq(E.drawShiba.cacheMax, 64); for (let i = 0; i < 300; i++) shot('walk', i / fps, {}, 60, 50, 30, 45); ok(E.drawShiba.cacheSize <= 64, 'cacheMax respeitado: ' + E.drawShiba.cacheSize);
+    ok(same(shot('walk', 5 / fps, {}), shot('walk', 5 / fps, { exact: true })), 'frame expulso é refeito certo'); E.drawShiba.cacheMax = max0; eq(E.drawShiba.cacheMax, max0);
     ok(same(shot('walk', -1, {}), shot('walk', -1, { exact: true })), 't negativo');
   });
   await T('estado global do ShibaPX não vaza entre draws', () => {

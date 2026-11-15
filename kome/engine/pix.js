@@ -73,6 +73,7 @@
       if (v === undefined) {
         const a = U.hex(c);
         v = ((a[3] << 24) | (a[2] << 16) | (a[1] << 8) | a[0]) >>> 0;
+        if (packCache.size >= 2000) packCache.clear();
         packCache.set(c, v);
       }
       return v;
@@ -185,11 +186,12 @@
         }
         return P;
       },
-      // P.line(x0,y0,x1,y1,wd,c): linha grossa de pontas redondas; wd < 1.5 = linha de 1px conectada entre os pixels (x0,y0) e (x1,y1)
+      // P.line(x0,y0,x1,y1,wd,c): linha grossa de pontas redondas; wd < 1.5 = linha de 1px conectada do pixel (x0,y0) ao pixel (x1,y1)
+      //   (traço fino usa a convenção do set(): coordenada = índice do pixel; traço grosso/ell usam coordenada contínua, centro do pixel em +.5)
       line(x0, y0, x1, y1, wd, c) {
         const v = pack(c);
         if (wd < THIN) { // pincel de disco não pega pixel nenhum em coordenada inteira: anda pixel a pixel
-          x0 = Math.floor(x0); y0 = Math.floor(y0); x1 = Math.floor(x1); y1 = Math.floor(y1); // o pixel que contém cada ponta
+          x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1); // mesma convenção do set(): coordenada = índice do pixel
           const m = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
           for (let i = 0; i <= m; i++) { const t = m ? i / m : 0; put(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, v); }
           return P;
@@ -212,7 +214,7 @@
         const v = pack(c), n = Math.max(2, Math.ceil(Math.abs(a1 - a0) * r * 2));
         for (let i = 0; i <= n; i++) {
           const a = a0 + (a1 - a0) * i / n, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-          if (wd < THIN) put(Math.floor(x), Math.floor(y), v); // arco fino: 1px, o pixel que contém o ponto
+          if (wd < THIN) put(x, y, v);                        // arco fino: 1px, na convenção do set() (centro = índice do pixel)
           else disc(x, y, wd / 2, wd / 2, v);
         }
         return P;
@@ -385,7 +387,9 @@
 
   const NO = Object.freeze({}); // opções vazias compartilhadas (evita alocar por chamada)
 
-  // E.drawSprite(g, cv, x, y, {ax=cv.width/2, ay=cv.height, rot=0, sx=1, sy=1, alpha=1, flip=false, smooth=false})
+  // E.drawSprite(g, cv, x, y, {ax=cv.width/2, ay=cv.height, rot=0, sx=1, sy=1, alpha=1, flip=false, smooth})
+  //   smooth: true/false força; sem ele, pixel duro, menos quando o sprite é reduzido pra menos de 75% (|sx| × Draw.zoom),
+  //   onde a redução suave evita o contorno picotado
   function drawSprite(g, cv, x, y, o) {
     o = o || NO;
     const ax = o.ax !== undefined ? o.ax : cv.width / 2, ay = o.ay !== undefined ? o.ay : cv.height;
@@ -393,7 +397,7 @@
     const rot = o.rot || 0, al = o.alpha !== undefined ? o.alpha : 1;
     if (al <= 0) return;
     const sm = g.imageSmoothingEnabled, pa = g.globalAlpha;
-    g.imageSmoothingEnabled = !!o.smooth;
+    g.imageSmoothingEnabled = o.smooth !== undefined ? !!o.smooth : Math.min(Math.abs(sx), Math.abs(sy)) * Draw.zoom < 0.75;
     if (al !== 1) g.globalAlpha = pa * al;
     if (!rot && sx === 1 && sy === 1) g.drawImage(cv, x - ax, y - ay);
     else {
@@ -1008,6 +1012,7 @@
       gr.addColorStop(0, U.rgba(col, 0.75)); gr.addColorStop(0.3, U.rgba(col, 0.36));
       gr.addColorStop(0.65, U.rgba(col, 0.1)); gr.addColorStop(1, U.rgba(col, 0));
       c.fillStyle = gr; c.fillRect(0, 0, 96, 96);
+      if (haloCache.size >= 48) haloCache.clear();   // cor de luz animada (mixCss por frame) não pode vazar canvases
       haloCache.set(col, cv);
     }
     return cv;
@@ -1103,7 +1108,11 @@
     if (family && family !== Draw.FONT) return weight + ' ' + size + 'px ' + family;
     const k = size * 1000 + weight;
     let f = fontCache.get(k);
-    if (!f) { f = weight + ' ' + size + 'px ' + Draw.FONT; fontCache.set(k, f); }
+    if (!f) {
+      f = weight + ' ' + size + 'px ' + Draw.FONT;
+      if (fontCache.size >= 300) fontCache.clear();  // tamanho animado (texto que "pula") gera muitas chaves
+      fontCache.set(k, f);
+    }
     return f;
   }
 
