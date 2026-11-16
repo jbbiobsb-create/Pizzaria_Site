@@ -75,3 +75,29 @@ Interface comum: `G.Tools[id] = {id,name,kind,w,h,meta:{zoom,shake,cycle},create
 - Custo (Chromium headless, software): ~0,3–0,4 ms de chamadas por draw; com rasterização ~1,9 ms (máquina + túnel) em zoom .3 dpr 2; ~8 ms em zoom 1 dpr 2
   (tela cheia de imagem). Escudo, trem, SPMT e a face da cabeça são pré-renderizados em 4 níveis (0.4/0.8/1.6/2.4 px por unidade; engasgo único no 1º uso de cada nível).
 - Pontos fracos: vista lateral com "3/4 falso" só na face, no eretor e nas juntas; equipe minúscula e repetitiva; a face não tem relevo real (sombra fixa por cima da imagem girando).
+
+## swarm.js — enxame de robozinhos
+- Arquivo `game/swarm.js` (registra `KomeGame.Swarm`); demo `demos/swarm.html` (`?n=&z=&cx=&full=1&carry=&spd=&t=`, teclas 1/2/3 = +10/+25/+50,
+  `-` = -10, F = cheio, C = grãos por robô; `__demo.step(seg)`, `__demo.perf(frames)`). Print: `docs/prints/robozinhos.png`.
+  Depende de core.js e pix.js; usa E.Heap e E.Particles se receber.
+- `sw = Swarm.create({count, to:{x,y}, heap, parts, from?, floor?, seed, speed=58, carryPerBot=1, biteArea=1.6, spacing=16, dock=20, climb=22, max=1024})`.
+  `from` = `{x}` ou `fn(heap)->x`; sem `from`, procura sozinho o ponto do talude (a partir do coletor) onde a altura passa de `climb`
+  (refeito a cada 0,25 s: acompanha a frente de corte). `to` = coletor; os robôs encostam a `dock` px dele. Com `count` no create os
+  robôs já nascem espalhados pela rota (`scatter:false` desliga; `sw.scatter()` refaz, útil ao carregar save).
+- Laço: `sw.update(dt, {heap, floor, from, to, speedMul, cap})` (cap opcional = espaço livre no coletor; `<= 0` age como `full`) e
+  `sw.draw(g, view, zoom)` no espaço de mundo, DEPOIS da montanha e ANTES do coletor (os novos saem de trás dele).
+- Integração no jogo: `sw.onDeliver((amt, x, y) => pay(amt * valorDoGrão, x, y, 1))`; a mordida já chama `heap.dig(x, biteArea*amt, 7, {pow:20})`
+  (passe `biteArea = 0` e use `sw.onTake(fn(amt,x,y))` se o jogo quiser cavar/contar por conta própria). `sw.full = S.col cheio` → dança.
+  Compra de lote: `sw.setCount(sw.count + 25)`; upgrade de carga: `sw.carryPerBot = 2|3` (a pazinha mostra 1/2/3 grãos); velocidade:
+  `sw.speed` ou `speedMul`. Som: `sw.ev` traz no máximo 1 de cada por frame ('take', 'deliver', 'beep', 'dance'); 'beep' já tem cooldown 0,35 s.
+- Comportamento: pista de volta (vazios, 4 px atrás) e pista de ida (carregados, 2 px à frente); fila com espaçamento que aperta quando
+  há robôs demais (`occupancy` 0,62 das duas pistas; abaixo de 14 px vira fila dupla em zigue-zague); mordem em paralelo numa zona no
+  pé do talude e entregam em paralelo numa zona no coletor; quem não cabe espera na "garagem" escondida atrás do coletor (u < 0).
+  Personalidade: trombada com bamboleio (cooldown global 0,7 s), giro feliz ocasional, quique leve andando, inclinam na encosta.
+- Arte: 6 variantes de faixa (vermelho, azul, verde, laranja, sakura, amarelo; orelhas fur/goma/creme), sprite Pix 22x16 com contorno
+  LINE, quadros: roda (3) × luz (2) × grãos (0..3) × espelho (2), cacheados sob demanda num array. `Swarm.sprite(v, grãos, luz, roda, flip)`.
+- Custo (Chromium headless, software, 250 robôs): update 0,02 ms; draw 0,09 ms em zoom 0,3 (pontinhos: 1 path por cor, ~10 fills no total)
+  e ~2,5 ms em zoom 1 (≈190 drawImage visíveis). Sem alocação por frame (struct-of-arrays, ordem por inserção; só 1 getTransform por draw).
+- Pontos fracos: rota curta + muitos robôs = fila apertada/garagem cheia (vazão limitada pelas zonas das pontas, ~2,7 entregas/s com 60
+  robôs numa rota de 470 px); diminuir a frota é lento (os aposentados terminam a viagem e esperam vaga na pista de ida); o grão na pazinha
+  é miúdo em zoom < 1,5; robôs só andam em x (não sobem fundo de cratera nem desviam de máquinas); dança em sincronia passa por largura 0.

@@ -24,7 +24,7 @@ html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
 <script src="../game/swarm.js"></script>
 <script>
 /* Demo de game/swarm.js.
-   URL: ?n=robôs (60)  &z=zoom  &full=1  &carry=grãos por robô  &spd=speedMul  &t=segundos (avança e congela)
+   URL: ?n=robôs (60)  &z=zoom  &cx=centro da câmera (x de mundo)  &full=1  &carry=grãos por robô  &spd=speedMul  &t=segundos (avança e congela)
    Teclas: 1/2/3 = +10/+25/+50 · - = -10 · F = estoque cheio (dança) · C = troca grãos por robô (1/2/3).
    Automação: __demo.step(seg) passos fixos de 1/60 (congela o tempo real); __demo.perf(frames) -> ms médios de update e draw. */
 (function () {
@@ -51,7 +51,7 @@ html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
   const log = []; let logT = 0;
   sw.onDeliver((a) => { stock += a; total += a; pulse = 1; });
 
-  const cam = { x: -40, z: q.has('z') ? +q.get('z') : 1.5 };
+  const cam = { x: q.has('cx') ? +q.get('cx') : -40, z: q.has('z') ? +q.get('z') : 1.5 };
   const S = { t: 0 };
   function update(dt) {
     S.t += dt;

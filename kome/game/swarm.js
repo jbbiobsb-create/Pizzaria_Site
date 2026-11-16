@@ -14,6 +14,7 @@
      sw.onTake(fn(amount, x, y))           chamado na mordida (a mordida no heap já é feita se sw.biteArea > 0)
      sw.ev                   eventos do último update ('take','deliver','beep','dance'), no máximo 1 de cada por frame
      sw.full = true          estoque cheio: param e dançam em sincronia até voltar a false (ou cap <= 0 no update)
+     sw.scatter() espalha os vivos pela rota no próximo update (feito sozinho se create recebe count; scatter:false desliga)
      sw.carryPerBot, sw.speed (px/s), sw.biteArea (px² por grão tirado da montanha), sw.count (alvo), sw.alive (na tela+garagem)
    Coordenadas: mundo (x pra direita, y pra baixo, chão em floor(x)). Internamente cada robô tem u = distância ao ponto de
    entrega (u=0 encostado no coletor, u=L na frente de corte). u<0 = "garagem" atrás do coletor (escondida). */
@@ -25,9 +26,9 @@
   const PAL = E.PAL, LINE = E.LINE_CSS, NO = Object.freeze({});
 
   /* ======================================================================
-     1. Sprites (Pix, contorno LINE, cache). Base virada pra direita, 20x17, âncora (9,16) = contato com o chão.
+     1. Sprites (Pix, contorno LINE, cache). Base virada pra direita, 22x16, âncora (9,15) = contato com o chão.
      ====================================================================== */
-  const SW = 20, SH = 17, AX = 9, AY = 16;
+  const SW = 22, SH = 16, AX = 9, AY = 15;
   const VARS = [
     { s: PAL.red, sd: PAL.redD, ear: PAL.fur, earD: PAL.furS },
     { s: PAL.bowlL, sd: PAL.bowl, ear: PAL.fur, earD: PAL.furS },
@@ -43,37 +44,36 @@
 
   function paint(P, v, carry, light, wheel) {
     const V = VARS[v];
-    // casco (domo) e saia
-    P.ell(9, 9.5, 7, 5.5, PAL.cream);
-    P.erase(0, 12, SW, 6);
-    // orelhinhas de shiba
-    P.tri(4.5, 6, 6.5, 2, 8.5, 5, V.ear); P.tri(9.5, 5, 11.5, 2, 13.5, 6, V.ear);
-    P.set(6, 4, V.earD); P.set(11, 4, V.earD);
-    P.ell(9, 9.5, 7, 5.5, PAL.cream); P.erase(0, 12, SW, 6);
-    // sombra do casco embaixo e luz em cima-esquerda
-    for (let x = 2; x < 17; x++) if (P.get(x, 10)) P.set(x, 10, PAL.riceS);
-    P.set(5, 6, PAL.white); P.set(6, 5, PAL.white); P.set(7, 5, PAL.white); P.set(4, 7, PAL.white);
-    // faixa colorida (2 linhas, só onde tem casco)
-    for (let x = 0; x < SW; x++) { if (P.get(x, 8)) P.set(x, 8, V.s); if (P.get(x, 9)) P.set(x, 9, V.sd); }
-    // para-choque
-    P.rect(2, 11, 15, 1, PAL.grayL);
+    // orelhinhas de shiba (atrás do casco)
+    P.tri(3.5, 6, 5.5, 1.6, 8, 6, V.ear); P.tri(10, 6, 12.5, 1.6, 14.5, 6, V.ear);
+    P.set(5, 4, V.earD); P.set(12, 4, V.earD);
+    // casco achatado (aspirador): domo creme, sombra embaixo, faixa colorida, para-choque
+    P.ell(9, 9.5, 7.6, 4.6, PAL.cream);
+    P.erase(0, 12, SW, SH);
+    P.rect(2, 8, 15, 1, PAL.cream);
+    for (let x = 0; x < SW; x++) if (P.get(x, 8)) P.set(x, 8, PAL.riceS);
+    P.rect(2, 9, 15, 1, V.s); P.rect(2, 10, 15, 1, V.sd);
+    P.rect(2, 11, 15, 1, PAL.grayL); P.set(2, 11, PAL.gray); P.set(16, 11, PAL.gray);
+    // brilho em cima-esquerda
+    P.set(4, 6, PAL.white); P.set(5, 6, PAL.white); P.set(6, 5, PAL.white); P.set(7, 5, PAL.white);
     // olhinho/sensor na frente
     P.rect(13, 6, 2, 2, PAL.ink); P.set(14, 6, PAL.white);
     // luz de status no topo
-    P.rect(8, 3, 2, 1, light ? (carry ? PAL.goldL : PAL.grassL) : PAL.grayD);
-    if (light) P.set(8, 3, PAL.white);
-    // rodinhas
+    P.rect(8, 4, 2, 1, light ? (carry ? PAL.goldL : PAL.grassL) : PAL.grayD);
+    if (light) P.set(8, 4, PAL.white);
+    // rodinhas (3x3 com um pino claro que gira)
     for (let k = 0; k < 2; k++) {
       const cx = k ? 13 : 5;
       P.rect(cx - 1, 12, 3, 3, PAL.blk);
       P.set(cx + SPOKE[wheel][0], 13 + SPOKE[wheel][1], PAL.steel);
     }
-    // pazinha (bandeja) na frente
-    P.rect(15, 11, 3, 1, PAL.steelD); P.rect(16, 10, 2, 1, PAL.steel); P.set(18, 9, PAL.steelD); P.set(18, 10, PAL.steelD);
-    // grãos carregados
-    if (carry >= 1) P.rect(16, 9, 2, 1, PAL.rice);
-    if (carry >= 2) P.set(17, 8, PAL.white);
-    if (carry >= 3) P.set(15, 9, PAL.riceS), P.set(16, 8, PAL.rice);
+    // pazinha (caçamba escura) na frente
+    P.rect(17, 11, 3, 1, PAL.blkL); P.rect(17, 10, 3, 1, PAL.grayD);
+    P.set(20, 9, PAL.grayD); P.set(20, 10, PAL.grayD); P.set(20, 11, PAL.blkL);
+    // grãos carregados, por cima da caçamba e separados do casco por 1 px (o contorno os destaca)
+    if (carry >= 1) { P.rect(18, 8, 2, 2, PAL.rice); P.set(19, 9, PAL.riceD); P.set(18, 8, PAL.white); }
+    if (carry >= 2) { P.set(19, 7, PAL.rice); }
+    if (carry >= 3) { P.set(18, 7, PAL.white); P.set(18, 6, PAL.rice); }
   }
   function getSprite(v, carry, light, wheel, flip) {
     const i = sprIdx(v, carry, light, wheel, flip);
@@ -112,7 +112,7 @@
 
     let heap = o.heap || null, parts = o.parts || null, from = o.from, to = o.to || { x: 0, y: 0 };
     let floorFn = o.floor || null;
-    let time = 0, L = 100, sgn = 1, x0 = 0, spacing = 15, wasFull = false, beepCD = 0, fromCache = 0, fromT = 0, evf = 0;
+    let time = 0, L = 100, sgn = 1, x0 = 0, spacing = 15, wasFull = false, beepCD = 0, bumpCD = 0, fromCache = 0, fromT = 0, evf = 0;
     let delivers = [], takes = [];
     const ev = [];
 
@@ -124,9 +124,10 @@
       biteArea: o.biteArea !== undefined ? o.biteArea : 1.6,
       spacingMax: o.spacing || 16,
       spacingMin: 5,
+      occupancy: 0.62, // fração das duas pistas ocupada antes de apertar o espaçamento (abaixo de 14 px vira fila dupla em zigue-zague)
       dock: o.dock !== undefined ? o.dock : 20,
       climb: o.climb !== undefined ? o.climb : 22,   // altura no talude onde mordem (from automático)
-      takeTime: 0.45, deliverTime: 0.3,
+      takeTime: 0.4, deliverTime: 0.22,
       count: 0,
       stats: { taken: 0, delivered: 0 },
       get alive() { return n; },
@@ -135,7 +136,7 @@
       onTake(fn) { takes.push(fn); return sw; },
       setCount, update, draw,
       // posição (mundo) do i-ésimo robô em ordem de fila, pra debug/câmera
-      at(k, out) { const i = ORD[k]; out = out || {}; out.x = PX[i]; out.y = PY[i]; out.state = ST[i]; return out; },
+      at(k, out) { const i = ORD[k]; out = out || {}; out.x = PX[i]; out.y = PY[i]; out.state = ST[i]; out.carry = CR[i]; out.u = U[i]; return out; },
     };
 
     function floorAt(x) { return floorFn ? floorFn(x) : heap ? heap.surf(x) : (to.y || 0); }
@@ -222,14 +223,15 @@
       if (op.to) to = op.to;
       if (dt > 0.1) dt = 0.1;
       const sm = op.speedMul || 1;
-      time += dt; beepCD -= dt; fromT -= dt;
+      time += dt; beepCD -= dt; bumpCD -= dt; fromT -= dt;
       const xF = fromX();
       sgn = xF >= to.x ? 1 : -1;
       x0 = to.x + sgn * sw.dock;
       L = Math.max(24, (xF - x0) * sgn);
-      const want = n > 0 ? (2 * (L + 20) * 0.9) / n : sw.spacingMax;
+      const want = n > 0 ? (2 * L * sw.occupancy) / n : sw.spacingMax;
       spacing = Math.max(sw.spacingMin, Math.min(sw.spacingMax, want));
       const full = sw.full || (op.cap !== undefined && op.cap <= 0);
+      if (needScatter) scatter();
       if (full && !wasFull) emit(EV_DANCE, 'dance');
       wasFull = full;
 
@@ -240,7 +242,7 @@
           while (j >= 0 && U[ORD[j]] > ut) { ORD[j + 1] = ORD[j]; j--; }
           ORD[j + 1] = t;
         }
-        const base = sw.speed * sm * dt, zone = Math.min(L * 0.5, 10 + spacing * 2.2);
+        const base = sw.speed * sm * dt, zone = Math.min(L * 0.5, 10 + spacing * 2.2), zoneD = Math.min(L * 0.3, 4 + spacing * 1.5);
         // pista de volta (+u): líder = maior u
         let front = 1e9;
         for (let k = n - 1; k >= 0; k--) {
@@ -254,20 +256,20 @@
             }
             front = U[i]; continue;
           }
-          if (RET[i] && U[i] > 0 && laneFree(k, 1)) { ST[i] = ST_CARRY; continue; } // aposentado: dá meia-volta
+          if (RET[i] && (U[i] <= 0 || laneFree(k, 1))) { ST[i] = U[i] <= 0 ? ST_EXIT : ST_CARRY; continue; } // aposentado: dá meia-volta (na garagem sai direto)
           const target = Math.min(L, front - spacing), step = base * V[i];
           let nu = U[i] + step;
           const blocked = nu > target;
           if (blocked) {
             nu = target;
-            if (MOV[i] > 0.85 && step > 0 && rnd() < 0.12 && U[i] > 0 && target < L - 1) { WOB[i] = 0.5; beep(); }
+            if (MOV[i] > 0.85 && step > 0 && bumpCD <= 0 && rnd() < 0.08 && U[i] > 0 && target < L - 1) { WOB[i] = 0.5; bumpCD = 0.7; beep(); }
           }
           if (nu < U[i]) nu = U[i];
           const mv = nu - U[i];
           MOV[i] += ((step > 0 ? mv / step : 0) - MOV[i]) * 0.3;
           WH[i] += mv; U[i] = nu;
           if (nu >= L - zone && target - nu < 0.6 && (nu >= L - 0.6 || blocked)) { ST[i] = ST_TAKE; TM[i] = sw.takeTime * (0.8 + rnd() * 0.4); TAKEN[i] = 0; }
-          else if (!blocked && U[i] > 0 && SPIN[i] <= 0 && rnd() < dt * 0.015) { SPIN[i] = 0.8; if (rnd() < 0.5) beep(); }
+          else if (!blocked && U[i] > 0 && SPIN[i] <= 0 && rnd() < dt * 0.006) { SPIN[i] = 0.8; if (rnd() < 0.5) beep(); }
           front = U[i];
         }
         // pista de ida (-u): líder = menor u
@@ -290,13 +292,13 @@
           const blocked = nu < target;
           if (blocked) {
             nu = target;
-            if (MOV[i] > 0.85 && step > 0 && rnd() < 0.12 && target > 1) { WOB[i] = 0.5; beep(); }
+            if (MOV[i] > 0.85 && step > 0 && bumpCD <= 0 && rnd() < 0.08 && target > 1) { WOB[i] = 0.5; bumpCD = 0.7; beep(); }
           }
           if (nu > U[i]) nu = U[i];
           const mv = U[i] - nu;
           MOV[i] += ((step > 0 ? mv / step : 0) - MOV[i]) * 0.3;
           WH[i] += mv; U[i] = nu;
-          if (st === ST_CARRY && nu <= 0.6 && target <= 0.6) { ST[i] = ST_DELIV; TM[i] = sw.deliverTime; }
+          if (st === ST_CARRY && nu <= zoneD && target - nu > -0.6 && (nu <= 0.6 || blocked)) { ST[i] = ST_DELIV; TM[i] = sw.deliverTime * (0.8 + rnd() * 0.4); }
           if (st === ST_EXIT && nu < -34) { ACT[i] = 0; continue; }
           front = U[i];
         }
@@ -311,7 +313,7 @@
         const i = ORD[k], x = x0 + sgn * U[i];
         PX[i] = x;
         const lane = laneOf(ST[i]);
-        PY[i] = floorAt(x) + (lane ? 1.5 : -2.5) + (ROW[i] ? zig : -zig) * 0.5;
+        PY[i] = floorAt(x) + (lane ? 2 : -4) + (ROW[i] ? zig : -zig) * 0.5;
         SL[i] = U[i] > 0 && heap ? (floorAt(x + 3) - floorAt(x - 3)) / 6 : 0;
         if (WOB[i] > 0) WOB[i] -= dt;
         if (SPIN[i] > 0) SPIN[i] -= dt;
@@ -323,7 +325,7 @@
     function visible(i, view) { return U[i] > -30 && (!view || (PX[i] > view.x0 - 20 && PX[i] < view.x1 + 20)); }
     function hopY(i, full) {
       if (full) return Math.abs(Math.sin(time * 7)) * 3.2;
-      let y = MOV[i] > 0.2 ? Math.max(0, Math.sin(time * 9 + PH[i] * 6.28)) * 0.6 : 0;
+      let y = MOV[i] > 0.2 ? (Math.sin(time * 7 + PH[i] * 6.28) > 0.6 ? 1 : 0) : 0;
       if (WOB[i] > 0) y += Math.sin(WOB[i] * 25) * WOB[i] * 2;
       if (SPIN[i] > 0) y += Math.sin(SPIN[i] / 0.8 * Math.PI) * 2.5;
       return y;
@@ -402,7 +404,21 @@
       g.imageSmoothingEnabled = sm;
     }
 
-    if (o.count) setCount(o.count);
+    // espalha os robôs vivos pela rota (save carregado / demo): metade indo, metade voltando
+    let needScatter = false;
+    function scatter() {
+      needScatter = false;
+      let k2 = 0;
+      for (let k = 0; k < n; k++) {
+        const i = ORD[k], lane = k & 1, slot = k >> 1, per = Math.ceil(n / 2);
+        const u = L * (1 - (slot + 0.5) / per);
+        if (u < spacing * 0.5) continue;
+        U[i] = lane ? L - u : u; ST[i] = lane ? ST_CARRY : ST_GO; CR[i] = lane ? carryVis() : 0; TAKEN[i] = lane; k2++;
+      }
+      for (let k = 1; k < n; k++) { const t = ORD[k], ut = U[t]; let j = k - 1; while (j >= 0 && U[ORD[j]] > ut) { ORD[j + 1] = ORD[j]; j--; } ORD[j + 1] = t; }
+    }
+    sw.scatter = () => { needScatter = true; return sw; };
+    if (o.count) { setCount(o.count); if (o.scatter !== false) needScatter = true; }
     return sw;
   }
 
