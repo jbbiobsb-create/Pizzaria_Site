@@ -52,3 +52,26 @@ Interface comum: `G.Tools[id] = {id,name,kind,w,h,meta:{zoom,shake,cycle},create
   (0.34 por passada → 3 passadas = 105%).
 - `G.Scale.pickup` (128x46), `.keitruck` (82x44), `.moega` (300x160, aceita `fill`): `draw(g,x,y,{face,t,pal})`. `opts.showScale` estaciona uma pick-up.
 - Pontos fracos: giro da pá é fingido (em quadro parado a lança vira uma linha vertical); jato de carga do caminhão sozinho é provisório.
+
+## tbm.js — tbm (Tatuzão)
+- `G.Tools.tbm` (kind 'tbm', 1240x300): mesma interface + `drawTunnel(g,m)`. Carregar depois de core/pix/shiba/fx/terrain/rig (machines-mine.js opcional: pickup no transporte).
+  meta `{zoom:.3, shake:.35, cycle:4, ringW:36, radius:148, shieldLen:300, trainLen:~1076, axisY:-146, railY:-22}`. Demo: `demos/tbm.html` (?mode=transport&z=&face=&night=&cx=).
+- Espaço do modelo: origem no chão sob o plano da face do escudo; escudo Ø288 (centro a 146 acima de inp.y), corpo até x=-300,
+  trem de apoio (4 pórticos, cabine com o piloto no 1º) até x≈-1100. A base do escudo fica em inp.y (piso do túnel); trilhos do trem a 22 acima.
+- Posição: a máquina é dona de `m.x` (= plano da face, mundo): pega inp.x só no 1º update e avança em direção a `inp.tx` (só pra frente)
+  exatamente um anel (36 px) por ciclo enquanto `inp.digging`. Sem inp.tx: escava sem parar. Pra teleportar, escrever m.x (e m.ringW).
+- Ciclo 4 s / rate (power, speedMul, boost): 0–.55 avança com os pistões esticando; .55–.66 recolhem; .62–.90 eretor gira um segmento ('ring' em .90);
+  .92–1 pistões encostam no anel novo. Cabeça gira com `m.rpm` (sobe com digging, 25% durante a montagem do anel).
+- Eventos: 'rev' (começou a cavar), 'push' (início do avanço), 'grind' (4/s avançando: limitar o som), 'ring' (anel montado, clunk), 'done' (chegou em inp.tx; no transporte, parou).
+- Âncoras: `bite(m)` = centro da cabeça `{x,y,r:148,active (só avançando),phase}` (só pra contabilizar volume: o heightfield não guarda túnel);
+  `dump(m)` = ponta traseira da esteira de material (ativa com `m.flow`>.3; null no transporte); `seat(m)` = cabine.
+- Ler: `m.bored` (px escavados desde a boca), `m.tunnel = {x0,x1,y,r}` (x0 = boca, padrão = x do 1º update; o jogo pode escrever), `m.rings`, `m.pushing`, `m.done`, `m.flow`.
+- `drawTunnel(g,m)`: chamar depois da montanha e antes de `draw`. Desenha a plataforma de lançamento com trilhos (1000 px atrás da boca), o muro de emboque
+  na boca, a cavidade escura em volta da cabeça e o túnel (revestimento cortado, anéis com juntas, duto de ventilação amarelo, cabo, luminárias, trilhos).
+  A montanha precisa ter pelo menos ~320 px de altura sobre o túnel pra não "vazar" o tubo no céu.
+- Modos (`create({mode})` ou `m.mode`): 'bore' (padrão) e 'transport' (chegada/compra: escudo e trem sobre carretas SPMT laranja, cabeça mais de frente (elipse .7),
+  pessoal de capacete laranja/amarelo andando ao lado, pickup na frente; rola a 8 px/s até inp.tx enquanto digging). 'launch' não foi feito (cai no 'bore').
+- Noite (`inp.night`): luminárias do túnel, luzes dos pórticos, farol do escudo e vidro da cabine acendem. Texto da placa KOME-TBM nunca espelha.
+- Custo (Chromium headless, software): ~0,3–0,4 ms de chamadas por draw; com rasterização ~1,9 ms (máquina + túnel) em zoom .3 dpr 2; ~8 ms em zoom 1 dpr 2
+  (tela cheia de imagem). Escudo, trem, SPMT e a face da cabeça são pré-renderizados em 4 níveis (0.4/0.8/1.6/2.4 px por unidade; engasgo único no 1º uso de cada nível).
+- Pontos fracos: vista lateral com "3/4 falso" só na face, no eretor e nas juntas; equipe minúscula e repetitiva; a face não tem relevo real (sombra fixa por cima da imagem girando).

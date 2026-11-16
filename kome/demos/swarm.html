@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome no Japão · enxame de robozinhos</title>
+<style>
+html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
+#bar { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 6px; z-index: 2; }
+#bar button { font: 700 13px 'Zen Maru Gothic', 'Nunito', system-ui, sans-serif; color: #2A1A10; background: #FFFAEE;
+  border: 2px solid #3B2818; border-radius: 8px; padding: 5px 10px; box-shadow: 0 2px 0 #3B2818; cursor: pointer; }
+#bar button.on { background: #F3C94A; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <button data-a="10">+10</button><button data-a="25">+25</button><button data-a="50">+50</button>
+  <button data-a="-10">-10</button><button data-a="full" id="bFull">cheio</button><button data-a="carry">grãos</button>
+</div>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/terrain.js"></script>
+<script src="../game/swarm.js"></script>
+<script>
+/* Demo de game/swarm.js.
+   URL: ?n=robôs (60)  &z=zoom  &full=1  &carry=grãos por robô  &spd=speedMul  &t=segundos (avança e congela)
+   Teclas: 1/2/3 = +10/+25/+50 · - = -10 · F = estoque cheio (dança) · C = troca grãos por robô (1/2/3).
+   Automação: __demo.step(seg) passos fixos de 1/60 (congela o tempo real); __demo.perf(frames) -> ms médios de update e draw. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame;
+  const W = 960, H = 540, LINE = E.LINE_CSS;
+  const q = new URLSearchParams(location.search);
+  const N0 = q.has('n') ? +q.get('n') : 60, SPD = +(q.get('spd') || 1);
+  const stage = E.Stage({ width: W, height: H, bg: PAL.ink });
+  const g = stage.g;
+  const SOIL = '#C7A26A', SOIL_D = '#A8834F';
+  const mixc = {}; const mix = (a, b, t) => mixc[a + b + t] || (mixc[a + b + t] = U.mixCss(a, b, t));
+
+  // montanha à direita, coletor à esquerda
+  const heap = E.Heap({ width: 1600, colW: 4, x0: 120, y0: 0, seed: 7 });
+  heap.generate(x => { const d = x - 200; return d > 0 ? Math.min(300, d * 0.75 + 6 * Math.sin(d * 0.06)) : 0; });
+  heap.settle && heap.settle(300);
+  const parts = E.Particles(600);
+  const COL = { x: -270, y: -14 };
+  const floor = x => heap.surf(x);
+  const sw = G.Swarm.create({ count: N0, to: COL, heap, parts, seed: 3, carryPerBot: +(q.get('carry') || 1) });
+  sw.full = q.get('full') === '1';
+  let stock = 0, pulse = 0, total = 0;
+  const log = []; let logT = 0;
+  sw.onDeliver((a) => { stock += a; total += a; pulse = 1; });
+
+  const cam = { x: -40, z: q.has('z') ? +q.get('z') : 1.5 };
+  const S = { t: 0 };
+  function update(dt) {
+    S.t += dt;
+    sw.update(dt, { heap, floor, speedMul: SPD });
+    for (const e of sw.ev) { log.unshift(e); if (log.length > 6) log.pop(); logT = 1.5; }
+    logT -= dt; pulse = Math.max(0, pulse - dt * 4);
+    heap.relax(dt);
+    parts.update(dt, floor);
+  }
+
+  function backdrop(v) {
+    g.fillStyle = PAL.sky; g.fillRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0);
+    g.fillStyle = mix(PAL.sky, PAL.skyL, 0.5); g.fillRect(v.x0, -170, v.x1 - v.x0, 175);
+    g.fillStyle = mix(PAL.grassL, PAL.sky, 0.55); g.beginPath(); g.moveTo(v.x0, 10);
+    for (let x = v.x0; x <= v.x1 + 16; x += 16) g.lineTo(x, -60 - 40 * Math.sin(x * 0.005 + 1) - 14 * Math.sin(x * 0.013));
+    g.lineTo(v.x1 + 16, 10); g.closePath(); g.fill();
+    heap.draw(g, v, S.t);
+    g.fillStyle = SOIL; g.fillRect(v.x0, 0, v.x1 - v.x0, v.y1);
+    g.fillStyle = PAL.grass; g.fillRect(v.x0, 0, v.x1 - v.x0, 5);
+    g.fillStyle = SOIL_D; g.fillRect(v.x0, 12, v.x1 - v.x0, 3);
+    g.fillStyle = LINE; g.fillRect(v.x0, -0.8, v.x1 - v.x0, 1.6);
+  }
+  // coletor: caixote de madeira com arroz dentro (desenhado DEPOIS dos robôs: eles saem de trás dele)
+  function collector() {
+    const x = COL.x - 34, w = 52, h = 34, y = -h, s = 1 + pulse * 0.06;
+    g.save(); g.translate(COL.x - 8, 0); g.scale(s, 2 - s); g.translate(-(COL.x - 8), 0);
+    const fill = Math.min(1, (stock % 400) / 400 + 0.15);
+    Draw.box(g, x, y, w, h, PAL.wood, { r: 2 });
+    g.fillStyle = PAL.rice; g.beginPath(); g.ellipse(x + w / 2, y + 3, w * 0.42, 4 + fill * 9, 0, Math.PI, 0); g.fill();
+    g.fillStyle = PAL.woodD; g.fillRect(x + 3, y + 12, w - 6, 2); g.fillRect(x + 3, y + 24, w - 6, 2);
+    Draw.sign(g, x + 10, y + 13, w - 20, 11, '米 ' + total, { col: sw.full ? PAL.goldL : PAL.cream });
+    g.restore();
+  }
+
+  const view = { x0: 0, x1: 0, y0: 0, y1: 0 };
+  let drawMs = 0, updMs = 0;
+  function render() {
+    stage.begin();
+    const gy = H * 0.8;
+    g.save();
+    g.translate(W / 2, gy); g.scale(cam.z, cam.z); g.translate(-cam.x, 0);
+    view.x0 = cam.x - W / 2 / cam.z; view.x1 = cam.x + W / 2 / cam.z; view.y0 = -gy / cam.z; view.y1 = (H - gy) / cam.z;
+    Draw.lod(cam.z);
+    backdrop(view);
+    const t0 = performance.now();
+    sw.draw(g, view, cam.z);
+    drawMs += (performance.now() - t0 - drawMs) * 0.1;
+    collector();
+    parts.draw(g, view);
+    g.restore();
+    Draw.lod(1);
+    Draw.text(g, 'enxame de robozinhos', 14, 24, { size: 17, align: 'left', col: PAL.cream, sw: 4 });
+    Draw.text(g, 'robôs ' + sw.count + ' (ativos ' + sw.alive + ')   entregue ' + total + '   grãos/robô ' + sw.carryPerBot +
+      '   update ' + updMs.toFixed(2) + ' ms  draw ' + drawMs.toFixed(2) + ' ms   zoom ' + cam.z.toFixed(2) + (sw.full ? '   ESTOQUE CHEIO' : ''),
+      14, 44, { size: 11, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+    if (logT > 0) Draw.text(g, log.join('  '), 14, 60, { size: 11, align: 'left', col: PAL.white, sw: 3, weight: 700 });
+    Draw.text(g, '1/2/3 +10/+25/+50 · - remove 10 · F cheio · C grãos', 14, 76, { size: 10, align: 'left', col: PAL.cream, sw: 3 });
+  }
+  function act(a) {
+    if (a === 'full') { sw.full = !sw.full; document.getElementById('bFull').classList.toggle('on', sw.full); if (!sw.full) stock = 0; }
+    else if (a === 'carry') sw.carryPerBot = sw.carryPerBot >= 3 ? 1 : sw.carryPerBot + 1;
+    else sw.setCount(sw.count + (+a));
+  }
+  document.getElementById('bar').addEventListener('click', e => { const a = e.target.dataset && e.target.dataset.a; if (a) act(a); });
+  addEventListener('keydown', e => {
+    const k = e.key;
+    if (k === '1') act('10'); else if (k === '2') act('25'); else if (k === '3') act('50'); else if (k === '-') act('-10');
+    else if (k === 'f' || k === 'F') act('full'); else if (k === 'c' || k === 'C') act('carry');
+  });
+
+  let frozen = false;
+  function tick(dt) { const t0 = performance.now(); update(dt); updMs += (performance.now() - t0 - updMs) * 0.1; }
+  const loop = E.Loop({ update: dt => { if (!frozen) tick(dt); }, render });
+  window.__demo = {
+    sw, heap, loop, stage, act,
+    step(sec) { frozen = true; const n = Math.round(sec * 60); for (let i = 0; i < n; i++) update(1 / 60); return true; },
+    perf(frames) {
+      frames = frames || 120; let tu = 0, td = 0;
+      for (let i = 0; i < frames; i++) {
+        let t0 = performance.now(); update(1 / 60); tu += performance.now() - t0;
+        t0 = performance.now(); render(); td += performance.now() - t0;
+      }
+      return { bots: sw.alive, update: +(tu / frames).toFixed(3), frameRender: +(td / frames).toFixed(3), swarmDraw: +drawMs.toFixed(3) };
+    },
+  };
+  if (q.has('t')) window.__demo.step(+q.get('t'));
+  loop.start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome no Japão · Tatuzão (TBM)</title>
+<style>html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/terrain.js"></script>
+<script src="../engine/rig.js"></script>
+<script src="../game/machines-mine.js"></script>
+<script src="../game/tbm.js"></script>
+<script>
+/* Demo de game/tbm.js.
+   URL: ?mode=bore|transport  &z=zoom  &face=-1  &night=1  &t=segundos (avança e congela)  &spd=speedMul  &dig=0  &debug=1  &cx=desvio da câmera
+   Automação: __demo.step(seg) avança em passos fixos de 1/60; __demo.m = instância; __demo.cost() = ms por draw (média de 60). */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame;
+  const W = 960, H = 540, LINE = E.LINE_CSS;
+  const q = new URLSearchParams(location.search);
+  const MODE = q.get('mode') === 'transport' ? 'transport' : 'bore', FACE = +(q.get('face') || 1) < 0 ? -1 : 1;
+  const NIGHT = q.get('night') === '1', SPD = +(q.get('spd') || 1), NODIG = q.get('dig') === '0';
+  const stage = E.Stage({ width: W, height: H, bg: PAL.ink });
+  const g = stage.g;
+  const input = E.Input(stage);
+  const SOIL = '#C7A26A', SOIL_D = '#A8834F';
+  const tool = G.Tools.tbm;
+  const m = tool.create({ pilot: 'kome', scale: 1, mode: MODE });
+  const parts = E.Particles(900);
+  const PX = -150 * FACE;                       // boca do túnel (pé do paredão)
+  let heap = null;
+  if (MODE === 'bore') {
+    heap = E.Heap({ width: 4400, colW: 8, x0: -2200, y0: 0, seed: 7 });
+    heap.generate(x => { const d = (x - PX) * FACE; return d > 0 ? Math.min(980, 430 + d * 0.42 + 16 * Math.sin(d * 0.02)) : 0; });
+  }
+  const startX = MODE === 'bore' ? PX + FACE * 560 : 0;
+  m.tunnel.x0 = MODE === 'bore' ? PX : null;
+  const inp = { x: startX, y: 0, face: FACE, tx: MODE === 'bore' ? PX + FACE * 3000 : FACE * 2000, ty: 0, digging: !NODIG, power: 1, speedMul: SPD, vx: 0,
+    floor: () => 0, load: 0, t: 0, parts, boost: 0, night: NIGHT, zoom: 0.3 };
+  const cam = { x: 0, z: q.has('z') ? +q.get('z') : 0.3 };
+  const CX = +(q.get('cx') || 0);
+  const log = []; let logT = 0, T = 0;
+  function update(dt) {
+    T += dt; inp.t = T; inp.zoom = cam.z;
+    tool.update(m, dt, inp);
+    for (const ev of m.ev) { if (ev === 'grind') continue; log.unshift(ev); if (log.length > 5) log.pop(); logT = 1.6; }
+    logT -= dt;
+    parts.update(dt, () => 0);
+    const want = MODE === 'bore' ? m.x - FACE * (cam.z >= 0.6 ? 180 : 420) : m.x - FACE * (cam.z >= 0.6 ? 0 : 360);
+    cam.x = want + CX * FACE;
+  }
+  function backdrop(v) {
+    g.fillStyle = NIGHT ? PAL.night : PAL.sky; g.fillRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0);
+    if (!NIGHT) { g.fillStyle = U.mixCss(PAL.sky, PAL.skyL, 0.5); g.fillRect(v.x0, -260, v.x1 - v.x0, 270); }
+    g.fillStyle = U.mixCss(PAL.grassL, NIGHT ? PAL.night : PAL.sky, 0.55); g.beginPath(); g.moveTo(v.x0, 10);
+    for (let x = v.x0; x <= v.x1 + 32; x += 32) g.lineTo(x, -150 - 90 * Math.sin(x * 0.0016 + 1) - 30 * Math.sin(x * 0.005));
+    g.lineTo(v.x1 + 32, 10); g.closePath(); g.fill();
+    if (heap) heap.draw(g, v, T);
+    g.fillStyle = SOIL; g.fillRect(v.x0, 0, v.x1 - v.x0, v.y1);
+    g.fillStyle = PAL.grass; g.fillRect(v.x0, 0, v.x1 - v.x0, 5);
+    g.fillStyle = SOIL_D; g.fillRect(v.x0, 12, v.x1 - v.x0, 3);
+    g.fillStyle = LINE; g.fillRect(v.x0, -0.8, v.x1 - v.x0, 1.6);
+  }
+  const view = { x0: 0, x1: 0, y0: 0, y1: 0 };
+  let drawMs = 0, drawN = 0;
+  function render() {
+    stage.begin();
+    const gy = H * (MODE === 'bore' ? 0.8 : 0.86), c = cam;
+    g.save();
+    g.translate(W / 2, gy); g.scale(c.z, c.z); g.translate(-c.x, 0);
+    view.x0 = c.x - W / 2 / c.z; view.x1 = c.x + W / 2 / c.z; view.y0 = -gy / c.z; view.y1 = (H - gy) / c.z;
+    Draw.lod(c.z);
+    backdrop(view);
+    if (MODE === 'bore') tool.drawTunnel(g, m);
+    const t0 = performance.now();
+    tool.draw(g, m);
+    drawMs += performance.now() - t0; drawN++;
+    // escala: Kome (44 px) e pickup
+    if (MODE === 'bore') {
+      G.Scale.pickup.draw(g, PX - FACE * 380, 20, { face: FACE, t: T, pal: 'goma' });
+      E.drawShiba(g, PX - FACE * 230, 20, 'wag', T, { scale: 1, face: FACE, pal: 'kome' });
+    } else E.drawShiba(g, m.x + FACE * 240, 20, 'cheer', T, { scale: 1, face: -FACE, pal: 'kome' });
+    parts.draw(g, view);
+    if (q.get('debug')) {
+      const b = tool.bite(m), d = tool.dump(m), s = tool.seat(m);
+      g.lineWidth = 3; g.strokeStyle = b.active ? PAL.red : PAL.cream; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.stroke();
+      if (d) { g.strokeStyle = d.active ? PAL.gold : PAL.grayL; g.beginPath(); g.arc(d.x, d.y, 10, 0, 7); g.stroke(); }
+      g.strokeStyle = PAL.pink; g.beginPath(); g.arc(s.x, s.y, 8, 0, 7); g.stroke();
+    }
+    g.restore(); Draw.lod(1);
+    Draw.text(g, 'Tatuzão (tbm) · ' + MODE, 12, 22, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
+    Draw.text(g, 'fase ' + m.ph.toFixed(2) + '  anéis ' + m.rings + '  escavado ' + Math.round(m.bored) + ' px  rpm ' + m.rpm.toFixed(2) + '  zoom ' + c.z.toFixed(2),
+      12, 40, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+    if (logT > 0) Draw.text(g, log.join('  '), 12, 56, { size: 10.5, align: 'left', col: PAL.white, sw: 3, weight: 700 });
+  }
+  let frozen = false;
+  const loop = E.Loop({ update: dt => { if (!frozen) update(dt); }, render, input });
+  window.__demo = {
+    m, tool, loop, stage,
+    step(sec) { frozen = true; const n = Math.round(sec * 60); for (let i = 0; i < n; i++) update(1 / 60); render(); return true; },
+    cost() { drawMs = 0; drawN = 0; for (let i = 0; i < 60; i++) render(); return +(drawMs / drawN).toFixed(3); },
+  };
+  if (q.has('t')) window.__demo.step(+q.get('t'));
+  loop.start();
+})();
+</script>
+</body>
+</html>
