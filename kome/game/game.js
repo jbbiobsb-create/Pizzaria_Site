@@ -933,6 +933,7 @@
   // A VOLTA AO JAPÃO: cutscene que apresenta as ilhas + tutorial guiado (uma vez; dá pra rever no mapa)
   function endgameIntro() {
     if (cs || !G.Islands) { pickMountain(); return; }
+    if (!(S.island | 0) && !G.Islands.rec('honshu')) G.Islands.onEnding(S.endT || S.time);   // save antigo: registra Honshu como concluída
     csPlay('ilhas', () => { S.stats.cs_ilhas = 1; saveNow(); if (G.IslandsUI) G.IslandsUI.tour(() => pickMountain()); else pickMountain(); });
   }
   // final de uma ilha (2ª em diante): cena curta com a medalha; na Ilha de Mochi da 1ª volta, o Grande Final do Kome-Oh
@@ -1336,7 +1337,7 @@
   function feelFlags() {
     const sc = G.Scenery ? G.Scenery.profile() : null, f = sc && sc.feel;
     FEEL.cold = f === 'cold'; FEEL.hot = f === 'hot'; FEEL.beach = f === 'beach'; FEEL.float = f === 'float';
-    if (S.m && (cur.kind === 'hand')) S.m.idleAlt = FEEL.cold ? 'shake' : FEEL.hot ? 'pant' : FEEL.beach ? 'wag' : null;
+    if (S.m && (cur.kind === 'hand')) S.m.idleAlt = FEEL.cold ? 'shake' : FEEL.hot ? 'pant' : FEEL.beach || FEEL.float ? 'wag' : null;
   }
   function feelTick(dt, hold) {
     const idle = !hold && Math.abs(P.vx) < 6 && P.ground && !(S.stun > 0);
@@ -1371,7 +1372,7 @@
   // bafo de frio: nuvenzinha que sai do focinho a cada `per` segundos, cresce e some
   function drawBreath(g, t, per) {
     if (!T.head) return; const q = (t % per) / 0.9; if (q >= 1) return;
-    T.head(S.m, HB); const sc = HB.sc || 1, f = HB.f, x = HB.x + f * (10 + q * 10) * sc, y = HB.y + (1.5 - q * 3) * sc, r = (2.4 + q * 4.2) * sc;
+    T.head(S.m, HB); const sc = HB.sc || 1, f = HB.f, x = HB.x + f * (12 + q * 12) * sc, y = HB.y + (1.5 - q * 4) * sc, r = (3.2 + q * 5) * sc;
     g.save(); g.globalAlpha = 0.95 * (1 - q * q);
     g.fillStyle = '#FFFFFF'; g.strokeStyle = 'rgba(150,180,210,.9)'; g.lineWidth = Math.max(0.4, 0.5 * sc);
     g.beginPath(); g.arc(x, y, r, 0, 6.3); g.arc(x + f * r * 0.9, y - r * 0.35, r * 0.75, 0, 6.3); g.arc(x + f * r * 0.2, y + r * 0.45, r * 0.6, 0, 6.3); g.fill();

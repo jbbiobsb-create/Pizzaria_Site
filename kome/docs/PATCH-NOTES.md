@@ -1,3 +1,17 @@
+# Kome no Japão — A VOLTA AO JAPÃO (fim de jogo)
+
+- **Cutscene nova** depois do final: o corretor traz uma carta, o mapa do Japão acende ilha por ilha e o Kome fica de olho brilhando. Dá pra rever no mapa.
+- **Ilhas à vista**: um botão no topo da tela mostra em que ilha você está e quando dá pra viajar (pisca quando dá). Um tutorial rapidinho ensina na primeira vez.
+- **Mapa das ilhas** em tela cheia: ilhas misteriosas com "?", o Kome pulando na ilha atual, carimbo nas concluídas, medalhas, recorde de tempo, roupinhas exclusivas e a árvore das Sementes Douradas, tudo no mesmo lugar.
+- **Cada ilha muda o cenário inteiro**: Hokkaido com neve, picos brancos, pinheiros, bonecos de neve e telhados nevados; Kyushu com o vulcão Sakurajima soltando fumaça e cinza; Okinawa com mar, praia, palmeiras e shisas; a Ilha de Mochi com céu rosa, ilhotas flutuando, nuvens de mochi com carinha e pétalas. Cada uma tem a sua música.
+- **Montanha do outro lado** em Kyushu e Okinawa (a montanha fica à esquerda).
+- **O Kome sente o clima**: treme de frio parado em Hokkaido (com bafinho e cachecol), fica de língua de fora e suado em Kyushu, dança na praia em Okinawa. Os ajudantes tremem também.
+- **Evento de cada ilha**: Nevasca (×2,5), Erupção de curry (sacos dourados caindo), Maré baixa (tesouros), Gravidade fofa (tudo quica) e Hanami.
+- **Medalhas** de bronze, prata e ouro por ilha (pelo tempo), com sementes extras.
+- **Chegada em cada ilha** com cena própria, e um final curtinho com a medalha.
+- **Grande Final**: terminou a Ilha de Mochi? Toda a frota vira o **KOME-OH**! Renda ×2 pra sempre, o Kome Hinomaru no guarda-roupa, uma estátua no pátio e a **Volta 2** ao Japão.
+- Roupinha nova só na Ilha de Mochi: **Kome Mochi**.
+
 # Kome no Japão — notas da versão (16/11)
 
 ## Grandes novidades

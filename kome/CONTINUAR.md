@@ -61,6 +61,7 @@ kome/
     colheitadeira.js   Colheitadeira
     home.js            Casa do Kome (quintal, bichinhos, roupas, temas, caderno)
     infinite.js        modo infinito: Oficina e eventos
+    islands.js / islands-ui.js / scenery.js   volta ao Japão: ilhas, mapa, cenário de cada ilha
     goals.js           conquistas, missões, caderno
   demos/                 uma página por módulo/arquivo de máquina
   tools/                 shot.js, playtest.js, ENGINE_CONTRACT.md, ART_DIRECTION.md
@@ -328,3 +329,30 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - Dá pra PILOTAR a Bagger Gêmea (Menu › Trocar ferramenta, depois das 4 peças): a Bagger do jogador vira a Gêmea
   (m.k = 1,5 no bagger.js escala geometria e desenho; duas rodas; pintura; cava 2x; câmera abre) e o Goma leva a 293 pro
   outro lado da montanha (faturando). Atalho no admin: "pilotar a Gêmea".
+
+## 16/11 (noite) — A VOLTA AO JAPÃO (fim de jogo)
+- Cutscene `ilhas` (cutscenes.js) toca depois do cartão do final (ou 2,5 s depois de carregar um save antigo que já terminou);
+  depois vem o tutorial de 3 passos (islands-ui.js · tour: chip do HUD, sementes, Partir). Flag S.stats.cs_ilhas. Rever: botão no mapa.
+- Chip "Ilhas" no topo (Z.tc, embaixo da barra da montanha): ilha atual/casa ou "Partir pra X +N sementes" (pulsa), e o evento da ilha.
+- Mapa das ilhas em tela cheia (Menu › Ilhas, chip, Casa › aba Ilhas › Abrir o mapa). O jogo pausa com ele aberto.
+- Perfil de cena por ilha em D.ISLANDS[i].scene (islands.js, só dados) desenhado por scenery.js: céu, longe (Fuji só em Honshu),
+  morros, chão, partículas, crista da montanha (neve some onde cava; cinza + fumaça na cratera; riscos de areia; brilho de mochi),
+  árvore e enfeites do pátio, neve nos telhados (snowy: pinta o topo dos sprites), música própria (temas hokkaido/kyushu/okinawa/mochi).
+- ESPELHO: Kyushu e Okinawa têm a montanha à ESQUERDA. Feito só no desenho: Camera.mx = -1 (engine/fx.js; toWorld/toScreen
+  respeitam), fundo virado no render, teclas A/D e joystick trocados, indicadores de borda corrigidos, Draw.text/Draw.sign
+  desviram texto em transformação espelhada (texto de máquina virada também ficou legível). A simulação é a mesma: rungs passou
+  nas 14 ferramentas em Kyushu (`node tools/playtest.js --rungs --island 2`).
+- Kome sente o clima: frio (parado > 1,5 s treme, bafo a cada ~1 s, cachecol automático se não tiver acessório, idle 'shake',
+  ajudantes tremem), calor (idle 'pant', suor, calorão), praia (larga a ferramenta e dança às vezes), mochi (pulinho na gravidade fofa).
+- Evento por ilha (islands.js · ev, a cada 170-240 s depois da Pá; só fora da campanha de Honshu): nevasca ×2,5 + gelo na crista,
+  erupção de curry ×1,5 + 4 sacos dourados, maré baixa ×1,5 + 3 sacos, gravidade fofa ×2 + gravidade 0,4, hanami ×1,8 (volta 2+).
+- Medalhas por ilha (D.ENDGAME.medal: ouro/prata em minutos; bronze = terminar), sementes extras na primeira vez. S.stats.isl.
+- Fim de ilha (2ª em diante): cutscene `ilhafim` (planície, medalha, próxima parada) + cartão; Continuar abre o mapa.
+- Grande Final (Ilha de Mochi, 1ª vez): cutscene `finale` com o Kome-Oh combinando (komeoh.js agora carregado no index), renda
+  ×2 pra sempre (D.ENDGAME.legend, S.stats.legend), roupa 'nihon' (Kome Hinomaru), estátua do Kome-Oh no pátio (x=-560).
+  Depois da Ilha de Mochi a viagem volta pra Honshu: S.stats.lap++ e preço conta lapStep ilhas a mais por volta.
+- Roupinha nova 'momo' (Kome Mochi, só na Ilha de Mochi). Paletas 'momo' e 'nihon' em engine/shiba.js.
+- ?dev: ir pra cada ilha (sem viajar, __kome.setIsland), evento da ilha, mapa, tutorial, cutscenes ilhas/chegada/fim de ilha/finale.
+- Viagem de verdade: sem ?nointro a chegada toca a cutscene `chegada`; com ?nointro (testes) só o aviso.
+- NÃO TESTADO nesta rodada (o dono testa): playtest --auto (campanha e --island 1/2: os eventos de ilha aceleram um pouco as
+  ilhas), monkey.js, sweep.js (telas de celular do mapa/tutorial), música das ilhas de ouvido, Volta 2 inteira.

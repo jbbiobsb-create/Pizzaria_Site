@@ -52,7 +52,7 @@
       mods: ['montanha virada pro outro lado', 'bolsões dourados ×1,8', 'cinza caindo do céu'],
       ev: { id: 'erupcao', n: 'Erupção de curry!', sub: 'o vulcão cuspiu sacos de curry dourado: toque neles!', dur: 20, mult: 1.5, icon: 'bolt', gift: 4, air: 'ash', erupt: 1 },
       map: [0.25, 0.74], land: '#B9A07A',
-      scene: { mirror: true, sky: ['#F2B48A', '#F6DDB8', 0.42], far: 'volcano', hills: ['#6E6A4E', '#8C8E52'], trees: [0.3, 0.2], treeCol: '#4C5034',
+      scene: { mirror: true, sky: ['#F49A6A', '#FBD9A8', 0.6], far: 'volcano', hills: ['#6E6A4E', '#8C8E52'], trees: [0.3, 0.2], treeCol: '#4C5034',
         ground: { grass: '#8E9A4E', grassD: '#6C7638', grassL: '#B3BC6E', soil: '#8A6A4C', soilD: '#6C503A' },
         air: 'ash', airN: 55, crest: 'ash', tree: 'maple', yard: 'vulcao', feel: 'hot', music: 'kyushu' } },
     { id: 'okinawa', n: 'Okinawa', d: 'praia; areia misturada no arroz', hook: 'mar azul, terraços de arroz e shisas de guarda', shape: 'terraco', theme: 'verao', gold: 1.2,

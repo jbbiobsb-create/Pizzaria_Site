@@ -76,6 +76,7 @@
   function fillSide() {
     const side = root.querySelector('.k-isl-side'); side.innerHTML = '';
     root.querySelector('.k-isl-seeds').textContent = '★ ' + (S.stats.seeds | 0) + ' Sementes Douradas';
+    root.querySelector('.k-isl-title').textContent = 'A Volta ao Japão' + (I().lap() ? ' · volta ' + (I().lap() + 1) : '') + (S.stats.legend ? ' · Lenda do Japão' : '');
     const i = sel, isl = D.ISLANDS[i], st = stateOf(i), r = I().rec(isl.id), cur = I().index();
     const info = el('div', 'k-isl-info', side);
     const h = el('div', 'k-isl-name', info); h.textContent = (st === 'locked' ? '???' : isl.n);

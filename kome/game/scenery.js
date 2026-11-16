@@ -111,7 +111,7 @@
   function far(g, W, H, hz, cam, t, S, sc) { const f = FAR[sc.far]; if (f) f(g, W, H, hz, cam, t, S, evNow()); }
   // na frente do morro de perto: palmeiras (Okinawa), pinheiros nevados (Hokkaido)
   function near(g, W, H, hz, cam, t, S, sc) {
-    if (sc.far === 'sea') { const ev = evNow(); seaBand(g, W, H, hz - 14 + (ev && ev.tide ? 5 : 0), cam, t, lightOf(S)); }   // o mar aparece logo atrás do pátio
+    if (sc.far === 'sea') { const ev = evNow(); seaBand(g, W, H, hz - 34 + (ev && ev.tide ? 8 : 0), cam, t, lightOf(S)); }   // o mar aparece logo atrás do pátio
     if (sc.tree === 'palm') { const off = cam.x * 0.5; for (let i = 0; i < 9; i++) { const x = ((i * 150 - off) % (W + 300) + W + 300) % (W + 300) - 150; palm(g, x, hz + 14 + (i % 2) * 6, 0.32 + (i % 3) * 0.05, t + i, true); } }
     else if (sc.tree === 'pine' && sc.yard === 'neve') {
       const off = cam.x * 0.5, L = lightOf(S);
@@ -209,7 +209,29 @@
     praia(g, v, t, S, X) { shisas(g, X.torii); umbrella(g, 1500, t); palm(g, 1130, 0, 1.1, t); palm(g, 700, 0, 1.25, t + 2); },
     mochi(g, v, t) { giantMochi(g, 690, t, '#FFF6F4', 0); giantMochi(g, 930, t, '#F6C6D2', 1); giantMochi(g, 1520, t, '#A9CB8A', 2); dango(g, 1130, t); },
   };
-  function yard(g, v, t, S, X) { const sc = prof(); if (sc && YARD[sc.yard] && v.x0 < 1900) YARD[sc.yard](g, v, t, S, X); }
+
+  // estátua do KOME-OH no pátio depois do Grande Final (desenhada uma vez numa imagem e reaproveitada)
+  let statue = null;
+  function legendStatue(g, v, t, S) {
+    if (!S.stats || !S.stats.legend) return;
+    const x = -560; if (x + 200 < v.x0 || x - 200 > v.x1) return;
+    const T = G.Tools && G.Tools.komeoh; if (!T) return;
+    if (!statue) {
+      try {
+        const m = T.create({ mode: 'normal', x: 0, pilot: (S.look && S.look.pal) || 'kome' }), INP = { x: 0, y: 0, floor: () => 0, face: 1, digging: false };
+        for (let i = 0; i < 90; i++) T.update(m, 1 / 60, INP);
+        const k = 0.3, c = document.createElement('canvas'); c.width = 900 * k; c.height = 1180 * k;
+        const cg = c.getContext('2d'); cg.translate(c.width / 2, c.height - 6); cg.scale(k, k); T.draw(cg, m);
+        statue = { c, k };
+      } catch (e) { statue = { c: null }; }
+    }
+    Draw.box(g, x - 120, -34, 240, 34, '#B7AFA2', { r: 3 }); Draw.box(g, x - 132, -44, 264, 12, '#D6CFC4', { r: 3 });
+    Draw.sign(g, x - 60, -30, 120, 22, 'KOME-OH', { col: '#F3C94A', ink: LINE });
+    if (statue.c) g.drawImage(statue.c, x - statue.c.width / 2, -44 - statue.c.height + 6);
+    for (let i = 0; i < 3; i++) { const a = t * 1.2 + i * 2.1; g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 4 + i); Draw.circle(g, x + Math.cos(a) * 130, -220 + Math.sin(a) * 60, 4, '#FFF3B0', { ol: 0 }); } g.globalAlpha = 1;
+  }
+  function yard(g, v, t, S, X) {
+    legendStatue(g, v, t, S); const sc = prof(); if (sc && YARD[sc.yard] && v.x0 < 1900) YARD[sc.yard](g, v, t, S, X); }
   // árvore da régua do pátio (no lugar da sakura)
   function rulerTree(g, x, t) {
     const sc = prof(), k = (sc && sc.tree) || 'sakura';

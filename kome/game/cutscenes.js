@@ -165,11 +165,11 @@
         Draw.circle(g, px + pw - 30, py + 30, 18, PAL.red, { ol: 2 }); Draw.text(g, '米', px + pw - 30, py + 31, { size: 16, col: PAL.cream, sw: 0.01 });
       } },
       { dur: 7.2, cap: 'Cada ilha muda tudo: o cenário, a montanha, o clima… e até o lado da montanha!', draw(g, k, t) {
-        csSky(g, '#2C6FA0', '#4C9ED0');
+        csSky(g, '#7FC6E8', '#4C9ED0');
         const [mx, my, mw, mh] = mapBox(), lit = D.ISLANDS.map((_, i) => U.clamp(k * 6.2 - i * 1.05, 0, 1));
-        if (SC()) SC().japan(g, mx, my, mw, mh, { t, lit, state: () => 'open', names: true });
+        if (SC()) SC().japan(g, mx, my, mw, mh, { bg: false, t, lit, state: () => 'open', names: true });
         const cur = Math.min(D.ISLANDS.length - 1, Math.floor(k * 6.2 / 1.05)), I = D.ISLANDS[cur];
-        if (lit[cur] > 0.3) Draw.text(g, I.n + ': ' + I.hook, mx + mw * 0.6, my + mh - 18, { size: Math.min(19, W / 46), col: '#FFF3B0', sw: 5 });
+        if (lit[cur] > 0.3) { g.globalAlpha = Math.min(1, (lit[cur] - 0.3) * 3); Draw.text(g, I.n, mx + mw * 0.42, my + mh * 0.38, { size: Math.min(24, W / 38), col: '#FFF3B0', sw: 6 }); Draw.text(g, I.hook, mx + mw * 0.42, my + mh * 0.38 + 28, { size: Math.min(16, W / 56), col: PAL.cream, sw: 4 }); g.globalAlpha = 1; }
       } },
       { dur: 3.6, cap: 'O Kome nunca tinha saído de Honshu…', draw(g, k, t) {
         csRays(g, W / 2, H * 0.55, t, '#FFE9A8', '#F6C86A');
@@ -248,18 +248,18 @@
         Draw.text(g, U.fmtTime(res.sec) + (res.newBest ? ' · recorde' : '') + (res.bonus ? ' · +' + res.bonus + ' sementes' : ''), W / 2, H * 0.8, { size: 18, col: PAL.cream, sw: 4 });
       } },
       { dur: 3.4, cap: '', draw(g, k, t) {
-        csSky(g, '#2C6FA0', '#4C9ED0');
+        csSky(g, '#7FC6E8', '#4C9ED0');
         const [mx, my, mw, mh] = mapBox(), i0 = G.Islands ? G.Islands.index() : 0, nx = (i0 + 1) % D.ISLANDS.length;
-        if (SC()) SC().japan(g, mx, my, mw, mh, { t, state: i => (i === i0 ? 'done' : i === nx ? 'here' : i < i0 ? 'done' : 'locked'), sel: nx });
-        Draw.text(g, 'Próxima parada: ' + D.ISLANDS[nx].n, mx + mw * 0.6, my + mh - 18, { size: 21, col: '#FFF3B0', sw: 5 });
+        if (SC()) SC().japan(g, mx, my, mw, mh, { bg: false, t, state: i => (i === i0 ? 'done' : i === nx ? 'here' : i < i0 ? 'done' : 'locked'), sel: nx });
+        Draw.text(g, 'Próxima parada:', mx + mw * 0.42, my + mh * 0.36, { size: 18, col: PAL.cream, sw: 4 }); Draw.text(g, D.ISLANDS[nx].n, mx + mw * 0.42, my + mh * 0.36 + 28, { size: 24, col: '#FFF3B0', sw: 6 });
       } },
     ],
     // GRANDE FINAL (Ilha de Mochi terminada na 1ª volta): toda a frota vira o KOME-OH
     finale: [
       { dur: 4.4, cap: 'Cinco ilhas. Cinco montanhas. O Japão inteiro comendo onigiri do Kome.', draw(g, k, t) {
-        csSky(g, '#2C6FA0', '#4C9ED0');
+        csSky(g, '#7FC6E8', '#4C9ED0');
         const [mx, my, mw, mh] = mapBox();
-        if (SC()) SC().japan(g, mx, my, mw, mh, { t, state: () => 'done', lit: D.ISLANDS.map((_, i) => U.clamp(k * 6 - i, 0, 1)) });
+        if (SC()) SC().japan(g, mx, my, mw, mh, { bg: false, t, state: () => 'done', lit: D.ISLANDS.map((_, i) => U.clamp(k * 6 - i, 0, 1)) });
       } },
       { dur: 4.2, cap: 'Naquela noite, todas as máquinas do Kome apareceram de uma vez…', draw(g, k, t) {
         csSky(g, '#0E1230', '#2A2756'); csStars(g, t, 50); csGround(g, H * 0.84, '#3B4A2E');

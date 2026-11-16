@@ -28,7 +28,7 @@ Formato da ficha e paleta das letras: ver cabeçalho de `tools/content.js`.
 | Compras e festa | `game/game.js` · buyTool, buyNode, buyHouse, celebrate, ending |
 | Dia/noite | `game/game.js` · DAY_SEC, dayTick, drawDayEnd |
 | Cutscenes | arte e falas: `game/cutscenes.js` (SHOTS) · controle: `game/game.js` · csPlay, csNext, drawCutscene |
-| Câmera e zoom | `game/game.js` · camTick, setZoomMul |
+| Câmera e zoom | `game/game.js` · camTick, setZoomMul (prints: `S.camLock = {x, y, z}`) |
 | Desenho do mundo | `game/game.js` · render, drawMach (cache) · `game/game-world.js` · drawBack, drawCity, drawYard, props, RULER |
 | Construções em pixel do pátio | `game/game-world.js` · sCasinha, sVila, sFabrica… (PSPR), props[] |
 | HUD, botões, árvore, menu, trocar | `game/game-ui.js` · HUD.init, openMenu, openSwap, quickBuy |
@@ -37,7 +37,12 @@ Formato da ficha e paleta das letras: ver cabeçalho de `tools/content.js`.
 | Modo infinito: Oficina e eventos | `game/infinite.js` · mult, powK, EVENTS, up |
 | Bagger Gêmea, fábrica, lojas | `game/industry.js` · D.GIANT, D.SHOPS, drawFactory |
 | Esteiras | `game/belts.js` |
-| Ilhas e sementes | `game/islands.js` · D.ISLANDS, D.SEEDS, travel, boat |
+| Ilhas (fichas, sementes, viagem, medalhas, evento da ilha) | `game/islands.js` · D.ISLANDS (scene = perfil de cena), D.SEEDS, travel, makeSave, onEnding, evTick · números em `D.ENDGAME` (data.js) |
+| Cenário de cada ilha (fundo, pátio, crista da montanha, partículas, mapa do Japão) | `game/scenery.js` · far (peaks/volcano/sea/mochi), YARD, crest, air, japan |
+| Mapa das ilhas, chip do HUD, tutorial | `game/islands-ui.js` · open, chipTick, tour |
+| Montanha espelhada (ilha com scene.mirror) | `engine/fx.js` Camera `mx` + `game/game.js` setMirror (só desenho/entrada viram; simulação igual) |
+| Kome sente o clima (frio, calor, praia) | `game/game.js` · FEEL, feelFlags, feelTick, drawFeel, drawBreath |
+| Cutscenes do fim de jogo | `game/cutscenes.js` · ilhas, chegada, ilhafim, finale (Kome-Oh de `game/komeoh.js`) |
 | Conquistas e missões | `game/goals.js` · ACH, TPL |
 | Ferramentas de mão / máquinas | `game/tools-hand.js`, `machines-mid.js`, `machines-mine.js`, `colheitadeira.js`, `bagger.js` (interface G.Tools[id]) |
 
