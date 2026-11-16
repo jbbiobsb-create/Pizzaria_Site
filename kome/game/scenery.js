@@ -348,8 +348,7 @@
     o = o || {}; const t = o.t || 0, D = G.Data, IS = D.ISLANDS, st = o.state || (() => 'open'), lit = o.lit;
     const nodes = [];
     g.save();
-    const sea = g.createLinearGradient(0, y, 0, y + h); sea.addColorStop(0, '#7FC6E8'); sea.addColorStop(1, '#4C9ED0');
-    g.fillStyle = sea; g.fillRect(x, y, w, h);
+    if (o.bg !== false) { const sea = g.createLinearGradient(0, y, 0, y + h); sea.addColorStop(0, '#7FC6E8'); sea.addColorStop(1, '#4C9ED0'); g.fillStyle = sea; g.fillRect(x, y, w, h); }
     g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 2; g.lineCap = 'round';
     for (let i = 0; i < 26; i++) { const wx = x + ((hash(i, 7) * w + t * 8) % w), wy = y + hash(i, 8) * h; g.beginPath(); g.moveTo(wx - 7, wy); g.quadraticCurveTo(wx - 3, wy - 3, wx, wy); g.quadraticCurveTo(wx + 3, wy - 3, wx + 7, wy); g.stroke(); }
     // rota do barco (tracejada) na ordem das ilhas

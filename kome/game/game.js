@@ -1174,7 +1174,7 @@
   let cs = null;
   function csPlay(id, then) {
     if (FAST || !SHOTS[id]) { if (then) then(); return; }
-    cs = { id, shots: SHOTS[id], i: 0, t: 0, then, skipT: 0 };
+    cs = { id, shots: SHOTS[id], i: 0, t: 0, then, skipT: 0, clock: 0 };
     if (Music && Music.stop) { try { Music.stop(0.4); } catch (e) { /* */ } }
   }
   function csNext(all) {
@@ -1183,7 +1183,7 @@
     cs.t = 0;
   }
   function csTick(dt) {
-    cs.t += dt; const sh = cs.shots[cs.i];
+    cs.t += dt; cs.clock += dt; const sh = cs.shots[cs.i];
     if (cs.t >= sh.dur) csNext();
   }
   const SHOTS = G.makeShots(W, H, S);   // arte das cutscenes mora em game/cutscenes.js
@@ -1191,7 +1191,7 @@
     const sh = cs.shots[cs.i], k = Math.min(1, cs.t / sh.dur);
     g.save(); g.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0);
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    g.save(); sh.draw(g, k, t); g.restore();
+    g.save(); sh.draw(g, k, t + cs.clock, cs.t); g.restore();   // relógio próprio: o jogo está pausado, mas a cena anima
     const bar = Math.round(H * 0.09); g.fillStyle = '#120C08'; g.fillRect(0, 0, W, bar); g.fillRect(0, H - bar, W, bar);
     const fin = Math.min(1, cs.t / 0.35, (sh.dur - cs.t) / 0.35); if (fin < 1) { g.globalAlpha = 1 - fin; g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
     const n = Math.min(sh.cap.length, Math.floor(cs.t * 38));
@@ -1343,7 +1343,7 @@
     FEEL.idle = idle ? FEEL.idle + dt : 0;
     if (FAST || !T.head || !(FEEL.cold || FEEL.hot) || (FEEL.puffT -= dt) > 0) return;
     T.head(S.m, HB); const sc = HB.sc || 1;
-    if (FEEL.cold) { FEEL.puffT = FEEL.idle > 1.5 ? 1 : 1.9; parts.puff(HB.x + HB.f * 8 * sc, HB.y + 1 * sc, 2, 3.2 * sc, { c: '#FFFFFF', up: 3 * sc, speed: 6 * sc, life: 0.9 }); }   // bafo de frio saindo do focinho
+    if (FEEL.cold) FEEL.puffT = 1;   // o bafo é desenhado em drawBreath
     else if (FEEL.idle > 1.5) { FEEL.puffT = 0.6; parts.puff(HB.x - HB.f * 2 * sc, HB.y - 10 * sc, 1, 2.6 * sc, { c: '#FFF1D6', up: 14 * sc, speed: 2 * sc, life: 0.8 }); }   // calorão subindo
     else FEEL.puffT = 0.5;
   }
@@ -1356,9 +1356,25 @@
       E.drawShiba(g, P.x, P.y, FEEL.idle % 2 < 1 ? 'dance' : 'dance2', t, { scale: HB.sc || 1, face: P.face, pal: S.look.pal || 'kome', shadow: true });
       return true;
     }
-    if (FEEL.cold && FEEL.idle > 1.5) { g.save(); g.translate(Math.sin(t * 71) * 0.55 * ((S.m && S.m.sc) || 1), Math.abs(Math.sin(t * 53)) * 0.25); T.draw(g, S.m); g.restore(); return true; }
+    if (FEEL.cold) {
+      const shv = FEEL.idle > 1.5;   // parado no frio: tremidinha rápida no corpo todo
+      if (shv) { g.save(); g.translate(Math.sin(t * 71) * 0.55 * ((S.m && S.m.sc) || 1), Math.abs(Math.sin(t * 53)) * 0.25); }
+      T.draw(g, S.m); if (shv) g.restore();
+      drawBreath(g, t, shv ? 1.1 : 1.9);
+      return true;
+    }
     if (FEEL.hot && FEEL.idle > 2) { T.draw(g, S.m); drawSweat(g, t); return true; }
     return false;
+  }
+  // bafo de frio: nuvenzinha que sai do focinho a cada `per` segundos, cresce e some
+  function drawBreath(g, t, per) {
+    if (!T.head) return; const q = (t % per) / 0.9; if (q >= 1) return;
+    T.head(S.m, HB); const sc = HB.sc || 1, f = HB.f, x = HB.x + f * (8 + q * 9) * sc, y = HB.y + (1.5 - q * 3) * sc, r = (1.6 + q * 3.2) * sc;
+    g.save(); g.globalAlpha = 0.95 * (1 - q * q);
+    g.fillStyle = '#FFFFFF'; g.strokeStyle = 'rgba(150,180,210,.9)'; g.lineWidth = Math.max(0.4, 0.5 * sc);
+    g.beginPath(); g.arc(x, y, r, 0, 6.3); g.arc(x + f * r * 0.9, y - r * 0.35, r * 0.75, 0, 6.3); g.arc(x + f * r * 0.2, y + r * 0.45, r * 0.6, 0, 6.3); g.fill();
+    g.globalAlpha *= 0.6; g.stroke();
+    g.restore();
   }
   function drawSweat(g, t) {
     const u = (t * 0.9) % 1, x = P.x - P.face * 6, y = P.y - 40 + u * 10;

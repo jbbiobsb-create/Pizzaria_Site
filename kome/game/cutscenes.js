@@ -14,12 +14,13 @@
   function csGround(g, y, col) { g.fillStyle = col; g.fillRect(0, y, W, H - y); g.fillStyle = CS_LINE; g.fillRect(0, y, W, 2); }
   function csSky(g, a, b) { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, a); gr.addColorStop(1, b); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   function csStars(g, t, n) { g.fillStyle = '#FFF6D8'; for (let i = 0; i < n; i++) { g.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.7 + i)); g.fillRect((i * 97.3) % W, (i * 53.7) % (H * 0.5), 2, 2); } g.globalAlpha = 1; }
-  function csMount(g, cx, base, w, h, k) {
+  function csMount(g, cx, base, w, h, k, col, cap) {
     // montanha de arroz (k: quanto sobrou, 1 = inteira)
     if (k <= 0.01) return; const hh = h * k, ww = w * (0.55 + 0.45 * k);
     g.beginPath(); g.moveTo(cx - ww, base); g.quadraticCurveTo(cx - ww * 0.35, base - hh * 1.02, cx, base - hh); g.quadraticCurveTo(cx + ww * 0.35, base - hh * 1.02, cx + ww, base); g.closePath();
-    g.fillStyle = PAL.rice; g.fill(); g.lineWidth = 2.5; g.strokeStyle = CS_LINE; g.stroke();
+    g.fillStyle = col || PAL.rice; g.fill(); g.lineWidth = 2.5; g.strokeStyle = CS_LINE; g.stroke();
     g.save(); g.clip();
+    if (cap) { g.fillStyle = cap; g.beginPath(); g.moveTo(cx - ww, base - hh * 0.62); for (let i = 0; i <= 12; i++) g.lineTo(cx - ww + i * ww / 6, base - hh * (0.62 + (i % 2 ? -0.05 : 0.04))); g.lineTo(cx + ww, base - hh * 1.1); g.lineTo(cx - ww, base - hh * 1.1); g.closePath(); g.fill(); }
     const fr = x => x - Math.floor(x);
     for (let i = 0; i < 900; i++) { const u = fr(Math.sin(i * 12.9898) * 43758.5), v = fr(Math.sin(i * 78.233) * 12345.6); g.fillStyle = i % 3 ? '#D8CCB4' : '#FFFFFF'; g.beginPath(); g.ellipse(cx - ww + u * ww * 2, base - v * hh, 3.2, 1.5, i, 0, 6.3); g.fill(); }
     g.restore();
@@ -80,15 +81,20 @@
     g.restore();
   }
   function csSea(g, y0, t) { for (let b = 0; b < 4; b++) { const y = y0 + b * 26; g.fillStyle = ['#4FA3D9', '#3E8FC6', '#3580B4', '#2C6FA0'][b]; g.beginPath(); g.moveTo(0, H); g.lineTo(0, y); for (let x = 0; x <= W; x += 16) g.lineTo(x, y + Math.sin(x * 0.03 + t * (2 + b) + b) * (3 + b)); g.lineTo(W, H); g.closePath(); g.fill(); } }
+  // montanha da cutscene com a cara da ilha (curry, mochi rosa, neve no topo, areia)
+  const MCOL = { hokkaido: ['#F6F1E4', '#FFFFFF'], kyushu: ['#F3C566', '#7A6A64'], okinawa: ['#F2E6C4', null], mochijima: ['#FBE3EA', '#FFFFFF'] };
+  function csMountIsl(g, cx, base, w, h, k) { const c = MCOL[ISL().id] || [null, null]; csMount(g, cx, base, w, h, k, c[0], c[1]); }
   const feelPose = sc => (!sc ? 'cheer' : sc.feel === 'cold' ? 'shake' : sc.feel === 'hot' ? 'pant' : sc.feel === 'beach' ? 'dance' : sc.feel === 'float' ? 'jump' : 'cheer');
   const mapBox = () => { const mh = H * 0.74, mw = Math.min(W * 0.86, mh * 1.45); return [W / 2 - mw / 2, H * 0.11, mw, mh]; };
-  let koh = null, kohT = -1;
-  function csKomeOh(g, x, y, s, t, mode) {
+  const KOH = {};
+  // Kome-Oh na cutscene: a simulação anda no tempo da cena (lt), em passos fixos, então a combinação dura o mesmo em qualquer PC
+  function csKomeOh(g, x, y, s, t, mode, lt) {
     const T = G.Tools.komeoh; if (!T) { E.drawShiba(g, x, y, 'cheer', t, { scale: 4, pal: S.look.pal }); return; }
     try {
-      if (!koh || (mode === 'combine' && kohT > t + 0.5)) { koh = T.create({ mode: mode || 'combine', x: 0, pilot: S.look.pal || 'kome' }); kohT = t; }
-      const dt = U.clamp(t - kohT, 0, 0.05); kohT = t;
-      T.update(koh, dt, { x: 0, y: 0, floor: () => 0, face: 1, tx: null, ty: null, digging: false, night: 0.5 });
+      let k = KOH[mode];
+      if (!k || lt < k.simT - 0.1) { k = KOH[mode] = { m: T.create({ mode, x: 0, pilot: S.look.pal || 'kome' }), simT: mode === 'combine' ? 0 : -1.5 }; }
+      const koh = k.m, INP = { x: 0, y: 0, floor: () => 0, face: 1, tx: null, ty: null, digging: false, night: 0.5 };
+      for (let n = 0; k.simT < lt && n < 240; n++) { T.update(koh, 1 / 60, INP); k.simT += 1 / 60; }
       g.save(); g.translate(x, y); g.scale(s, s); T.draw(g, koh); g.restore();
     } catch (e) { E.drawShiba(g, x, y, 'cheer', t, { scale: 4, pal: S.look.pal }); }
   }
@@ -163,12 +169,12 @@
         const [mx, my, mw, mh] = mapBox(), lit = D.ISLANDS.map((_, i) => U.clamp(k * 6.2 - i * 1.05, 0, 1));
         if (SC()) SC().japan(g, mx, my, mw, mh, { t, lit, state: () => 'open', names: true });
         const cur = Math.min(D.ISLANDS.length - 1, Math.floor(k * 6.2 / 1.05)), I = D.ISLANDS[cur];
-        if (lit[cur] > 0.3) Draw.text(g, I.n + ': ' + I.hook, W / 2, my + mh + 2, { size: Math.min(20, W / 44), col: '#FFF3B0', sw: 5 });
+        if (lit[cur] > 0.3) Draw.text(g, I.n + ': ' + I.hook, mx + mw * 0.6, my + mh - 18, { size: Math.min(19, W / 46), col: '#FFF3B0', sw: 5 });
       } },
       { dur: 3.6, cap: 'O Kome nunca tinha saído de Honshu…', draw(g, k, t) {
         csRays(g, W / 2, H * 0.55, t, '#FFE9A8', '#F6C86A');
-        const s = 6 + k * 1.2; E.drawShiba(g, W / 2, H * 0.98 + 20, 'surprise', t, { scale: s, pal: S.look.pal });
-        csSparkles(g, W / 2 + 6 * s * 0.1, H * 0.98 + 20 - 21 * s, s * 0.45, t);
+        const s = 8.5 + k * 1.5; E.drawShiba(g, W / 2 - 10 * s, H * 0.46 + 27 * s, 'surprise', t, { scale: s, pal: S.look.pal, eyes: 'sparkle', mouth: 'open' });
+        for (let i = 0; i < 7; i++) { const a = i * 0.9 + t * 0.8, rr = (150 + 30 * Math.sin(t * 3 + i)) * (0.8 + 0.2 * k); csSparkles(g, W / 2 + Math.cos(a) * rr * 1.5, H * 0.42 + Math.sin(a) * rr * 0.8, 1.6 + (i % 3) * 0.5, t + i); }
       } },
       { dur: 3.8, cap: 'Seu novo objetivo:', draw(g, k, t) {
         csSky(g, '#7EC4EC', '#D8F0FA'); csSea(g, H * 0.66, t);
@@ -184,13 +190,13 @@
         csSky(g, '#F6E7CF', '#E9D2AE');
         const cw = Math.min(W * 0.36, 320), y0 = H * 0.18;
         const col = (x, title, tone, items, fill) => {
-          Draw.box(g, x, y0, cw, H * 0.6, '#FFFDF6', { r: 10 }); Draw.box(g, x, y0, cw, 44, tone, { r: 10 });
+          Draw.box(g, x, y0, cw, H * 0.5, '#FFFDF6', { r: 10 }); Draw.box(g, x, y0, cw, 44, tone, { r: 10 });
           Draw.text(g, title, x + cw / 2, y0 + 22, { size: 20, col: PAL.cream, sw: 4 });
           items.forEach((it, i) => { const on = k * 9 > i + (fill ? 0 : 4.5); g.globalAlpha = on ? 1 : 0.15; Draw.text(g, it, x + cw / 2, y0 + 78 + i * 38, { size: 17, col: CS_LINE, sw: 0.01, weight: 800 }); g.globalAlpha = 1; });
         };
         col(W * 0.5 - cw - 16, 'VAI JUNTO', '#4E9A4E', ['Sementes Douradas', 'Roupinhas', 'Quintal da Casa', 'Conquistas e recordes'], true);
         col(W * 0.5 + 16, 'RECOMEÇA', '#D8763A', ['Montanha nova', 'Máquinas e árvore', 'Casa e ienes', '(com cenário novo!)'], false);
-        E.drawShiba(g, W / 2, H * 0.86, 'proud', t, { scale: 1.8, pal: S.look.pal });
+        E.drawShiba(g, W / 2, H * 0.86, 'proud', t, { scale: 1.6, pal: S.look.pal });
       } },
     ],
     // chegada numa ilha nova (depois da viagem): o barco, a ilha revelada com o seu cenário, o nome e as regras
@@ -201,7 +207,7 @@
       } },
       { dur: 4.2, cap: '', draw(g, k, t) {
         const r = csIsland(g, H * 0.78, t, 0.36, 2000 + k * 120), sc = r.sc, I = ISL();
-        csMount(g, sc && sc.mirror ? W * 0.18 : W * 0.82, H * 0.78, W * 0.32, H * 0.5, 1);
+        csMountIsl(g, sc && sc.mirror ? W * 0.18 : W * 0.82, H * 0.78, W * 0.32, H * 0.5, 1);
         E.drawShiba(g, W * 0.48, H * 0.78, feelPose(sc), t, { scale: 2.6, pal: S.look.pal });
         if (sc && sc.feel === 'cold') for (let i = 0; i < 3; i++) { const q = (t * 0.9 + i / 3) % 1; g.globalAlpha = 0.8 * (1 - q); Draw.circle(g, W * 0.48 + 34 + q * 24, H * 0.78 - 52 - q * 10, 5 + q * 8, '#FFFFFF', { ol: 0 }); g.globalAlpha = 1; }
         csAir(g, t, r.fc);
@@ -220,7 +226,7 @@
       } },
       { dur: 3, cap: 'Bora cavar!', draw(g, k, t) {
         const r = csIsland(g, H * 0.82, t, 0.38), sc = r.sc;
-        csMount(g, sc && sc.mirror ? W * 0.25 : W * 0.75, H * 0.82, W * 0.4, H * 0.58, 1);
+        csMountIsl(g, sc && sc.mirror ? W * 0.25 : W * 0.75, H * 0.82, W * 0.4, H * 0.58, 1);
         E.drawShiba(g, sc && sc.mirror ? W * 0.68 : W * 0.32, H * 0.82, 'cheer', t, { scale: 2.6, pal: S.look.pal, face: sc && sc.mirror ? -1 : 1 });
         csAir(g, t, r.fc);
       } },
@@ -229,7 +235,7 @@
     ilhafim: [
       { dur: 3.4, cap: '', draw(g, k, t) {
         const r = csIsland(g, H * 0.8, t, 0.7), I = ISL(), sc = r.sc;
-        csMount(g, sc && sc.mirror ? W * 0.3 : W * 0.7, H * 0.8, W * 0.3, H * 0.14, 1 - 0.3 * k);
+        csMountIsl(g, sc && sc.mirror ? W * 0.3 : W * 0.7, H * 0.8, W * 0.3, H * 0.14, 1 - 0.3 * k);
         E.drawShiba(g, W * 0.45, H * 0.8, 'proud', t, { scale: 2.4, pal: S.look.pal });
         Draw.text(g, 'A montanha de ' + I.n + ' virou planície!', W / 2, H * 0.2, { size: Math.min(26, W / 34), col: PAL.cream, sw: 6 });
         csAir(g, t, r.fc);
@@ -245,7 +251,7 @@
         csSky(g, '#2C6FA0', '#4C9ED0');
         const [mx, my, mw, mh] = mapBox(), i0 = G.Islands ? G.Islands.index() : 0, nx = (i0 + 1) % D.ISLANDS.length;
         if (SC()) SC().japan(g, mx, my, mw, mh, { t, state: i => (i === i0 ? 'done' : i === nx ? 'here' : i < i0 ? 'done' : 'locked'), sel: nx });
-        Draw.text(g, 'Próxima parada: ' + D.ISLANDS[nx].n, W / 2, my + mh + 2, { size: 22, col: '#FFF3B0', sw: 5 });
+        Draw.text(g, 'Próxima parada: ' + D.ISLANDS[nx].n, mx + mw * 0.6, my + mh - 18, { size: 21, col: '#FFF3B0', sw: 5 });
       } },
     ],
     // GRANDE FINAL (Ilha de Mochi terminada na 1ª volta): toda a frota vira o KOME-OH
@@ -261,15 +267,15 @@
         for (let i = 0; i < 6; i++) E.drawShiba(g, W * (0.08 + i * 0.07), H * 0.84, i % 2 ? 'cheer' : 'wag', t + i, { scale: 1.4, pal: HELP_PAL[i] });
         E.drawShiba(g, W * 0.5, H * 0.84, 'think', t, { scale: 2, pal: S.look.pal });
       } },
-      { dur: 8.6, cap: 'KOME-OH… COMBINAR!', draw(g, k, t) {
+      { dur: 8.6, cap: 'KOME-OH… COMBINAR!', draw(g, k, t, lt) {
         csSky(g, '#140E2A', '#3A2A5E'); csStars(g, t, 60); csGround(g, H * 0.9, '#2E3A28');
-        csKomeOh(g, W / 2, H * 0.9, Math.min(H * 0.74 / 1040, W / 1500), t, 'combine');
+        csKomeOh(g, W / 2, H * 0.88, Math.min(H * 0.66 / 1040, W / 1500), t, 'combine', lt);
       } },
-      { dur: 5, cap: 'A lenda do Japão: renda ×2 pra sempre e o Kome Hinomaru no guarda-roupa!', draw(g, k, t) {
+      { dur: 5, cap: 'A lenda do Japão: renda ×2 pra sempre e o Kome Hinomaru no guarda-roupa!', draw(g, k, t, lt) {
         csSky(g, '#0E1230', '#2A2756'); csStars(g, t, 50);
         for (let i = 0; i < 5; i++) { const T0 = (t * 0.55 + i * 0.37) % 1.6; if (T0 > 1) continue; const fx = W * (0.12 + ((i * 0.23) % 0.8)), fy = H * (0.16 + (i % 3) * 0.07), rr = 20 + T0 * 80; g.globalAlpha = Math.max(0, 1 - T0); for (let a = 0; a < 16; a++) { const an = a * 0.3927; Draw.circle(g, fx + Math.cos(an) * rr, fy + Math.sin(an) * rr + T0 * T0 * 20, 3, ['#FF7A8A', '#FFD25E', '#8FD3FF', '#B7F28C', '#F6A8C0'][i], { ol: 0 }); } g.globalAlpha = 1; }
         csGround(g, H * 0.9, '#2E3A28');
-        csKomeOh(g, W / 2, H * 0.9, Math.min(H * 0.7 / 1040, W / 1500), t, 'normal');
+        csKomeOh(g, W / 2, H * 0.88, Math.min(H * 0.62 / 1040, W / 1500), t, 'normal', lt);
         Draw.text(g, 'KOME-OH!', W / 2, H * 0.14, { size: 52, col: PAL.goldL || '#FFE08A', sw: 9, shadow: 4 });
       } },
       { dur: 4.4, cap: 'E a volta continua: Honshu de novo, com montanhas maiores e as sementes no bolso.', draw(g, k, t) {

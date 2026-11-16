@@ -121,8 +121,8 @@
     const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
     const t = performance.now() / 1000;
     const mw = Math.min(w, h * 1.45), mh = mw / 1.45;
-    nodes = G.Scenery ? G.Scenery.japan(g, (w - mw) / 2, (h - mh) / 2, mw, mh, { t, state: stateOf, sel, medal: i => { const r = I().rec(D.ISLANDS[i].id); return r ? r.medal | 0 : 0; } }) : [];
-    nodes.forEach(n => { n.x *= 1; });
+    const sea = g.createLinearGradient(0, 0, 0, h); sea.addColorStop(0, '#7FC6E8'); sea.addColorStop(1, '#4C9ED0'); g.fillStyle = sea; g.fillRect(0, 0, w, h);
+    nodes = G.Scenery ? G.Scenery.japan(g, (w - mw) / 2, (h - mh) / 2, mw, mh, { t, bg: false, state: stateOf, sel, medal: i => { const r = I().rec(D.ISLANDS[i].id); return r ? r.medal | 0 : 0; } }) : [];
     raf = requestAnimationFrame(draw);
   }
   function open(cb) {
