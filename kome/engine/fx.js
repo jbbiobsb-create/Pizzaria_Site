@@ -56,6 +56,7 @@
       shake: 0,                    // legado: amplitude em px de tela, decai sozinha
       trauma: 0,                   // 0..1; o tremor é trauma² (pancada grande treme MUITO mais que pequena)
       maxShake: 16, maxRoll: 0.03, shakeFreq: 26, traumaDecay: 1.3,
+      mx: 1,                       // espelho horizontal do mundo: -1 = +x do mundo vai pra ESQUERDA da tela (simulação intacta)
       snap: 0,                     // >0: arredonda a translação pra 1/snap px de tela (use stage.dpr com pixel art parada)
       sx: 0, sy: 0, roll: 0,       // tremor atual (px de tela, rad); calculado no update
       ox: 0, oy: 0,                // deslocamento do kick (px de tela), volta sozinho com mola
@@ -114,7 +115,7 @@
         }
         g.translate(px, py);
         if (c.roll) g.rotate(c.roll);
-        g.scale(z, z);
+        g.scale(z * c.mx, z);
         g.translate(-c.x, -c.y);
         return c;
       },
@@ -122,7 +123,7 @@
       unapply(g) {
         const z = c.z * (1 + c.zp);
         g.translate(c.x, c.y);
-        g.scale(1 / z, 1 / z);
+        g.scale(1 / (z * c.mx), 1 / z);
         if (c.roll) g.rotate(-c.roll);
         g.translate(-(vw / 2 + c.sx + c.ox), -(vh / 2 + c.sy + c.oy));
         return c;
@@ -133,13 +134,13 @@
       // toWorld(sx,sy,out?) -> {x,y}: tela -> mundo (ignora o tremor, pra clique não tremer junto)
       toWorld(sx, sy, out) {
         out = out || { x: 0, y: 0 };
-        out.x = (sx - vw / 2) / c.z + c.x; out.y = (sy - vh / 2) / c.z + c.y;
+        out.x = (sx - vw / 2) / (c.z * c.mx) + c.x; out.y = (sy - vh / 2) / c.z + c.y;
         return out;
       },
       // toScreen(wx,wy,out?) -> {x,y}: mundo -> tela (ignora o tremor)
       toScreen(wx, wy, out) {
         out = out || { x: 0, y: 0 };
-        out.x = (wx - c.x) * c.z + vw / 2; out.y = (wy - c.y) * c.z + vh / 2;
+        out.x = (wx - c.x) * c.z * c.mx + vw / 2; out.y = (wy - c.y) * c.z + vh / 2;
         return out;
       },
       // view(out?, pad=0) -> {x0,x1,y0,y1}: retângulo de mundo visível (pad em unidades de mundo)
@@ -165,7 +166,7 @@
           else c.z *= Math.pow(r, 1 - Math.exp(-c.zk * dt));
         }
         if (anchor.on) {
-          c.x = anchor.wx - (anchor.sx - vw / 2) / c.z; c.y = anchor.wy - (anchor.sy - vh / 2) / c.z;
+          c.x = anchor.wx - (anchor.sx - vw / 2) / (c.z * c.mx); c.y = anchor.wy - (anchor.sy - vh / 2) / c.z;
           if (c.z === c.tz) anchor.on = false;
         } else if (c.auto) chase(dt, c.k);
         clampBounds();

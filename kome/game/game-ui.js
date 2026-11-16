@@ -187,7 +187,7 @@
       { icon: 'swap', t: 'Trocar ferramenta', s: S.tool >= 1 ? 'jogue com qualquer uma que já comprou' : 'compre a 2ª ferramenta', lock: S.tool < 1, fn: go(() => openSwap()) },
       { icon: 'book', t: 'Caderno', s: ach + '/30 conquistas · missões', fn: go(() => api.openHome && api.openHome('caderno')) },
       { icon: 'bolt', t: 'Oficina', s: ended ? 'deixe sua máquina favorita mais forte' : 'libera depois de terminar a casa', lock: !ended, fn: go(() => G.Inf && G.Inf.open()) },
-      { icon: 'star', t: 'Ilhas', s: ended ? 'viajar · ' + (S.stats.seeds | 0) + ' sementes' : (isl ? isl.n + ' · ' : '') + 'viagem depois do final', lock: !ended && !(S.stats.islandsDone | 0), fn: go(() => api.openHome && api.openHome('ilhas')) },
+      { icon: 'boat', t: 'Ilhas', s: ended ? 'viajar · ' + (S.stats.seeds | 0) + ' sementes' : (isl ? isl.n + ' · ' : '') + 'viagem depois do final', lock: !ended && !(S.stats.islandsDone | 0), fn: go(() => (G.IslandsUI ? G.IslandsUI.open() : api.openHome && api.openHome('ilhas'))) },
       { icon: 'rice', t: 'Nova montanha', s: ended ? 'escolha o formato' : 'depois do final', lock: !ended, fn: go(() => api.newMountain && api.newMountain()) },
       { icon: 'gear', t: 'Ajustes', s: 'som, salvar, tremor', fn: go(() => aj.open()) },
     ];

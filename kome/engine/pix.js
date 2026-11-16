@@ -1120,6 +1120,9 @@
 
   // Draw.text(g, txt, x, y, {size=16, col='#FFFAEE', stroke=LINE_CSS, sw=4, align='center', font, weight=900, rot, baseline='middle', shadow=0, alpha})
   //   texto de jogo com traço grosso arredondado; shadow = deslocamento (px) de uma sombra dura embaixo
+  // transformação com reflexo (determinante < 0): espelho do mundo ou scale(-1, 1) de máquina virada
+  function mirrored(g) { if (!g.getTransform) return false; const m = g.getTransform(); return m.a * m.d - m.b * m.c < 0; }
+  Draw.mirrored = mirrored;
   Draw.text = function (g, txt, x, y, o) {
     o = o || NO;
     const size = o.size || 16, sw = o.sw !== undefined ? o.sw : 4, stroke = o.stroke !== undefined ? o.stroke : LINE_CSS;
@@ -1128,7 +1131,8 @@
     g.textAlign = o.align || 'center'; g.textBaseline = o.baseline || 'middle';
     g.lineJoin = 'round'; g.lineCap = 'round'; g.miterLimit = 2;
     if (o.alpha !== undefined) g.globalAlpha = pa * o.alpha;
-    if (rot) { g.save(); g.translate(x, y); g.rotate(rot); x = 0; y = 0; }
+    const fl = mirrored(g);   // mundo espelhado (ou máquina virada): o texto continua legível
+    if (rot || fl) { g.save(); g.translate(x, y); if (fl) g.scale(-1, 1); if (rot) g.rotate(fl ? -rot : rot); x = 0; y = 0; }
     if (stroke && sw > 0) {
       g.strokeStyle = stroke; g.lineWidth = sw;
       if (o.shadow) g.strokeText(txt, x, y + o.shadow);
@@ -1136,7 +1140,7 @@
     }
     g.fillStyle = o.col ? col2(o.col) : '#FFFAEE';
     g.fillText(txt, x, y);
-    if (rot) g.restore();
+    if (rot || fl) g.restore();
     if (o.alpha !== undefined) g.globalAlpha = pa;
   };
 
@@ -1181,7 +1185,8 @@
       g.font = fontOf(size, weight, o.font);
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = ink;
-      g.fillText(texto, x + w / 2, y + (h - pad) / 2 + size * 0.04);
+      const tx = x + w / 2, ty = y + (h - pad) / 2 + size * 0.04;
+      if (mirrored(g)) { g.save(); g.translate(tx, ty); g.scale(-1, 1); g.fillText(texto, 0, 0); g.restore(); } else g.fillText(texto, tx, ty);
     }
   };
 

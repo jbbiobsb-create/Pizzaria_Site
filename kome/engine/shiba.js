@@ -108,6 +108,8 @@
     matcha: { h: '#8DB255', g: '#5F8236', o: '#D9A066', c: '#EBEBEB', k: '#2A1A10', n: '#2A1A10', p: '#D95763' },
     kin:    { h: '#C8423A', g: '#93302A', o: '#EDBE4A', c: '#FFF3C4', k: '#3A2408', n: '#3A2408', p: '#E8707A' },
     sumi:   { h: '#C8423A', g: '#93302A', o: '#5A5F6B', c: '#D9DDE3', k: '#16181D', n: '#16181D', p: '#E8707A' },
+    momo:   { h: '#9ED9A8', g: '#6DAE7A', o: '#F6D3DC', c: '#FFF8F8', k: '#3A2018', n: '#3A2018', p: '#E8607A' },
+    nihon:  { h: '#D8263A', g: '#A3182A', o: '#F8F4EC', c: '#FFFFFF', k: '#2A1A10', n: '#2A1A10', p: '#E8607A' },
   };
 
   const LE = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;

@@ -352,6 +352,7 @@
   }
   function credit(v, kind, crit) {
     if (!smallShow && G.Inf) v *= G.Inf.evMult();   // evento do modo infinito (rush, veio, festival)
+    if (!smallShow && G.Islands) v *= G.Islands.evMult();   // evento da ilha (nevasca, erupção, maré, gravidade fofa)
     S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind !== 1) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma) S.col.pulse = 1; S.win.inc[kind] += v;
     if (nListen && !smallShow) em.emit('pay', v, kind);
     if (FAST) return;
@@ -362,7 +363,7 @@
     if (i <= 1 && !crit && kind !== 2 && !smallShow) { smallV += v; smallK = kind; return; }
     let x = c.x, y = c.y - 34 / Math.max(0.4, cam.z);
     if (!cam.visible(x, y, 0)) {                                   // coletor fora da tela: o pop aparece na borda, do lado dele
-      cam.toWorld(x < cam.x ? 46 : W - 46, H * 0.6, edge); x = edge.x; y = edge.y; S.col.edge = 1;
+      cam.toWorld((x < cam.x) !== (cam.mx < 0) ? 46 : W - 46, H * 0.6, edge); x = edge.x; y = edge.y; S.col.edge = 1;
     }
     // vários pops em sequência: empilha um em cima do outro em vez de sobrepor
     popN = S.time - popT < 0.4 ? Math.min(4, popN + 1) : 0; popT = S.time;
@@ -563,6 +564,7 @@
   }
 
   /* Kome a pé: anda até o ponteiro, cai com a gravidade na encosta e a ferramenta morde onde o ponteiro está */
+  const gravK = () => { const e = G.Islands && G.Islands.event(); return e && e.grav ? e.grav : 1; };   // gravidade fofa (Ilha de Mochi)
   const AIR = { h: 0 }, airFloor = x => floorFn(x) - AIR.h;
   function driveHand(dt, hold) {
     const m = S.m, jack = cur.kind === 'jack', cart = cur.kind === 'push';
@@ -574,7 +576,7 @@
     P.vx = U.damp(P.vx, want, 12, dt);
     P.x = U.clamp(P.x + P.vx * dt, 60, WL.WW - 60);
     const gy = heap.surf(P.x);
-    if (P.y < gy - 1.5) { P.vy += 1500 * dt; P.y += P.vy * dt; P.ground = false; if (P.y >= gy) { P.y = gy; P.vy = 0; P.ground = true; } }
+    if (P.y < gy - 1.5) { P.vy += 1500 * gravK() * dt; P.y += P.vy * dt; P.ground = false; if (P.y >= gy) { P.y = gy; P.vy = 0; P.ground = true; } }
     else { P.y = gy; P.vy = 0; P.ground = true; }
     inp.x = P.x; inp.y = P.y; inp.face = P.face; inp.vx = P.vx; inp.tx = ptr.wx; inp.ty = ptr.wy;
     inp.digging = hold && P.ground && Math.abs(dist) < (cart ? 14 : 7);
@@ -590,6 +592,7 @@
       else inp.digging = false;
     }
     T.update(m, dt, inp);
+    feelTick(dt, hold);
     const payNow = toolEvents(m);
     if (cart) {
       // carrinho: a trombada derruba um pedaço do barranco pra dentro da caçamba (adendo §4)
@@ -915,15 +918,44 @@
   }
   function ending() {
     S.ended = true; S.endT = S.time; computeStats();
+    const res = G.Islands ? G.Islands.onEnding(S.time) : null;   // tempo e medalha da ilha (sementes extras)
     em.emit('ending');
     if (FAST) return;
+    if (res && G.Islands.islandRun()) { islandEnd(res); return; }   // ilhas depois da primeira: final curtinho com a medalha
     const pct = 1 - S.heapArea / S.heapTotal, mins = S.time / 60;
     const rank = mins < 70 ? 'S' : mins < 90 ? 'A' : mins < 130 ? 'B' : 'C';
     csPlay('final', () => (S.endOpen = true) && HUD.endCard({ rank, list: [
       { icon: 'clock', label: 'Tempo', value: U.fmtTime(S.time) }, { icon: 'rice', label: 'Montanha cavada', value: U.pct ? U.pct(pct, 1) : Math.round(pct * 100) + '%' },
       { icon: 'yen', label: 'Ienes ganhos', value: '¥ ' + U.fmt(S.earned) }, { icon: 'yen', label: 'Recorde de ¥/s', value: '¥ ' + U.fmt(S.stats.bestIps) },
       { icon: 'sack', label: 'Sacos estourados', value: S.stats.sacks + ' (maior: ¥ ' + U.fmt(S.stats.bestSack) + ')' }, { icon: 'star', label: 'Bolsões dourados', value: S.stats.pockets + '/' + D.POCKETS.n },
-    ] }, () => { S.endOpen = false; pickMountain(); }));
+    ] }, () => { S.endOpen = false; if (!S.stats.cs_ilhas) endgameIntro(); else pickMountain(); }));
+  }
+  // A VOLTA AO JAPÃO: cutscene que apresenta as ilhas + tutorial guiado (uma vez; dá pra rever no mapa)
+  function endgameIntro() {
+    if (cs || !G.Islands) { pickMountain(); return; }
+    csPlay('ilhas', () => { S.stats.cs_ilhas = 1; saveNow(); if (G.IslandsUI) G.IslandsUI.tour(() => pickMountain()); else pickMountain(); });
+  }
+  // final de uma ilha (2ª em diante): cena curta com a medalha; na Ilha de Mochi da 1ª volta, o Grande Final do Kome-Oh
+  function islandEnd(res) {
+    S.islandRes = res;
+    const then = () => { S.endOpen = true; HUD.endCard({ rank: ['', 'C', 'A', 'S'][res.medal] || 'B', list: [
+      { icon: 'clock', label: 'Tempo nesta ilha', value: U.fmtTime(res.sec) + (res.newBest ? ' (recorde!)' : '') },
+      { icon: 'star', label: 'Medalha', value: ['', 'bronze', 'prata', 'ouro'][res.medal] + (res.bonus ? ' · +' + res.bonus + ' sementes' : '') },
+      { icon: 'yen', label: 'Ienes ganhos', value: '¥ ' + U.fmt(S.earned) },
+      { icon: 'star', label: 'Sementes na próxima viagem', value: '+' + G.Islands.gain() },
+    ] }, () => { S.endOpen = false; if (G.IslandsUI) G.IslandsUI.open(); else pickMountain(); }); };
+    if (res.last && !S.stats.legend) csPlay('finale', () => { S.stats.legend = 1; if (S.closet.indexOf('nihon') < 0) S.closet.push('nihon'); computeStats(); saveNow(); then(); });
+    else csPlay('ilhafim', then);
+  }
+  function welcome(i) { ui(() => UI.banner('Bem-vindo a ' + i.n + '!', i.hook || i.d, { icon: 'star', tone: 'gold', dur: 3.5 })); sfx('fanfare'); }
+  // ilha espelhada (scene.mirror): a montanha fica à ESQUERDA. Só o desenho e a entrada viram; a simulação é a mesma
+  function setMirror() { const sc = G.Scenery ? G.Scenery.profile() : null; cam.mx = sc && sc.mirror ? -1 : 1; }
+  // presente do evento da ilha: sacos dourados caindo perto do Kome (erupção de curry, maré baixa)
+  function giftSacks(n) {
+    for (let i = 0; i < n; i++) {
+      const x = U.clamp(P.x + (i - (n - 1) / 2) * 70 / Math.min(1, cam.z) + P.face * 60, 950, WL.MX1);
+      S.sacks.push({ x, y: heap.surf(x) - 260 - i * 50, vy: 0, t: 0, g: Math.random() < 0.2 ? 3 : 2, state: 0, sh: 0, v: 0 });
+    }
   }
 
   /* =====================================================================
@@ -939,10 +971,11 @@
     if (PORTRAIT()) { if (!rotDrawn) { const c = document.getElementById('k-rot-cv'); if (c) { const cg = c.getContext('2d'); cg.imageSmoothingEnabled = false; E.drawShiba(cg, 48, 74, 'wag', 1, { scale: 2, pal: (S.look && S.look.pal) || 'kome' }); rotDrawn = true; } } return; }
     if (cs) { csTick(dt); return; }
     if (G.Home && G.Home.isOpen()) { G.Home.tick(dt); return; }
+    if (G.IslandsUI && G.IslandsUI.isOpen() && !FAST) return;   // mapa das ilhas aberto: o jogo espera
     if (S.quake > 0) S.quake = Math.max(0, S.quake - dt * 1.4);
     S.time += dt;
     E.Exhaust.tint = S.own.cB ? DIESEL_TINT : null;   // cB Diesel Premium: fumaça azul
-    dayTick(dt); S.tod = todNow(); if (G.Inf) G.Inf.tick(dt); if (G.Goals) G.Goals.tick(dt);
+    dayTick(dt); S.tod = todNow(); if (G.Inf) G.Inf.tick(dt); if (G.Islands) G.Islands.evTick(dt); feelFlags(); if (G.Goals) G.Goals.tick(dt);
     if (G.Ind && !FAST) G.Ind.tick(dt, IND_CTX());
     if (G.Belts && !FAST) G.Belts.tick(dt, IND_CTX());
     { const L = E.Nature && E.Nature.light ? E.Nature.light(S.tod) : null; const nt = L ? L.night * 0.6 + L.dusk * 0.4 : 0; inp.night = iL.night = iT.night = iF.night = iW.night = nt; }
@@ -1209,7 +1242,7 @@
   }
   /* ---- guarda-roupa: achados enterrados ---- */
   function findTreasure() {
-    const left = D.CLOSET.filter(c => S.closet.indexOf(c.id) < 0 && (c.island === undefined || c.island === (S.island | 0))); if (!left.length) return;
+    const left = D.CLOSET.filter(c => S.closet.indexOf(c.id) < 0 && !c.prize && (c.island === undefined || c.island === (S.island | 0))); if (!left.length) return;
     const c = left[(Math.random() * left.length) | 0]; S.closet.push(c.id); if (G.Home) G.Home.clothFound();
     if (!FAST) { ui(() => { UI.banner('Achado enterrado!', c.n + ' · vista na Casa › Roupas', { icon: 'hat', tone: 'gold', dur: 3 }); UI.toast('Roupinha nova: ' + c.n, { icon: 'hat', tone: 'gold', sub: 'toque em Casa (lá em cima) pra vestir', dur: 5 }); }); sfx('pling'); if (HUD.refreshCloset) HUD.refreshCloset(); }
   }
@@ -1229,7 +1262,7 @@
   }
   // acessórios no Kome (ferramentas de mão), presos na cabeça
   function drawAcc(g, t) {
-    const a = S.look.acc; if (!a || !T.head) return;
+    const a = S.look.acc || (FEEL.cold ? 'cachecol' : ''); if (!a || !T.head || FEEL.danced) return;   // frio e sem acessório: cachecol automático
     T.head(S.m, HB); drawAccAt(g, t, HB, a);
   }
   // desenha um acessório preso numa cabeça {x, y, f, sc, a}: usado no jogo, na Casa e nos ícones do guarda-roupa
@@ -1298,6 +1331,35 @@
     g.restore();
   }
   // c6 Kome Workaholic: gota de suor quando ele cava sozinho
+  /* ---- o Kome sente a ilha: frio (tremidinha parado, bafo, cachecol), calor (língua de fora, suor), praia (dancinha) ---- */
+  const FEEL = { cold: false, hot: false, beach: false, float: false, idle: 0, puffT: 0, danced: false };
+  function feelFlags() {
+    const sc = G.Scenery ? G.Scenery.profile() : null, f = sc && sc.feel;
+    FEEL.cold = f === 'cold'; FEEL.hot = f === 'hot'; FEEL.beach = f === 'beach'; FEEL.float = f === 'float';
+    if (S.m && (cur.kind === 'hand')) S.m.idleAlt = FEEL.cold ? 'shake' : FEEL.hot ? 'pant' : FEEL.beach ? 'wag' : null;
+  }
+  function feelTick(dt, hold) {
+    const idle = !hold && Math.abs(P.vx) < 6 && P.ground && !(S.stun > 0);
+    FEEL.idle = idle ? FEEL.idle + dt : 0;
+    if (FAST || !T.head || !(FEEL.cold || FEEL.hot) || (FEEL.puffT -= dt) > 0) return;
+    T.head(S.m, HB); const sc = HB.sc || 1;
+    if (FEEL.cold) { FEEL.puffT = FEEL.idle > 1.5 ? 1 : 1.9; parts.puff(HB.x + HB.f * 8 * sc, HB.y + 1 * sc, 2, 3.2 * sc, { c: '#FFFFFF', up: 3 * sc, speed: 6 * sc, life: 0.9 }); }   // bafo de frio saindo do focinho
+    else if (FEEL.idle > 1.5) { FEEL.puffT = 0.6; parts.puff(HB.x - HB.f * 2 * sc, HB.y - 10 * sc, 1, 2.6 * sc, { c: '#FFF1D6', up: 14 * sc, speed: 2 * sc, life: 0.8 }); }   // calorão subindo
+    else FEEL.puffT = 0.5;
+  }
+  // desenha o Kome quando o clima muda o jeito dele; true = já desenhou
+  function drawFeel(g, t) {
+    FEEL.danced = false;
+    const k = cur.kind; if (k !== 'hand' && k !== 'push' && k !== 'jack') return false;
+    if (FEEL.beach && k === 'hand' && FEEL.idle > 4 && FEEL.idle % 9 > 5.5 && T.head) {   // praia: larga a ferramenta e dança um pouquinho
+      T.head(S.m, HB); FEEL.danced = true;
+      E.drawShiba(g, P.x, P.y, FEEL.idle % 2 < 1 ? 'dance' : 'dance2', t, { scale: HB.sc || 1, face: P.face, pal: S.look.pal || 'kome', shadow: true });
+      return true;
+    }
+    if (FEEL.cold && FEEL.idle > 1.5) { g.save(); g.translate(Math.sin(t * 71) * 0.55 * ((S.m && S.m.sc) || 1), Math.abs(Math.sin(t * 53)) * 0.25); T.draw(g, S.m); g.restore(); return true; }
+    if (FEEL.hot && FEEL.idle > 2) { T.draw(g, S.m); drawSweat(g, t); return true; }
+    return false;
+  }
   function drawSweat(g, t) {
     const u = (t * 0.9) % 1, x = P.x - P.face * 6, y = P.y - 40 + u * 10;
     g.save(); g.globalAlpha = u < 0.8 ? 1 : (1 - u) * 5;
@@ -1366,7 +1428,7 @@
     if (visit) { z = visit.z || 1.5; zk = 3; }
     cam.zoomTo(z, zk);
     let fxx = P.x, fyy = P.y;
-    if (S.camLock) { cam.zoomTo(S.camLock.z, 9); cam.follow(S.camLock.x, -120, dt, 9); cam.update(dt); return; }   // só pra testes/prints
+    if (S.camLock) { cam.zoomTo(S.camLock.z, 9); cam.follow(S.camLock.x, S.camLock.y !== undefined ? S.camLock.y : -120, dt, 9); cam.update(dt); return; }   // só pra testes/prints
     if (visit) { const hw0 = W / 2 / cam.z; cam.follow(U.clamp(visit.x, hw0 - 1300, WL.WW - hw0 + (visit.far ? 1400 : 40)), visit.y !== undefined ? visit.y : -60 + 0.16 * H / cam.z, dt, 3.2); cam.maxShake = S.opts.shake ? 12 : 0; cam.update(dt); return; }
     if (k === 'hand' || k === 'push' || k === 'jack') {
       // zona morta: a câmera só anda quando o Kome chega perto da borda, senão o ponteiro (fixo na tela) fugiria dele pra sempre
@@ -1442,10 +1504,11 @@
       if (pixCv.width !== pw || pixCv.height !== ph) { pixCv.width = pw; pixCv.height = ph; }
       const k = stage.dpr / pf; pixG.setTransform(k, 0, 0, k, 0, 0); pixG.globalAlpha = 1; pixG.imageSmoothingEnabled = false;
       pixG.fillStyle = PAL.sky; pixG.fillRect(0, 0, W, H);
+      if (cam.mx < 0) pixG.setTransform(-k, 0, 0, k, W * k, 0);   // ilha espelhada: o fundo vira junto com o mundo
       g = pixG; Wd.drawBack(g, cam, t, S); g = main;
       g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
       g.drawImage(pixCv, 0, 0, pixCv.width * pf, pixCv.height * pf); g.restore();
-    } else Wd.drawBack(g, cam, t, S);
+    } else if (cam.mx < 0) { g.save(); g.translate(W, 0); g.scale(-1, 1); Wd.drawBack(g, cam, t, S); g.restore(); } else Wd.drawBack(g, cam, t, S);
     cam.begin(g);
     cam.view(view, 30 / z);
     Draw.lod(z, 0.6);
@@ -1462,6 +1525,7 @@
     g.save(); g.translate(qx, qy);
     heap.draw(g, view, t, { pockets: st.glow ? 'hint' : 'found', rolling: !slideFX });
     if (slideFX) slideFX.draw(g, cam.z);
+    if (G.Scenery) G.Scenery.crest(g, heap, view, t, cam.z, S);   // neve / cinza / areia / brilho de mochi por cima
     if (S.own.s10) drawVeins(g, view, t);
     g.restore(); g.save(); g.translate(qx * 0.3, qy * 0.3);
     Wd.drawGround(g, view, z);
@@ -1485,7 +1549,7 @@
     for (let i = 0; i < nh; i++) {
       const hp = S.helpers[i]; if (!cam.visible(hp.x, hp.y, 60)) continue;
       hsO.pal = HELP_PAL[i % HELP_PAL.length]; hsO.face = hp.x < hb0 ? 1 : -1; hsO.scale = i === 4 ? 0.62 : 0.8;
-      E.drawShiba(g, hp.x, hp.y, Math.abs(hp.vx) > 30 ? 'run' : 'dig', t * (S.own.e1 ? 1.4 : 1) + i, hsO);
+      E.drawShiba(g, hp.x + (FEEL.cold && Math.abs(hp.vx) <= 30 ? Math.sin(t * 64 + i * 2) * 0.7 : 0), hp.y, Math.abs(hp.vx) > 30 ? 'run' : 'dig', t * (S.own.e1 ? 1.4 : 1) + i, hsO);
       if (S.own.a6) {   // a6 Pás pros Shibas: cada ajudante ganha uma pazinha que sobe e desce
         const f = hsO.face, a = (Math.abs(hp.vx) > 30 ? 0.5 : 0.2 + 0.7 * Math.abs(Math.sin(t * 9 + i * 1.7))) * f, sc = hsO.scale;
         g.save(); g.translate(hp.x + f * 9 * sc, hp.y - 12 * sc); g.rotate(a); g.lineCap = 'round';
@@ -1501,7 +1565,7 @@
     if (S.loader) G.Tools.escav.draw(g, S.loader);
     const twinPaint = S.twinPlay && cur.kind === 'bagger' && G.Ind && G.Ind.paintFilter ? G.Ind.paintFilter() : '';
     if (twinPaint) { try { g.filter = twinPaint; } catch (e) { /* */ } }
-    if (cur.kind === 'bagger' && cam.z < 0.3) { BAGC.every = 1; drawMach(g, 'bagger', S.m, BAGC); } else T.draw(g, S.m);
+    if (cur.kind === 'bagger' && cam.z < 0.3) { BAGC.every = 1; drawMach(g, 'bagger', S.m, BAGC); } else if (!drawFeel(g, t)) T.draw(g, S.m);
     if (twinPaint) { try { g.filter = 'none'; } catch (e) { /* */ } }   // zoom bem aberto: Bagger em cache (redesenha 1 quadro sim, 1 não)
     if (c.kind === 'cesto' && cur.kind === 'hand') drawBackpack(g, c, t);
     p2Draw(g, t);
@@ -1515,6 +1579,7 @@
     parts.draw(g, view);
     for (let i = 0; i < Wd.layers.front.length; i++) Wd.layers.front[i](g, view, t, S);
     cam.end(g);
+    if (G.Scenery && !(G.Home && G.Home.isOpen())) { g.save(); g.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0); G.Scenery.air(g, W, H, cam, t, S); g.restore(); }   // neve, cinza, pétalas...
     // tinta da hora sobre o mundo: dourado no fim da tarde, azulado no anoitecer
     if (E.Nature && E.Nature.light && S.tod > 0.55) {
       const L = E.Nature.light(S.tod);
@@ -1531,7 +1596,7 @@
     if (cs) drawCutscene(g, t);
     if (S.oni.on) drawOnigiri(t);
     if (!cs && !cam.visible(c.x, c.y - 20, 0) && c.pulse > 0) {
-      const left = c.x < cam.x, ex = left ? 24 : W - 24, ey = H * 0.6;
+      const left = (c.x < cam.x) !== (cam.mx < 0), ex = left ? 24 : W - 24, ey = H * 0.6;
       g.globalAlpha = 0.5 + 0.5 * c.pulse; Draw.circle(g, ex, ey, 15 + 4 * c.pulse, PAL.gold, { ol: 2.5 }); Draw.text(g, '¥', ex, ey + 1, { size: 17, col: PAL.cream, sw: 4 });
       g.fillStyle = PAL.line; g.beginPath(); g.moveTo(ex + (left ? -22 : 22), ey); g.lineTo(ex + (left ? -14 : 14), ey - 7); g.lineTo(ex + (left ? -14 : 14), ey + 7); g.fill(); g.globalAlpha = 1;
     }
@@ -1571,7 +1636,8 @@
     if (FAST || !Music || !audioOn) return;
     try {
       if (!S.opts.music || S.opts.mute) { if (Music.stop) Music.stop(0.5); return; }
-      Music.start(S.tool < 5 ? 'campo' : S.tool < 10 ? 'trabalho' : S.tool < 13 ? 'maquinas' : 'bagger', { fade: 1.5 });
+      const im = G.Islands && G.Islands.islandRun() ? G.Islands.scene().music : null;   // cada ilha tem o seu tema até as máquinas grandes
+      Music.start(im && S.tool < 10 ? im : S.tool < 5 ? 'campo' : S.tool < 10 ? 'trabalho' : S.tool < 13 ? 'maquinas' : 'bagger', { fade: 1.5 });
     } catch (e) { /* sem música */ }
   }
   function initAudio() {
@@ -1609,7 +1675,8 @@
     ptr.down = input.down && !tapEat;
     if (input.down || input.inside) { cam.toWorld(input.x, input.y, sp); ptr.wx = sp.x; ptr.wy = sp.y; if (input.down) ptr.has = true; }
     // teclado: A/D (ou setas) anda, W/S/Espaço cava onde a ferramenta está; tem prioridade sobre o mouse enquanto apertado
-    const K = input.keys || {}, kl = K.KeyA || K.ArrowLeft || VK.l, kr = K.KeyD || K.ArrowRight || VK.r, kd = K.KeyS || K.ArrowDown || K.Space || VK.dig;
+    const K = input.keys || {}, kL = K.KeyA || K.ArrowLeft || VK.l, kR = K.KeyD || K.ArrowRight || VK.r, kd = K.KeyS || K.ArrowDown || K.Space || VK.dig;
+    const kl = cam.mx < 0 ? kR : kL, kr = cam.mx < 0 ? kL : kR;   // ilha espelhada: direita na tela = -x no mundo
     // W / seta pra cima: o Kome pula (a pé, com ferramenta de mão); nas máquinas não faz nada
     if (input.keyPressed && (input.keyPressed('KeyW') || input.keyPressed('ArrowUp')) && P.ground && !locked() && (cur.kind === 'hand' || cur.kind === 'push' || cur.kind === 'jack')) {
       P.vy = -470; P.y -= 3; P.ground = false; sfx('whoosh', { vol: 0.35 });
@@ -1786,8 +1853,17 @@
     if (UI) UI.sound = !S.opts.mute;
     if (G.Ind) G.Ind.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
       visit: (x, z, y, dur) => { visit = { x, t: 0, dur: dur || 3.5, z, y, far: true }; } });   // câmera vai mostrar a Bagger gêmea do outro lado
-    if (G.Islands) G.Islands.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
-      travel: (next, gain) => { saveNow(); const d = save.data || save.load(); G.Islands.makeSave(d, next, gain); save.save(); saveNow = () => {}; location.href = location.pathname + '?nointro'; } });
+    if (G.Islands) G.Islands.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), fast: () => FAST, gift: giftSacks,
+      busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()),
+      onEvent: e => { if (!FAST && e.erupt) quake(0.5); if (!FAST && e.frost) sfx('whoosh'); },
+      // viagem: reescreve o save e recarrega; testes (?nointro) continuam sem cutscene na chegada
+      travel: (next, gain) => { saveNow(); const d = save.data || save.load(); G.Islands.makeSave(d, next, gain); save.save(); saveNow = () => {}; location.href = location.pathname + (/nointro/.test(location.search) ? '?nointro' : ''); } });
+    setMirror();
+    if (G.IslandsUI) G.IslandsUI.init({ sfx, save: () => saveNow(), play: (id, then) => csPlay(id, then), pickMountain, busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()) });
+    // chegou numa ilha nova: cutscene da chegada (com o cenário da ilha) ou só o aviso nos testes
+    if (G.Islands) { const ai = G.Islands.arrival(); if (ai) setTimeout(() => { if (!FAST && !/nointro/.test(location.search)) csPlay('chegada', () => welcome(ai)); else welcome(ai); }, 900); }
+    // save antigo que já passou do final antes da Volta ao Japão existir: mostra a cutscene uma vez
+    if (S.ended && !S.stats.cs_ilhas && !(S.island | 0) && !/nointro/.test(location.search)) setTimeout(() => endgameIntro(), 2500);
     if (G.Inf) G.Inf.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), playing: () => cur, busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()) });
     if (G.Goals) G.Goals.init({ sfx, recompute: () => computeStats(), pay: v => credit(v, 2, false), quiet: () => FAST || !!cs || !!S.endOpen, badge: () => G.Home && G.Home.noteNew() });
     G.drawAccAt = drawAccAt;   // Casa e guarda-roupa usam
@@ -1812,13 +1888,17 @@
     S, P, data: D, buyTool, buyNode, buyHouse, tapAll, aim: () => { const a = aim(); return { x: a.x, y: a.y }; },
     setTool(i) { setTool(i); S.cele.t = -1; cam.snapTo(P.x, P.y - 60, cur.zoom); return cur.id; },
     playAs(i, twin) { S.cele.t = -1; const ok = playAs(i, twin); cam.snapTo(P.x, P.y - 60, cur.zoom); return ok && cur.id; },
-    paused: () => !!cs || !!S.endOpen || !!(G.Home && G.Home.isOpen()) || PORTRAIT(),   // robô: pausa de propósito não é travamento
+    paused: () => !!cs || !!S.endOpen || !!(G.Home && G.Home.isOpen()) || !!(G.IslandsUI && (G.IslandsUI.isOpen() || G.IslandsUI.coaching())) || PORTRAIT(),   // robô: pausa de propósito não é travamento
     addMoney(v) { S.money += v; return S.money; },
     // step(seg, dt=1/30): avança a simulação sem desenhar (determinístico o bastante pro autoplayer)
     step(sec, h) { h = h || 1 / 30; FAST = true; const n = Math.round(sec / h); try { for (let i = 0; i < n; i++) update(h); } finally { FAST = false; } return S.time; },
     play(id) { csPlay(id); },
     dbg() { return { px: P.x | 0, py: P.y | 0, wx: ptr.wx | 0, wy: ptr.wy | 0, h: heap.height(ptr.wx) | 0, hk: heap.height(P.x + P.face * 30) | 0, stun: S.stun || 0, down: ptr.down }; },
     newMountain() { S.ended = true; return newMountain(); },
+    // setIsland(n): troca de ilha sem viajar (prints e testes): materiais, formato, cenário e lado da montanha
+    setIsland(n) { S.island = n | 0; S.mount = 1; S.shape = ''; buildWorld(); S.heapArea = heap.area; S.footX = scanFoot(); S.sacks.length = 0; setMirror(); computeStats(); setTool(S.tool); P.x = WL.START_X; P.y = heap.surf(P.x); S.camX = P.x + 30; camTick(1); cam.snapTo(cam.tx, cam.ty, cur.zoom); return G.Islands.island().id; },
+    islandEvent(on) { if (G.Islands) G.Islands.forceEvent(on); },
+    feel: () => ({ cold: FEEL.cold, hot: FEEL.hot, beach: FEEL.beach, idle: FEEL.idle }),
     hold(wx, wy, on) { hook.use = true; hook.on = on !== false; hook.wx = wx; hook.wy = wy; ptr.down = hook.on; ptr.wx = wx; ptr.wy = wy; ptr.has = true; },
     stats: () => st, nodeState: id => nodeState(D.nodeById[id]), nodeCost: id => nodeCost(D.nodeById[id]),
     reset() { save.clear(); saveNow = () => {}; location.reload(); },

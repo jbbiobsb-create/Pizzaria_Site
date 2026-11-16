@@ -26,15 +26,20 @@
     const gy = Math.min(H + 40, (0 - cam.y) * cam.z + H / 2);       // y de tela do chão
     const hz = U.clamp(gy, H * 0.35, H + 30);
     if (N) {
+      const Sc = G.Scenery, sc = Sc ? Sc.profile() : null, far = sc && sc.far && sc.far !== 'fuji';   // cenário da ilha (scenery.js)
       N.sky(g, W, H, { tod: S.tod !== undefined ? S.tod : 0.42, t });
+      if (sc) Sc.skyTint(g, W, H, sc, S);
       if (N.celestial) N.celestial(g, W, hz - 10, { t, r: 16 });
-      if (clouds) clouds.draw(g, W, hz, cam.x * 0.04);
+      if (clouds && !(sc && sc.far === 'mochi')) clouds.draw(g, W, hz, cam.x * 0.04);
       const fs = 1.1 + 0.9 * Math.sqrt(U.clamp(cam.z / 3, 0, 1));
-      N.fuji(g, W * 0.3 - (cam.x - 2000) * 0.012, hz + 2, fs, { t });   // à esquerda, no céu livre (à direita o topo aparecia atrás da montanha e parecia bug)
+      if (far) Sc.far(g, W, H, hz, cam, t, S, sc);
+      else N.fuji(g, W * 0.3 - (cam.x - 2000) * 0.012, hz + 2, fs, { t });   // à esquerda, no céu livre (à direita o topo aparecia atrás da montanha e parecia bug)
       if (S.own.m11) drawShip(g, W * 0.2 - cam.x * 0.01, hz - 6, t);
-      N.hills(g, W, hz - 4, cam.x * 0.25, { col: PAL.leaf, haze: 0.66, amp: 26 + 10 * cam.z, seed: 3, trees: 0.4, bottom: H, parallax: 0.3 });
+      const hc = (sc && sc.hills) || [], tr = (sc && sc.trees) || [0.4, 0.25];
+      N.hills(g, W, hz - 4, cam.x * 0.25, { col: hc[0] || PAL.leaf, haze: 0.66, amp: 26 + 10 * cam.z, seed: 3, trees: tr[0], bottom: H, parallax: 0.3 });
       drawCity(g, hz + 2, t, S, cam);
-      N.hills(g, W, hz + 6, cam.x * 0.5, { col: PAL.grass, haze: 0.36, amp: 16 + 8 * cam.z, seed: 8, freq: 0.011, trees: 0.25, bottom: H, parallax: 0.3 });
+      N.hills(g, W, hz + 6, cam.x * 0.5, { col: hc[1] || PAL.grass, haze: 0.36, amp: 16 + 8 * cam.z, seed: 8, freq: 0.011, trees: tr[1], bottom: H, parallax: 0.3 });
+      if (sc) Sc.near(g, W, H, hz, cam, t, S, sc);
       if (S.own.m8) drawTrainBack(g, hz - 3, t, S, cam);
       if (birds) birds.draw(g, W, hz, cam.x * 0.1);
     } else {
@@ -116,12 +121,12 @@
   /* ---------- chão ---------- */
   // drawGround(g, v): faixa de grama + terra por cima da base da montanha (desenhar DEPOIS de heap.draw)
   function drawGround(g, v, z) {
-    const k = 1 / Math.min(1, z + 0.25);
-    g.fillStyle = SOIL; g.fillRect(v.x0, 0, v.x1 - v.x0, v.y1 + 10);
-    g.fillStyle = PAL.grass; g.fillRect(v.x0, 0, v.x1 - v.x0, 26);
-    g.fillStyle = PAL.grassD; g.fillRect(v.x0, 26, v.x1 - v.x0, 3 * k);
-    g.fillStyle = PAL.grassL; g.fillRect(v.x0, 0, v.x1 - v.x0, 2.5 * k);
-    g.fillStyle = SOIL_D; g.fillRect(v.x0, 44, v.x1 - v.x0, 2 * k);
+    const k = 1 / Math.min(1, z + 0.25), gc = (G.Scenery && G.Scenery.groundCols()) || null;   // chão da ilha (neve, areia, capim vulcânico...)
+    g.fillStyle = gc ? gc.soil : SOIL; g.fillRect(v.x0, 0, v.x1 - v.x0, v.y1 + 10);
+    g.fillStyle = gc ? gc.grass : PAL.grass; g.fillRect(v.x0, 0, v.x1 - v.x0, 26);
+    g.fillStyle = gc ? gc.grassD : PAL.grassD; g.fillRect(v.x0, 26, v.x1 - v.x0, 3 * k);
+    g.fillStyle = gc ? gc.grassL : PAL.grassL; g.fillRect(v.x0, 0, v.x1 - v.x0, 2.5 * k);
+    g.fillStyle = gc ? gc.soilD : SOIL_D; g.fillRect(v.x0, 44, v.x1 - v.x0, 2 * k);
     g.fillStyle = LINE; g.fillRect(v.x0, -0.6 * k, v.x1 - v.x0, 1.2 * k);
   }
 
@@ -129,7 +134,7 @@
   /* ---- construções do pátio em pixel art Pixxel (mesmo traço do torii, da árvore e do Kome; máquinas continuam vetor) ----
      Cada uma é um E.sprite (contorno automático + bevel = 3 tons), desenhado em escala inteira K sem suavizar. */
   const SPK = 2, PSPR = E.sprite;
-  const pblit = (g, cv, x, k) => { const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false; g.drawImage(cv, Math.round(x - cv.width * k / 2), Math.round(-cv.height * k + 2 * k), cv.width * k, cv.height * k); g.imageSmoothingEnabled = sm; };
+  const pblit = (g, cv, x, k) => { if (G.Scenery && G.Scenery.roofSnow()) cv = G.Scenery.snowy(cv); const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false; g.drawImage(cv, Math.round(x - cv.width * k / 2), Math.round(-cv.height * k + 2 * k), cv.width * k, cv.height * k); g.imageSmoothingEnabled = sm; };
   const YC = { wood: '#B98A5A', woodD: '#7A5034', woodL: '#D9B07A', red: '#D8574E', redD: '#A8392F', cream: '#F6EEDC', creamD: '#E2D4B8', roof: '#5C6672', roofD: '#3E4650', glass: '#9CC9E2', glassL: '#E8F6FF', ink: '#3B2818', steel: '#9AA6B2', steelD: '#66727F', rust: '#B5523B', gold: '#F3C94A', blue: '#3F78C8' };
   function pwin(P, x, y, w, h, lit) { P.rect(x, y, w, h, YC.woodD); P.rect(x + 1, y + 1, w - 2, h - 2, lit ? YC.gold : YC.glass); if (!lit) { P.line(x + 2, y + h - 3, x + w - 3, y + 2, 1, YC.glassL); } P.rect(x + (w >> 1), y + 1, 1, h - 2, YC.woodD); }
   const sCasinha = () => PSPR('yard/casinha', 34, 26, P => {
@@ -309,8 +314,8 @@
   const RULER = [
     { x: X.fabrica, r: 200, draw: fabrica }, { x: X.torre, r: 160, draw: torre }, { x: X.vila, r: 110, draw: vila },
     { x: X.poste, r: 300, draw: poste },
-    { x: X.torii, r: 90, draw: (g, x, t) => { if (N) N.torii(g, x, 0, 2.2, { t }); } },
-    { x: X.sakura, r: 80, draw: (g, x, t) => { if (N) N.tree(g, x, 0, { kind: 'sakura', s: 1.5, seed: 4, t }); } },
+    { x: X.torii, r: 90, draw: (g, x, t) => { if (N) N.torii(g, x, 0, 2.2, { t }); if (G.Scenery) G.Scenery.toriiSnow(g, x, 2.2); } },
+    { x: X.sakura, r: 80, draw: (g, x, t) => { if (G.Scenery) G.Scenery.rulerTree(g, x, t); else if (N) N.tree(g, x, 0, { kind: 'sakura', s: 1.5, seed: 4, t }); } },
     { x: X.barraca, r: 70, draw: (g, x, t, S) => {
       if (!N) return;
       if (!S.own.m1) { Draw.box(g, x - 2, -36, 4, 36, PAL.wood, { ol: 1 }); Draw.sign(g, x - 30, -60, 60, 24, 'ALUGA-SE', { col: PAL.cream, ink: PAL.red }); return; }   // ponto vazio até comprar a Barraquinha
@@ -398,6 +403,7 @@
       if (p.node ? !S.own[p.node] : !(p.when && p.when(S))) continue;
       if (p.x + 500 > v.x0 && p.x - 500 < v.x1) { const k = p.node ? popK(S, p.node) : 1; if (k === 1) p.draw(g, p.x, t, S); else popDraw(g, p.x, k, () => p.draw(g, p.x, t, S)); }
     }
+    if (G.Scenery) G.Scenery.yard(g, v, t, S, X);   // enfeites da ilha
     for (let i = 0; i < layers.back.length; i++) layers.back[i](g, v, t, S);
   }
 

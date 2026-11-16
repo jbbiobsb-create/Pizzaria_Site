@@ -34,11 +34,13 @@ const HOLD = `(sec => { const K = __kome; for (let i = 0; i < sec; i++) { const 
 const BUYNEXT = `(() => { const K = __kome, D = K.data, t = D.TOOLS[K.S.tool + 1]; if (!t) return 'fim';
   const need = id => { const n = D.nodeById[id]; if (K.S.own[id]) return; n.req.forEach(need); K.addMoney(K.nodeCost(id)); if (!K.buyNode(id)) throw new Error('não comprou o nó ' + id); };
   (t.needs || []).forEach(need);
-  K.addMoney(Math.ceil(t.cost * D.ECON.COST_TOOL)); if (!K.buyTool()) throw new Error('não comprou ' + t.id); return t.id; })()`;
+  K.addMoney(Math.ceil(KomeGame.Game.toolCost ? KomeGame.Game.toolCost(t) : t.cost * D.ECON.COST_TOOL)); if (!K.buyTool()) throw new Error('não comprou ' + t.id); return t.id; })()`;
 
 async function rungs(browser) {
-  console.log('\n== 14 degraus ==');
+  const RI = has('--island') ? +val('--island', 1) : 0;
+  console.log('\n== 14 degraus ==' + (RI ? ' (ilha ' + RI + ')' : ''));
   const page = await open(browser);
+  if (RI) console.log('ilha: ' + await page.evaluate(`__kome.setIsland(${RI})`) + ' · espelhada: ' + await page.evaluate('__kome.cam.mx < 0'));
   fs.mkdirSync(OUT, { recursive: true });
   for (let i = 0; i < 14; i++) {
     const e0 = page.errs.length;

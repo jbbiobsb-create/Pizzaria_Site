@@ -40,6 +40,15 @@
     btn('Gêmea pronta', () => { fase(D.TOOLS.length - 1, D.HOUSE.length, 1e13, () => { S.ended = true; })(); const r = G.Ind && G.Ind.run(); if (r) { r.giant = 4; r.fab = 8; } if (G.Ind) G.Ind.showTwin(); });
     btn('pilotar a Gêmea', () => { fase(D.TOOLS.length - 1, D.HOUSE.length, 1e13, () => { S.ended = true; })(); const r = G.Ind && G.Ind.run(); if (r) r.giant = 4; K.playAs(D.TOOLS.length - 1, true); });
     btn('viajar pra próxima ilha', () => { S.ended = true; S.earned = Math.max(S.earned, 4e9); if (G.Islands) G.Islands.go(Math.min(4, (S.island | 0) + 1)); });
+    H('Volta ao Japão (ilhas)');
+    (D.ISLANDS || []).forEach((I, i) => btn('ir pra ' + I.n.replace('Ilha Flutuante de ', ''), () => { K.setIsland(i); }));
+    btn('evento da ilha', () => K.islandEvent && K.islandEvent(true));
+    btn('mapa das ilhas', () => { S.ended = true; if (G.IslandsUI) G.IslandsUI.open(); });
+    btn('cutscene Volta ao Japão', () => K.play && K.play('ilhas'));
+    btn('tutorial das ilhas', () => { S.ended = true; if (G.IslandsUI) G.IslandsUI.tour(); });
+    btn('cutscene chegada', () => K.play && K.play('chegada'));
+    btn('cutscene fim de ilha', () => { S.islandRes = S.islandRes || { medal: 3, sec: 1900, bonus: 5, newBest: true }; K.play && K.play('ilhafim'); });
+    btn('Grande Final (Kome-Oh)', () => K.play && K.play('finale'));
     H('Abrir telas');
     btn('Casa', () => G.Home && G.Home.open('jardim'));
     btn('Oficina', () => { S.ended = true; if (G.Inf) G.Inf.open(); });

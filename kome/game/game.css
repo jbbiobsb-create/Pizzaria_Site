@@ -69,3 +69,59 @@ body.k-tight .k-zone-tr .k-flyer{max-width:120px}
 
 /* cena do fim do dia: só o céu e a casa (sem a barra da montanha por cima do título) */
 body.k-night .k-zone-tl, body.k-night .k-zone-tc, body.k-night .k-vpad{opacity:0;pointer-events:none;transition:opacity .4s}
+/* ---- Volta ao Japão (islands-ui.js): chip do HUD, mapa das ilhas, tutorial ---- */
+.k-islchip{min-height:40px;padding:4px 12px 4px 8px;gap:8px;margin-top:2px;background:#E8F4FB}
+.k-islchip-t{display:flex;flex-direction:column;line-height:1.1}
+.k-islchip-t b{font-size:13px}.k-islchip-t small{font-size:11px;font-weight:700;opacity:.75}
+.k-islchip.k-islchip-go{background:#FFE9A8}
+.k-isl{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(30,20,12,.55);font-family:var(--k-font);font-weight:700;color:var(--k-ink);padding:10px;box-sizing:border-box}
+.k-isl *{box-sizing:border-box}
+.k-isl.k-open{display:flex}
+.k-isl-card{width:min(1100px,100%);height:min(640px,100%);background:var(--k-paper);border:3px solid var(--k-ink);border-radius:18px;box-shadow:0 6px 0 var(--k-ink);display:flex;flex-direction:column;overflow:hidden}
+.k-isl-head{display:flex;align-items:center;gap:12px;padding:8px 10px 8px 16px;border-bottom:2px solid var(--k-ink);background:#FFE9A8}
+.k-isl-title{font-size:20px;font-weight:900;flex:1}
+.k-isl-seeds{font-size:14px;background:var(--k-cream);border:2px solid var(--k-ink);border-radius:999px;padding:3px 10px}
+.k-isl-x{min-height:36px;width:40px;justify-content:center;font-size:22px;padding:0}
+.k-isl-body{flex:1;display:flex;min-height:0}
+.k-isl-map{flex:1.25;min-width:0;position:relative;background:#4C9ED0}
+.k-isl-map canvas{position:absolute;left:0;top:0;display:block}
+.k-isl-side{flex:1;min-width:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-left:2px solid var(--k-ink)}
+.k-isl-name{font-size:22px;font-weight:900}
+.k-isl-hook{font-size:13px;opacity:.8}
+.k-isl-tag{display:inline-block;margin-top:4px;font-size:11px;padding:2px 8px;border-radius:999px;border:2px solid var(--k-ink);background:var(--k-cream)}
+.k-isl-tag.k-isl-here{background:#F3C94A}.k-isl-tag.k-isl-done{background:#F4B0A8}.k-isl-tag.k-isl-open{background:#BFE3A8}
+.k-isl-mods{margin:6px 0 0;padding-left:18px;font-size:12px;line-height:1.35}
+.k-isl-ev{color:#A8392F}
+.k-isl-medals{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.k-isl-medal{font-size:11px;padding:2px 7px;border-radius:999px;border:2px solid var(--k-ink);background:#EEE6D6;opacity:.6}
+.k-isl-medal.k-got{opacity:1}.k-isl-medal.k-m1.k-got{background:#E3A86A}.k-isl-medal.k-m2.k-got{background:#DDE4EC}.k-isl-medal.k-m3.k-got{background:#F3C94A}
+.k-isl-best{font-size:12px;margin-top:4px;opacity:.8}
+.k-isl-ex{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;margin-top:6px}
+.k-isl-exi{display:flex;align-items:center;gap:4px;opacity:.55;filter:grayscale(.7)}.k-isl-exi.k-got{opacity:1;filter:none}
+.k-isl-exi canvas{width:30px;height:28px;image-rendering:pixelated}
+.k-isl-go{width:100%;flex-direction:column;align-items:flex-start;gap:2px;min-height:58px;background:#D8574E;color:#FFF8EC}
+.k-isl-go b{font-size:18px}.k-isl-go small{font-size:12px;font-weight:700}
+.k-isl-go.k-off{background:#C9B9A0;color:var(--k-ink)}
+.k-isl-sub{font-size:13px;font-weight:900;margin:2px 0 4px}
+.k-isl-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.k-isl-seed{flex-direction:column;align-items:flex-start;gap:2px;min-height:0;padding:6px 8px;white-space:normal;font-size:13px;opacity:.75}
+.k-isl-seed small{font-size:11px;font-weight:700;opacity:.8;line-height:1.15}
+.k-isl-seed.k-can{opacity:1;background:#FFE9A8}.k-isl-seed.k-full{opacity:.6}
+.k-isl-pips{display:flex;flex-wrap:wrap;gap:2px}.k-isl-pips i{width:7px;height:7px;border-radius:2px;border:1px solid var(--k-ink);background:#EEE6D6}.k-isl-pips i.on{background:#F3C94A}
+.k-isl-cost{font-size:12px;font-weight:900}
+.k-isl-row{display:flex;gap:6px;flex-wrap:wrap}
+.k-isl-small{min-height:36px;font-size:12px;padding:4px 10px}
+@media (max-width:760px),(max-height:460px){
+  .k-isl{padding:4px}.k-isl-card{height:100%}
+  .k-isl-body{flex-direction:row}.k-isl-map{flex:1}.k-isl-side{flex:1.1;padding:6px 8px;gap:6px}
+  .k-isl-name{font-size:17px}.k-isl-title{font-size:16px}
+  .k-isl-head{padding:4px 6px 4px 12px}
+}
+@media (orientation:portrait) and (max-width:760px){.k-isl-body{flex-direction:column}.k-isl-map{min-height:42%}.k-isl-side{border-left:0;border-top:2px solid var(--k-ink)}}
+.k-coach-ring{position:fixed;z-index:9600;border:4px solid #F3C94A;border-radius:16px;pointer-events:none;animation:kcoach 1.1s ease-out infinite;display:none}
+@keyframes kcoach{0%{box-shadow:0 0 0 0 rgba(243,201,74,.9)}100%{box-shadow:0 0 0 16px rgba(243,201,74,0)}}
+.k-coach{position:fixed;z-index:9601;background:var(--k-cream);border:3px solid var(--k-ink);border-radius:14px;box-shadow:0 4px 0 var(--k-ink);padding:10px 12px;font-family:var(--k-font);font-weight:700;color:var(--k-ink);box-sizing:border-box}
+.k-coach-t{font-size:14px;line-height:1.3}
+.k-coach-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.k-coach-row .k-btn{min-height:36px;font-size:13px;padding:4px 12px}
+.k-coach-next{background:#FFE9A8}.k-coach-n{margin-left:auto;font-size:12px;opacity:.6}

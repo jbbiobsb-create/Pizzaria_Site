@@ -200,7 +200,7 @@
         m.acc += dt * m.rate * (16 + 12 * m.power + 14 * m.boost); const n = m.acc | 0; m.acc -= n;
         spray(m, WX(m, -7), WY(m, -5), n, GRAIN, backDir(m, 0.85), 70, 150, 0.45);
       } else m.ph = 0;
-      m.pose = m.w > 0.4 ? 'dig' : (m.idle > 3 && m.idle % 7 > 4.6 ? 'sniff' : 'stand');
+      m.pose = m.w > 0.4 ? 'dig' : (m.idle > 3 && m.idle % 7 > 4.6 ? (m.idleAlt || 'sniff') : 'stand');
       m.rot = 0.11 * m.w; m.sq = m.w * 0.035 * Math.sin(m.kt * 44);
       m.kx = m.w * Math.sin(m.kt * 44) * 0.4; m.ky = 0;
       const b = m.biteO; b.x = WX(m, 13); b.y = m.floorF(b.x); b.r = 6 * m.sc; b.active = dig; b.phase = m.ph;

@@ -291,6 +291,9 @@
     { id: 'kuro', kind: 'pal', n: 'Kome de Hokkaido', d: 'pelo preto e caramelo (só em Hokkaido)', island: 1 },
     { id: 'goma', kind: 'pal', n: 'Kome do Vulcão', d: 'pelo cinza de cinzas (só em Kyushu)', island: 2 },
     { id: 'shiro', kind: 'pal', n: 'Kome da Praia', d: 'pelo branquinho e chapéu azul (só em Okinawa)', island: 3 },
+    { id: 'momo', kind: 'pal', n: 'Kome Mochi', d: 'pelo rosinha e chapéu de matchá (só na Ilha de Mochi)', island: 4 },
+    // prêmio do Grande Final (volta ao Japão completa): não aparece cavando
+    { id: 'nihon', kind: 'pal', n: 'Kome Hinomaru', d: 'branco com o sol vermelho: deu a volta ao Japão', prize: 1 },
   ];
   // casa do Kome (etapa 3): enfeites, bichinhos e temas. Só visual; preço = segundos da renda atual (sec × ¥/s), então sempre dá pra comprar algo.
   D.DECOR = [
@@ -331,6 +334,14 @@
     D.TREE.forEach(n => { if (n.tier) { n.c = Math.round(n.c * b(n.tier - 1)); } });
     D.HOUSE.forEach(h => { const k = b(h.tier - 1); h.c = Math.round(h.c * k); if (h.teaser) h.teaser = Math.round(h.teaser * k); });
   })();
+  // fim de jogo (volta ao Japão): números das ilhas. Medalhas por tempo (min) em cada ilha, na ordem de D.ISLANDS
+  // (Honshu é a campanha). Eventos de ilha: um por ilha, a cada `every` s depois da `minTool`. Volta 2+ (depois da Ilha de Mochi):
+  // cada volta conta como `lapStep` ilhas a mais no preço. `legend` = renda extra pra sempre depois do Grande Final.
+  D.ENDGAME = {
+    medal: { ouro: [70, 34, 28, 28, 30], prata: [100, 50, 42, 42, 45], seeds: { bronze: 0, prata: 2, ouro: 5 } },
+    ev: { every: [170, 240], first: 120, minTool: 3 },
+    lapStep: 2.5, legend: 2,
+  };
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
   D.nodeById = {}; D.TREE.forEach(n => { D.nodeById[n.id] = n; });
 })();
