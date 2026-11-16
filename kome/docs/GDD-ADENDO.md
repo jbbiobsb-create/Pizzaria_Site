@@ -108,3 +108,30 @@ Nada de arroz jogado no chão sumindo. Todo arroz cavado VIAJA até um ponto de 
 - **Pilha de espera**: se o jogador cava mais rápido do que o transporte anima, forma-se um monte (E.Pile) ao lado do coletor
   que vai sendo consumido; monte grande = "ESTOQUE CHEIO: venda relâmpago x1,5" quando zera (recompensa, não castigo).
 - Ajudantes e máquinas antigas entregam no mesmo lugar: dá pra ver a formiguinha de shibas carregando.
+
+## 10. Tatuzão (TBM) — pedido do dono
+Máquina de túnel (referência: docs/ref/tatuzao.webp), arquivo game/tbm.js (G.Tools.tbm). Primeira máquina do modo infinito,
+depois da Bagger (a Bagger continua sendo o clímax da história). Fura na HORIZONTAL dentro da montanha em corte, deixando o túnel
+revestido de anéis de concreto (desenho em `drawTunnel`, o heightfield não guarda túnel). Modo 'transport' em carretas SPMT laranjas
+pra cena de compra. Ideia de uso: uma montanha especial em que ele fura de um lado ao outro.
+
+## 11. KOME-OH: as máquinas se juntam num robô gigante — aprovado ("foda")
+Topo do modo infinito, depois do tatuzão. TODAS as máquinas compradas viram peças de um robô gigante pilotado pelo Kome:
+- pernas: trator + empilhadeira (ou pá de cabo); braços: escavadeira (esquerdo, garra/caçamba) e pá de cabo (direito);
+  tronco: caminhão de mineração (a caçamba vira o peito/costas); peito: a roda da Bagger como escudo-broca giratório;
+  punho-broca: a cabeça do tatuzão; cabeça: formato de cabeça de shiba com o chapéu de palha como capacete, Kome na cabine
+  dentro da cabeça; olhos acendem.
+- **Cena de transformação estilo anime (sentai)**: céu escurece, as máquinas da frota decolam/rodam até o centro, cada peça
+  encaixa com faísca, close em cada junta, pose final com explosão colorida atrás, nome carimbado "KOME-OH!", fanfarra + taiko.
+  É a celebração definitiva: paga a jogada inteira.
+- Como cava: anda (pernas com IK, pisadas que tremem a tela e levantam poeira) e SOBE a montanha (a Bagger não sobe); soco
+  (braço escavadeira) e broca (punho tatuzão); com combo cheio, **SOCO FOGUETE**: o punho voa, fura a montanha e abre uma
+  cratera enorme, volta pro braço.
+- Reaproveita o desenho das máquinas existentes (Rig com as peças como filhos), então o custo é o esqueleto bípede + a cena.
+- Alternativa mais barata se precisar: Mecha-Shiba (robô com a cara do Kome, rabo que solta vapor).
+
+## 12. Enxame de robozinhos — aprovado
+Automação (não é pra pilotar): dezenas de robôs pequenos tipo aspirador, redondos, com orelhinhas de shiba e luzinha, que
+carregam grão por grão em FILA da montanha até o coletor, desviando uns dos outros. Comprados em lotes (10, 25, 50...) num nó
+da árvore de Equipe/Automação; quanto mais, maior a fila (feedback visual direto). Quando o estoque do coletor enche eles fazem
+uma dancinha. Barato: sprite Pix pequeno + comportamento de fila; precisa de cache/batch pra desenhar 100+.
