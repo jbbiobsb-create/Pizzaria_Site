@@ -1,8 +1,8 @@
-# Kome Engine v1.0 — contrato de arquitetura (documento de trabalho)
+# Pixxel v1.0 — contrato de arquitetura (documento de trabalho)
 
 Este arquivo é o contrato que todos os módulos seguem. Quem implementa um módulo
 segue as assinaturas daqui; pode ADICIONAR coisas, nunca renomear/remover o que está aqui.
-No fim ele vira o `KOME_ENGINE.md` definitivo.
+No fim ele vira o `PIXXEL.md` definitivo.
 
 ## Princípios
 
@@ -10,13 +10,13 @@ No fim ele vira o `KOME_ENGINE.md` definitivo.
    abrindo o HTML direto do disco (`file://`). Cada arquivo é um IIFE que estende o namespace:
    ```js
    (function(){ 'use strict';
-     const E = (window.KomeEngine = window.KomeEngine || {});
+     const E = (window.Pixxel = window.Pixxel || {});
      ...
      E.MinhaCoisa = MinhaCoisa;
    })();
    ```
 2. **Ordem de carga** (cada módulo só pode depender dos anteriores, e deve conferir no topo:
-   `if(!E.U) throw new Error('KomeEngine: carregue core.js antes de X.js')`):
+   `if(!E.U) throw new Error('Pixxel: carregue core.js antes de X.js')`):
    `core.js → pix.js → shiba.js → fx.js → terrain.js → rig.js → audio.js → cutscene.js → nature.js → ui.js`
    `audio.js` depende só de core. `ui.js` depende só de core (DOM).
 3. **Coordenadas.** 1 px de arte = 1 unidade de mundo. Y cresce pra baixo; o chão é `y = 0`,
@@ -48,13 +48,13 @@ No fim ele vira o `KOME_ENGINE.md` definitivo.
 ```
 kome/
   index.html            o jogo Kome no Japão
-  engine/               a Kome Engine (reutilizável)
-    core.js pix.js shiba.js fx.js terrain.js rig.js audio.js cutscene.js nature.js ui.js kome.css
-  kome-engine.js        bundle (gerado por tools/build.js: concatena engine/*.js na ordem)
+  engine/               a Pixxel (reutilizável)
+    core.js pix.js shiba.js fx.js terrain.js rig.js audio.js cutscene.js nature.js ui.js pixxel.css
+  pixxel.js        bundle (gerado por tools/build.js: concatena engine/*.js na ordem)
   game/                 o jogo: data.js machines.js bagger.js world.js game.js cutscenes.js game.css
   demos/                uma página por módulo + koi.html (lago de carpas) + gallery.html
   tools/                shot.js build.js
-  KOME_ENGINE.md
+  PIXXEL.md
 ```
 
 ## core.js
@@ -270,7 +270,7 @@ E.Koi(pond, n, {seed}) -> { list, update(dt), draw(g,t) }  /* carpas (kohaku, sa
                         fogem do toque, seguem comida, nunca saem do lago */
 ```
 
-## ui.js + kome.css
+## ui.js + pixxel.css
 
 HUD em DOM com a cara do rascunho (pílulas creme, borda `#2a1a10`, sombra dura de 3-4px, fonte Zen Maru Gothic com fallback).
 
@@ -282,7 +282,7 @@ E.UI = { mount(stage) -> root (camada DOM por cima do canvas, escala junto com o
   tooltip(el, htmlFn) , icon(spriteCanvas, size) -> <canvas> pixelado , confirm(texto, onYes) , tabs(...) ,
   fmt = E.U.fmt }
 ```
-`kome.css` contém todas as classes (prefixo `.k-`) e variáveis (`--k-ink`, `--k-cream`, `--k-gold`, ...). Mobile: botões ≥ 44px,
+`pixxel.css` contém todas as classes (prefixo `.k-`) e variáveis (`--k-ink`, `--k-cream`, `--k-gold`, ...). Mobile: botões ≥ 44px,
 `touch-action:none` no stage, layout que funciona em 960x540 escalado e em retrato estreito.
 
 ## Convenções pra máquinas (game/machines.js, game/bagger.js)

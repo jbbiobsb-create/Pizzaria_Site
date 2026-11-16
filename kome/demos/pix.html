@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Kome Engine · pix.js (folha de estilo)</title>
+<title>Pixxel · pix.js (folha de estilo)</title>
 <style>
   html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }
 </style>
@@ -14,7 +14,7 @@
 <script>
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U, D = E.Draw, C = E.PAL, TAU = Math.PI * 2;
+  const E = Pixxel, U = E.U, D = E.Draw, C = E.PAL, TAU = Math.PI * 2;
   const W = 960, H = 540, BG = '#F6F1E4', INK = C.ink;
   const stage = E.Stage({ width: W, height: H, bg: BG, maxDpr: 2 });
   const g = stage.g;
@@ -56,7 +56,7 @@
   function header(t) {
     g.fillStyle = INK; g.fillRect(0, 0, W, 38);
     g.fillStyle = C.gold; g.fillRect(0, 38, W, 3);
-    D.text(g, 'KOME ENGINE', 16, 20, { size: 18, col: C.gold, sw: 0, align: 'left' });
+    D.text(g, 'PIXXEL', 16, 20, { size: 18, col: C.gold, sw: 0, align: 'left' });
     D.text(g, 'pix.js · folha de estilo', 152, 21, { size: 12, col: C.riceS, sw: 0, align: 'left', weight: 700 });
     for (let i = 0; i < PAGES.length; i++) {
       const x = tabX(i), on = i === page;

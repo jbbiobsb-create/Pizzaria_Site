@@ -1,4 +1,4 @@
-# Direção de arte — Kome no Japão / Kome Engine
+# Direção de arte — Kome no Japão / Pixxel
 
 Critérios de revisão visual. Toda peça de arte é renderizada, olhada em screenshot e refeita até cumprir isto.
 

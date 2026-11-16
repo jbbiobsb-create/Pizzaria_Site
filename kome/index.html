@@ -4,10 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Kome no Japão</title>
-<link rel="stylesheet" href="engine/kome.css">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png"><meta name="theme-color" content="#8FCBEA"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Kome">
+<link rel="stylesheet" href="engine/pixxel.css">
 <link rel="stylesheet" href="game/game.css">
 </head>
 <body>
+<h1 class="k-sr">Kome no Japão</h1>
 <!-- engine (ordem importa); gfx.js e cutscene.js ainda não existem: o jogo detecta o que tem -->
 <script src="engine/core.js"></script>
 <script src="engine/pix.js"></script>
@@ -21,12 +23,29 @@
 <!-- ferramentas e máquinas -->
 <script src="game/tools-hand.js"></script>
 <script src="game/machines-mid.js"></script>
+<script src="game/colheitadeira.js"></script>
 <script src="game/machines-mine.js"></script>
 <script src="game/bagger.js"></script>
 <!-- o jogo -->
 <script src="game/data.js"></script>
 <script src="game/game-world.js"></script>
 <script src="game/game-ui.js"></script>
+<script src="game/home.js"></script>
+<script src="game/infinite.js"></script>
+<script src="game/goals.js"></script>
+<script src="game/islands.js"></script>
+<script src="game/industry.js"></script>
+<script src="game/belts.js"></script>
+<script src="game/content.js"></script>
+<script src="game/cutscenes.js"></script>
 <script src="game/game.js"></script>
+<script src="game/dev.js"></script>
+<div id="k-rot"><div class="k-rot-card"><canvas id="k-rot-cv" width="96" height="80"></canvas><b>Vira o celular de lado</b><span>o Kome cava melhor deitado ↻</span></div></div>
+<style>#k-rot{position:fixed;inset:0;z-index:9999;background:linear-gradient(#7EC4EC,#D8F0FA 60%,#8DB46A 60%);display:none;align-items:center;justify-content:center}
+#k-rot .k-rot-card{background:#FFFAEE;border:3px solid #3B2818;border-radius:18px;box-shadow:0 5px 0 #3B2818;padding:18px 22px;display:flex;flex-direction:column;align-items:center;gap:6px;font:800 18px system-ui,sans-serif;color:#2A1A10;text-align:center}
+#k-rot .k-rot-card span{font-weight:600;font-size:15px;opacity:.8}#k-rot canvas{image-rendering:pixelated;width:144px;height:120px;animation:krot 2.2s ease-in-out infinite}
+@keyframes krot{0%,30%{transform:rotate(0)}55%,85%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media (orientation:portrait) and (max-width:820px) and (pointer:coarse){#k-rot{display:flex}}</style>
+<script>if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
 </html>

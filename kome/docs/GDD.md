@@ -664,7 +664,7 @@ Everything goes through `Art.prop(name,{pal,scale,t})` with the Kome palette and
 - Rice surface shading per layer; pocket glints and veins.
 - FX: grains, clods, blocks, puffs, stars, mochi shards, speedlines, steam, fireworks, sakura, confetti.
 
-**Cutscenes** (`KomeEngine.Cutscene.define`). Each shot is a pure function of `t`. "Full" plays the first time only and a sting plays on repeats. Always skippable; `onEnd` runs identically on skip.
+**Cutscenes** (`Pixxel.Cutscene.define`). Each shot is a pure function of `t`. "Full" plays the first time only and a sting plays on repeats. Always skippable; `onEnd` runs identically on skip.
 
 | id | Length | Beats |
 |---|---|---|

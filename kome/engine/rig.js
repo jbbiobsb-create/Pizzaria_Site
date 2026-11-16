@@ -1,4 +1,4 @@
-/* Kome Engine — rig.js
+/* Pixxel — rig.js
    Máquinas articuladas "de verdade": esqueleto de peças com juntas, IK, juntas com mola (peso e overshoot),
    pistões que esticam, cabos com polias, mastros telescópicos, chassi com suspensão, esteira transportadora
    e escapamento em pulsos. Tudo no estilo Kome (contorno LINE, cores chapadas da E.PAL).
@@ -29,9 +29,9 @@
    E.Joint/E.Spring (rigidez diferente por junta = atraso entre elas); o "segundo braço" é a mesma peça mais escura com z atrás. */
 (function () {
   'use strict';
-  const E = (window.KomeEngine = window.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de rig.js');
-  if (!E.Draw) throw new Error('KomeEngine: carregue pix.js antes de rig.js');
+  const E = (window.Pixxel = window.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de rig.js');
+  if (!E.Draw) throw new Error('Pixxel: carregue pix.js antes de rig.js');
 
   const U = E.U, PAL = E.PAL, Draw = E.Draw, LINE = E.LINE_CSS;
   const TAU = Math.PI * 2, PI = Math.PI, NO = Object.freeze({});
@@ -180,7 +180,7 @@
 
     function need(name) {
       const p = typeof name === 'string' ? byName[name] : name;
-      if (!p) throw new Error('KomeEngine.Rig: peça "' + name + '" não existe');
+      if (!p) throw new Error('Pixxel.Rig: peça "' + name + '" não existe');
       return p;
     }
     // matriz modelo da peça = pai * T(x,y) * R(rot) * S(sx,sy)
@@ -222,7 +222,7 @@
       //   o pai precisa existir antes; sx/sy fazem parte da transformação (os filhos herdam); joint = E.Joint que comanda part.rot no rig.update
       part(name, o) {
         o = o || NO;
-        if (byName[name]) throw new Error('KomeEngine.Rig: peça "' + name + '" duplicada');
+        if (byName[name]) throw new Error('Pixxel.Rig: peça "' + name + '" duplicada');
         const p = {
           name, parent: o.parent ? need(o.parent) : null,
           x: o.x || 0, y: o.y || 0, rot: o.rot || 0, z: o.z || 0,
@@ -773,8 +773,13 @@
     const max = o.max || 28, F = 8;                       // x, y, vx, vy, idade, vida, tamanho, tom
     const D = new Float32Array(max * F);
     const col = o.col || PAL.grayL, colD = o.colD || PAL.gray;
-    const tones = [0, 1, 2, 3].map(i => mixc(col, colD, i / 3));
-    const tonesL = tones.map(c => sh(c, 0.35)), tonesO = tones.map(c => mixc(c, LINE, 0.45));
+    // E.Exhaust.tint = [cor, corEscura] troca a cor de TODAS as fumaças (ex.: upgrade Diesel Premium deixa azul); null volta ao normal
+    let tones, tonesL, tonesO, tintNow;
+    function retint() {
+      const t = Exhaust.tint, c1 = t ? t[0] : col, c2 = t ? t[1] : colD;
+      tones = [0, 1, 2, 3].map(i => mixc(c1, c2, i / 3)); tonesL = tones.map(c => sh(c, 0.35)); tonesO = tones.map(c => mixc(c, LINE, 0.45)); tintNow = t;
+    }
+    retint();
     let head = 0, acc = 0, lx = 0, ly = 0, ldx = 0, ldy = -1, lpow = 0;
     function spawn(x, y, dx, dy, power) {
       const i = head * F; head = (head + 1) % max;
@@ -790,6 +795,7 @@
       life: o.life || 1.3, pulse: 0, count: 0, ol: o.ol !== false,
       // update(dt, x, y, power=0, dirX=0, dirY=-1)
       update(dt, x, y, power, dx, dy) {
+        if (Exhaust.tint !== tintNow) retint();
         power = clamp(power || 0, 0, 1);
         lx = x; ly = y; ldx = dx || 0; ldy = dy === undefined ? -1 : dy; lpow = power;
         ex.pulse = Math.max(0, ex.pulse - dt * 7);

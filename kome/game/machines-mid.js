@@ -9,7 +9,7 @@
    m.ph (fase 0..1 do ciclo), m.busy (ciclo em andamento), m.load (0..1 de carga visível), m.power (0..1 esforço do motor). */
 (function () {
   'use strict';
-  const E = window.KomeEngine;
+  const E = window.Pixxel;
   if (!E || !E.Rig) throw new Error('machines-mid.js: carregue core, pix, shiba, fx, terrain e rig antes');
   const G = (window.KomeGame = window.KomeGame || {}); G.Tools = G.Tools || {};
   const U = E.U, PAL = E.PAL, Draw = E.Draw, Rig = E.Rig, LINE = E.LINE_CSS;

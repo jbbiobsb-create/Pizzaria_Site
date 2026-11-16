@@ -18,7 +18,7 @@
      nem enche sozinho: chame G.Tools.caminhao.fill(m, fração) a cada evento 'dump' da pá (≈ 0.34 por conchada). */
 (function () {
   'use strict';
-  const E = window.KomeEngine;
+  const E = window.Pixxel;
   if (!E || !E.Rig) throw new Error('machines-mine.js: carregue core, pix, shiba, fx, terrain e rig antes');
   const G = (window.KomeGame = window.KomeGame || {}); G.Tools = G.Tools || {}; G.Scale = G.Scale || {};
   const U = E.U, PAL = E.PAL, Draw = E.Draw, Rig = E.Rig, LINE = E.LINE_CSS;

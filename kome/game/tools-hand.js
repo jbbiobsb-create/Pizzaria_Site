@@ -14,7 +14,7 @@
    'tat' (batida da britadeira). */
 (function () {
   'use strict';
-  const E = window.KomeEngine;
+  const E = window.Pixxel;
   if (!E || !E.drawShiba || !E.Pile || !E.Exhaust) throw new Error('tools-hand.js: carregue core, pix, shiba, fx, terrain e rig antes');
   const G = (window.KomeGame = window.KomeGame || {}); G.Tools = G.Tools || {};
   const U = E.U, PAL = E.PAL, Draw = E.Draw, LINE = E.LINE_CSS;
@@ -40,6 +40,7 @@
 
   function spray(m, x, y, n, mold, dir, s0, s1, spread) {
     if (!m.parts || n <= 0) return;
+    n = Math.round(n * (m.gm || 1)); if (n <= 0) return;
     mold.dir = dir; mold.speed[0] = s0 * m.sc; mold.speed[1] = s1 * m.sc; mold.spread = spread;
     m.parts.spray(x, y, n, mold);
   }
@@ -69,6 +70,7 @@
     m.face = inp.face < 0 ? -1 : 1;
     m.turn = clamp(m.turn + (m.face - m.turn > 0 ? 1 : -1) * Math.min(Math.abs(m.face - m.turn), dt * 7), -1, 1);
     m.power = inp.power === undefined ? 1 : clamp(inp.power, 0, 1);
+    m.gm = inp.grainMul || 1;
     m.boost = damp(m.boost, inp.boost || 0, 8, dt);
     m.rate = clamp((inp.speedMul || 1) * (0.72 + 0.28 * m.power) * (1 + 0.15 * (inp.boost || 0)), 0.4, 2.6);
     m.vx = inp.vx !== undefined ? inp.vx : (m.lastX === m.lastX && dt > 0 ? (m.x - m.lastX) / dt : 0);
@@ -687,17 +689,41 @@
      registro
      ====================================================================== */
   const NOINP = { x: 0, y: 0, face: 1 };
+  // andando sem cavar: troca a pose parada por walk/run (as patas acompanham o chão em vez de deslizar)
+  // e leva junto a ferramenta que está na pata (m.px/m.py), pelo deslocamento entre as duas âncoras
+  const WA = { x: 0, y: 0 }, WB = { x: 0, y: 0 };
+  function walkFix(m, dt) {
+    const v = Math.abs(m.vx), moving = v > 14 && !m.busy && m.w < 0.5;
+    m.walkT = (m.walkT || 0) + dt * (moving ? Math.min(2.2, 0.6 + v / 160) : 0);
+    if (!moving || m.pose === 'push' || m.pose === 'carry') return;
+    const wp = v > 170 ? 'run' : 'walk';
+    anchor(m, m.pose, m.kt, 'hold', m.kx, m.ky, m.rot, m.sq, WA);
+    m.pose = wp; m.kt = m.walkT; m.rot = 0; m.sq = 0;
+    anchor(m, wp, m.kt, 'paw', m.kx, m.ky, 0, 0, WB);
+    m.px += WB.x - WA.x; m.py += Math.sin(m.walkT * (v > 170 ? 18 : 12)) * 0.6;   // fica na altura da mão, balançando com o passo
+  }
   function reg(id, name, kind, w, h, make, meta) {
     G.Tools[id] = {
       id, name, kind, w, h, meta,
       create(opts) { return make(opts || {}); },
-      update(m, dt, inp) { m.update(dt, inp || NOINP); },
+      update(m, dt, inp) { m.update(dt, inp || NOINP); if (kind === 'hand') walkFix(m, dt); },
       draw(g, m) { m.drawFn(g); },
       bite(m) { return m.biteO; },
       dump(m) { return m.hasDump ? m.dumpO : null; },
       seat(m) { return m.seatO; },
+      // back(m): ponto das costas do Kome no mundo + inclinação do corpo (pra mochila/cesto acompanhar a pose)
+      // head(m, out): ponto da cabeça do Kome no mundo (pra faixa do combo máximo etc.)
+      head(m, out) {
+        out = out || {}; anchor(m, m.pose, m.kt, 'head', m.kx, m.ky, m.rot, m.sq, BK);
+        const f = visFace(m); out.x = m.x + f * m.sc * BK.x; out.y = m.y + m.sc * BK.y; out.a = f * m.rot; out.f = f < 0 ? -1 : 1; out.sc = m.sc; return out;
+      },
+      back(m, out) {
+        out = out || {}; anchor(m, m.pose, m.kt, 'back', m.kx, m.ky, m.rot, m.sq, BK);
+        const f = visFace(m); out.x = m.x + f * m.sc * BK.x; out.y = m.y + m.sc * BK.y; out.a = f * m.rot; out.f = f < 0 ? -1 : 1; out.sc = m.sc; return out;
+      },
     };
   }
+  const BK = { x: 0, y: 0 };
   reg('pata', 'Pata do Kome', 'hand', 48, 44, makePata, { zoom: 3.0, shake: 0.02, cycle: 0.4 });
   reg('hashi', 'Hashi', 'hand', 70, 46, makeHashi, { zoom: 2.7, shake: 0.01, cycle: H_T });
   reg('tigela', 'Tigela', 'hand', 60, 54, makeTigela, { zoom: 2.4, shake: 0.04, cycle: TG_T });
@@ -786,7 +812,7 @@
       return E.sprite('th_icon_' + (ICONS[id] ? id : 'pata'), 16, 16, f);
     },
     get(name, a) { return typeof Props[name] === 'function' ? Props[name](a) : null; },
-    ids: ['pata', 'hashi', 'tigela', 'pa', 'duaspas', 'carrinho', 'britadeira', 'trator', 'empilhadeira', 'escav', 'pacabo', 'caminhao', 'bagger'],
+    ids: ['pata', 'hashi', 'tigela', 'pa', 'duaspas', 'carrinho', 'britadeira', 'trator', 'colheita', 'empilhadeira', 'escav', 'pacabo', 'caminhao', 'bagger'],
   };
   function icoShovel(P, x0, y0, x1, y1, bx, by) {        // cabo (x0,y0)->(x1,y1), lâmina 4x5 em (bx,by)
     P.line(x0, y0, x1, y1, 1, P_.wood).rrect(bx, by, 4, 5, 1, P_.steel).rect(bx, by, 1, 4, P_.steelL);
@@ -816,6 +842,11 @@
     trator(P) {
       P.rect(7, 6, 7, 4, P_.red).rect(7, 6, 7, 1, P_.redL).rect(3, 2, 5, 6, P_.red).rect(4, 3, 3, 3, P_.glass).rect(12, 3, 1, 3, P_.blkL)
         .ell(5, 10.5, 3.8, 3.8, P_.blk).ell(5, 10.5, 1.5, 1.5, P_.yelL).ell(12.5, 12, 2.3, 2.3, P_.blk).set(12, 12, P_.yelL);
+    },
+    colheita(P) {
+      P.rect(2, 6, 9, 5, P_.grass).rect(2, 6, 9, 1, P_.grassL).rect(3, 3, 4, 3, P_.grassD).rect(4, 4, 2, 1, P_.rice).rect(8, 2, 3, 4, P_.grass).rect(9, 3, 1, 2, P_.glass)
+        .rect(11, 9, 4, 3, P_.grassD).set(14, 7, P_.ora).set(13, 8, P_.ora).set(15, 8, P_.ora).set(14, 9, P_.ora)
+        .ell(8.5, 12, 3, 3, P_.blk).set(8, 12, P_.yelL).ell(3.5, 13, 1.8, 1.8, P_.blk);
     },
     empilhadeira(P) {
       P.rect(3, 6, 7, 6, P_.yel).rect(3, 6, 7, 1, P_.yelL).rect(4, 2, 5, 4, P_.yelD).rect(5, 3, 3, 3, P_.glass).rect(11, 1, 1, 13, P_.grayD).rect(12, 12, 3, 1, P_.steel).rect(12, 8, 1, 4, P_.steel)

@@ -1,5 +1,5 @@
 /* ============================================================================
-   Kome Engine v1.0 — nature.js
+   Pixxel v1.0 — nature.js
    Kit de cenário japonês, todo procedural e no estilo Kome:
      E.Nature   céu com hora do dia, sol, lua, estrelas, nuvens, Fuji, morros com névoa,
                 chão, árvores (pine/sakura/maple/bamboo/bonsai/round), moita, capim, flores,
@@ -14,9 +14,9 @@
    ============================================================================ */
 (function () {
   'use strict';
-  const E = (window.KomeEngine = window.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de nature.js');
-  if (!E.Pix) throw new Error('KomeEngine: carregue pix.js antes de nature.js');
+  const E = (window.Pixxel = window.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de nature.js');
+  if (!E.Pix) throw new Error('Pixxel: carregue pix.js antes de nature.js');
   const U = E.U, C = E.PAL, D = E.Draw, TAU = Math.PI * 2, PI = Math.PI;
   const LINE = E.LINE_CSS, NO = Object.freeze({});
   const sh = U.shade, hash = E.hash;

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Kome Engine v1.0 — audio.js
+   Pixxel v1.0 — audio.js
    Todo o som do jogo, 100% sintetizado (nenhum arquivo de áudio):
      E.Audio  contexto, cadeia master (compressor + limiter + clip suave), buses e volumes
      E.Sfx    efeitos com nome, variantes, limite de vozes, gate e "skins" de timbre
@@ -16,8 +16,8 @@
 (function () {
   'use strict';
   const root = typeof window !== 'undefined' ? window : globalThis;
-  const E = (root.KomeEngine = root.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de audio.js');
+  const E = (root.Pixxel = root.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de audio.js');
   const U = E.U, TAU = Math.PI * 2;
   const doc = typeof document !== 'undefined' ? document : null;
   const AC = root.AudioContext || root.webkitAudioContext || null;
@@ -416,7 +416,10 @@
     G.revSend.connect(G.rev); G.rev.connect(G.revRet); G.revRet.connect(G.master);
     G.sfx.connect(G.master); G.loop.connect(G.master);
     G.music.connect(G.duck); G.duck.connect(G.musicLP); G.musicLP.connect(G.master);
-    G.master.connect(G.comp); G.comp.connect(G.lim); G.lim.connect(G.trim); G.trim.connect(pre); pre.connect(G.clip);
+    // "sem agudos": tudo passa por um passa-baixa suave antes do compressor (o dono pediu som mais fofo, sem nada estridente)
+    G.soft = ctx.createBiquadFilter(); G.soft.type = 'lowpass'; G.soft.frequency.value = 2600; G.soft.Q.value = 0.5;
+    G.shelf = ctx.createBiquadFilter(); G.shelf.type = 'highshelf'; G.shelf.frequency.value = 1800; G.shelf.gain.value = -6;
+    G.master.connect(G.shelf); G.shelf.connect(G.soft); G.soft.connect(G.comp); G.comp.connect(G.lim); G.lim.connect(G.trim); G.trim.connect(pre); pre.connect(G.clip);
     if (!offline && ctx.createAnalyser) {
       G.analyser = ctx.createAnalyser(); G.analyser.fftSize = 2048; G.analyser.smoothingTimeConstant = 0.75;
       G.clip.connect(G.analyser);
@@ -761,17 +764,16 @@
   /* ---------- escada de ferramentas (GDD §8.1): cada degrau tem corpo próprio + grave mais fundo ---------- */
   def('paw', { v: 4, gate: 0.04, max: 4, jit: 2, peak: 0.36 }, D => {                     // patinha no arroz: "pof" seco e macio
     const b = D.buf(0.2);
-    D.noise(b, { a: 0.003, s: 0.02, d: 0.06, vol: 0.4, hp: 1800, lp: 5000, lp1: 3000 });
-    D.grains(b, { n: 4 + Math.floor(D.rnd() * 4), t0: 0.005, t1: 0.1, f0: 6000, f1: 10000, vol: 0.25 });
+    D.noise(b, { a: 0.004, s: 0.015, d: 0.05, vol: 0.3, hp: 900, lp: 2800, lp1: 1600 });      // mais abafado (antes chiava)
+    D.grains(b, { n: 2 + Math.floor(D.rnd() * 3), t0: 0.005, t1: 0.08, f0: 2800, f1: 4500, vol: 0.1 });
     D.osc(b, { f: D.rr(140, 165), f1: 85, d: 0.06, vol: 0.45 });
     return b;
   });
   def('hashi', { v: 4, gate: 0.05, max: 4, jit: 1, peak: 0.36 }, D => {                   // hashi: "tic" de madeira + um grão
     const b = D.buf(0.18), t2 = D.rr(0.04, 0.055);
-    D.osc(b, { wave: 'tri', f: 2100, d: 0.016, vol: 0.5, curve: 3 }); D.modal(b, 1050, [1, 2.7], [0.4, 0.15], [0.05, 0.03]);
-    D.noise(b, { d: 0.006, vol: 0.3, hp: 5000 });
-    D.osc(b, { at: t2, wave: 'tri', f: 2450, d: 0.016, vol: 0.4, curve: 3 }); D.modal(b, 1240, [1, 2.7], [0.3, 0.1], [0.05, 0.03], { at: t2 });
-    D.osc(b, { at: D.rr(0.07, 0.085), f: 3800, f1: 3200, d: 0.012, vol: 0.15 });
+    D.osc(b, { wave: 'tri', f: 1400, d: 0.014, vol: 0.35, curve: 3 }); D.modal(b, 700, [1, 2.7], [0.3, 0.1], [0.04, 0.025]);   // "toc" de madeira mais grave
+    D.noise(b, { d: 0.005, vol: 0.12, hp: 2500, lp: 6000 });
+    D.osc(b, { at: t2, wave: 'tri', f: 1600, d: 0.014, vol: 0.25, curve: 3 }); D.modal(b, 820, [1, 2.7], [0.2, 0.08], [0.04, 0.025], { at: t2 });
     return b;
   });
   def('bowl', { v: 3, gate: 0.06, max: 4, jit: 1, peak: 0.4, rev: 0.15 }, D => {          // tigela: raspada + "clac" de cerâmica + chuva de grãos
@@ -946,9 +948,12 @@
   /* ---------- recompensas (afinadas com a escala da trilha; timbre = skin) ---------- */
   comp('coin', { gate: 0.06, max: 3, vol: 0.75, rev: 0.12, jit: 0 }, (a, o) => {            // iene: "cha-rin" de duas notas
     const sk = skinOf(o), st = o.step | 0;
-    a.note(a.deg(5 + st), { vel: 0.75 }); a.note(a.deg(7 + st), { vel: 0.8, delay: 0.06 });
+    a.note(a.deg(5 + st, 0), { inst: 'marimba', vel: 0.6 }); a.note(a.deg(7 + st, 0), { inst: 'marimba', vel: 0.65, delay: 0.07 });
     if (sk.extra === 'kaching') a.play('kaching', { vol: 0.5, delay: 0.03 });
     else if (sk.extra === 'chu') a.drum('chu', { vel: 0.3 });
+  });
+  comp('coinS', { gate: 0.35, max: 1, vol: 0.38, rev: 0.15, jit: 0 }, (a, o) => {         // ganho pequeno: uma notinha só, baixinha
+    a.note(a.deg(7 + (o.step | 0), 0), { inst: 'marimba', vel: 0.35 });
   });
   comp('coins', { gate: 0.15, max: 2, vol: 0.7, rev: 0.15, jit: 0 }, a => {                 // chuva de moedas
     for (let i = 0; i < 7; i++) a.note(a.deg(5 + ((i * 3) % 7)), { vel: 0.4 + 0.05 * i, delay: i * 0.055 + a.rnd() * 0.01, pan: (i % 2 ? 1 : -1) * 0.3 });
@@ -961,8 +966,8 @@
   });
   comp('combo', { gate: 0.07, max: 4, vol: 0.7, rev: 0.12, jit: 0 }, (a, o) => {            // escada do combo: sobe um grau da escala por nível
     const n = clamp(o.n | 0, 0, 30), d = Math.min(14, n >> 1);
-    a.note(a.deg(d, 1), { vel: 0.45 + 0.012 * n });
-    if (n >= 30) { for (let i = 0; i < 8; i++) a.pluck(a.deg(14 - i, 1), { vel: 0.3, delay: 0.05 + i * 0.035 }); a.drum('ten', { vel: 0.5 }); }
+    a.note(a.deg(Math.min(7, d >> 1), 0), { inst: 'marimba', vel: 0.3 + 0.006 * n });       // "pom" de marimba, grave e fofo; sobe devagar
+    if (n >= 30) { for (let i = 0; i < 5; i++) a.note(a.deg(7 - i, 0), { inst: 'marimba', vel: 0.28, delay: 0.06 + i * 0.07 }); a.drum('don', { vel: 0.35 }); }
   });
   comp('gold', { gate: 0.1, max: 2, vol: 0.8, rev: 0.4, duck: 0.3, jit: 0, prio: 1 }, a => {   // grão dourado / crítico
     a.note(a.deg(5), { inst: 'fmbell', vel: 0.6 }); a.note(a.deg(7), { inst: 'fmbell', vel: 0.65, delay: 0.06 }); a.note(a.deg(9), { inst: 'fmbell', vel: 0.75, delay: 0.12 });
@@ -1159,7 +1164,10 @@
     // combo(n): nota da escada do combo (n = 0..30); no 30 solta o glissando
     combo(n) { return quick('combo', 1, 1, undefined, n); },
     // coin(combo=0): moeda; sobe 1 semitom a cada 5 de combo (GDD §8.2)
-    coin(n) { return quick('coin', semi(Math.floor((n || 0) / 5)), 1); },
+    // (sobe um GRAU da escala a cada 10 de combo, sem sair do tom; antes subia em semitom e desafinava)
+    // coinSoft(combo): ganho pequeno, uma nota baixa (no máximo ~3 por segundo)
+    coinSoft(n) { if (!ready()) return null; tmpOpts.pitch = 1; tmpOpts.vol = 1; tmpOpts.pan = 0; tmpOpts.delay = 0; tmpOpts.weight = undefined; tmpOpts.n = n | 0; tmpOpts.step = Math.min(3, Math.floor((n || 0) / 10)); return playOn(L, 'coinS', tmpOpts, 0); },
+    coin(n) { if (!ready()) return null; tmpOpts.pitch = 1; tmpOpts.vol = 0.7; tmpOpts.pan = 0; tmpOpts.delay = 0; tmpOpts.weight = undefined; tmpOpts.n = n | 0; tmpOpts.step = Math.min(3, Math.floor((n || 0) / 10)); return playOn(L, 'coin', tmpOpts, 0); },
     // gold() buy() big() shake() pop(): atalhos do rascunho
     gold() { return quick('gold'); },
     buy() { return quick('buy'); },

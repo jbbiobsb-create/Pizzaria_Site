@@ -4,10 +4,10 @@
    Ponto de extensão (Fase 2): G.HUD.zones (tl, tc, tr, mr, dock) pra pendurar missões, caderno e medidores. */
 (function () {
   'use strict';
-  const E = window.KomeEngine, G = (window.KomeGame = window.KomeGame || {});
+  const E = window.Pixxel, G = (window.KomeGame = window.KomeGame || {});
   const U = E.U, UI = E.UI, D = G.Data, PAL = E.PAL;
   const HUD = (G.HUD = { ready: false, zones: {} });
-  let api, S, ui, yenPill, rate, combo, mount, flyer, toolBtn, slots = [], hornBtn, treeBtn, treePanel, tree, aj, slotNodes = [];
+  let api, S, ui, swapBtn, swapPanel, yenPill, rate, combo, mount, flyer, toolBtn, slots = [], hornBtn, treeBtn, treePanel, tree, aj, slotNodes = [];
   let acc = 0, sampleT = 0, lastComboTone = '';
 
   const yen = v => '¥ ' + U.fmt(Math.ceil(v));
@@ -65,17 +65,26 @@
       ticks: [{ at: 0.06, color: PAL.pressD }, { at: 0.23, color: PAL.sakuraD || PAL.pink }, { at: 0.8, color: PAL.gold }] });
 
     flyer = UI.flyer(Z.tr, { art: 'house', title: 'Casa', sub: '', progress: 0, onClick: () => api.buyHouse() });
-    const gear = UI.button(Z.tr, { icon: 'gear', onClick: () => aj.toggle ? aj.toggle() : aj.open() });
+    const trCol = UI.el('div', 'k-col k-trcol', Z.tr);   // engrenagem e casa empilhadas: não alarga o canto
+    // menu-central: tudo que é legal e ficava escondido (Casa, roupinhas, trocar, caderno, oficina, ilhas...) num lugar só
+    const homeBtn = UI.button(trCol, { icon: 'chest', label: 'Menu do Kome', onClick: () => openMenu() });
+    UI.tooltip(homeBtn, 'Menu do Kome: Casa, roupinhas, trocar ferramenta, caderno, oficina, ilhas');
+    HUD.homeBadge = n => UI.badge(homeBtn.el || homeBtn, n);
+    HUD.homeEl = homeBtn.el || homeBtn;
+    const gear = UI.button(trCol, { icon: 'gear', onClick: () => aj.toggle ? aj.toggle() : aj.open() });
+    trCol.insertBefore(gear.el || gear, trCol.firstChild);
     UI.tooltip(gear, 'Ajustes');
     UI.tooltip(flyer, () => { const h = D.HOUSE[S.house]; return h ? '<b>' + h.n + '</b><br>' + h.draw + (S.tool + 1 < h.tier ? '<br>precisa: ' + D.TOOLS[h.tier - 1].name : '') : 'A casa está pronta!'; });
 
-    toolBtn = UI.button(Z.dock, { icon: icon('hashi'), iconSize: 36, title: '…', sub: '', w: 218, progress: 0, onClick: () => api.buyTool() });
+    toolBtn = UI.button(Z.dock, { icon: icon('hashi'), iconSize: 36, title: '…', sub: '', w: 218, progress: 0, onClick: () => (!D.TOOLS[S.tool + 1] && S.ended && G.Inf) ? G.Inf.open() : api.buyTool() });
     UI.tooltip(toolBtn, () => { const t = D.TOOLS[S.tool + 1]; return t ? '<b>Próxima ferramenta: ' + t.name + '</b><br>' + t.act + '<br>' + t.size : 'Você tem a maior máquina do mundo.'; });
     for (let i = 0; i < 3; i++) slots.push(UI.button(Z.dock, { icon: 'paw', iconSize: 26, title: '…', sub: '', w: 150, progress: 0, onClick: () => quickBuy(i) }));
     slots.forEach((s, i) => UI.tooltip(s, () => { const n = slotNodes[i]; return n ? '<b>' + n.n + '</b><br>' + n.desc + '<br><i>' + n.see + '</i>' : ''; }));
     UI.spacer(Z.dock);
     hornBtn = UI.button(Z.dock, { icon: 'horn', tone: 'red', onClick: () => api.horn() });
     hornBtn.el.style.display = 'none';
+    swapBtn = UI.button(Z.dock, { icon: 'swap', label: 'Trocar de ferramenta', onClick: () => openSwap() });   // fica escondido: agora mora no Menu do Kome
+    UI.tooltip(swapBtn, 'Trocar de lugar: jogue com qualquer ferramenta que você já comprou');
     treeBtn = UI.button(Z.dock, { icon: 'tree', title: 'Árvore', sub: 'do Kome', badge: 0, onClick: () => treePanel.open() });
 
     // árvore: mapa de nós da engine
@@ -101,6 +110,7 @@
     UI.toggle(aj.body, { icon: 'music', label: 'Música', sub: 'koto, shakuhachi e taiko', value: !!S.opts.music, onChange: v => api.setOpt('music', v) });
     UI.el('div', 'k-h', aj.body, 'Jogo');
     UI.toggle(aj.body, { icon: 'bolt', label: 'Tremor de tela', value: !!S.opts.shake, onChange: v => api.setOpt('shake', v) });
+    UI.toggle(aj.body, { icon: 'star', label: 'Fundo em pixel', sub: 'céu, Fuji e morros no traço do Kome', value: S.opts.pixel !== false, onChange: v => api.setOpt('pixel', v) });
     UI.el('div', 'k-h', aj.body, 'Salvar');
     const r = UI.el('div', 'k-row', aj.body); r.style.flexWrap = 'wrap'; r.style.padding = '4px 0 8px';
     UI.button(r, { title: 'Exportar', size: 'sm', onClick: () => {
@@ -112,7 +122,37 @@
       const s = window.prompt('Cole o save aqui:'); if (!s) return;
       if (!api.importStr(s.trim())) UI.toast('Esse save não abriu', { icon: 'x', tone: 'bad' });
     } });
+    UI.button(r, { title: 'Baixar arquivo', size: 'sm', onClick: () => {
+      try {
+        const s = api.exportStr(), d = new Date(), stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([s], { type: 'text/plain' })); a.download = 'kome-save-' + stamp + '.txt';
+        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        UI.toast('Save baixado', { icon: 'check', sub: 'guarda o arquivo kome-save' });
+      } catch (e) { UI.toast('Não deu pra baixar aqui', { icon: 'x', tone: 'bad', sub: 'use Exportar' }); }
+    } });
+    UI.button(r, { title: 'Abrir arquivo', size: 'sm', onClick: () => {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.txt,.json,text/plain';
+      inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const fr = new FileReader();
+        fr.onload = () => { if (!api.importStr(String(fr.result || '').trim())) UI.toast('Esse save não abriu', { icon: 'x', tone: 'bad' }); }; fr.readAsText(f); };
+      inp.click();
+    } });
     UI.button(r, { title: 'Apagar tudo', size: 'sm', tone: 'red', onClick: () => UI.confirm('Isso apaga a montanha, a árvore e a casa. O Kome começa do zero.', () => api.reset(), { title: 'Apagar o save?', yes: 'Apagar', no: 'Deixa pra lá', danger: true }) });
+    // modo infinito
+    UI.button(aj.body, { title: 'Nova montanha (depois do final)', size: 'sm', onClick: () => { if (api.newMountain && api.newMountain()) aj.close && aj.close(); } });
+    // guarda-roupa: achados enterrados (cores e acessórios do Kome)
+    const wrH = UI.el('div', 'k-h', aj.body, 'Guarda-roupa'); wrH.style.display = 'none';   // agora mora na Casa › Roupas (com ícones)
+    const wr = UI.el('div', 'k-row', aj.body); wr.style.display = 'none'; wr.style.flexWrap = 'wrap'; wr.style.padding = '4px 0 8px'; wr.style.gap = '4px';
+    HUD.refreshCloset = () => {
+      if (!api.closet) return; wr.innerHTML = '';
+      const have = api.closet(), look = api.look();
+      UI.button(wr, { title: (look.pal === 'kome' ? '✓ ' : '') + 'Kome clássico', size: 'sm', onClick: () => { api.wear('pal', 'kome'); HUD.refreshCloset(); } });
+      for (const c of D.CLOSET) {
+        const ok = have.indexOf(c.id) >= 0, on = ok && (c.kind === 'pal' ? look.pal === c.id : look.acc === c.id);
+        const b = UI.button(wr, { title: ok ? (on ? '✓ ' : '') + c.n : '???', size: 'sm', onClick: () => { if (!ok) return; api.wear(c.kind, c.id); HUD.refreshCloset(); } });
+        if (!ok && b && b.el) { b.el.style.opacity = '0.5'; } if (UI.tooltip && b) UI.tooltip(b.el || b, () => ok ? c.d : 'ache cavando bolsões de ouro');
+      }
+    };
+    HUD.refreshCloset();
     HUD.settings = aj;
 
     HUD.ready = true;
@@ -132,6 +172,54 @@
     });
     if (tree && HUD.treeOpen) tree.refresh();
   };
+  /* ---- Menu do Kome: blocos grandes com ícone, nome, situação e "!" de novidade; bloqueado aparece apagado com dica ---- */
+  let menuPanel = null;
+  function openMenu() {
+    if (!menuPanel) menuPanel = UI.panel({ title: 'Menu do Kome', icon: 'chest', side: 'right', cls: 'k-menupanel' });
+    const b = menuPanel.body; b.innerHTML = '';
+    const grid = UI.el('div', 'k-menugrid', b);
+    const hd = S.homeData || {}, own = hd.own || {}, ach = S.stats.ach ? Object.keys(S.stats.ach).length : 0;
+    const closet = (S.closet || []).length, ended = !!S.ended, isl = G.Islands ? G.Islands.island() : null;
+    const go = fn => () => { menuPanel.close(); setTimeout(fn, 120); };
+    const tiles = [
+      { icon: 'house', t: 'Casa do Kome', s: Object.keys(own).filter(k => k.indexOf('th_') < 0).length + ' coisas no quintal', badge: hd.newAch ? '!' : 0, fn: go(() => api.openHome && api.openHome('jardim')) },
+      { icon: 'hat', t: 'Roupinhas', s: closet + '/' + D.CLOSET.length + ' achadas cavando', badge: hd.newCloth ? '!' : 0, fn: go(() => api.openHome && api.openHome('roupa')) },
+      { icon: 'swap', t: 'Trocar ferramenta', s: S.tool >= 1 ? 'jogue com qualquer uma que já comprou' : 'compre a 2ª ferramenta', lock: S.tool < 1, fn: go(() => openSwap()) },
+      { icon: 'book', t: 'Caderno', s: ach + '/30 conquistas · missões', fn: go(() => api.openHome && api.openHome('caderno')) },
+      { icon: 'bolt', t: 'Oficina', s: ended ? 'deixe sua máquina favorita mais forte' : 'libera depois de terminar a casa', lock: !ended, fn: go(() => G.Inf && G.Inf.open()) },
+      { icon: 'star', t: 'Ilhas', s: ended ? 'viajar · ' + (S.stats.seeds | 0) + ' sementes' : (isl ? isl.n + ' · ' : '') + 'viagem depois do final', lock: !ended && !(S.stats.islandsDone | 0), fn: go(() => api.openHome && api.openHome('ilhas')) },
+      { icon: 'rice', t: 'Nova montanha', s: ended ? 'escolha o formato' : 'depois do final', lock: !ended, fn: go(() => api.newMountain && api.newMountain()) },
+      { icon: 'gear', t: 'Ajustes', s: 'som, salvar, tremor', fn: go(() => aj.open()) },
+    ];
+    for (const it of tiles) {
+      const bt = UI.button(grid, { icon: it.icon, iconSize: 30, title: it.t, sub: it.s, cls: 'k-menutile' + (it.lock ? ' k-locked' : ''), onClick: () => { if (it.lock) { UI.toast(it.t, { icon: 'lock', sub: it.s }); return; } it.fn(); } });
+      if (it.badge) UI.badge(bt.el || bt, it.badge);
+    }
+    menuPanel.open();
+  }
+  // etapa 5: painel de troca (todas as ferramentas compradas; a atual marcada)
+  function openSwap() {
+    if (!swapPanel) swapPanel = UI.panel({ title: 'Trocar de lugar', icon: 'swap', side: 'right' });
+    const b = swapPanel.body; b.innerHTML = '';
+    const col = UI.el('div', 'k-col', b);
+    UI.el('div', 'k-homehint', col, 'Um amigo shiba assume a máquina e o Kome pega a que você escolher. A renda continua a da sua melhor.');
+    const now = api.playing && api.playing();
+    for (let i = S.tool; i >= 0; i--) {
+      const t = D.TOOLS[i], on = now === t;
+      const bt = UI.button(col, { title: (on ? '✓ ' : '') + t.name, sub: on ? 'jogando agora' : (i === S.tool ? 'a melhor' : t.size || ''), icon: icon(t.id), size: 'sm',
+        onClick: () => { if (api.playAs(i)) swapPanel.close(); } });
+      (bt.el || bt).style.width = '100%';
+    }
+    // Gêmea pronta: dá pra pilotar ela (a 293 vai pro outro lado com o Goma)
+    if (api.twinReady && api.twinReady()) {
+      const on = api.twinPlaying && api.twinPlaying();
+      const bt = UI.button(col, { title: (on ? '✓ ' : '') + 'Bagger Gêmea', sub: on ? 'pilotando agora' : '50% maior, duas rodas, cava 2x', icon: icon('bagger'), size: 'sm', tone: on ? '' : 'red',
+        onClick: () => { if (api.playAs(S.tool, true)) swapPanel.close(); } });
+      (bt.el || bt).style.width = '100%';
+      col.insertBefore(bt.el || bt, col.children[1]);
+    }
+    swapPanel.open();
+  }
   function quickBuy(i) {
     const n = slotNodes[i]; if (!n) return;
     if (api.buyNode(n.id)) slots[i].pop && slots[i].pop();
@@ -147,7 +235,17 @@
   }
 
   // update(dt, force): atualiza os números (10x por segundo)
+  // a Casa pulsa quando tem coisa pra comprar lá (ou roupinha nova); aviso único aos 2 minutos de jogo
+  let homeChk = 0;
+  function homeTick(dt) {
+    if (!HUD.homeEl || (homeChk -= dt) > 0) return; homeChk = 2;
+    const hd = S.homeData || {}, own = hd.own || {}, ips = Math.max(5, S.ips || 0);
+    const cheap = D.DECOR ? D.DECOR.filter(x => !own[x.id] && (!x.needs || own[x.needs])).reduce((m, x) => Math.min(m, Math.ceil(x.sec * ips / 10) * 10), Infinity) : Infinity;
+    HUD.homeEl.classList.toggle('k-pulse', S.money >= cheap || !!hd.newCloth || !!hd.newAch);
+    if (!S.stats.homeTip && S.time > 120 && !S.endOpen) { S.stats.homeTip = 1; UI.toast('Novo: Casa do Kome!', { icon: 'house', tone: 'gold', sub: 'botão da casinha lá em cima: jardim, bichinhos, roupas e temas', dur: 7 }); }
+  }
   HUD.update = function (dt, force) {
+    homeTick(dt);
     if (!HUD.ready) return;
     acc += dt; sampleT += dt;
     if (acc < 0.1 && !force) return;
@@ -157,6 +255,7 @@
     if (sampleT >= 5 || force) { sampleT = 0; rate.push(S.ips); }
     const st = api.stats(), cm = 1 + (st.comboCap - 1) * S.combo / D.COMBO.max;
     combo.set(S.combo / D.COMBO.max, null, { value: (S.furia > 0 ? 'FÚRIA ×' : '×') + (cm * (S.furia > 0 ? 2 : 1)).toFixed(2).replace('.', ',') });
+    combo.el.classList.toggle('k-maxed', S.combo >= D.COMBO.max - 0.01);
     const tone = S.furia > 0 ? 'fury' : st.comboCap >= 2 ? 'pink' : st.comboCap > 1.5 ? 'sack' : '';
     if (tone !== lastComboTone && combo.tone) { combo.tone(tone); lastComboTone = tone; }
     mount.set(S.heapTotal - S.heapArea, S.heapTotal);
@@ -166,7 +265,7 @@
       let lock = null;
       if (nt.needs) for (const id of nt.needs) if (!S.own[id]) { lock = 'precisa: ' + D.nodeById[id].n; break; }
       goalBtn(toolBtn, nt.name, api.toolCost(nt), lock, toolBtn._id !== nt.id ? icon(nt.id) : null); toolBtn._id = nt.id;
-    } else toolBtn.set({ title: 'Bagger 293', sub: 'a maior máquina do mundo', progress: 1, state: '' });
+    } else toolBtn.set(S.ended ? { title: 'Oficina', sub: 'melhorar as máquinas', progress: 1, state: '' } : { title: 'Bagger 293', sub: 'a maior máquina do mundo', progress: 1, state: '' });
     const h = D.HOUSE[S.house];
     if (h) {
       const c = api.houseCost(h), lock = S.tool + 1 < h.tier ? 'precisa: ' + D.TOOLS[h.tier - 1].name : null;
@@ -181,7 +280,8 @@
     });
     for (const n of D.TREE) if (!S.own[n.id] && S.money >= api.nodeCost(n) && api.nodeState(n) === 'open') nAff++;
     treeBtn.set({ badge: nAff });
-    hornBtn.el.style.display = S.own.b0 && S.tool === D.TOOLS.length - 1 ? '' : 'none';
+    hornBtn.el.style.display = S.own.b0 && api.playing && api.playing().kind === 'bagger' ? '' : 'none';
+    (swapBtn.el || swapBtn).style.display = 'none';   // trocar ferramenta agora fica no Menu do Kome (menos botão na tela do celular)
   };
 
   HUD.bump = function () { if (HUD.ready && yenPill.bump) yenPill.bump(); };
@@ -189,7 +289,8 @@
   HUD.endCard = function (rows, onMore) {
     if (!UI) return;
     const rank = UI.el('div', 'k-rank', null, rows.rank || 'A');
-    UI.dialog({ art: rank, kicker: 'Fim da montanha', title: 'O Kome comprou a casa no Japão!', text: 'Onsen quentinho, capivara de hóspede e a Bagger estacionada no quintal.',
+    if (UI.clearBanners) UI.clearBanners(); document.querySelectorAll('.k-banner').forEach(b => b.remove());
+    UI.dialog({ art: rank, kicker: 'Campanha concluída', title: 'O Kome comprou a casa no Japão!', text: 'A casa ficou pronta. O que sobrou da montanha continua lá: dá pra seguir cavando ou abrir uma montanha nova.',
       rows: rows.list, buttons: [{ title: 'Continuar cavando', tone: 'primary', onClick: onMore }] });
   };
 })();

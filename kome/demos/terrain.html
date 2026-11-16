@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Kome Engine · terrain.js (montanha de arroz)</title>
+<title>Pixxel · terrain.js (montanha de arroz)</title>
 <style>
   html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }
 </style>
@@ -20,7 +20,7 @@
    query: ?z=3|1|far  &x=<x de mundo>  &tool=1..5  &wheel=1  &dig=<segundos de cava automática antes do 1º frame> */
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U, D = E.Draw, C = E.PAL, TAU = Math.PI * 2;
+  const E = Pixxel, U = E.U, D = E.Draw, C = E.PAL, TAU = Math.PI * 2;
   const W = 960, H = 540, INK = C.ink;
   const stage = E.Stage({ width: W, height: H, bg: '#9FD3E8', maxDpr: 2 });
   const g = stage.g;
@@ -304,7 +304,7 @@
   function hud(t) {
     D.lod(1);
     // medidores
-    panel(12, 12, 208, 132, 'KOME ENGINE · terrain.js');
+    panel(12, 12, 208, 132, 'PIXXEL · terrain.js');
     const rows = [
       ['FPS', loop.fps.toFixed(0)], ['relax()', S.msRelax.toFixed(2) + ' ms'], ['draw()', S.msDraw.toFixed(2) + ' ms'],
       ['colunas', heap.n + (heap.moving ? ' · escorrendo' : ' · parada')], ['resta', (heap.frac() * 100).toFixed(2) + '%'],

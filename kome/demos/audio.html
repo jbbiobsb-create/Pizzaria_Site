@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kome Engine · audio.js</title>
+<title>Pixxel · audio.js</title>
 <style>
   :root { --line: #3B2818; --ink: #2A1A10; --paper: #F6EBD2; --card: #FFFAEE; --shade: #E6D6B4; --gold: #F3C94A; --red: #C8423A; --leaf: #6B8A4B; --ora: #E2742E; --water: #3F7FA6; }
   * { box-sizing: border-box; }
@@ -54,7 +54,7 @@
 <body>
 <div id="page">
   <div id="top">
-    <h1>Kome Engine <small>audio.js · tudo sintetizado, zero arquivos</small></h1>
+    <h1>Pixxel <small>audio.js · tudo sintetizado, zero arquivos</small></h1>
     <span id="status" class="pill wait">toque em qualquer lugar para ligar o som</span>
     <span class="ctl">geral <input id="vMaster" type="range" min="0" max="1" step="0.01"></span>
     <span class="ctl">efeitos <input id="vSfx" type="range" min="0" max="1" step="0.01"></span>
@@ -107,7 +107,7 @@
    A verificação roda sozinha ao carregar: window.__audit é uma Promise com o resumo; ?audit=0 pula; ?fast=1 música de 8 s. */
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U, A = E.Audio, S = E.Sfx, Lp = E.Loops, M = E.Music, PAL = E.PAL || {};
+  const E = Pixxel, U = E.U, A = E.Audio, S = E.Sfx, Lp = E.Loops, M = E.Music, PAL = E.PAL || {};
   const q = new URLSearchParams(location.search);
   const $ = id => document.getElementById(id);
   const LINE = '#3B2818';

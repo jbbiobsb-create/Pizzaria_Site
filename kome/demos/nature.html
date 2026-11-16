@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Kome Engine · nature.js (cenário japonês)</title>
+<title>Pixxel · nature.js (cenário japonês)</title>
 <style>
   html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }
 </style>
@@ -23,7 +23,7 @@
    teclas 1-4 / setas trocam de página; na página 3, N liga/desliga a noite */
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U, D = E.Draw, C = E.PAL, N = E.Nature, TAU = Math.PI * 2;
+  const E = Pixxel, U = E.U, D = E.Draw, C = E.PAL, N = E.Nature, TAU = Math.PI * 2;
   const W = 960, H = 540, INK = C.ink;
   const stage = E.Stage({ width: W, height: H, bg: '#F6F1E4', maxDpr: 2 });
   const g = stage.g, input = E.Input(stage);
@@ -44,7 +44,7 @@
   function header() {
     g.fillStyle = INK; g.fillRect(0, 0, W, 34);
     g.fillStyle = C.gold; g.fillRect(0, 34, W, 3);
-    D.text(g, 'KOME ENGINE', 14, 18, { size: 17, col: C.gold, sw: 0, align: 'left' });
+    D.text(g, 'PIXXEL', 14, 18, { size: 17, col: C.gold, sw: 0, align: 'left' });
     D.text(g, 'nature.js', 146, 19, { size: 12, col: C.riceS, sw: 0, align: 'left', weight: 700 });
     for (let i = 0; i < PAGES.length; i++) {
       const x = tabX(i), on = i === page;

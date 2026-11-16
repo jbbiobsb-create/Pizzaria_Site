@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kome Engine · ui.js (HUD em DOM)</title>
-<link rel="stylesheet" href="../engine/kome.css">
+<title>Pixxel · ui.js (HUD em DOM)</title>
+<link rel="stylesheet" href="../engine/pixxel.css">
 <style>
   html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }
 </style>
@@ -20,7 +20,7 @@
    Teclas: T árvore · C caderno · G ajustes · K kit · B banner · N faixa · A conquista · X celebração · W boas-vindas */
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U, UI = E.UI, C = E.PAL, TAU = Math.PI * 2;
+  const E = Pixxel, U = E.U, UI = E.UI, C = E.PAL, TAU = Math.PI * 2;
   if (!/nofont/.test(location.search)) UI.loadFont();
 
   const portrait = innerHeight > innerWidth * 1.05;

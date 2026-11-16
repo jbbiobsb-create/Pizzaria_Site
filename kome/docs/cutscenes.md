@@ -1,6 +1,6 @@
-# Cutscene pipeline for Kome Engine (Dave the Diver-style staging)
+# Cutscene pipeline for Pixxel (Dave the Diver-style staging)
 
-Nothing was modified. Draft read at `/tmp/claude-0/-home-user-Pizzaria-Site/73bb5c4b-e898-5ba0-a571-a9a62e6621c9/scratchpad/zip/engine.js` (plus `game.js`, `KOME_ENGINE.md`).
+Nothing was modified. Draft read at `/tmp/claude-0/-home-user-Pizzaria-Site/73bb5c4b-e898-5ba0-a571-a9a62e6621c9/scratchpad/zip/engine.js` (plus `game.js`, `PIXXEL.md`).
 
 ## 1. Research findings
 
@@ -40,7 +40,7 @@ Nothing was modified. Draft read at `/tmp/claude-0/-home-user-Pizzaria-Site/73bb
 ## 3. Declarative format
 
 ```js
-KomeEngine.Cutscene.define('bagger_reveal', {
+Pixxel.Cutscene.define('bagger_reveal', {
   tier: 'full', sting: 'bagger_sting',     // sting = short version for replays
   letterbox: true,                         // default for all shots
   music: 'duck',                           // 'duck' | 'stop' | 'keep' | track id
@@ -119,7 +119,7 @@ Field rules:
 ## 4. Minimal runtime API
 
 ```js
-KomeEngine.Cutscene = {
+Pixxel.Cutscene = {
   define(id, def), registerDrawable(name, fn), registerFx(name, fn), handlers: {},
   play(id, {tier, ctx, onEnd}),   // returns false if already seen and no sting exists
   playing,                        // boolean; game loop checks this to pause the sim

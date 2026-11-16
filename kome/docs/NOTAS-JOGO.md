@@ -15,7 +15,7 @@ o GDD conta mas ainda não existe (missões, visitantes, selos, conquistas): BAI
 - Ajudantes e pilotos são auto-escavação abstrata (`autoTick()`); máquinas com piloto ficam estacionadas.
 - Não feito: corvos, visitantes, renda offline, selos, ciclo de dia, caminhão de entrega e cartão de silhuetas na celebração,
   sombras de máquina, Kome soterrado na trombada, rachaduras da britadeira, cutscenes, conquistas, missões, álbum, achados cosméticos.
-- Nós só-número: m7a, m7b, s10, a6, b3. Só animação mais rápida: c1, cA, cB, cC, cD. Sem arte própria: c_reach, b2, a5, p4/p5, c6.
+- Nós só-número: RESOLVIDOS (15/11): s10 veios dourados (drawVeins), m7a/m7b carimbo 米 vermelho/dourado no coletor (drawSeal), a6 pazinha nos ajudantes, b3 caçambas azul-titânio (sprite 'wheelTi'), c6 gota de suor no modo automático, c1/cA mais grãos por batida (inp.grainMul). Ainda só animação: cB, cC, cD. Sem arte própria: c_reach, b2, a5, p4/p5, c6.
 - Frota estacionada e prédios da régua se sobrepõem no pátio. Retrato/toque não testados.
 - Toasts e cartão de celebração usam relógio real (sobram depois de `step()`).
 
@@ -30,3 +30,5 @@ o GDD conta mas ainda não existe (missões, visitantes, selos, conquistas): BAI
 - Cenário: `World.props.push({node | when(S), x, draw})`, `World.layers.back/.front`. HUD: `KomeGame.HUD.zones` (tl,tc,tr,mr,dock).
 - Notas de engine: `heap.minK` do jogo = 0.41; material é por posição (arroz solto que desliza abaixo da linha do mochi conta como mochi);
   `E.UI.tree` precisa de `tree.openAt()` no `onOpen` do painel.
+
+- Pátio (15/11): comprar nó com adereço no pátio faz a câmera visitar (visit em game.js, trava input 2,8 s) e o adereço surge com elástico (popK/popDraw em game-world.js). Barraquinha só aparece depois de m1 (antes: placa ALUGA-SE).

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Kome Engine v1.0 · ui.js — HUD em DOM por cima do canvas (par do kome.css)
+   Pixxel v1.0 · ui.js — HUD em DOM por cima do canvas (par do pixxel.css)
    Depende só de core.js. Se pix.js estiver carregado, os ícones embutidos são
    pixel art (E.UI.icons); sem ele, viram glifos de texto (nunca emoji).
    Índice:
@@ -14,8 +14,8 @@
    ========================================================================== */
 (function () {
   'use strict';
-  const E = (window.KomeEngine = window.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de ui.js');
+  const E = (window.Pixxel = window.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de ui.js');
   const U = E.U, doc = document, TAU = Math.PI * 2;
   const INK = '#2a1a10', CREAM = '#fffaee', YEL = '#ffe9a8', GOLD = '#f3c94a';
   const UI = { root: null, sound: true, fmt: U.fmt };
@@ -33,7 +33,7 @@
   }
   // par(p): resolve o pai de um componente (elemento, handle com .el, ou a raiz atual)
   function par(p) { return p ? (p.el && p.el.nodeType ? p.el : p) : UI.root; }
-  function need() { if (!UI.root) throw new Error('KomeEngine: chame E.UI.mount(stage) antes'); return UI.root; }
+  function need() { if (!UI.root) throw new Error('Pixxel: chame E.UI.mount(stage) antes'); return UI.root; }
 
   /* relógio próprio: só roda enquanto existe algo animando (número rolando, árvore aberta) */
   const ticks = [];
@@ -425,11 +425,13 @@
      ====================================================================== */
   // E.UI.button(root, {icon (canvas|nome|texto), iconSize, title, sub, onClick, progress, badge, state, tone:'primary'|'green'|'red'|'dark',
   //   size:'sm'|'lg', accent (cor da faixa lateral), vertical, center, w, sound='click'}) -> {el, set({title,sub,progress,state:'can'|'off'|'',badge,icon,left}), pop()}
+  const ICON_NAMES = { gear: 'Ajustes', close: 'Fechar', mute: 'Som', tree: 'Árvore', house: 'Casa', horn: 'Buzina' };
   function button(root, o) {
     o = o || {};
     const el = h('button', 'k-btn' + (o.size ? ' k-' + o.size : '') + (o.tone ? ' k-' + o.tone : '') + (o.vertical ? ' k-vert' : '') +
       (o.center ? ' k-center' : '') + (o.cls ? ' ' + o.cls : ''), par(root));
     el.type = 'button';
+    { const lab = o.label || o.title || (o.icon && ICON_NAMES[o.icon]) || o.icon; if (lab) el.setAttribute('aria-label', String(lab)); }
     if (o.w) el.style.width = o.w + 'px';
     if (o.accent) { el.classList.add('k-accent'); el.style.setProperty('--k-accent', o.accent); }
     const icoSize = o.iconSize || (o.size === 'sm' ? 20 : 32);
@@ -923,7 +925,7 @@
     o = o || {};
     const r = o.label ? row(parent, o) : null;
     const el = h('button', 'k-toggle', r ? r.ctl : par(parent));
-    el.type = 'button'; el.setAttribute('role', 'switch');
+    el.type = 'button'; el.setAttribute('role', 'switch'); if (o.label) el.setAttribute('aria-label', o.label);
     h('i', null, el);
     let value = false;
     const api = {
@@ -1639,7 +1641,7 @@
   /* ======================================================================
      14. Export
      ====================================================================== */
-  // E.UI.loadFont(): pede a Zen Maru Gothic ao Google Fonts sem travar a página (offline o fallback do kome.css assume)
+  // E.UI.loadFont(): pede a Zen Maru Gothic ao Google Fonts sem travar a página (offline o fallback do pixxel.css assume)
   function loadFont() {
     if (doc.getElementById('k-font')) return;
     const l = h('link'); l.id = 'k-font'; l.rel = 'stylesheet';

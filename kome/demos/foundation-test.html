@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Kome Engine · teste da fundação (core + pix + shiba)</title>
+<title>Pixxel · teste da fundação (core + pix + shiba)</title>
 <style>
   html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
   .ft-list {
@@ -23,7 +23,7 @@
 <script src="../engine/shiba.js"></script>
 <script>
 /* ============================================================================
-   Teste de conformidade da fundação da Kome Engine.
+   Teste de conformidade da fundação da Pixxel.
    Confere cada item das seções core/pix/shiba do ENGINE_CONTRACT.md (existência +
    comportamento) e caça bugs de borda. Loga "[kome] foundation: PASS/FAIL nome".
    Rodar:  node kome/tools/shot.js kome/demos/foundation-test.html saida.png --wait 6000
@@ -31,7 +31,7 @@
    ============================================================================ */
 (async function () {
   'use strict';
-  const E = KomeEngine, U = E.U, Draw = E.Draw, PAL = E.PAL;
+  const E = Pixxel, U = E.U, Draw = E.Draw, PAL = E.PAL;
   const q = new URLSearchParams(location.search);
 
   /* ---------- mini framework ---------- */

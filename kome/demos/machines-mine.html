@@ -22,7 +22,7 @@
    Automação: __demo.step(seg) avança em passos fixos de 1/60 (e congela o tempo real); __demo.scenes[i].m = instância. */
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame;
+  const E = Pixxel, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame;
   const W = 960, H = 540, LINE = E.LINE_CSS;
   const q = new URLSearchParams(location.search);
   const ONLY = q.get('only'), SPD = +(q.get('spd') || 1), FACE = +(q.get('face') || 1) < 0 ? -1 : 1, NODIG = q.get('dig') === '0';

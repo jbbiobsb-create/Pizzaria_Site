@@ -1,5 +1,5 @@
 /* ============================================================================
-   Kome Engine v1.0 — pix.js
+   Pixxel v1.0 — pix.js
    O "estilo Kome" pra tudo que não é o cachorro:
      E.LINE / E.LINE_CSS   contorno marrom escuro oficial
      E.PAL                 paleta quente e limitada
@@ -12,8 +12,8 @@
    ============================================================================ */
 (function () {
   'use strict';
-  const E = (window.KomeEngine = window.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de pix.js');
+  const E = (window.Pixxel = window.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de pix.js');
   const U = E.U, TAU = Math.PI * 2;
 
   /* ======================================================================
@@ -384,6 +384,8 @@
   // E.sprite.has(nome) -> bool ; E.sprite.get(nome) -> canvas | undefined
   sprite.has = name => !!spriteCache[name];
   sprite.get = name => spriteCache[name];
+  // E.sprite.names() -> nomes de tudo que já foi desenhado (galeria de sprites)
+  sprite.names = () => Object.keys(spriteCache);
 
   const NO = Object.freeze({}); // opções vazias compartilhadas (evita alocar por chamada)
 
@@ -1244,6 +1246,35 @@
   E.PAL = PAL;
   E.Pix = Pix;
   E.sprite = sprite;
+  // E.TEXT_PAL: letra -> cor pro desenho em texto (minúscula = tom escuro da mesma cor). '.' ou espaço = vazio.
+  //   R vermelho  O laranja  Y amarelo/ouro  G verde  B azul  C céu/vidro  P rosa  V roxo  K madeira  S aço  A arroz/creme
+  //   W branco  N preto/tinta  E pele/pelo do Kome  T palha/saco  M pedra
+  const TEXT_PAL = {
+    R: PAL.red, r: PAL.redD, O: PAL.ora, o: PAL.oraD, Y: PAL.gold, y: PAL.goldD, G: PAL.grass, g: PAL.grassD,
+    B: PAL.bowlL, b: PAL.bowl, C: PAL.glass, c: PAL.glassD, P: PAL.sakura, p: PAL.sakuraD, V: '#8E6FB3', v: '#5E4A80',
+    K: PAL.wood, k: PAL.woodD, S: PAL.steel, s: PAL.steelD, A: PAL.rice, a: PAL.riceS, W: PAL.white, w: PAL.steelL,
+    N: PAL.blk, n: PAL.ink, E: PAL.fur, e: PAL.furS, T: PAL.sack, t: PAL.sackD, M: PAL.stone, m: PAL.stoneD,
+  };
+  E.TEXT_PAL = TEXT_PAL;
+  // E.spriteText(nome, texto, {pal, outline=true, bevel=true, flip}) -> canvas cacheado
+  //   Pixel art escrita como texto: cada linha é uma fileira e cada letra uma cor de E.TEXT_PAL (ou da 'pal' passada).
+  //   Ganha contorno do traço do Kome e luz/sombra (3 tons) sozinho. Linhas vazias nas pontas são ignoradas.
+  function spriteText(name, text, o) {
+    o = o || {};
+    const rows = String(text).split(/\r?\n/).map(l => l.replace(/\s+$/, ''));
+    while (rows.length && !rows[0].trim()) rows.shift();
+    while (rows.length && !rows[rows.length - 1].trim()) rows.pop();
+    const ind = Math.min.apply(null, rows.filter(l => l.trim()).map(l => l.match(/^ */)[0].length));
+    const R = rows.map(l => l.slice(ind)), w = Math.max(1, ...R.map(l => l.length)), h = Math.max(1, R.length), pal = Object.assign({}, TEXT_PAL, o.pal || {});
+    return sprite('txt/' + name, w + 2, h + 2, P => {
+      for (let y = 0; y < h; y++) for (let x = 0; x < R[y].length; x++) {
+        const ch = R[y][o.flip ? R[y].length - 1 - x : x], c = pal[ch];
+        if (c) P.set(x + 1, y + 1, c);
+      }
+      if (o.bevel !== false && P.bevel) P.bevel(0.25, 0.2);
+    }, o.outline !== false);
+  }
+  E.spriteText = spriteText;
   E.drawSprite = drawSprite;
   E.Draw = Draw;
 })();

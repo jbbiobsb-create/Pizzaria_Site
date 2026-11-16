@@ -1,3 +1,71 @@
-/* Kome no Japão — ajustes de página do jogo (o visual do HUD vem de engine/kome.css) */
+/* Kome no Japão — ajustes de página do jogo (o visual do HUD vem de engine/pixxel.css) */
 html, body { margin: 0; height: 100%; background: #2a1a10; overflow: hidden; overscroll-behavior: none; }
 canvas { touch-action: none; }
+
+.k-tipcontrols{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:50;pointer-events:none;opacity:0;transition:opacity .5s;
+ background:#C99A5B;border:3px solid #3B2818;border-radius:12px;box-shadow:0 4px 0 #3B2818,inset 0 2px 0 rgba(255,255,255,.25);padding:8px 16px 10px;
+ color:#2A1A10;font:600 14px 'Zen Maru Gothic',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;max-width:92vw}
+.k-tipcontrols b{font-weight:900;font-size:15px;background:#FFFAEE;border:2px solid #3B2818;border-radius:8px;padding:0 10px;margin-bottom:2px}
+.k-tipcontrols kbd{display:inline-block;min-width:18px;padding:0 5px;margin:0 1px;background:#FFFAEE;border:2px solid #3B2818;border-bottom-width:3px;border-radius:5px;font:800 12px system-ui,sans-serif}
+@media (max-height:420px){.k-tipcontrols{top:46px;font-size:12px;padding:5px 12px 7px}}
+
+/* combo no máximo: a barra pega fogo */
+.k-bar.k-maxed{animation:kfire .35s infinite alternate;border-radius:8px}
+@keyframes kfire{from{box-shadow:0 0 0 2px #E2742E,0 -3px 10px 2px rgba(255,140,40,.75)}to{box-shadow:0 0 0 2px #F3C94A,0 -6px 16px 4px rgba(255,90,30,.85)}}
+
+/* ---- modo celular: joystick transparente e botão CAVAR ---- */
+.k-vpad{display:none}
+.k-mob .k-vpad{display:block;position:fixed;inset:0;pointer-events:none;z-index:40}
+.k-joy{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:168px;width:108px;height:108px;border-radius:50%;pointer-events:auto;touch-action:none;
+ background:rgba(255,250,238,.16);border:3px solid rgba(59,40,24,.35)}
+.k-joy-k{position:absolute;left:25%;top:25%;width:50%;height:50%;box-sizing:border-box;border-radius:50%;background:rgba(255,250,238,.55);border:3px solid rgba(59,40,24,.55);transition:transform .05s}
+.k-dig{position:absolute;right:max(22px,env(safe-area-inset-right));bottom:168px;width:98px;height:98px;border-radius:50%;pointer-events:auto;touch-action:none;
+ display:flex;align-items:center;justify-content:center;font:900 15px 'Zen Maru Gothic',system-ui,sans-serif;color:#2A1A10;letter-spacing:.5px;
+ background:rgba(243,220,154,.62);border:3px solid rgba(59,40,24,.6);box-shadow:0 4px 0 rgba(59,40,24,.45);user-select:none;-webkit-user-select:none}
+.k-dig.on{transform:translateY(3px);box-shadow:0 1px 0 rgba(59,40,24,.45);background:rgba(243,220,154,.85)}
+.k-fullscr{position:absolute;left:50%;top:54px;width:44px;height:44px;margin-left:-22px;border-radius:9px;pointer-events:auto;background:rgba(255,250,238,.5);border:2px solid rgba(59,40,24,.5)}
+.k-fullscr::before{content:'';position:absolute;inset:11px;border:3px solid #3B2818;border-radius:3px;clip-path:polygon(0 0,40% 0,40% 15%,15% 15%,15% 40%,0 40%,0 60%,15% 60%,15% 85%,40% 85%,40% 100%,60% 100%,60% 85%,85% 85%,85% 60%,100% 60%,100% 40%,85% 40%,85% 15%,60% 15%,60% 0,100% 0,100% 100%,0 100%)}
+
+/* celular: plaquinha abaixo do HUD de cima (posição medida em layoutPad) */
+.k-mob .k-tipcontrols{top:var(--k-tip-top,64px)}
+/* celular em pé: HUD fora do palco, ocupando a tela inteira; barra de compras acima do joystick */
+.k-hudfix{position:fixed;inset:0;pointer-events:none;z-index:30}
+.k-hudfix > .k-ui{position:absolute;inset:0;width:100%;height:100%}
+body.k-pfix .k-hudfix .k-zone-dock{bottom:var(--k-pad-dock,160px)}
+body.k-pfix .k-hudfix .k-zone-tc{top:var(--k-tc-top,150px)}
+body.k-pfix .k-hudfix .k-zone-dock{align-content:flex-end}
+.k-zb{position:absolute;top:54px;width:44px;height:44px;border-radius:9px;pointer-events:auto;touch-action:none;background:rgba(255,250,238,.5);border:2px solid rgba(59,40,24,.5);
+ display:flex;align-items:center;justify-content:center;font:900 22px system-ui,sans-serif;color:#3B2818;line-height:1;user-select:none;-webkit-user-select:none}
+.k-zout{left:calc(50% - 74px)}
+.k-zin{left:calc(50% + 30px)}
+
+/* casa do Kome: HUD do jogo some enquanto o quintal está aberto */
+.k-ui.k-athome > .k-l1{display:none}
+body.k-athome .k-vpad, body.k-athome .k-tipcontrols, body.k-panelopen .k-vpad{display:none}
+.k-homepanel .k-pane .k-btn{justify-content:flex-start}
+.k-homehint{font-size:12px;opacity:.7;padding:2px 4px 8px}
+.k-trcol{gap:6px;pointer-events:none}.k-trcol>*{pointer-events:auto}
+/* celular deitado e estreito (< 760 px): barra de compras compacta, 3º atalho some, canto de cima mais enxuto */
+body.k-tight .k-zone-dock > .k-btn{width:auto !important;max-width:150px;min-width:0}
+body.k-tight .k-zone-dock > .k-btn:nth-child(4){display:none}
+body.k-tight .k-zone-dock{gap:6px}
+body.k-tight .k-zone-tr .k-flyer{max-width:120px}
+
+/* acessibilidade: foco visível no teclado em qualquer controle; título só pra leitor de tela */
+.k-ui button:focus-visible, .k-ui [role=button]:focus-visible, .k-vpad [role=button]:focus-visible, .k-tab:focus-visible{outline:3px solid #2E64B0;outline-offset:2px}
+.k-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* Casa: botão pulsa quando tem novidade ou dá pra comprar algo; abas grandes e coloridas */
+@keyframes kpulse{0%,100%{box-shadow:0 4px 0 #3B2818,0 0 0 0 rgba(255,196,64,.85)}50%{box-shadow:0 4px 0 #3B2818,0 0 0 9px rgba(255,196,64,0)}}
+.k-btn.k-pulse{animation:kpulse 1.3s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.k-btn.k-pulse{animation:none;outline:3px solid #F3C94A}}
+.k-homepanel .k-tabs{gap:8px}
+.k-homepanel .k-tab{font-size:15px;padding:8px 14px;min-height:44px}
+.k-homepanel .k-tab:not(.k-sel){background:#FFF3D6}
+/* Menu do Kome: uma coluna de blocos grandes (cabe no painel e no celular); bloqueado apagado */
+.k-menugrid{display:flex;flex-direction:column;gap:7px;padding:4px 2px}
+.k-menugrid .k-menutile{width:auto !important;max-width:none;min-width:0;min-height:58px;justify-content:flex-start;align-self:stretch}
+.k-menugrid .k-menutile .k-btn-t{min-width:0}
+.k-menugrid .k-menutile.k-locked{opacity:.5;filter:grayscale(.6)}
+
+/* cena do fim do dia: só o céu e a casa (sem a barra da montanha por cima do título) */
+body.k-night .k-zone-tl, body.k-night .k-zone-tc, body.k-night .k-vpad{opacity:0;pointer-events:none;transition:opacity .4s}

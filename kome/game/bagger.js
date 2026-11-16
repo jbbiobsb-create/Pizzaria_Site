@@ -19,7 +19,7 @@
    depois do filtro de noite (luzes, janelas, giroflex). */
 (function () {
   'use strict';
-  const E = window.KomeEngine;
+  const E = window.Pixxel;
   if (!E || !E.Draw || !E.Spring) throw new Error('bagger.js: carregue core, pix, shiba, fx, terrain e rig antes');
   const G = (window.KomeGame = window.KomeGame || {}); G.Tools = G.Tools || {};
   const U = E.U, PAL = E.PAL, Draw = E.Draw, LINE = E.LINE_CSS;
@@ -221,7 +221,8 @@
     // 18 caçambas fundas: boca aberta pro lado da rotação (-y local), lábio de aço claro com dentes grandes
     for (let i = 0; i < NB; i++) {
       g.save(); g.rotate(i * STEP);
-      Draw.poly(g, [[76, 14], [78, -18], [96, -24], [114, -18], [110, -2], [104, 11], [92, 18]], i % 2 ? PAL.ora : PAL.rust, { shade: PAL.rustD });
+      const TI = G.S && G.S.own && G.S.own.b3;   // b3 Caçambas de Titânio: azul-titânio
+      Draw.poly(g, [[76, 14], [78, -18], [96, -24], [114, -18], [110, -2], [104, 11], [92, 18]], TI ? (i % 2 ? '#7E9CB8' : '#5F7F9E') : (i % 2 ? PAL.ora : PAL.rust), { shade: TI ? '#46627E' : PAL.rustD });
       Draw.poly(g, [[82, -11], [95, -16], [105, -11], [99, 5], [84, 8]], sh(PAL.rustD, -0.15), { ol: 0 });
       Draw.beam(g, ln(80, -19, 114, -19), 5.5, PAL.steelL, { ol: 1.5 });
       Draw.poly(g, [[88, -21], [95, -21], [92, -31]], PAL.white, { ol: 1.3 });
@@ -370,7 +371,7 @@
   // modelo (parte de cima, com o balanço) -> mundo
   function toWorld(m, x, y, out) {
     const c = Math.cos(m.sway), s = Math.sin(m.sway), dy = y - RING;
-    out.x = m.x + m.face * (x * c - dy * s); out.y = m.y + RING - LIFT + x * s + dy * c; return out;
+    const k = m.k || 1; out.x = m.x + m.face * k * (x * c - dy * s); out.y = m.y + k * (RING - LIFT + x * s + dy * c); return out;
   }
   function wheelWorld(m, out) { boomPt(m, BL, 0, out); return toWorld(m, out.x + m.wobX, out.y + m.wobY, out); }
 
@@ -392,7 +393,7 @@
     const pv = m.vx;
     if (inp.tx !== undefined && inp.tx !== null) {
       const wx = m.x + face * (PX + BL * Math.cos(m.luff)), err = inp.tx - wx;
-      const want = Math.abs(err) < 3 ? 0 : clamp(err * 1.1, -40, 40);
+      const want = Math.abs(err) < 3 ? 0 : clamp(err * 1.3, -70, 70);
       m.vx = damp(m.vx, want, 2.4, dt); if (Math.abs(m.vx) < 0.4 && want === 0) m.vx = 0;
       m.x += m.vx * dt;
     } else if (inp.x !== undefined) { m.vx = dt > 0 ? clamp((inp.x - m.x) / dt, -200, 200) : 0; m.x = inp.x; }
@@ -454,10 +455,10 @@
   }
 
   function bite(m) {
-    const o = m.biteO; wheelWorld(m, TMP); o.x = TMP.x; o.y = TMP.y; o.r = WR;
+    const o = m.biteO; wheelWorld(m, TMP); o.x = TMP.x; o.y = TMP.y; o.r = WR * (m.k || 1);
     o.active = m.stage >= 3 && m.digIn && m.rpm > 0.25; o.phase = m.ph; return o;
   }
-  function dump(m) { const o = m.dumpO; o.x = m.x + m.face * (LB_B[0] - 8); o.y = m.y + LB_B[1] + 6; o.active = m.flow > 0.03; return o; }
+  function dump(m) { const o = m.dumpO, k = m.k || 1; o.x = m.x + m.face * k * (LB_B[0] - 8); o.y = m.y + k * (LB_B[1] + 6); o.active = m.flow > 0.03; return o; }
   function cabinPt(m, out) { boomPt(m, 352, botChord(352) + 2, out); return out; }
   function seat(m) {
     const o = m.seatO; cabinPt(m, TMP);
@@ -487,7 +488,7 @@
   function draw(g, m) {
     const z0 = Draw.zoom, m0 = Draw.minPx, rs = lodOf(g), st = m.stage, t = m.t;
     Draw.lod(m.zoom, Math.max(m0, 0.62));
-    g.save(); g.translate(m.x, m.y); g.scale(m.face, 1);
+    g.save(); g.translate(m.x, m.y); g.scale(m.face * (m.k || 1), m.k || 1);
     const fi = ((Math.floor(m.trk / PITCH * TRK_N) % TRK_N) + TRK_N) % TRK_N;
     const sw = Math.sin(t * 1.3) * 1.2 + m.rpm * Math.sin(t * 9) * 0.8;       // estais vibrando
 
@@ -527,13 +528,23 @@
       Draw.box(g, hx - 7, -432, 14, 16, PAL.yel, { r: 2 }); Draw.ring(g, hx, -408, 7, 2.6, PAL.steelD, { ol: 1.2 });
     }
     let wxm = 0, wym = 0;
+    if (st >= 3 && m.wheels === 2) {
+      // Bagger Gigante (modo infinito, peça 4): segunda lança mais baixa, atrás da primeira, roda girando em outra fase
+      g.save(); g.translate(PX - 30, PY - 40); g.rotate(-(m.luff + 0.3));
+      blit(g, sprite('boom', rs, BOX_BOOM, drawBoom));
+      g.save(); g.translate(BL * 0.96 + m.wobY, m.wobX);
+      g.save(); g.rotate(m.rot + STEP * 0.5); blit(g, sprite('wheel', rs, BOX_WHEEL, drawWheel)); g.restore();
+      g.restore();
+      blit(g, sprite('guard', rs, BOX_GUARD, drawGuard));
+      g.restore();
+    }
     if (st >= 3) {
       // lança + correia + roda + guarda
       g.save(); g.translate(PX, PY); g.rotate(-m.luff);
       blit(g, sprite('boom', rs, BOX_BOOM, drawBoom));
       beltDraw(g, m.boomBelt, 506, topChord(506) - 4, 8, topChord(8) - 4);
       g.save(); g.translate(BL + m.wobX, m.wobY);
-      g.save(); g.rotate(m.rot); blit(g, sprite('wheel', rs, BOX_WHEEL, drawWheel)); g.restore();
+      g.save(); g.rotate(m.rot); blit(g, sprite((G.S && G.S.own && G.S.own.b3) ? 'wheelTi' : 'wheel', rs, BOX_WHEEL, drawWheel)); g.restore();
       // arroz nas caçambas (sobe pela frente)
       const B = m.buckets; let any = false;
       g.fillStyle = LINE; g.beginPath();
@@ -599,7 +610,7 @@
   function glow(g, m) { const z0 = Draw.zoom, m0 = Draw.minPx; Draw.lod(m.zoom, Math.max(m0, 0.62)); glowIn(g, m); Draw.lod(z0, m0); }
   function glowIn(g, m) {
     const n = m.night, st = m.stage, t = m.t;
-    g.save(); g.translate(m.x, m.y); g.scale(m.face, 1);
+    g.save(); g.translate(m.x, m.y); g.scale(m.face * (m.k || 1), m.k || 1);
     if (st >= 3 && n > 0.05) for (let i = 6; i < 8; i++) Draw.light(g, FLOOD[i][0], FLOOD[i][1], FLOOD[i][2], C_WARM, n, LT);
     if (st >= 3) { const k = (t * 0.9 + BEACON[2][2]) % 1; Draw.light(g, BEACON[2][0], BEACON[2][1], 5, PAL.red, k < 0.5 ? 1 : 0, LTB); }
     if (st >= 3 && n > 0.05) for (let x = BR_A[0] - 40; x > BR_B[0]; x -= 88) Draw.light(g, x, BR_A[1] + 26, 3.5, C_WARM, n, LTS);
@@ -661,7 +672,7 @@
 
   G.Tools.bagger = {
     id: 'bagger', name: 'Bagger 293', kind: 'bagger', w: 1500, h: 700,
-    meta: { zoom: 0.26, shake: 1, cycle: 1 / (0.33 * NB), boom: BL, wheelR: WR, pivot: [PX, PY - LIFT], luffMin: LMIN, luffMax: LMAX, maxCrawl: 40 },
+    meta: { zoom: 0.26, shake: 1, cycle: 1 / (0.33 * NB), boom: BL, wheelR: WR, pivot: [PX, PY - LIFT], luffMin: LMIN, luffMax: LMAX, maxCrawl: 70 },
     create, update, draw, glow, bite, dump, seat,
   };
 })();

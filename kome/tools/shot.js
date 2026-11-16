@@ -6,7 +6,7 @@
    As ações rodam na ordem em que aparecem. Erros de console/página são impressos (PAGEERROR/CONSOLE).
    Sai com código 1 se houve erro de página. */
 const path = require('path');
-const { chromium } = require('playwright');
+const { chromium } = require('./pw');
 (async () => {
   const a = process.argv.slice(2);
   if (a.length < 2) { console.error('uso: shot.js <html> <png> [opções]'); process.exit(2); }

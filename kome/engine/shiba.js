@@ -1,4 +1,4 @@
-/* Kome Engine v1.0 · shiba.js
+/* Pixxel v1.0 · shiba.js
    O Kome (shiba chibi de chapéu kasa) desenhado em pixel art procedural numa grade 48x44.
    - E.ShibaPX      rasterizador original do rascunho (poses antigas pixel a pixel iguais) + poses novas
    - E.PALS         paletas {h,g,o,c,k,n,p}
@@ -9,8 +9,8 @@
    Depende só de core.js. */
 (function () {
   'use strict';
-  const E = (window.KomeEngine = window.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de shiba.js');
+  const E = (window.Pixxel = window.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de shiba.js');
   const U = E.U;
 
   /* =====================================================================

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Kome Engine · core.js</title>
+<title>Pixxel · core.js</title>
 <style>
   html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
   .demo-pill {
@@ -19,7 +19,7 @@
 <script>
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U;
+  const E = Pixxel, U = E.U;
   const INK = '#3B2818', CREAM = '#FFF6DC', PAPER = '#FFFAE6', GOLD = '#E3BC62', RED = '#D9533B', GREEN = '#6FA84B', BLUE = '#5B9BC8';
   const FONT = "'Zen Maru Gothic','Trebuchet MS',system-ui,sans-serif";
 
@@ -273,7 +273,7 @@
     const t = loop.time;
 
     // cabeçalho
-    text('Kome Engine · core.js v' + E.version, 16, 22, 18, INK, 'left', 900);
+    text('Pixxel · core.js v' + E.version, 16, 22, 18, INK, 'left', 900);
     text('testes ' + passed + '/' + results.length, 300, 23, 13, passed === results.length ? GREEN : RED, 'left', 900);
     pill.textContent = 'camada DOM · ' + Math.round(loop.fps) + ' fps · escala ' + stage.scale.toFixed(2) + ' · dpr ' + stage.dpr + ' · cliques ' + clicks;
 

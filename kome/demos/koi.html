@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Lago de Carpas</title>
+<style>html, body { margin: 0; height: 100%; background: #1d1b18; overflow: hidden; }</style>
+</head>
+<body>
+<!-- usa só o bundle: prova que um projeto novo sobe com 1 script (gere com: node tools/build.js) -->
+<script src="../pixxel.js"></script>
+<script>
+/* Lago de carpas no estilo Kome. Clique na água: ondinha + ração. Teclas: D dia/noite, + adiciona carpa, B borboletas. */
+(function () {
+  'use strict';
+  const E = Pixxel, U = E.U, D = E.Draw, C = E.PAL, N = E.Nature;
+  const W = 960, H = 540;
+  const stage = E.Stage({ width: W, height: H, bg: '#F6F1E4', maxDpr: 2 });
+  const g = stage.g, input = E.Input(stage);
+  const pond = E.Pond({ x: 240, y: 160, w: 400, h: 190, seed: 11, reeds: 3 }), koi = E.Koi(pond, 11, { seed: 6 });
+  const bf = N.butterflies({ x0: 20, x1: 460, y0: 20, y1: 70, n: 4, seed: 3 });
+  const ff = N.fireflies({ x0: 10, x1: 470, y0: 20, y1: 250, n: 16, seed: 2 });
+  let t = 0, tod = 0.45, night = false, showBf = true, feedT = 4;
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (k === 'd') { night = !night; tod = night ? 0.9 : 0.45; }
+    if (k === '+' || k === '=') koi.add();
+    if (k === 'b') showBf = !showBf;
+  });
+  function update(dt) {
+    t += dt;
+    if (input.pressed) { const wx = input.x / 2, wy = input.y / 2; if (pond.ripple(wx, wy)) { pond.feed(wx, wy, 5); feedT = 10; } }
+    pond.update(dt); koi.update(dt); bf.update(dt); ff.update(dt);
+    if ((feedT -= dt) <= 0) { feedT = 8; pond.feed(240 + U.rnd(-130, 130), 160 + U.rnd(-55, 55), 3); }
+  }
+  function render() {
+    stage.begin();
+    g.imageSmoothingEnabled = false;
+    g.save(); g.scale(2, 2); D.lod(2);
+    N.tod = tod;
+    N.ground(g, 0, 480, 14, { t: 0, depth: 260, tufts: false });
+    N.fence(g, -2, 482, 46, { kind: 'bamboo' });
+    N.tree(g, 30, 54, { kind: 'pine', seed: 5, t, s: 0.8 }); N.tree(g, 446, 58, { kind: 'maple', seed: 2, t, s: 0.85 });
+    N.lantern(g, 360, 72, 1, { t, lit: night ? 1 : 0 });
+    pond.draw(g, t);
+    N.flower(g, 24, 160, { kind: 'iris', seed: 1, t }); N.flower(g, 456, 200, { kind: 'ajisai', seed: 4, t });
+    N.rock(g, 452, 262, { seed: 12, w: 28, h: 17, moss: true });
+    E.drawShiba(g, 64, 250, night ? 'sleep' : 'sit', t, { face: 1 });
+    if (showBf && !night) bf.draw(g);
+    N.grade(g, 480, 270, {});
+    if (night) ff.draw(g, 1);
+    g.restore(); D.lod(1);
+    g.fillStyle = 'rgba(42,26,16,.82)'; D.rrect(g, 12, H - 34, 460, 24, 8); g.fill();
+    D.text(g, 'clique na água: ração  ·  D dia/noite  ·  + carpa  ·  ' + koi.list.length + ' carpas', 22, H - 21.5, { size: 11.5, col: C.cream, sw: 0, align: 'left', weight: 800 });
+  }
+  E.Loop({ update, render, input }).start();
+})();
+</script>
+</body>
+</html>

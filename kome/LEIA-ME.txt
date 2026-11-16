@@ -1,4 +1,4 @@
-KOME ENGINE / KOME NO JAPÃO — versão parcial (pausada no meio)
+PIXXEL / KOME NO JAPÃO — versão parcial (pausada no meio)
 
 COMO TESTAR
   Abra index.html (o jogo) ou demos/index.html (demonstrações da engine). Não precisa instalar nada.

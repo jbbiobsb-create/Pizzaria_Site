@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixxel Estúdio</title>
+<style>
+  :root{--ink:#2A1A10;--cream:#FFFAEE;--paper:#F6EEDC;--gold:#F3DC9A;--line:#3B2818}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#2a1a10;color:var(--ink);font:600 14px system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--ink);color:var(--cream)}
+  header h1{margin:0;font-size:20px} header small{opacity:.7}
+  main{display:grid;grid-template-columns:260px 1fr 330px;gap:10px;padding:10px;min-height:calc(100vh - 48px)}
+  @media (max-width:1050px){main{grid-template-columns:1fr}}
+  .card{background:var(--cream);border:3px solid var(--line);border-radius:14px;box-shadow:0 4px 0 var(--line);padding:10px}
+  .card h3{margin:2px 0 8px;font-size:15px}
+  button,select,input[type=number],input[type=text]{font:700 13px system-ui;border:2px solid var(--line);border-radius:9px;background:var(--gold);padding:6px 9px;color:var(--ink);cursor:pointer}
+  input[type=text],input[type=number],select{background:#fff;cursor:auto}
+  button.on{background:var(--ink);color:var(--cream)}
+  button:focus-visible{outline:3px solid #2E64B0;outline-offset:2px}
+  .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+  .pal{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+  .sw{height:30px;border:2px solid var(--line);border-radius:6px;cursor:pointer;position:relative;font:800 11px system-ui;color:#fff;text-shadow:0 1px 0 #000;display:flex;align-items:flex-end;justify-content:flex-end;padding:1px 3px}
+  .sw.on{outline:3px solid #2E64B0;outline-offset:1px}
+  #drop{border:3px dashed #9A8366;border-radius:12px;padding:14px;text-align:center;background:#FFF3D6;cursor:pointer}
+  #drop.over{background:#F3DC9A}
+  #grid{image-rendering:pixelated;touch-action:none;cursor:crosshair;background:
+    conic-gradient(#EEE 25%,#DDD 0 50%,#EEE 0 75%,#DDD 0) 0 0/16px 16px;border:3px solid var(--line);border-radius:8px;max-width:100%}
+  .center{display:flex;flex-direction:column;align-items:center;gap:8px}
+  #frames{display:flex;gap:6px;overflow-x:auto;padding:4px 0;max-width:100%}
+  #frames canvas{border:2px solid var(--line);border-radius:6px;background:#fff;image-rendering:pixelated;cursor:pointer}
+  #frames canvas.on{outline:3px solid #2E64B0}
+  #prev{width:100%;image-rendering:pixelated;border:3px solid var(--line);border-radius:10px}
+  textarea{width:100%;height:150px;font:12px ui-monospace,monospace;border:2px solid var(--line);border-radius:8px;padding:6px}
+  .hint{font-size:12px;opacity:.75;font-weight:500}
+  label.r{display:block;margin:4px 0}
+</style>
+</head>
+<body>
+<header><h1>Pixxel Estúdio</h1><small>jogue uma imagem, pinte, anime e leve pro jogo · tudo roda no seu computador</small></header>
+<main>
+  <section class="card">
+    <h3>1 · Imagem → pixel art</h3>
+    <div id="drop">Arraste uma imagem aqui<br><span class="hint">ou clique pra escolher · ou cole (Ctrl+V)</span></div>
+    <input id="file" type="file" accept="image/*" hidden>
+    <label class="r">largura em pixels <b id="cw">32</b><input id="convW" type="range" min="8" max="64" value="32" style="width:100%"></label>
+    <label class="r"><input id="bgcut" type="checkbox" checked> tirar o fundo (cor dos cantos)</label>
+    <label class="r"><input id="few" type="checkbox"> poucas cores (mais "Kome")</label>
+    <div class="row"><button id="reconv">Converter de novo</button></div>
+    <h3 style="margin-top:14px">2 · Pintar</h3>
+    <div class="row"><button data-tool="pen" class="on">Lápis</button><button data-tool="erase">Borracha</button><button data-tool="fill">Balde</button><button data-tool="pick">Conta-gotas</button></div>
+    <div class="pal" id="pal"></div>
+    <div class="row">tamanho <input id="gw" type="number" min="4" max="64" value="24" style="width:58px"> × <input id="gh" type="number" min="4" max="64" value="20" style="width:58px"><button id="resize">Aplicar</button></div>
+    <div class="row"><button id="mirror">Espelhar</button><button id="clear">Limpar</button><button id="undo">Desfazer</button></div>
+    <div class="row"><button id="exFish">Exemplo: peixe</button><button id="exKome">Exemplo: casinha</button></div>
+  </section>
+  <section class="card center">
+    <canvas id="grid"></canvas>
+    <div class="row"><button id="fAdd">+ quadro (copia)</button><button id="fDel">− quadro</button><label><input id="onion" type="checkbox" checked> ver quadro anterior</label></div>
+    <div id="frames"></div>
+    <div class="row">Animação pronta:
+      <button data-auto="nadar">nadar (peixe)</button><button data-auto="pular">pular</button><button data-auto="balancar">balançar</button><button data-auto="piscar">piscar</button><button data-auto="andar">andar</button>
+    </div>
+    <div class="hint">a animação pronta cria 4 quadros a partir do quadro atual; depois dá pra retocar cada um</div>
+  </section>
+  <section class="card">
+    <h3>3 · Prévia no jogo</h3>
+    <canvas id="prev" width="320" height="200"></canvas>
+    <div class="row">velocidade <input id="fps" type="range" min="2" max="16" value="6"> <label><input id="withKome" type="checkbox" checked> Kome do lado</label></div>
+    <div class="row">escala <select id="pscale"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+      fundo <select id="bg"><option value="dia">quintal</option><option value="agua">água</option><option value="noite">noite</option></select></div>
+    <h3 style="margin-top:12px">4 · Levar pro jogo</h3>
+    <div class="row">tipo <select id="tipo"><option>enfeite</option><option>bicho</option><option>roupa</option></select> nome <input id="nome" type="text" value="Meu desenho" style="width:130px"></div>
+    <textarea id="out" readonly></textarea>
+    <div class="row"><button id="copy">Copiar ficha</button><button id="png">Baixar PNG</button><button id="sheet">Baixar todos os quadros</button></div>
+    <div class="row"><button id="save">Guardar</button><select id="saved" style="flex:1"><option value="">projetos guardados…</option></select></div>
+    <div class="hint">Cole a ficha pro Claude (ou salve em kome/conteudo/ e rode <code>node tools/content.js</code>). Projetos ficam guardados neste navegador.</div>
+  </section>
+</main>
+<script src="pixxel.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = Pixxel, TP = E.TEXT_PAL, LETTERS = Object.keys(TP);
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const hex = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const RGB = {}; LETTERS.forEach(l => RGB[l] = hex(TP[l]));
+  const NAMES = { R: 'vermelho', O: 'laranja', Y: 'amarelo', G: 'verde', B: 'azul', C: 'céu', P: 'rosa', V: 'roxo', K: 'madeira', S: 'aço', A: 'arroz', W: 'branco', N: 'preto', E: 'pelo', T: 'palha', M: 'pedra' };
+  // estado: lista de quadros, cada quadro = array de linhas (strings de letras, '.' vazio)
+  let W = 24, H = 20, frames = [blank()], cur = 0, tool = 'pen', color = 'R', hist = [], lastImg = null;
+  function blank() { return Array.from({ length: H }, () => '.'.repeat(W)); }
+  const get = (f, x, y) => (frames[f][y] || '')[x] || '.';
+  function set(f, x, y, c) { const r = frames[f][y]; frames[f][y] = r.slice(0, x) + c + r.slice(x + 1); }
+  function snap() { hist.push(JSON.stringify({ W, H, frames })); if (hist.length > 60) hist.shift(); }
+  // ---------- paleta ----------
+  const pal = $('#pal');
+  for (const l of LETTERS) {
+    const d = document.createElement('div'); d.className = 'sw' + (l === color ? ' on' : ''); d.style.background = TP[l]; d.textContent = l;
+    d.title = (NAMES[l.toUpperCase()] || l) + (l === l.toLowerCase() ? ' (escuro)' : ''); d.onclick = () => { color = l; $$('.sw').forEach(s => s.classList.toggle('on', s === d)); if (tool === 'erase' || tool === 'pick') setTool('pen'); };
+    pal.appendChild(d);
+  }
+  function setTool(t) { tool = t; $$('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); }
+  $$('[data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+  // ---------- grade de pintura ----------
+  const gcv = $('#grid'), gg = gcv.getContext('2d');
+  let CELL = 20;
+  function drawGrid() {
+    CELL = Math.max(6, Math.min(28, Math.floor(Math.min(560 / W, 460 / H))));
+    gcv.width = W * CELL; gcv.height = H * CELL; gg.clearRect(0, 0, gcv.width, gcv.height);
+    if ($('#onion').checked && cur > 0) { gg.globalAlpha = 0.25; paint(gg, frames[cur - 1], CELL); gg.globalAlpha = 1; }
+    paint(gg, frames[cur], CELL);
+    gg.strokeStyle = 'rgba(0,0,0,.08)'; gg.lineWidth = 1;
+    for (let x = 0; x <= W; x++) { gg.beginPath(); gg.moveTo(x * CELL + .5, 0); gg.lineTo(x * CELL + .5, H * CELL); gg.stroke(); }
+    for (let y = 0; y <= H; y++) { gg.beginPath(); gg.moveTo(0, y * CELL + .5); gg.lineTo(W * CELL, y * CELL + .5); gg.stroke(); }
+    drawFrames(); updateOut();
+  }
+  function paint(g, rows, k) { for (let y = 0; y < rows.length; y++) for (let x = 0; x < rows[y].length; x++) { const c = TP[rows[y][x]]; if (c) { g.fillStyle = c; g.fillRect(x * k, y * k, k, k); } } }
+  function cellAt(e) { const b = gcv.getBoundingClientRect(); return [Math.floor((e.clientX - b.left) / b.width * W), Math.floor((e.clientY - b.top) / b.height * H)]; }
+  function fill(x, y, to) {
+    const from = get(cur, x, y); if (from === to) return; const st = [[x, y]];
+    while (st.length) { const [a, b] = st.pop(); if (a < 0 || b < 0 || a >= W || b >= H || get(cur, a, b) !== from) continue; set(cur, a, b, to); st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); }
+  }
+  let down = false;
+  function act(e) {
+    const [x, y] = cellAt(e); if (x < 0 || y < 0 || x >= W || y >= H) return;
+    if (tool === 'pen') set(cur, x, y, color); else if (tool === 'erase') set(cur, x, y, '.');
+    else if (tool === 'fill') fill(x, y, color); else if (tool === 'pick') { const c = get(cur, x, y); if (c !== '.') { color = c; $$('.sw').forEach(s => s.classList.toggle('on', s.textContent === c)); setTool('pen'); } }
+    drawGrid();
+  }
+  gcv.addEventListener('pointerdown', e => { snap(); down = true; gcv.setPointerCapture(e.pointerId); act(e); });
+  gcv.addEventListener('pointermove', e => { if (down && (tool === 'pen' || tool === 'erase')) act(e); });
+  gcv.addEventListener('pointerup', () => { down = false; });
+  // ---------- quadros ----------
+  function drawFrames() {
+    const box = $('#frames'); box.innerHTML = '';
+    frames.forEach((f, i) => { const c = document.createElement('canvas'), k = Math.max(2, Math.floor(56 / Math.max(W, H))); c.width = W * k; c.height = H * k; paint(c.getContext('2d'), f, k); c.className = i === cur ? 'on' : ''; c.title = 'quadro ' + (i + 1); c.onclick = () => { cur = i; drawGrid(); }; box.appendChild(c); });
+  }
+  $('#fAdd').onclick = () => { snap(); frames.splice(cur + 1, 0, frames[cur].slice()); cur++; drawGrid(); };
+  $('#fDel').onclick = () => { if (frames.length < 2) return; snap(); frames.splice(cur, 1); cur = Math.max(0, cur - 1); drawGrid(); };
+  $('#onion').onchange = drawGrid;
+  // animações prontas a partir do quadro atual
+  function shiftRow(row, dx) { const n = row.length; let o = ''; for (let x = 0; x < n; x++) { const s = x - dx; o += s >= 0 && s < n ? row[s] : '.'; } return o; }
+  function colShift(rows, dyOf) { const out = rows.map(r => r.split('')); const res = rows.map(r => '.'.repeat(r.length).split('')); for (let x = 0; x < W; x++) { const dy = dyOf(x); for (let y = 0; y < H; y++) { const ny = y + dy; if (ny >= 0 && ny < H && out[y][x] !== '.') res[ny][x] = out[y][x]; } } return res.map(r => r.join('')); }
+  const AUTO = {
+    nadar: (b, k) => colShift(b, x => Math.round(Math.sin(x / W * Math.PI * 2 + k * Math.PI / 2) * Math.max(1, H / 14))),
+    pular: (b, k) => colShift(b, () => -[0, 2, 3, 2][k] * Math.max(1, Math.round(H / 16))),
+    balancar: (b, k) => b.map((r, y) => shiftRow(r, Math.round(Math.sin(k * Math.PI / 2) * (1 - y / H) * Math.max(1, W / 16)))),
+    piscar: (b, k) => k === 2 ? b.map(r => r.replace(/[Nn]/g, m => m)).map((r, y, a) => r.split('').map((c, x) => (c === 'N' || c === 'n') && (a[y - 1] || '')[x] !== 'N' ? (a[y - 1] ? a[y - 1][x] === '.' ? 'N' : (a[y - 1][x]) : c) : c).join('')) : b.slice(),
+    andar: (b, k) => b.map((r, y) => y >= H - Math.max(2, H / 5) ? shiftRow(r, [0, 1, 0, -1][k]) : r).map(r => r),
+  };
+  $$('[data-auto]').forEach(btn => btn.onclick = () => { snap(); const base = frames[cur].slice(); const f = AUTO[btn.dataset.auto]; frames = [0, 1, 2, 3].map(k => f(base, k)); cur = 0; drawGrid(); });
+  // ---------- tamanho, espelhar, limpar, desfazer ----------
+  $('#resize').onclick = () => { snap(); const nw = Math.max(4, Math.min(64, +$('#gw').value)), nh = Math.max(4, Math.min(64, +$('#gh').value)); frames = frames.map(f => Array.from({ length: nh }, (_, y) => ((f[y] || '') + '.'.repeat(nw)).slice(0, nw))); W = nw; H = nh; drawGrid(); };
+  $('#mirror').onclick = () => { snap(); frames[cur] = frames[cur].map(r => r.split('').reverse().join('')); drawGrid(); };
+  $('#clear').onclick = () => { snap(); frames[cur] = blank(); drawGrid(); };
+  $('#undo').onclick = () => { const s = hist.pop(); if (!s) return; const o = JSON.parse(s); W = o.W; H = o.H; frames = o.frames; cur = Math.min(cur, frames.length - 1); syncSize(); drawGrid(); };
+  addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); $('#undo').click(); } });
+  function syncSize() { $('#gw').value = W; $('#gh').value = H; }
+  // ---------- imagem -> pixel art ----------
+  function convert(img) {
+    lastImg = img;
+    const tw = +$('#convW').value, th = Math.max(4, Math.min(64, Math.round(tw * img.height / img.width)));
+    const c = document.createElement('canvas'); c.width = tw; c.height = th; const g = c.getContext('2d');
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, tw, th);
+    const d = g.getImageData(0, 0, tw, th).data;
+    const corners = [[0, 0], [tw - 1, 0], [0, th - 1], [tw - 1, th - 1]].map(([x, y]) => { const i = (y * tw + x) * 4; return [d[i], d[i + 1], d[i + 2]]; });
+    const bg = corners.reduce((a, c) => [a[0] + c[0] / 4, a[1] + c[1] / 4, a[2] + c[2] / 4], [0, 0, 0]);
+    const few = $('#few').checked, use = few ? LETTERS.filter(l => l === l.toUpperCase()) : LETTERS;
+    const dist = (a, b) => { const r = (a[0] + b[0]) / 2, dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2]; return (2 + r / 256) * dr * dr + 4 * dg * dg + (2 + (255 - r) / 256) * db * db; };
+    snap();
+    const rows = [];
+    for (let y = 0; y < th; y++) {
+      let row = '';
+      for (let x = 0; x < tw; x++) {
+        const i = (y * tw + x) * 4, px = [d[i], d[i + 1], d[i + 2]];
+        if (d[i + 3] < 110 || ($('#bgcut').checked && dist(px, bg) < 2600)) { row += '.'; continue; }
+        let best = 'A', bd = 1e12; for (const l of use) { const q = dist(px, RGB[l]); if (q < bd) { bd = q; best = l; } }
+        row += best;
+      }
+      rows.push(row);
+    }
+    // limpa o halo: pixel da borda que é quase a cor do fundo (sobra da suavização) vira vazio; repete 2x
+    if ($('#bgcut').checked) for (let pass = 0; pass < 2; pass++) {
+      const g2 = rows.map(r => r.split(''));
+      for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {
+        const c = g2[y][x]; if (c === '.') continue;
+        const edge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const q = (rows[y + dy] || '')[x + dx]; return q === undefined || q === '.'; });
+        const lum = v => 0.3 * v[0] + 0.59 * v[1] + 0.11 * v[2], bgL = lum(bg), cL = lum(RGB[c]);
+        // borda clara num fundo claro (ou escura num fundo escuro) = sobra da suavização da imagem
+        if (edge && (dist(RGB[c], bg) < 9000 || ((bgL > 170 && cL > 150) || (bgL < 80 && cL < 85)) && (Math.max(...RGB[c]) - Math.min(...RGB[c])) < 70)) g2[y][x] = '.';
+      }
+      for (let y = 0; y < th; y++) rows[y] = g2[y].join('');
+    }
+    W = tw; H = th; frames = [rows]; cur = 0; syncSize(); drawGrid();
+  }
+  function loadFile(f) { if (!f || !/^image\//.test(f.type)) return; const img = new Image(); img.onload = () => convert(img); img.src = URL.createObjectURL(f); }
+  const drop = $('#drop');
+  drop.onclick = () => $('#file').click(); $('#file').onchange = e => loadFile(e.target.files[0]);
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); loadFile(e.dataTransfer.files[0]); };
+  addEventListener('paste', e => { const it = [...(e.clipboardData || {}).items || []].find(i => i.type.startsWith('image/')); if (it) loadFile(it.getAsFile()); });
+  $('#convW').oninput = e => { $('#cw').textContent = e.target.value; };
+  $('#reconv').onclick = () => { if (lastImg) convert(lastImg); };
+  // ---------- prévia (com contorno e 3 tons da engine) ----------
+  const pcv = $('#prev'), pg = pcv.getContext('2d');
+  let pf = 0, acc = 0, last = performance.now(), ver = 0;
+  const sprOf = i => E.spriteText('estudio/' + ver + '/' + i, frames[i].join('\n'));
+  function invalidate() { ver++; if (E.sprite.clear) E.sprite.clear(); }
+  function preview(now) {
+    const dt = (now - last) / 1000; last = now; acc += dt;
+    if (acc > 1 / +$('#fps').value) { acc = 0; pf = (pf + 1) % frames.length; }
+    const bg = $('#bg').value; pg.imageSmoothingEnabled = false;
+    const sky = bg === 'noite' ? ['#1C2040', '#3A4A7A'] : bg === 'agua' ? ['#7EC4EC', '#4FA3D9'] : ['#9FD3F0', '#DDF1FA'];
+    const gr = pg.createLinearGradient(0, 0, 0, 200); gr.addColorStop(0, sky[0]); gr.addColorStop(1, sky[1]); pg.fillStyle = gr; pg.fillRect(0, 0, 320, 200);
+    if (bg !== 'agua') { pg.fillStyle = bg === 'noite' ? '#33452A' : '#8DB46A'; pg.fillRect(0, 160, 320, 40); }
+    else { pg.fillStyle = '#3E8FC6'; for (let x = 0; x < 320; x += 8) pg.fillRect(x, 150 + Math.sin(x * .05 + now / 400) * 3, 8, 50); }
+    const s = +$('#pscale').value, cv = sprOf(Math.min(pf, frames.length - 1));
+    const x = 200 - cv.width * s / 2, y = (bg === 'agua' ? 130 : 160) - cv.height * s;
+    pg.drawImage(cv, Math.round(x), Math.round(y), cv.width * s, cv.height * s);
+    if ($('#withKome').checked && E.drawShiba) E.drawShiba(pg, 70, 160, 'sit', now / 1000, { scale: 2 });
+    requestAnimationFrame(preview);
+  }
+  // ---------- exportar ----------
+  function fichaText() {
+    const tipo = $('#tipo').value, nome = $('#nome').value.trim() || 'Meu desenho';
+    const id = nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const onde = tipo === 'roupa' ? "{ x: 0, y: -10 }" : tipo === 'bicho' ? "{ x: 0.6, y: 30 }" : "{ x: 0.5, y: 10 }";
+    const quadros = frames.length > 1 ? '\n  // ' + frames.length + ' quadros de animação (o jogo usa o 1º por enquanto):\n  quadros: [\n' + frames.map(f => '    `\n' + f.map(r => '      ' + r).join('\n') + '\n    `').join(',\n') + '\n  ],' : '';
+    return "ficha({\n  tipo: '" + tipo + "', id: '" + id + "', nome: '" + nome.replace(/'/g, "\\'") + "', desc: 'feito no Pixxel Estúdio',\n  " +
+      (tipo === 'roupa' ? '' : "preco: " + (tipo === 'bicho' ? 120 : 60) + ", ") + "onde: " + onde + ", escala: " + (tipo === 'roupa' ? 1 : 2) + ",\n  desenho: `\n" + frames[0].map(r => '    ' + r).join('\n') + "\n  `," + quadros + "\n});\n";
+  }
+  function updateOut() { invalidate(); $('#out').value = fichaText(); }
+  ['#tipo', '#nome'].forEach(s => $(s).addEventListener('input', updateOut));
+  $('#copy').onclick = () => { const t = fichaText(); (navigator.clipboard ? navigator.clipboard.writeText(t).then(() => toast('Ficha copiada!'), () => { $('#out').select(); }) : $('#out').select()); };
+  function download(cv, name) { const a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = name; a.click(); }
+  $('#png').onclick = () => { const cv = sprOf(cur), k = 8, c = document.createElement('canvas'); c.width = cv.width * k; c.height = cv.height * k; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(cv, 0, 0, c.width, c.height); download(c, ($('#nome').value || 'desenho') + '.png'); };
+  $('#sheet').onclick = () => { const k = 6, cvs = frames.map((_, i) => sprOf(i)), c = document.createElement('canvas'); c.width = cvs.reduce((a, v) => a + v.width * k + 8, 0); c.height = Math.max(...cvs.map(v => v.height)) * k; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; let x = 0; for (const v of cvs) { g.drawImage(v, x, 0, v.width * k, v.height * k); x += v.width * k + 8; } download(c, ($('#nome').value || 'desenho') + '-quadros.png'); };
+  // ---------- guardar no navegador ----------
+  const KEY = 'pixxel-estudio';
+  const loadAll = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
+  function listSaved() { const all = loadAll(), s = $('#saved'); s.innerHTML = '<option value="">projetos guardados…</option>' + Object.keys(all).map(k => '<option>' + k.replace(/</g, '') + '</option>').join(''); }
+  $('#save').onclick = () => { const n = $('#nome').value.trim() || 'sem nome', all = loadAll(); all[n] = { W, H, frames, tipo: $('#tipo').value }; try { localStorage.setItem(KEY, JSON.stringify(all)); toast('Guardado: ' + n); } catch (e) { toast('Este navegador não deixou guardar'); } listSaved(); };
+  $('#saved').onchange = e => { const o = loadAll()[e.target.value]; if (!o) return; snap(); W = o.W; H = o.H; frames = o.frames; cur = 0; $('#nome').value = e.target.value; if (o.tipo) $('#tipo').value = o.tipo; syncSize(); drawGrid(); };
+  function toast(t) { const d = document.createElement('div'); d.textContent = t; Object.assign(d.style, { position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)', background: '#2A1A10', color: '#FFFAEE', padding: '8px 14px', borderRadius: '10px', zIndex: 9 }); document.body.appendChild(d); setTimeout(() => d.remove(), 1800); }
+  // ---------- exemplos ----------
+  const EX = {
+    fish: { W: 22, H: 12, rows: [
+      '......................', '.........OOO..........', '.......OOOOOO.......o.', '.....OOOOWWOOOO....oo.', '...OOOOOOWWOOOOOO.ooo.', '..OONOOOOOOOOOOOOOooo.',
+      '..OOOOOOOOOOOOOOOOooo.', '...OOOOWWWWOOOOO..ooo.', '.....OOOOOOOOO.....oo.', '.......OOOOO........o.', '.........oo...........', '......................'] },
+    casa: { W: 20, H: 16, rows: [
+      '.........RR.........', '.......RRRRRR.......', '.....RRRRRRRRRR.....', '...RRRRRRRRRRRRRR...', '.rrrrrrrrrrrrrrrrrr.', '..AAAAAAAAAAAAAAAA..',
+      '..AKKKAAAAAAAAKKKA..', '..AKCKAAAAAAAAKCKA..', '..AKKKAAAkkkAAKKKA..', '..AAAAAAAkkkAAAAAA..', '..AAAAAAAkkkAAAAAA..', '..AAAAAAAkkkAAAAAA..',
+      '..AAAAAAAkkkAAAAAA..', '.GGGGGGGGGGGGGGGGGG.', 'GGGGGGGGGGGGGGGGGGGG', '....................'] },
+  };
+  function loadEx(o) { snap(); W = o.W; H = o.H; frames = [o.rows.slice()]; cur = 0; syncSize(); drawGrid(); }
+  $('#exFish').onclick = () => { loadEx(EX.fish); $('#nome').value = 'Peixinho'; $('#tipo').value = 'bicho'; $('#bg').value = 'agua'; updateOut(); };
+  $('#exKome').onclick = () => { loadEx(EX.casa); $('#nome').value = 'Casinha'; $('#tipo').value = 'enfeite'; $('#bg').value = 'dia'; updateOut(); };
+  window.__estudio = { convert, frames: () => frames, load: loadEx, EX, AUTO: n => { const base = frames[cur].slice(); frames = [0, 1, 2, 3].map(k => AUTO[n](base, k)); drawGrid(); } };
+  listSaved(); loadEx(EX.fish); $('#nome').value = 'Peixinho'; $('#tipo').value = 'bicho'; $('#bg').value = 'agua'; updateOut();
+  requestAnimationFrame(preview);
+})();
+</script>
+</body>
+</html>

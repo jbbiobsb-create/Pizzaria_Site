@@ -5,8 +5,9 @@ Cole este arquivo (ou peça pro Claude ler `kome/CONTINUAR.md`) no começo da pr
 ## Prompt pronto pra colar
 
 > Estou continuando o jogo **Kome no Japão** (pasta `kome/`). Leia `kome/CONTINUAR.md` inteiro antes de mexer em qualquer coisa,
-> depois `kome/docs/NOTAS-JOGO.md` e `kome/docs/GDD-ADENDO.md`. Trabalhe no modo econômico: um passo por vez, me mostre um
-> print depois de cada mudança visual e espere eu dizer se segue. Comece pelo item 1 da lista "O que fazer agora".
+> depois `kome/docs/NOTAS-JOGO.md` e `kome/docs/GDD-ADENDO.md`. Trabalhe no modo econômico (ver `CLAUDE.md`): não precisa
+> me mandar print nem esperar aprovação a cada passo; verifique com `node tools/check.js`.
+> Continue de onde a "Rodada de 16/11" parou.
 
 ## O que é
 
@@ -16,12 +17,12 @@ uma casa no Japão. Roda abrindo `kome/index.html` direto do disco.
 
 O projeto tem duas metades com o mesmo peso pro dono:
 1. **O jogo.**
-2. **A Kome Engine** (`kome/engine/`), reaproveitável: a ideia é pedir "um lago de carpas", "um alce", "um carro" e já sair no
+2. **A Pixxel** (`kome/engine/`), reaproveitável: a ideia é pedir "um lago de carpas", "um alce", "um carro" e já sair no
    estilo Kome.
 
 ## Como rodar e testar
 
-- Jogo: abrir `kome/index.html`. `?fresh` na URL começa do zero. Save em localStorage, chave `kome-no-japao-v4`.
+- Jogo: abrir `kome/index.html`. Controles: mouse (segurar) ou teclado (A/D ou setas anda, W/S/Espaço cava). `?fresh` na URL começa do zero. Save em localStorage, chave `kome-no-japao-v4`.
 - Demos da engine: `kome/demos/index.html`.
 - Screenshot headless (Chromium + Playwright já instalados no ambiente de nuvem):
   `node kome/tools/shot.js <pagina.html> <saida.png> [--wait ms] [--query "?a=1"] [--eval "js"] [--scale 2] [--size 960x540]`
@@ -38,7 +39,7 @@ kome/
   index.html              o jogo
   CONTINUAR.md            este arquivo
   LEIA-ME.txt
-  engine/                 Kome Engine (classic scripts; ordem: core, pix, shiba, fx, terrain, rig, audio, nature, ui)
+  engine/                 Pixxel (classic scripts; ordem: core, pix, shiba, fx, terrain, rig, audio, nature, ui)
     core.js     U, RNG, Noise, Tween, Stage, Input, Loop, Scenes, Save
     pix.js      PAL (paleta), Pix (pixel art), sprite, Draw.* (treliça, esteira, pistão, pneu, escada, placa...)
     shiba.js    o Kome: 39 poses, 11 paletas, drawShiba, drawShibaHead, shibaAnchor, Actor
@@ -47,21 +48,23 @@ kome/
     rig.js      Rig, ik2/ik3, Joint, Chassis, Exhaust, Conveyor, Rope, Telescope, Spring
     audio.js    Sfx, Loops, Music generativa
     nature.js   cenário japonês: céu por hora do dia, Fuji, árvores, torii, casa em estágios, Pond, Koi
-    ui.js + kome.css   HUD em DOM, árvore em mapa, painéis, toasts
+    ui.js + pixxel.css   HUD em DOM, árvore em mapa, painéis, toasts
   game/
     data.js            TODO o balanceamento (ferramentas, materiais, árvore de 68 nós, casa, economia)
     game.js            estado, economia, drivers das ferramentas, compras, celebração, câmera, laço
     game-world.js      fundo, "régua do mundo", casa, coletor
     game-ui.js         HUD, árvore, ajustes
-    tbm.js             Tatuzão (máquina de túnel)
-    komeoh.js          KOME-OH (robô gigante feito das máquinas)
-    swarm.js           enxame de robozinhos
     tools-hand.js      pata, hashi, tigela, pa, duaspas, carrinho, britadeira (+ G.Props: sacos, ícones)
     machines-mid.js    trator, empilhadeira, escav
     machines-mine.js   pacabo (pá de cabo), caminhao (+ G.Scale: pickup, keitruck, moega)
     bagger.js          Bagger 293
+    colheitadeira.js   Colheitadeira
+    home.js            Casa do Kome (quintal, bichinhos, roupas, temas, caderno)
+    infinite.js        modo infinito: Oficina e eventos
+    goals.js           conquistas, missões, caderno
   demos/                 uma página por módulo/arquivo de máquina
   tools/                 shot.js, playtest.js, ENGINE_CONTRACT.md, ART_DIRECTION.md
+  CLAUDE.md               regras curtas pro Claude (economia de token)
   docs/
     GDD.md               design completo (v4)
     GDD-ADENDO.md        pedidos do dono depois do v4 — TEM PRIORIDADE sobre o GDD
@@ -71,10 +74,10 @@ kome/
     prints/              screenshots de referência
 ```
 
-**Não existem ainda**: `engine/gfx.js` (efeitos na placa de vídeo), `engine/cutscene.js`, `kome-engine.js` (bundle),
-`KOME_ENGINE.md` (documentação definitiva da engine). O contrato deles está em `tools/ENGINE_CONTRACT.md`.
+**Não existem ainda**: `engine/gfx.js` (efeitos na placa de vídeo), `engine/cutscene.js`, `pixxel.js` (bundle),
+`PIXXEL.md` (documentação definitiva da engine). O contrato deles está em `tools/ENGINE_CONTRACT.md`.
 
-## Estado atual (etapa 1 pronta)
+## Estado atual (rodada de 16/11 pronta; ver "Noite de 16/11" no fim)
 
 Jogável do primeiro arranhão de pata até a Bagger, as 6 etapas da casa e o cartão de final.
 - 13 ferramentas funcionando com "posição do ponteiro + segurar"; teste automático passa nas 13.
@@ -88,29 +91,15 @@ Jogável do primeiro arranhão de pata até a Bagger, as 6 etapas da casa e o ca
 
 ## O que fazer agora (em ordem; cada item é um passo separado)
 
-1. **Arrumar o pátio.** As máquinas antigas estacionadas e os prédios da régua ficam um em cima do outro. Dar faixas/espaço,
-   ordenar por tamanho, e garantir que a fábrica e a torre apareçam ao lado da Bagger (é o que vende a escala).
-2. **Máquinas antigas trabalhando sozinhas.** Hoje ajudantes e pilotos só rendem dinheiro (`autoTick()` em `game.js`); as
-   máquinas ficam paradas. Fazer os shibas pilotarem de verdade (trator, empilhadeira, escavadeira, pá de cabo, caminhão) em
-   bancadas próprias da montanha, entregando no coletor. É a parte "Potato Please" do jogo.
-3. **Textos de ganho embolados.** Quando vários "+¥" estouram juntos eles se sobrepõem. Agrupar/empilhar.
-4. **Trombada do carrinho de mão** (adendo §4): a batida derruba o barranco em avalanche pra dentro da caçamba; despeja pra
-   trás; de vez em quando soterra o Kome até o chapéu.
-5. **Britadeira**: rachaduras se espalhando antes do bloco cair.
-6. **Cavar mais da montanha.** A partida termina com ~70% cavado; o alvo é 85–95%. Ajustar em `data.js`.
-7. **Nós da árvore sem efeito visível** (lista em `NOTAS-JOGO.md`): cada upgrade tem que mudar algo na tela.
-8. **Ciclo de dia e volta pra casa** (adendo §8): dia de 8–10 min, pagamento no pôr do sol, cena curta no quintal, casa
-   crescendo de caminha de cachorro até mansão de luxo, hora extra opcional. Ir pra casa é prêmio, nunca castigo.
-9. **Achados enterrados cosméticos** (adendo §7): chapéus, óculos, capas, cores do Kome, pinturas de máquina; guarda-roupa.
-10. **Cutscenes** (abertura, revelação da Bagger, final), **conquistas, missões, álbum** (GDD §8.3 e §12).
-11. **Modo infinito**: montanhas diferentes (mochi, oca, vulcão de curry, gelada, gêmea) escolhidas entre 2–3 sorteadas;
-    jardim pra decorar; recordes e desafios. Nada de prestígio que zera tudo.
-12. **Tatuzão** (adendo §10): `game/tbm.js` PRONTO como máquina avulsa (demo `demos/tbm.html`); falta ligar no jogo (modo infinito).
-13. **KOME-OH** (adendo §11) — `game/komeoh.js` PRONTO como máquina avulsa (demo `demos/komeoh.html`, `?mode=combine`); falta ligar no jogo: todas as máquinas se juntam num robô gigante pilotado pelo Kome, com cena de transformação
-    estilo anime e soco foguete. Topo do modo infinito. O dono amou: tratar como peça de destaque.
-14. **Enxame de robozinhos** (adendo §12) — `game/swarm.js` PRONTO (demo `demos/swarm.html`); falta ligar no jogo: automação com dezenas de robôs carregando grão em fila até o coletor.
-15. **Engine**: `gfx.js`, `cutscene.js`, demo do lago de carpas usando só a engine, bundle e `KOME_ENGINE.md` com modelo de
-    prompt pra pedir cenas novas; catálogo de bichos e veículos.
+A rodada de 16/11 (etapas 1 a 5) e quase toda a lista antiga foram FEITAS na noite de 16/11 (ver "Noite de 16/11" no fim). Sobrou:
+
+1. **Testar num celular de verdade** (deitado e em pé): joystick, CAVAR, zoom +/-, Casa, Oficina, troca de lugar. E ouvir o som.
+2. **Pé da montanha industrial** (esteiras, Komes empacotando, braços mecânicos, robôs) e cidade com turismo/lojas que compram
+   mais arroz (hoje a cidade do fundo só cresce visualmente).
+3. **Cortar upgrades fracos** da árvore (rever nós que não mudam nada na tela).
+4. **Pinturas de máquina** (roupinha pras máquinas; hoje só o Kome tem roupa).
+5. **Multiplayer em PCs diferentes** (precisa de servidor/WebRTC; hoje só Jogador 2 no controle, mesma tela).
+6. **Engine**: `gfx.js` (efeitos na placa de vídeo) e mover as cutscenes de `game.js` pra `engine/cutscene.js`.
 
 Ajustes menores conhecidos: tigela/pá trocam de pose no meio do giro (falta pose do Kome em pé com dois braços em
 `shiba.js`); Kome rotacionado fica serrilhado; giro da pá de cabo é fingido; treliça da Bagger mais clara que a real (o dono
@@ -143,3 +132,199 @@ aprovou assim); tela em pé no celular e toque não testados; **o som nunca foi 
   punição por parar. O jogo é grátis, offline e criança pode jogar.
 - Toda ferramenta segue a interface comum `G.Tools[id]` (ver `NOTAS-FERRAMENTAS.md`).
 - Verificar sempre de verdade: screenshot olhado ou `playtest.js`, zero erro de página.
+
+
+## Mudanças da etapa 1.3
+- Som do combo: moeda sobe por grau da escala (não desafina) e toca no máximo ~6x/s; escada do combo vira sino suave a cada 3 níveis.
+- Cesto nas costas preso no ponto `back` da pose (`G.Tools[id].back(m)` nas ferramentas de mão) e desenhado por cima do corpo com alça.
+- Teclado WASD/setas/Espaço.
+- Jogador 2 no controle (Gamepad API): entra com qualquer botão, analógico/direcional anda, A/RT cava, Start sai, some se o controle desconectar. Shiba 'goma' com a melhor ferramenta de mão; código em `game.js` (P2, padRead, p2Tick, p2Draw).
+- Ajustes › Salvar: Baixar arquivo / Abrir arquivo (save em .txt). Aviso se o navegador não guardar o progresso.
+- Aviso de virar o celular em retrato. Toque testado em tela de celular (deitado funciona bem).
+- Balanço: Bagger A e casas h4-h6 x1,5 (h6 ajustada): fim com 80-89% cavado, 69-75 min, espera máx <= 165 s.
+- Pops de ganho em sequência empilham (popN em credit()).
+
+## Mudanças de 15/11 à noite (rodada sozinho)
+- Grãos de arroz polidos (engine/terrain.js tileGrains: menos grãos, maiores, com brilho).
+- Arroz da beirada escorre pra dentro do buraco ao cavar e nas avalanches (trickle() em game.js).
+- Fundo (céu, sol, nuvens, Fuji, morros) em pixel art: tela 3x menor ampliada sem suavizar; opção "Fundo em pixel" nos Ajustes.
+- Plaquinha "Como jogar" nos primeiros 30 s (tipTick em game.js, estilo .k-tipcontrols em game.css).
+- NOVA FERRAMENTA: Colheitadeira (id 'colheita', game/colheitadeira.js), degrau 9, entre Trator e Empilhadeira. Kind 'trator'
+  (usa driveMachine). Estados idle/harvest/dump: tanque enche em 4,2 s, tubo levanta e despeja ('dump' = pagamento).
+  Agora são 14 degraus: tiers >= 9 de TREE e HOUSE subiram 1; EXTRA_BY_TOOL e COLLECTOR ganharam uma posição; música e playtest ajustados.
+  Saves antigos (sem d.tv) com tool >= 8 sobem 1 índice pra continuar na mesma máquina.
+
+## Mudanças da rodada "faz tudo" (15/11)
+- Pátio esticado (SP() em game-world.js), máquinas estacionadas por tamanho (PARK em game.js), visita de câmera ao abrir nó de pátio.
+- Frota trabalhando de verdade: fleetWork() leva trator, colheitadeira, empilhadeira e escavadeira até a montanha (park→go→dig→back).
+- "+¥" pequenos agrupados a cada 1,2 s (smallTick); pops empilhados.
+- Carrinho de mão soterra o Kome às vezes (S.bury, drawBury); britadeira racha antes do bloco cair (crackTick/drawCrack).
+- Nós com efeito visível: veias, carimbo, suor, faixa na cabeça, fumaça azul do diesel etc.
+- Ciclo do dia: DAY_SEC=540; céu vai de manhã a noite (S.tod), tinta de pôr do sol, cena "Fim do dia N" com o Kome dormindo
+  ao lado da casa e salário de 15% do ganho do dia (dayTick/drawDayEnd).
+- Guarda-roupa: bolsões de ouro têm 40% de chance de dar um achado (D.CLOSET: 5 cores + óculos, cachecol, flor).
+  Ajustes › Guarda-roupa veste. S.closet/S.look no save. Acessórios desenhados em drawAcc() presos em T.head.
+- Cutscenes (csPlay/SHOTS/drawCutscene em game.js): abertura (só em jogo novo), chegada da Bagger (antes da revelação),
+  final estilo Dave the Diver antes do cartão. Clique passa, Esc pula, o jogo pausa por baixo. ?nointro pula a abertura (testes).
+- Modo infinito: depois do final, "Continuar cavando" (ou Ajustes › Nova montanha) gera montanha nova. Formatos alternam:
+  clássica, dois picos, mesa (mountainShape usa S.mount). Tudo comprado continua. S.mount no save.
+- Playtest --auto: final ~72 min, espera máx ~130 s, Bagger com ~37% cavado, fim com ~87% cavado.
+
+## Rodada de 16/11 (feedback da família) — FEITA na noite de 16/11
+Plano em 5 etapas (pedido do dono: fazer todas em sequência):
+1. FEITA: consertos e "sentir a compra"
+   - combo não quebra com máquina (janela de inatividade cresce com o ciclo da ferramenta, ecoTick)
+   - ajudantes cavam num canto próprio da encosta (helpBase), sem grudar na máquina
+   - trator, colheitadeira, empilhadeira e escavadeira SOBEM a montanha (CLIMB/climbFace/parkClimb); pá de cabo e Bagger ficam no chão
+   - frota trabalha mais (cava 26+ s, volta rápido)
+   - tremor só na montanha (forte) e no chão (fraco): quake() em vez de cam.addTrauma
+   - Bagger não entra na montanha: corpo trava antes do pé (driveBagger, bodyMax); zoom 0.31
+   - ordem nova: ... trator, EMPILHADEIRA, COLHEITADEIRA, escav, CAMINHÃO, PÁ DE CABO, bagger (save migra com d.tv=3)
+   - caminhão é carregado pela ESCAVADEIRA atrás dele (driveHaul, S.loader = escav)
+   - renda pula ~x1,7 a cada máquina: EXTRA_BY_TOOL novo + D.ECON.BOOST escala preços do degrau (data.js, fim do arquivo)
+   - casas h3-h6 rebalanceadas; playtest --auto: final 65 min, espera máx 145 s, Bagger 32%, fim 89%
+   - festa de verão (Natsu Matsuri) na cutscene final; montanha nova reposiciona Kome/Bagger
+   - cavar no chão: "TONC!" e Kome tontinho com estrelinhas (S.stun, drawDizzy)
+   - cartão final "Campanha concluída"; avisos calados durante cutscene e cartão (S.endOpen); aria-label em botões e chaves
+2. EM ANDAMENTO: celular forte (game.js: MOBILE, mobileInit, VK, pinch; game.css: .k-vpad/.k-joy/.k-dig/.k-full)
+   - largura lógica adaptável (W entre 960 e 1280 conforme a tela), HUD com zoom no celular (fitHud)
+   - joystick (anda), botão CAVAR, botão tela cheia, tela cheia + paisagem no primeiro toque, pinça e rodinha = zoom (S.zoomMul)
+   - FALTA: testar num celular de verdade; conferir que joystick/CAVAR não cobrem os botões de baixo em telas diferentes
+     (hoje bottom:168px fixo; o ideal é medir o topo da zona 'dock' do HUD); botões +/- de zoom; textos maiores onde ainda tiver miúdo
+3. Casa: botão "ir pra casa", noite mais vezes (DAY_SEC menor) e Kome dorme mais rápido, jardim, decoração, bichinhos, temas de fundo,
+   guarda-roupa dentro da casa + aviso visível quando acha roupinha (hoje fica em Ajustes › Guarda-roupa)
+4. Loop infinito: pé da montanha industrial (esteiras, Komes empacotando, braços mecânicos, robôs), trilho com trem velho até trem-bala,
+   cidade crescendo no fundo (turismo, lojas que compram mais arroz), melhoria por veículo com marcos (nível 10/25/50 dobra),
+   eventos (veio de arroz dourado, hora do rush) no lugar de "aparecer montanha nova"; cortar upgrades fracos
+5. Botão pra trocar de lugar com um shiba e jogar com qualquer ferramenta/veículo já comprado (todo mundo amou a britadeira)
+Outros pedidos: "monte de arroz some quando compra o primeiro trator" (não reproduzido); trem do nó m8 passa atrás da Bagger e parece
+entregar arroz dourado (mover pro trilho do fundo na etapa 4). Ideia pra um Kome 2: o governo intima o Kome por vender todo o arroz do
+Japão e ele tem que plantar pra encher o estoque nacional.
+Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMountain, dbg, addMoney, buyTool, buyNode...).
+
+## Kit de economia (16/11, Claude Code no PC do dono)
+- `CLAUDE.md` na raiz (regras curtas, lido sozinho), projeto no git, `tools/check.js` (verificação com saída curta).
+- shot/playtest/check usam `tools/pw.js` (playwright-core + Chrome/Edge do PC); `cd tools && npm i` se faltar.
+- O que o check.js acusou pra etapa 2 (celular): joystick cobre a barra do combo; plaquinha "Como jogar" cobre o botão Casa e o
+  de tela cheia; em pé: barras do topo se sobrepõem e botões Ajustes/Árvore/dock < 32px; desktop: textos de 10px ("×1,26",
+  "precisa: Trator").
+
+## Noite de 16/11 (Claude Code sozinho, dono dormindo) — tudo commitado no git
+- Celular: HUD medido em layoutPad() (game.js, mobileInit): joystick/CAVAR no vão entre o HUD de cima e a barra de compras, plaquinha
+  "Como jogar" abaixo do HUD; em pé o HUD sai do palco e usa a tela inteira (.k-hudfix); botões +/- de zoom ao lado da tela cheia;
+  zoom do HUD limitado pra caber em celular pequeno; textos >= 11px. check.js passa em 6 telas (PC, celulares, tablet).
+- Etapa 3 — Casa do Kome (game/home.js): botão Casa (embaixo da engrenagem) abre o quintal com o jogo pausado. Abas Jardim (12
+  enfeites), Bichinhos (carpas, capivara, borboletas, vaga-lumes, passarinhos, 3 amigos shiba), Roupas, Tema (primavera/verão/
+  outono/inverno: pétalas, folhas ou neve caem também no jogo) e Caderno. Preço = segundos da renda atual (D.DECOR/D.THEMES em
+  data.js). Dia de 5 min (DAY_SEC 300) e cena de dormir de 3 s. Achou roupinha: banner + aviso + "!" no botão Casa.
+- Etapa 4 — modo infinito (game/infinite.js), só depois do final: Oficina no lugar do botão de ferramenta (nível por veículo, +5%
+  cada, marcos 10/25/50 dobram) e eventos a cada ~2 min (hora do rush ×2, veio dourado ×3, festival ×1,5) com contagem no HUD.
+  Trem de arroz (m8) agora corre num trilho no fundo e evolui: vapor → diesel → trem-bala. Cidade cresce no fundo.
+- Etapa 5 — botão de troca (setinhas, na barra de baixo): escolhe qualquer ferramenta comprada; um amigo shiba assume a máquina.
+  S.play em game.js (setTool usa S.play; a renda continua a da melhor ferramenta).
+- Conquistas/missões/caderno (game/goals.js): 30 conquistas (selo +1% de renda cada), 3 missões sem prazo (prêmio pequeno),
+  aba Caderno na Casa. Pra compensar: COST_TOOL/NODE/HOUSE = 1,36 e Bagger 6,6 mi. --auto: final 64-68 min, espera máx ~158 s.
+- Modo infinito parte 2: 6 formatos (clássica, dois picos, mesa, Mochi, Vulcão de Curry, Terraços), cartão pra escolher entre 3
+  sorteados (pickMountain em game.js), recorde por formato em S.stats.rec.
+- Roupinhas novas: Kome Ruivo, Kome Chocolate, coroa, bandana, gorro, laço, capa (drawAcc em game.js).
+- Engine: `node tools/build.js` gera pixxel.js/.css; `demos/koi.html` usa só o bundle; `node tools/docs.js` gera PIXXEL.md.
+- NÃO verificado com olho: o cartão de escolher montanha (só testado sem UI), as roupinhas novas no Kome, a cidade à noite.
+
+## Manhã de 17/11 — "low fruit" do pós-final (tudo commitado)
+- Ilhas (game/islands.js): Casa › aba Ilhas. Depois do final, "Partir pra X" (cartão + cena do barco) zera montanha/frota/árvore/
+  casa/dinheiro e dá Sementes Douradas = raiz(ganho/1 mi). Árvore permanente D.SEEDS (renda +15%/nível, preços -6%, Mala de Viagem
+  começa com Pá/Carrinho/Trator, Poupança, ajudantes, Faro de Ouro). 5 ilhas: Honshu, Hokkaido (faixas de Arroz Congelado e Gelo
+  Eterno), Kyushu (vulcão, curry, ouro ×1,8), Okinawa (terraços, areia), Ilha de Mochi. Viagem reescreve o save e recarrega.
+  Preço por ilha × (1 + 0,4n + 0,15n²). Playtest: `node tools/playtest.js --auto --island 1` (Hokkaido 38 min), `--island 2
+  --seeds '{...}'` (Kyushu 30 min). Total estimado ~3 h até a Ilha de Mochi.
+- Roupinhas exclusivas por ilha (campo island em D.CLOSET): Kome de Hokkaido, do Vulcão, da Praia.
+- Oficina (infinite.js + industry.js), tudo pós-final e zerado na viagem (S.stats.run):
+  Bagger Gêmea em 4 peças (esteiras, conveses, lança+roda, segunda roda): 1,5× maior, duas rodas (m.wheels=2 em bagger.js),
+  trabalhando do OUTRO lado da montanha (x = MX1+420, virada pra esquerda); câmera visita a cada peça (G.Ind.showTwin). Sem cópia escura.
+  Fábrica KOME PACK no pátio (x=-520, à esquerda da pá de cabo): galpão, chaminé, esteira, Komes empacotando, braço robô,
+  robozinhos levando sacos. Cidade que compra: 5 lojas com nível + uma cliente escolhida com bônus próprio.
+  Especialização: nos marcos 10/25/50 da Oficina escolhe "mais rápida" (bônus da máquina +50%) ou "mais dourada".
+- Cidade do fundo refeita no traço do Kome (machiya, lojas com noren e lanterna, prédios com varanda, pagode, castelo).
+- `node tools/single.js [saida]` gera o HTML único (scripts/CSS/ícone embutidos) — é o "Kome no Japão (celular).html" da área de
+  trabalho. Rodar de novo sempre que mudar o jogo.
+- Decisão do dono: máquinas continuam vetoriais (o teste em pixel ficou embaçado). Pixel só no Kome, fundo, cidade, coisas pequenas.
+- Conserto: em pé, o resize do stage tirava a classe k-portrait (Árvore saía da tela); agora é recolocada. Bagger 6 mi.
+- Falta do plano grande: máquinas 2-6 (trem-escavadeira, robô gigante, cidade-escavadeira, nave, Lua de Mochi), mecânicas
+  fundas das ilhas (curry que estoura, peneira de Okinawa), lojas pedindo tipo de arroz, montanhas desafio, carpas raras.
+
+## 17/11 (tarde)
+- A engine agora se chama **Pixxel**: global `Pixxel` (o antigo `KomeEngine` continua como apelido), `engine/pixxel.css`,
+  bundle `pixxel.js`/`pixxel.css` (`node tools/build.js`), docs `PIXXEL.md` (`node tools/docs.js`).
+- Celular deitado (print real do dono): palco em modo "cover" (sem faixa preta mesmo quando a barra do navegador some depois de
+  abrir), HUD sempre na camada fixa da tela, CAVAR/joystick menores e logo acima da barra de compras, barra compacta abaixo de
+  760 px (body.k-tight). Bug do combo em cima do ¥/s: a barra cheia ganha a classe k-full, que colidia com o botão de tela cheia
+  (agora .k-fullscr). check.js ganhou a tela "celular-alargou" com combo cheio.
+- Decisão: TODAS as construções em pixel art Pixxel (E.sprite + bevel, igual o jardim); máquinas ficam vetoriais. Fábrica já
+  convertida (industry.js, drawFactory). Falta: casinha, barraca, poste, vila, torre, prédio 6 andares, silo, casa (game-world.js).
+- Oficina corrigida (ideia do irmão do dono): o nível de cada máquina vale SÓ pra ela, enquanto ela está em uso (renda e força
+  de penetração, `G.Inf.mult(id)`/`powK(id)` em computeStats). Preço proporcional ao tamanho da máquina. Antes um nível da pata
+  dava +5% no jogo todo, igual à Bagger. Aviso "duro demais" agora parte da ferramenta na mão e sugere "troque pra X".
+- Trava na escavadeira (o irmão do dono deixou a noite toda): a face da montanha chega no Núcleo Koshihikari (dureza 24) e a
+  escavadeira (força 8) não furava; a renda caía pra ~0. Agora escav 10, pá de cabo 12,5 (força em ordem crescente até a
+  Bagger 16). Preços ×1,42. Teste novo: `node tools/stall.js <ferramenta> [minutos]` simula ficar parado sem comprar.
+- Física da montanha mais viva: `E.SlideFX` (engine/terrain.js) solta grãos de verdade onde a avalanche escorre; eles rolam
+  pela encosta (aceleram no íngreme, pulam em borda convexa, param no plano), torrões nos materiais duros, poeira ao cair
+  de pulo forte. Deslizamento grande (muito arroz em 0,5 s, escalado pelo zoom) = poeira no pé, tremor leve e "rumble".
+  slideTick() em game.js; o "tremidinho" antigo do heap.draw desliga com rolling:false.
+- Soterramento do carrinho REMOVIDO (o dono achou horrível nas duas versões).
+- Física da montanha (pesquisa do dono: "só o topo tem física"): heap.relax pode emprestar parte do arroz que escorrega
+  (heap.divert); o E.SlideFX transforma em grão com massa que rola e devolve a massa ao mapa onde para (heap.add) ou ao
+  sair da tela. Só empresta com update rodando em tempo real e dentro da vista (o playtest acelerado não é afetado).
+  Testado: massa conservada em jogo, MAS o save/load do playtest divergia (+21 a 42 mil px²) com carry ligado; ficou carry: 0
+  em game.js até achar a causa (suspeita: grão em voo entre o "before" e o save do unload).
+- Montanha em pixel art + cor creme/lavanda: TESTADO E DESCARTADO (o dono achou "esquisito" e "parece areia, não arroz").
+  Ficou: fronteira entre camadas ondulada (bdepth() em terrain.js, mesma função pra desenho e dureza), Fuji à esquerda
+  (o topo aparecia atrás da montanha e parecia bug), sombra de contato e grãos soltos na grama no pé (drawFoot em game.js).
+- Camadas viraram tipos de arroz (o rosa "mochi" parecia rocha de montanha): Arroz Branco (solto), Arroz Integral (prensado,
+  bege), ARROZ NEGRO (id 'mochi' mantido pros saves; grão roxo-escuro, dureza 8), núcleo Koshihikari. Ilhas: Arroz de Curry
+  (Kyushu), Arroz Mochigome (Ilha de Mochi).
+- Teclado: W / seta pra cima PULA (a pé, com ferramenta de mão); S / seta pra baixo / Espaço cavam.
+- Céu cortado em tela larga: game-world.js tinha W fixo em 960; agora recebe a largura do jogo (Wd.setSize). Aparecia no pôr do sol.
+- Patas Ligeiras agora também cava +15% (fx dig). Preços ×1,47.
+- Dia de 4 min (DAY_SEC 240), cena de dormir de 6 s, casa desenhada em escala inteira sem suavizar (mesmo pixel do jogo),
+  e aviso "próxima etapa: X · faltam ¥Y" na cena da noite.
+- Rodada de feedback (17/11): joystick move a Bagger a partir da roda (ia de ré) e crawl 70; Goma pilota a Bagger quando o
+  Kome troca (roda girando) e ela fica 38% opaca; depois da Bagger qualquer ferramenta fura o núcleo (powMul mínimo);
+  ferramenta de mão sobe no pulo (airFloor); botão Casa pulsa quando dá pra comprar algo + aviso aos 2 min + abas maiores;
+  construções do pátio em pixel art Pixxel (casinha, sobrado, prédio onigiri, silo, poste, torre) em game-world.js.
+- PEDIDOS GRANDES PENDENTES (dono): cidade onde dá pra andar, com comércio e shibas vivendo; esteiras da industrialização
+  ligando a montanha ao coletor/fábrica (FEITO); túneis (DESCARTADO pelo dono); Bagger mais fácil de controlar no celular.
+- Menu do Kome (baú no canto de cima): Casa, Roupinhas, Trocar ferramenta, Caderno, Oficina, Ilhas, Nova montanha, Ajustes,
+  com "!" de novidade e itens bloqueados apagados com dica. O botão de trocar da barra de baixo saiu (mora no menu).
+- Esteiras (game/belts.js, E.Conveyor): pé da montanha -> coletor (a partir do Trator) e coletor -> fábrica de onigiri
+  (nó Esteira a9 ou Escavadeira); velocidade e quantidade sobem com a renda.
+- Túneis: protótipo em demos/tunel.html (montanha como grade de células 320x180, só pedaços 16x16 "acordados" simulam;
+  solto cai/escorrega, prensado e negro só caem sem apoio, então túnel fica de pé). Custo medido: ~7 mil células, 0,2 ms.
+  Levar pro jogo = trocar o mapa de altura do E.Heap por grade (desenho, dig, save, máquinas que andam na superfície):
+  é uma reescrita do terrain.js. DECISÃO DO DONO (17/11): não gostou dos túneis, NÃO levar pro jogo. A demo fica só como teste.
+- Rodada 17/11 (celular): desempenho com zoom aberto e Bagger: máquinas desenhadas em cache de imagem quando cam.z < 0,55
+  (drawMach em game.js; Bagger do jogador em cache quando cam.z < 0,3). Medido com CPU 4x mais lenta: 11 -> 17 fps.
+  Coletor segue a ferramenta NA MÃO (a moega da Bagger seguia o Kome). Trocou de ferramenta: o Goma pilota a melhor e
+  garante 75% do ¥/s que você fazia nela (S.stats.topIps = média só do que o jogador cava); `extra` agora é da ferramenta
+  na mão e a frota usa sempre o da melhor; níveis da Oficina valem pros shibas que pilotam cada máquina.
+  Montanha de mochi = camadas de mochi (arroz, morango, matchá); vulcão = curry (SHAPE_MATS em game.js).
+- Preços da Oficina/Casa/lojas travados (G.priceIps = S.stats.pb): só sobem quando você compra algo ou quando o dia vira
+  (antes seguiam o ¥/s do momento e mudavam a cada abertura). Guarda-roupa com ícone (rosto com a cor/acessório; bloqueado
+  = silhueta), acessório aparece com carrinho, britadeira e no Kome da Casa (drawAccAt).
+- Laboratório visual: `node tools/sweep.js` (19 telas x 3 aparelhos, folhas de contato em %TEMP%/kome-sweep). Primeira rodada
+  achou e consertou: celular em pé (agora aviso "vira o celular" em tela cheia e o jogo pausa), joystick/CAVAR/zoom por
+  cima dos menus (somem com painel aberto), terreno da Casa em vetor feio (agora pixel: estacas, bandeirinhas, placa),
+  título do fim do dia sob a barra da montanha (HUD some na cena), guarda-roupa duplicado nos Ajustes (removido).
+- KIT DE EXPANSÃO BARATA (17/11): MAPA.md (onde mora cada coisa), fichas de conteúdo (conteudo/*.js, pixel em texto via
+  E.spriteText, tools/content.js gera game/content.js; tipos enfeite/bicho/roupa/evento/loja), receitas (tools/novo.js),
+  galeria (tools/galeria.js), robô aleatório (tools/monkey.js: achou 2 bugs, consertados), painel ?dev (game/dev.js),
+  arte das cutscenes separada em game/cutscenes.js. Fichas novas no jogo: lanterninhas, tanuki, boné azul, chuva de onigiri, ramen.
+- Pixxel Estúdio (estudio.html; cópia única na área de trabalho "Pixxel Estúdio.html"): imagem -> pixel na paleta do Kome
+  (tira fundo e halo), pintar (lápis/balde/borracha/conta-gotas), quadros + animações prontas, prévia com o Kome,
+  exporta ficha/PNG, guarda projetos no navegador.
+- Admin: "Kome no Japão (admin).html" na área de trabalho = jogo com painel dev ligado (single.js --dev), save SEPARADO
+  (kome-admin-v4), atalhos "pular pra fase" (pá, trator, escavadeira, caminhão, Bagger, final, Gêmea, próxima ilha),
+  abrir telas e cutscenes. Regerar os 3 HTMLs: single.js (celular), single.js --dev (admin), single.js --in estudio.html.
+- Dá pra PILOTAR a Bagger Gêmea (Menu › Trocar ferramenta, depois das 4 peças): a Bagger do jogador vira a Gêmea
+  (m.k = 1,5 no bagger.js escala geometria e desenho; duas rodas; pintura; cava 2x; câmera abre) e o Goma leva a 293 pro
+  outro lado da montanha (faturando). Atalho no admin: "pilotar a Gêmea".

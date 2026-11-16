@@ -1,4 +1,4 @@
-/* Kome Engine v1.0 — terrain.js
+/* Pixxel v1.0 — terrain.js
    Terreno granular: a montanha de arroz (E.Heap), pilhas pequenas que assentam (E.Pile) e grãos voando (E.Grains).
    Depende de core.js e pix.js.
 
@@ -12,9 +12,9 @@
 (function () {
   'use strict';
   const root = typeof window !== 'undefined' ? window : globalThis;
-  const E = (root.KomeEngine = root.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de terrain.js');
-  if (!E.PAL) throw new Error('KomeEngine: carregue pix.js antes de terrain.js');
+  const E = (root.Pixxel = root.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de terrain.js');
+  if (!E.PAL) throw new Error('Pixxel: carregue pix.js antes de terrain.js');
   const U = E.U, PAL = E.PAL, TAU = Math.PI * 2, NO = Object.freeze({});
   const LINE = PAL.line || '#3B2818';
   const BROWN = '#4A2E14';
@@ -89,18 +89,20 @@
   function tileGrains(c, T, r, kind, tn) {
     c.fillStyle = tn.gap; c.fillRect(0, 0, T, T);
     if (kind === 'pressed') {
-      // grãos achatados, deitados e apertados + linhas de estrato
-      grainPass(c, T, r, 1250, 13, 4.6, 0.26, tn.low, U.mixCss(tn.low, tn.gap, 0.55), null, null, 0);
-      grainPass(c, T, r, 900, 13, 4.4, 0.22, tn.mid, tn.low, tn.top, tn.shadow, 0.25);
-      grainPass(c, T, r, 170, 13.5, 4.4, 0.18, tn.top, tn.mid, tn.hi, tn.shadow, 0.6);
+      // (17/11) grão legível como o do arroz solto, só mais apertado e deitado; antes era uma massa borrada
+      grainPass(c, T, r, 1000, 13, 5.6, 0.5, tn.low, U.mixCss(tn.low, tn.gap, 0.6), null, null, 0);
+      grainPass(c, T, r, 560, 13.2, 5.8, 0.45, tn.mid, tn.low, tn.top, tn.shadow, 0.55);
+      grainPass(c, T, r, 210, 13.5, 6, 0.4, tn.top, tn.mid, tn.hi, tn.shadow, 1);
+      c.fillStyle = 'rgba(255,255,255,0.8)';
+      for (let i = 0; i < 50; i++) wfill(c, T, r() * T, r() * T, 1.5, 1, (r() - 0.5) * 0.4);
       c.lineCap = 'round';
-      for (let k = 0; k < 5; k++) {
+      for (let k = 0; k < 3; k++) {
         const y = (k + 0.2 + r() * 0.6) * (T / 5), m = 1 + ((r() * 3) | 0), ph = r() * TAU, amp = 1.5 + r() * 2.5;
         for (let oy = -T; oy <= T; oy += T) {
           let x = -8;
           while (x < T + 8) { // traços quebrados: estrato não é régua
             const len = 40 + r() * 120;
-            c.strokeStyle = U.rgba(tn.gap, 0.85); c.lineWidth = 1.7; wavy(c, T, y + oy, amp, m, ph, x, Math.min(T + 8, x + len));
+            c.strokeStyle = U.rgba(tn.gap, 0.55); c.lineWidth = 1.3; wavy(c, T, y + oy, amp, m, ph, x, Math.min(T + 8, x + len));
             c.strokeStyle = U.rgba(tn.top, 0.55); c.lineWidth = 1; wavy(c, T, y + oy + 1.9, amp, m, ph, x, Math.min(T + 8, x + len));
             x += len + 6 + r() * 26;
           }
@@ -108,9 +110,13 @@
       }
     } else {
       const gold = kind === 'gold';
-      grainPass(c, T, r, 1050, 12, 5.6, 9, tn.low, U.mixCss(tn.low, tn.gap, 0.6), null, null, 0);
-      grainPass(c, T, r, 720, 12, 5.6, 9, tn.mid, tn.low, tn.top, tn.shadow, 0.35);
-      grainPass(c, T, r, gold ? 300 : 250, 13, 6, 9, tn.top, tn.mid, tn.hi, tn.shadow, 0.9);
+      // polido (15/11): grãos um pouco maiores e menos amontoados, cada um com sombra, corpo e brilho legíveis
+      grainPass(c, T, r, 900, 13, 6, 9, tn.low, U.mixCss(tn.low, tn.gap, 0.6), null, null, 0);
+      grainPass(c, T, r, 470, 13.5, 6.2, 9, tn.mid, tn.low, tn.top, tn.shadow, 0.6);
+      grainPass(c, T, r, gold ? 260 : 190, 14, 6.5, 9, tn.top, tn.mid, tn.hi, tn.shadow, 1);
+      // pontinho de luz na ponta de alguns grãos (o "brilho de arroz cozido")
+      c.fillStyle = 'rgba(255,255,255,0.9)';
+      for (let i = 0; i < 70; i++) wfill(c, T, r() * T, r() * T, 1.6, 1.1, r() * Math.PI);
       if (gold) { c.fillStyle = '#FFFFFF'; for (let i = 0; i < 16; i++) star4(c, 10 + r() * (T - 20), 10 + r() * (T - 20), 3.5 + r() * 4.5); }
     }
   }
@@ -177,8 +183,9 @@
   function tileCrest(c, T, r, kind, tn, dense) {
     const flat = kind === 'pressed';
     const L = flat ? 15 : 15.5, W = flat ? 5.4 : 7.2, sp = flat ? 0.3 : 9;
-    if (dense) grainPass(c, T, r, 300, L * 0.9, W * 0.9, sp, tn.mid, tn.low, tn.top, tn.shadow, 0.5);
-    grainPass(c, T, r, dense ? 330 : 150, L, W, sp, tn.top, tn.mid, tn.hi, tn.shadow, 1);
+    // sem sombra por grão aqui: somadas viravam um véu cinza que andava junto com a superfície ("a sombra cavando")
+    if (dense) grainPass(c, T, r, 300, L * 0.9, W * 0.9, sp, tn.mid, tn.low, tn.top, null, 0.5);
+    grainPass(c, T, r, dense ? 330 : 150, L, W, sp, tn.top, tn.mid, tn.hi, null, 1);
   }
 
   // textura(g, kind, col, c2, c3, variante) -> CanvasPattern cacheado
@@ -186,13 +193,15 @@
     const key = kind + '|' + col + '|' + (c2 || '') + '|' + (c3 || '') + '|' + variant;
     let p = texCache.get(key);
     if (p) return p;
-    const T = variant === 's' ? TS : TG;
-    const cv = doc.createElement('canvas'); cv.width = cv.height = T;
+    // 'g2' = mesmo ladrilho de grãos com o dobro de resolução (8 texels por px de mundo), pra zoom alto em tela densa (celular)
+    const hd = variant.length === 3 || variant === 'g2', base = hd ? variant.slice(0, -1) : variant, T = base === 's' ? TS : TG;
+    const cv = doc.createElement('canvas'); cv.width = cv.height = hd ? T * 2 : T;
     const c = cv.getContext('2d');
+    if (hd) c.scale(2, 2);
     let hsh = 2166136261; for (let i = 0; i < key.length; i++) { hsh ^= key.charCodeAt(i); hsh = Math.imul(hsh, 16777619); }
     const r = E.RNG(hsh >>> 0), tn = tonesOf(kind, col, c2, c3);
-    if (variant === 's') tileSoft(c, T, r, kind, tn);
-    else if (variant === 'ca' || variant === 'cb') tileCrest(c, T, r, kind, tn, variant === 'ca');
+    if (base === 's') tileSoft(c, T, r, kind, tn);
+    else if (base === 'ca' || base === 'cb') tileCrest(c, T, r, kind, tn, base === 'ca');
     else if (kind === 'mochi') tileMochi(c, T, r, tn);
     else tileGrains(c, T, r, kind, tn);
     p = g.createPattern(cv, 'repeat');
@@ -209,9 +218,10 @@
   let LA = 'g', LAs = 0.25, LB = 'g', LBs = 0.25, LBa = 0, LNear = 1;
   function pickLod(S) {
     const q = Math.pow(2, Math.max(0, Math.round(Math.log2(1 / S))));
-    if (S >= 2.55) { LA = 'g'; LAs = 0.25; LBa = 0; }
+    if (S >= 4.2) { LA = 'g2'; LAs = 0.125; LBa = 0; }                    // bem de perto: textura em dobro de resolução (sem borrar)
+    else if (S >= 2.55) { LA = 'g'; LAs = 0.25; LBa = 0; }
     else if (S >= 2.25) { LA = 'g'; LAs = 0.5; LB = 'g'; LBs = 0.25; LBa = (S - 2.25) / 0.3; }
-    else if (S >= 0.85) { LA = 'g'; LAs = 0.5; LB = 's'; LBs = q; LBa = U.clamp((1.7 - S) / 0.85, 0, 1) * 0.42; } // médio: grão graúdo, acalmado pela textura macia
+    else if (S >= 0.85) { LA = 'g'; LAs = 0.5; LB = 's'; LBs = q; LBa = U.clamp((1.7 - S) / 0.85, 0, 1) * 0.18; }   // menos textura macia: grão continua nítido // médio: grão graúdo, acalmado pela textura macia
     else if (S >= 0.65) { LA = 's'; LAs = q; LB = 'g'; LBs = 0.5; LBa = ((S - 0.65) / 0.2) * 0.58; }
     else { LA = 's'; LAs = q; LBa = 0; }
     LNear = U.clamp((S - 2.25) / 0.3, 0, 1); // 1 = grãos no tamanho real
@@ -481,6 +491,10 @@
               if (t > 0.002) {
                 t *= rate;
                 if (d > 0) { h[i] -= t; h[i + 1] += t; } else { h[i] += t; h[i + 1] -= t; }
+                if (heap.divert) {                         // grãos de verdade: parte do arroz sai do mapa e rola como partícula
+                  const r = d > 0 ? i + 1 : i, tk = heap.divert(r, t * colW) / colW;
+                  if (tk > 0) { h[r] -= tk; heap.area -= tk * colW; }
+                }
                 act[i] += t; act[i + 1] += t * 0.5;
                 heap.flow += t * colW; fx += t * colW * (i + 1);
                 if (i < mA) mA = i; if (i + 1 > mB) mB = i + 1;
@@ -566,6 +580,13 @@
       if (!layers.length) heap.setLayers(opts.layers || [{ id: 'solto', name: 'Arroz Solto', top: 1, col: '#F6F1E4' }]); else rebuild();
       return heap;
     }
+    // profundidade da fronteira entre camadas com ondulação suave (não fica uma diagonal reta "colada");
+    // mesma função dos dois lados da fronteira, então não abre buraco nem sobrepõe
+    function bdepth(i, d) {
+      if (!d || !E.Noise || !E.Noise.n1) return d || 0;
+      const A = Math.min(34, d * 0.12);
+      return Math.max(0, d + (E.Noise.n1(i * colW * 0.006 + d * 0.0137, 77) - 0.5) * 2 * A + (E.Noise.n1(i * colW * 0.031 + d, 31) - 0.5) * A * 0.35);
+    }
     // intervalo [lo, hi] (em altura) de cada camada em cada coluna
     function rebuild() {
       for (let b = 0; b < bands.length; b++) {
@@ -574,8 +595,8 @@
         for (let i = 0; i < n; i++) {
           const H = h0[i];
           let t, l;
-          if (byDepth) { t = H - (m.d0 || 0); l = m.d1 !== undefined ? H - m.d1 : 0; }
-          else { t = H * (m.top !== undefined ? m.top : 1); l = nx ? (nx.d0 !== undefined ? H - nx.d0 : H * (nx.top !== undefined ? nx.top : 0)) : 0; }
+          if (byDepth) { t = H - bdepth(i, m.d0 || 0); l = m.d1 !== undefined ? H - bdepth(i, m.d1) : 0; }
+          else { t = H * (m.top !== undefined ? m.top : 1); l = nx ? (nx.d0 !== undefined ? H - bdepth(i, nx.d0) : H * (nx.top !== undefined ? nx.top : 0)) : 0; }
           if (b === 0) t = 1e9;                  // o que for empilhado acima da superfície original é da 1ª camada
           if (b === bands.length - 1 || l < 0) l = 0;
           if (t < l) t = l;
@@ -786,7 +807,7 @@
 
       // peso da profundidade: dois degraus de tom chapado abaixo da superfície atual (mais escuro e apertado lá embaixo)
       const dk = Math.max(1, 0.7 * pxw);
-      g.fillStyle = 'rgba(74,46,20,.08)';
+      g.fillStyle = 'rgba(74,46,20,.045)';
       bodyPath(g, 18 * dk); g.fill();
       bodyPath(g, 46 * dk); g.fill();
       bodyPath(g, 105 * dk); g.fill();
@@ -801,7 +822,7 @@
       // crista: grãos maiores e ensolarados nos primeiros px abaixo da superfície, por material
       const cT = 9 * (1 + (1 - LNear) * 0.6);
       if (S >= 0.65) {
-        const cScale = LNear > 0.5 ? 0.25 : 0.5, ca = S < 0.85 ? (S - 0.65) / 0.2 : 1;
+        const hdC = S >= 4.2, cScale = hdC ? 0.125 : LNear > 0.5 ? 0.25 : 0.5, ca = S < 0.85 ? (S - 0.65) / 0.2 : 1;
         for (let L = 0; L < layers.length; L++) {
           const m = layers[L], lo = m.lo, hi = m.hi;
           let vis = false;
@@ -819,7 +840,7 @@
             g.closePath();
             g.globalAlpha = ca;
             if (m.tex === 'mochi') { g.fillStyle = pass ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.34)'; g.fill(); }
-            else { useTex(g, matTex(g, m, pass ? 'cb' : 'ca'), cScale); g.fill(); }
+            else { useTex(g, matTex(g, m, (pass ? 'cb' : 'ca') + (hdC ? '2' : '')), cScale); g.fill(); }
           }
         }
         g.globalAlpha = 1;
@@ -849,7 +870,7 @@
           th[k] = t; if (t > 0.3) any = true;
         }
         if (any) {
-          g.fillStyle = 'rgba(64,38,16,.13)';
+          g.fillStyle = 'rgba(64,38,16,.06)';
           for (let pass = 0; pass < 2; pass++) {
             const kk = pass ? 0.45 : 1;
             g.beginPath(); surfPath(g, 0, M - 1, 0, false);
@@ -862,7 +883,7 @@
       // filete de luz ao longo da crista (por dentro do contorno)
       {
         const rim = Math.max(0.9, 1.5 * pxw);
-        g.strokeStyle = 'rgba(255,254,246,.9)'; g.lineWidth = (ol + rim) * 2;
+        g.strokeStyle = 'rgba(255,254,246,.55)'; g.lineWidth = (ol + rim) * 1.6;
         g.beginPath(); surfPath(g, ka, kb, 0, false); g.stroke();
       }
 
@@ -893,7 +914,7 @@
       }
 
       /* 4. grãos rolando onde a avalanche está escorrendo */
-      if (heap._actHot && S > 0.12) {
+      if (heap._actHot && S > 0.12 && o.rolling !== false) {   // rolling:false quando o jogo usa E.SlideFX
         const big = S >= 0.9, rs = big ? 1 : 1.3 * pxw;
         g.fillStyle = PAL.rice; g.strokeStyle = LINE; g.lineWidth = Math.max(0.45, 0.8 * pxw);
         g.beginPath();
@@ -1242,6 +1263,102 @@
     return grains;
   }
   E.Grains = Grains;
+
+  /* ======================================================================
+     5. SlideFX: grãos de verdade descendo a encosta durante a avalanche
+     ====================================================================== */
+  // E.SlideFX(heap, {max=240, g=900, onLand(x, y, speed, mat), carry=.45, grainMass=6, active()}) -> { update(dt, view{x0,x1}), draw(g, zoom=1), list, flush() }
+  //   Com carry > 0 ele instala heap.divert: uma fração do arroz que escorrega SAI do mapa de altura e vira grão de verdade,
+  //   que rola e, quando para (ou sai da tela), devolve a massa pro mapa onde parou (heap.add). Assim dá pra ver o arroz
+  //   descer e se acumular no pé. Só empresta enquanto update() está rodando e dentro da vista; flush() devolve tudo.
+  //   Nasce grão onde a coluna está escorrendo (heap.act), na cor do material exposto; ele rola pela superfície
+  //   ganhando velocidade no íngreme, dá pulinhos, perde força no plano e some. onLand avisa quando cai de um pulo forte
+  //   (o jogo põe poeira/som ali).
+  function SlideFX(heap, o) {
+    o = o || NO;
+    const max = o.max || 240, G = o.g || 900, list = [], free = [], carry = o.carry === undefined ? 0.45 : o.carry, GM = o.grainMass || 6;
+    let spawnAcc = 0, lastUpd = 0, vx0 = -1e9, vx1 = 1e9;
+    const pool = new Map();                                  // coluna -> massa emprestada esperando virar grão
+    const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    function giveBack(x, m) { if (m > 0) heap.add(x, m, heap.colW * 2); }
+    if (carry > 0) heap.divert = (i, area) => {
+      if (now() - lastUpd > 200 || list.length >= max || (o.active && !o.active())) return 0;          // sem update recente (jogo acelerado/pausado): não empresta
+      const x = heap.colX(i); if (x < vx0 || x > vx1) return 0;
+      const take = area * carry; pool.set(i, (pool.get(i) || 0) + take); return take;
+    };
+    const colOf = m => (m && m.col) || PAL.rice;
+    function spawn(i, mass) {
+      if (list.length >= max) { if (mass) giveBack(heap.colX(i), mass); return; }
+      const x = heap.colX(i) + (Math.random() - 0.5) * heap.colW * 2, y = heap.surf(x);
+      const m = heap.topMat ? heap.topMat(x) : null, clump = m && m.hard >= 2 && Math.random() < 0.35;
+      const p = free.pop() || {};
+      p.x = x; p.y = y - 1; p.vx = (Math.random() - 0.5) * 20; p.vy = 0; p.air = false; p.t = 0; p.still = 0;
+      p.r = clump ? 2.6 + Math.random() * 2.2 : 1.5 + Math.random() * 0.8; p.rot = Math.random() * 6.3; p.c = colOf(m); p.m = m; p.clump = clump; p.mass = mass || 0;
+      if (p.mass > GM * 2.5) { p.clump = true; p.r = Math.min(6, 2.4 + Math.sqrt(p.mass) * 0.35); }
+      list.push(p);
+    }
+    return {
+      list,
+      // flush(): devolve pro mapa toda massa que está rolando ou esperando (antes de salvar / trocar de montanha)
+      flush() { for (const [i, m] of pool) giveBack(heap.colX(i), m); pool.clear(); for (const p of list) giveBack(p.x, p.mass); list.length = 0; },
+      update(dt, v) {
+        lastUpd = now(); if (v) { vx0 = v.x0; vx1 = v.x1; }
+        // massa emprestada vira grão (ou volta pro mapa se for pouquinha)
+        for (const [i, m] of pool) { if (m >= GM) { spawn(i, m); pool.delete(i); } else if (Math.random() < dt * 4) { giveBack(heap.colX(i), m); pool.delete(i); } }
+        // nascer: proporcional à atividade das colunas visíveis (só enfeite, sem massa)
+        if (heap._actHot && v) {
+          const a0 = Math.max(heap._a0, heap.col(v.x0)), a1 = Math.min(heap._a1, heap.col(v.x1)), act = heap.act;
+          const step = Math.max(1, Math.round((a1 - a0) / 220));
+          spawnAcc += dt * 60;
+          if (spawnAcc >= 1) {
+            spawnAcc = 0;
+            for (let i = a0; i <= a1; i += step) { const a = act[i]; if (a > 0.25 && Math.random() < Math.min(0.3, a * 0.03) * step) spawn(i, 0); }
+          }
+        }
+        for (let k = list.length - 1; k >= 0; k--) {
+          const p = list[k]; p.t += dt;
+          if (p.air) {
+            p.vy += G * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - 0.2 * dt;
+            const sy = heap.surf(p.x);
+            if (p.y >= sy) {
+              const hit = p.vy;
+              p.y = sy;
+              if (hit > 140 && o.onLand) o.onLand(p.x, sy, hit, p.m);
+              if (hit > 90 && !p.clump) { p.vy = -hit * 0.32; } else { p.air = false; p.vy = 0; }
+            }
+          } else {
+            const sl = heap.slope(p.x);                         // + = sobe pra direita: rola pra esquerda
+            const a = -sl / (1 + sl * sl) * G * (p.clump ? 0.8 : 1);
+            p.vx += a * dt; p.vx *= 1 - (Math.abs(sl) < 0.35 ? 4 : 1.1) * dt;    // atrito: forte no plano
+            const nx = p.x + p.vx * dt, ny = heap.surf(nx);
+            // a superfície caiu mais que a "parábola" do grão: ele sai voando (borda convexa)
+            if (ny - p.y > Math.abs(p.vx) * dt * 1.8 + 1.5) { p.air = true; p.vy = Math.abs(p.vx) * 0.15; }
+            else if (Math.abs(sl) > 1.2 && Math.random() < dt * 3) { p.air = true; p.vy = -40 - Math.random() * 70; }   // pulinho na encosta
+            p.x = nx; if (!p.air) p.y = ny;
+          }
+          p.rot += p.vx * dt * (p.clump ? 0.06 : 0.25);
+          p.still = Math.abs(p.vx) < 10 && !p.air ? p.still + dt : 0;
+          if (p.still > 0.35 || p.t > 6 || (v && (p.x < v.x0 - 200 || p.x > v.x1 + 200))) { giveBack(p.x, p.mass); list[k] = list[list.length - 1]; list.pop(); free.push(p); }
+        }
+      },
+      draw(g, z) {
+        if (!list.length) return;
+        const k = Math.max(1, 0.9 / (z || 1));                // longe: grão um pouco maior pra continuar visível
+        g.save(); g.lineJoin = 'round';
+        for (const p of list) {
+          const fade = p.still > 0 ? 1 - p.still / 0.35 : 1, r = p.r * k;
+          g.globalAlpha = Math.max(0, fade);
+          g.fillStyle = p.c; g.strokeStyle = LINE; g.lineWidth = Math.max(0.5, 0.7 * k);
+          g.beginPath();
+          if (p.clump) { for (let j = 0; j < 3; j++) { const an = p.rot + j * 2.1; g.moveTo(p.x + Math.cos(an) * r * 0.55 + r * 0.55, p.y - r + Math.sin(an) * r * 0.45); g.arc(p.x + Math.cos(an) * r * 0.55, p.y - r + Math.sin(an) * r * 0.45, r * 0.55, 0, TAU); } }
+          else g.ellipse(p.x, p.y - r * 0.6, r, r * 0.5, p.rot, 0, TAU);
+          g.fill(); g.stroke();
+        }
+        g.restore();
+      },
+    };
+  }
+  E.SlideFX = SlideFX;
 
   // E.Terrain: utilitários expostos (gerador de textura de grão pra outros módulos usarem o mesmo arroz)
   //   E.Terrain.texture(g, 'loose'|'pressed'|'mochi'|'gold', col, col2?, col3?, 'g'|'s'|'ca'|'cb') -> CanvasPattern (ladrilho em .canvas)

@@ -19,9 +19,9 @@
   /* ---------------- economia ---------------- */
   D.ECON = {
     P0: 0.20,               // ¥ por px² de arroz solto
-    COST_TOOL: 1,           // botões de ajuste do balanceamento (o playtest.js mede o efeito)
-    COST_NODE: 1,
-    COST_HOUSE: 1,
+    COST_TOOL: 1.47,          // botões de ajuste do balanceamento (o playtest.js mede o efeito)
+    COST_NODE: 1.47,
+    COST_HOUSE: 1.47,
     HR: 0.08,               // ajudante a pé: fração do A do Kome (até a escavadeira)
     PR: 0.25,               // máquina antiga pilotada: fração do A dela
     ESTREIA_SEC: 3, ESTREIA_SPEED: 2,
@@ -31,7 +31,9 @@
     // Renda que o GDD conta e a Fase 1 ainda não tem (missões, visitantes, selos +2%/degrau, conquistas +1% cada) entra
     // como um multiplicador por degrau. Foi afinado com tools/playtest.js --auto. Quando a Fase 2 ligar esses sistemas,
     // baixar estes números (o da Bagger já é baixo de propósito: a fase dela tem que durar ~10 min).
-    EXTRA_BY_TOOL: [1.35, 1.4, 1.45, 1.75, 1.85, 2.0, 2.0, 2.2, 2.5, 2.2, 2.2, 2.6, 1.35],
+    EXTRA_BY_TOOL: [1.35, 1.4, 1.45, 1.75, 1.85, 2.0, 2.667, 3.8, 5.714, 7.5, 9.0, 11.36, 14.53, 12.82],
+    // BOOST[i]: quanto a renda no degrau i cresceu com a escada nova (16/11); preços comprados nesse degrau sobem igual
+    BOOST: [1, 1, 1, 1, 1, 1, 1.333, 1.727, 2.597, 3.0, 4.09, 5.165, 5.59, 9.5],
     HAUL_SPEED: 1.35,       // ritmo do par pá de cabo + caminhão (ciclo de ~11 s como no GDD)
   };
 
@@ -56,15 +58,18 @@
       size: '30 kg · 15 pancadas por segundo', act: 'fura pra baixo, racha o arroz prensado' },
     { id: 'trator', name: 'Trator', cost: 110000, A: 250, r: 44, pow: 4, zoom: 1.1, spd: 420, reach: 48, park: 105, seat: 'cab', kind: 'trator', shake: 0.16, grains: 40, sfx: 'tractor', loop: 'tractor', pay: ['dump'],
       size: '3,5 t · 350 shibas de peso', act: 'carregadeira frontal empurra ondas de arroz' },
-    { id: 'empilhadeira', name: 'Empilhadeira', cost: 270000, A: 360, r: 36, pow: 5.5, zoom: 0.85, spd: 400, reach: 60, park: 96, seat: 'cab', kind: 'fork', cycle: 1.55, shake: 0.18, grains: 20, sfx: 'forklift', loop: 'electric', pay: ['dump'],
+    { id: 'empilhadeira', name: 'Empilhadeira', cost: 170000, A: 280, r: 36, pow: 5.5, zoom: 0.85, spd: 400, reach: 60, park: 96, seat: 'cab', kind: 'fork', cycle: 1.55, shake: 0.18, grains: 20, sfx: 'forklift', loop: 'electric', pay: ['dump'],
       size: '4 t · garfos de 1,2 m', act: 'espeta os garfos e arranca blocos de arroz prensado' },
-    { id: 'escav', name: 'Escavadeira Hidráulica', cost: 800000, A: 500, r: 72, pow: 8, zoom: 0.62, spd: 380, reach: 120, park: 196, seat: 'cab', kind: 'escav', shake: 0.24, grains: 80, sfx: 'excavator', loop: 'diesel', pay: ['dump'],
+    { id: 'colheita', name: 'Colheitadeira', cost: 270000, A: 360, r: 40, pow: 4.8, zoom: 0.95, spd: 320, reach: 90, park: 86, seat: 'cab', kind: 'trator', cycle: 5.9, shake: 0.14, grains: 30, sfx: 'tractor', loop: 'tractor', pay: ['dump'],
+      size: '9 t · plataforma de 4 m', act: 'molinete puxa, tanque enche, tubo despeja' },
+    { id: 'escav', name: 'Escavadeira Hidráulica', cost: 800000, A: 500, r: 72, pow: 10, zoom: 0.62, spd: 380, reach: 120, park: 196, seat: 'cab', kind: 'escav', shake: 0.24, grains: 80, sfx: 'excavator', loop: 'diesel', pay: ['dump'],
       size: '22 t · braço de 9 m', act: 'braço articulado morde e despeja' },
-    { id: 'pacabo', name: 'Pá de Cabo Elétrica', cost: 2700000, A: 660, r: 100, pow: 9, zoom: 0.46, spd: 30, reach: 260, park: 262, seat: 'cab', kind: 'rope', cycle: 3.6, shake: 0.34, grains: 200, sfx: 'ropeshovel', loop: 'electric', pay: ['dump'],
+    { id: 'caminhao', name: 'Caminhão de Mineração', cost: 2700000, A: 660, r: 100, pow: 11, zoom: 0.36, spd: 260, reach: 0, park: 262, seat: 'cab', kind: 'haul', cycle: 11.2, shake: 0.42, grains: 400, sfx: 'hauler', loop: 'truck', pay: ['dump'],
+      size: '7,6 m de altura · 360 t de carga', act: 'Kome dirige; o Tetsu enche com a escavadeira' },
+    { id: 'pacabo', name: 'Pá de Cabo Elétrica', cost: 6500000, A: 860, r: 100, pow: 12.5, zoom: 0.46, spd: 30, reach: 260, park: 262, seat: 'cab', kind: 'rope', cycle: 3.6, shake: 0.34, grains: 200, sfx: 'ropeshovel', loop: 'electric', pay: ['dump'],
       size: '1.400 t · caçamba de 60 m³', act: 'conchada gigante e lenta: iça, gira, despeja' },
-    { id: 'caminhao', name: 'Caminhão de Mineração', cost: 6500000, A: 860, r: 100, pow: 11, zoom: 0.36, spd: 260, reach: 0, park: 262, seat: 'cab', kind: 'haul', cycle: 11.2, shake: 0.42, grains: 400, sfx: 'hauler', loop: 'truck', pay: ['dump'],
-      size: '7,6 m de altura · 360 t de carga', act: 'Kome dirige; capataz Tetsu carrega com a pá de cabo' },
-    { id: 'bagger', name: 'Bagger 293', cost: 13000000, A: 1300, r: 110, pow: 16, zoom: 0.26, spd: 40, reach: 560, seat: 'cab', kind: 'bagger', shake: 0.3, grains: 60, sfx: 'bagger', loop: 'bagger', pay: [], needs: ['bg1', 'bg2'],
+    // Bagger A e casas h4-h6 x1,5 (15/11): partida termina com ~85-92% da montanha cavada
+    { id: 'bagger', name: 'Bagger 293', cost: 6000000, A: 1950, r: 110, pow: 16, zoom: 0.31, spd: 40, reach: 560, seat: 'cab', kind: 'bagger', shake: 0.3, grains: 60, sfx: 'bagger', loop: 'bagger', pay: [], needs: ['bg1', 'bg2'],
       size: '96 m. 14.200 t. 1 shiba.', act: 'roda de 18 caçambas' },
   ];
 
@@ -76,8 +81,8 @@
   /* ---------------- materiais e bolsões ---------------- */
   D.MATS = [
     { id: 'solto', name: 'Arroz Solto', d0: 0, d1: 150, hard: 1, val: 1, slope: 3.6, col: '#F6F1E4', tex: 'loose' },
-    { id: 'prensado', name: 'Arroz Prensado', d0: 150, d1: 600, hard: 2.5, val: 1.6, slope: 6, col: '#E9DCBE', tex: 'pressed' },
-    { id: 'mochi', name: 'MOCHI DURO', d0: 600, d1: 1e9, hard: 8, val: 3.5, slope: 9, col: '#EFD9D2', tex: 'mochi' },
+    { id: 'prensado', name: 'Arroz Integral', d0: 150, d1: 600, hard: 2.5, val: 1.6, slope: 6, col: '#D8BF93', tex: 'pressed' },
+    { id: 'mochi', name: 'ARROZ NEGRO', d0: 600, d1: 1e9, hard: 8, val: 3.5, slope: 9, col: '#5A4565', tex: 'loose' },   // id 'mochi' fica (saves antigos); era mochi rosa, parecia rocha
     { id: 'koshi', name: 'Núcleo Koshihikari', ellipse: { cx: 4900, cy: 0, rx: 1150, ry: 900 }, hard: 24, val: 6, slope: 12, col: '#E8B93A', tex: 'gold' },
   ];
   D.POCKETS = { n: 28, r: [35, 90], mult: 8, minDepth: 60 };
@@ -90,17 +95,17 @@
   D.STOMP = { every: 6, worthSec: 1.2, radMul: 3 };
 
   /* ---------------- coletor (pra onde o arroz vai), por degrau ---------------- */
-  D.COLLECTOR = ['cesto', 'cesto', 'saco', 'barraca', 'barraca', 'barraca', 'kei', 'kei', 'silo', 'silo', 'moega', 'moega', 'moega'];
+  D.COLLECTOR = ['cesto', 'cesto', 'saco', 'barraca', 'barraca', 'barraca', 'kei', 'kei', 'kei', 'silo', 'silo', 'moega', 'moega', 'moega'];
   D.PAY_DELAY = [0.3, 0.6];
 
   /* ---------------- casa ---------------- */
   D.HOUSE = [
     { id: 'h1', n: 'Terreno', c: 200000, tier: 7, perk: { help: 1 }, draw: 'placa VENDIDO, corda, bandeirinha; um shiba novo sai do terreno' },
-    { id: 'h2', n: 'Fundação', c: 3000000, tier: 9, perk: { sell: 1.25 }, draw: 'laje, estacas, betoneira, pegada do Kome' },
-    { id: 'h3', n: 'Estrutura de Hinoki', c: 12000000, tier: 11, perk: { offCap: 4 }, draw: 'esqueleto de madeira, paredes shoji, engawa' },
-    { id: 'h4', n: 'Telhado Kawara', c: 28000000, tier: 12, perk: { nightGlow: 1 }, draw: 'telhas azul-cinza, lanterna acesa' },
-    { id: 'h5', n: 'Jardim com Lago de Carpas', c: 48000000, tier: 12, perk: { sell: 1.3 }, draw: 'lago com nishikigoi, tōrō, ponte, momiji' },
-    { id: 'h6', n: 'Onsen', c: 70000000, teaser: 35000000, tier: 12, perk: { end: 1 }, draw: 'rotenburo, vapor, capivara hóspede' },
+    { id: 'h2', n: 'Fundação', c: 3000000, tier: 10, perk: { sell: 1.25 }, draw: 'laje, estacas, betoneira, pegada do Kome' },
+    { id: 'h3', n: 'Estrutura de Hinoki', c: 9000000, tier: 12, perk: { offCap: 4 }, draw: 'esqueleto de madeira, paredes shoji, engawa' },
+    { id: 'h4', n: 'Telhado Kawara', c: 75000000, tier: 13, perk: { nightGlow: 1 }, draw: 'telhas azul-cinza, lanterna acesa' },
+    { id: 'h5', n: 'Jardim com Lago de Carpas', c: 115000000, tier: 13, perk: { sell: 1.3 }, draw: 'lago com nishikigoi, tōrō, ponte, momiji' },
+    { id: 'h6', n: 'Onsen', c: 105000000, teaser: 55000000, tier: 13, perk: { end: 1 }, draw: 'rotenburo, vapor, capivara hóspede' },
   ];
 
   /* ---------------- árvore do Kome (68 nós, GDD §6) ---------------- */
@@ -121,7 +126,7 @@
    see:'patas do Kome crescem 20% e ganham almofadinhas rosa; 5 grãos por batida em vez de 3'},
  {id:'c3',n:'Patada Sísmica',c:3000,branch:'colheita',pos:{x:0.0,y:-2.5},req:['c1'],tier:4,size:2,fx:{stomp:1,dig:1.15},
    see:'KEYSTONE: a cada 6 s cavando Kome pula e abre cratera de 3r, anel de poeira, shake 4 px'},
- {id:'c_spd',n:'Patas Ligeiras',c:1200,branch:'colheita',pos:{x:-1.0,y:-2.5},req:['c1'],tier:4,size:0,fx:{spd:1.2},
+ {id:'c_spd',n:'Patas Ligeiras',c:1200,branch:'colheita',pos:{x:-1.0,y:-2.5},req:['c1'],tier:4,size:0,fx:{spd:1.2,dig:1.15},
    see:'Kome corre com rastro de 3 afterimages e poeirinha nos pés'},
  {id:'cA',n:'Almofadinhas Calejadas',c:5100,branch:'colheita',pos:{x:0.0,y:-3.8},req:['c3'],tier:5,size:0,fx:{dig:1.1},
    see:'animação de uso 10% mais rapida; +2 grãos por batida no jato'},
@@ -131,15 +136,19 @@
    see:'solto o dedo, Kome continua cavando sozinho com olheiras e uma gota de suor'},
  {id:'cB',n:'Diesel Premium',c:54000,branch:'colheita',pos:{x:0.0,y:-5.0},req:['cA'],tier:7,size:0,fx:{dig:1.1},
    see:'fumaça do escape vira azul e mais densa; motor sobe meio tom'},
+ {id:'c6b',n:'Workaholic II',c:320000,branch:'colheita',pos:{x:2.0,y:-4.4},req:['c6'],tier:9,size:0,fx:{auto:0.7},
+   see:'quando você solta, o Kome cava sozinho a 70%; duas gotas de suor'},
+ {id:'c6c',n:'Kome Incansável',c:4500000,branch:'colheita',pos:{x:2.0,y:-6.2},req:['c6b'],tier:12,size:1,fx:{auto:1},
+   see:'cava sozinho no ritmo cheio, de faixa na cabeça'},
  {id:'combo1',n:'Ritmo de Taiko',c:81000,branch:'colheita',pos:{x:1.0,y:-5.0},req:['c6'],tier:7,size:1,fx:{comboCap:1.75},
    see:'barra de combo ganha 2º segmento; taiko entra na música acima de x1,5'},
  {id:'cC',n:'Lâminas Afiadas',c:180000,branch:'colheita',pos:{x:0.0,y:-6.2},req:['cB'],tier:8,size:0,fx:{dig:1.1},
    see:'brilho "ting" percorre a lâmina/garfo/dente a cada 4 s; corte solta faíscas brancas'},
- {id:'c7',n:'Fúria do Kome',c:810000,branch:'colheita',pos:{x:1.0,y:-6.2},req:['combo1'],tier:9,size:2,fx:{furia:1.33},
+ {id:'c7',n:'Fúria do Kome',c:810000,branch:'colheita',pos:{x:1.0,y:-6.2},req:['combo1'],tier:10,size:2,fx:{furia:1.33},
    see:'KEYSTONE: 10 s em combo max -> 5 s de iene x2: Kome uiva, aura vermelha, tela com speedlines'},
- {id:'cD',n:'Turbo Intercooler',c:540000,branch:'colheita',pos:{x:0.0,y:-7.5},req:['cC'],tier:9,size:0,fx:{dig:1.12},
+ {id:'cD',n:'Turbo Intercooler',c:540000,branch:'colheita',pos:{x:0.0,y:-7.5},req:['cC'],tier:10,size:0,fx:{dig:1.12},
    see:'turbina visível no capô girando; apito de turbo ao segurar'},
- {id:'c8',n:'Combo Mestre',c:2600000,branch:'colheita',pos:{x:1.0,y:-7.5},req:['c7'],tier:10,size:1,fx:{comboCap:2},
+ {id:'c8',n:'Combo Mestre',c:2600000,branch:'colheita',pos:{x:1.0,y:-7.5},req:['c7'],tier:11,size:1,fx:{comboCap:2},
    see:'barra de combo com 3º segmento arco-iris; números de iene pulsam no ritmo'},
  {id:'m1',n:'Barraquinha',c:250,branch:'comercio',pos:{x:1.2,y:-0.4},req:[],tier:2,size:1,fx:{sell:1.5},
    see:'barraca com noren, obaa-san e fila de 3 clientes no pátio'},
@@ -153,21 +162,21 @@
    see:'fábrica no pátio; chaminé solta baforadas em forma de onigiri'},
  {id:'m_d',n:'Embalagem Kawaii',c:270000,branch:'comercio',pos:{x:7.1,y:-2.3},req:['m5'],tier:8,size:0,fx:{sell:1.15},
    see:'sacos e pops de iene passam a ter carinha sorrindo'},
- {id:'m7a',n:'Selo Premium',c:700000,branch:'comercio',pos:{x:6.3,y:-1.0},req:['m5'],tier:9,size:0,fx:{val:1.12},
-   see:'camada prensada ganha brilho perolado; pops de prensado/mochi com selo vermelho'},
- {id:'m_e',n:'Ekiben de Estação',c:970000,branch:'comercio',pos:{x:6.8,y:-3.3},req:['m5'],tier:9,size:0,fx:{sell:1.15},
+ {id:'m7a',n:'Selo Premium',c:700000,branch:'comercio',pos:{x:6.3,y:-1.0},req:['m5'],tier:10,size:0,fx:{val:1.12},
+   see:'camada integral ganha brilho perolado; pops de integral/negro com selo vermelho'},
+ {id:'m_e',n:'Ekiben de Estação',c:970000,branch:'comercio',pos:{x:6.8,y:-3.3},req:['m5'],tier:10,size:0,fx:{sell:1.15},
    see:'plataforma de estação com quiosque de ekiben ao lado do trilho'},
- {id:'m8',n:'Trem de Arroz',c:1600000,branch:'comercio',pos:{x:8.3,y:-2.7},req:['m_d'],tier:9,size:2,fx:{sell:1.3},
+ {id:'m8',n:'Trem de Arroz',c:1600000,branch:'comercio',pos:{x:8.3,y:-2.7},req:['m_d'],tier:10,size:2,fx:{sell:1.3},
    see:'KEYSTONE: trem (loco + 3 vagões) cruza o fundo a cada 20 s; tocar o apito na passagem = +3 s de renda'},
- {id:'m7b',n:'Selo Ouro',c:1700000,branch:'comercio',pos:{x:7.4,y:-1.4},req:['m7a'],tier:10,size:0,fx:{val:1.12},
+ {id:'m7b',n:'Selo Ouro',c:1700000,branch:'comercio',pos:{x:7.4,y:-1.4},req:['m7a'],tier:11,size:0,fx:{val:1.12},
    see:'mochi ganha veios dourados; estilhacos de mochi brilham'},
- {id:'m_f',n:'Exportação',c:2300000,branch:'comercio',pos:{x:8.0,y:-3.7},req:['m_e'],tier:10,size:0,fx:{sell:1.15},
+ {id:'m_f',n:'Exportação',c:2300000,branch:'comercio',pos:{x:8.0,y:-3.7},req:['m_e'],tier:11,size:0,fx:{sell:1.15},
    see:'contêineres coloridos empilhados no pátio, guindaste portuário pequeno'},
- {id:'m9',n:'Destilaria de Sake',c:3400000,branch:'comercio',pos:{x:9.5,y:-3.1},req:['m8'],tier:10,size:0,fx:{sell:1.15},
+ {id:'m9',n:'Destilaria de Sake',c:3400000,branch:'comercio',pos:{x:9.5,y:-3.1},req:['m8'],tier:11,size:0,fx:{sell:1.15},
    see:'destilaria com barris komodaru; tanuki bêbado dorme na porta'},
- {id:'m11',n:'Porto de Niigata',c:6500000,branch:'comercio',pos:{x:9.2,y:-4.0},req:['m_f'],tier:11,size:0,fx:{sell:1.15},
+ {id:'m11',n:'Porto de Niigata',c:6500000,branch:'comercio',pos:{x:9.2,y:-4.0},req:['m_f'],tier:12,size:0,fx:{sell:1.15},
    see:'navio cargueiro no horizonte recebe o trem; gaivotas'},
- {id:'m10',n:'Marca "Kome no Japão"',c:42000000,branch:'comercio',pos:{x:10.7,y:-3.5},req:['m9','m11'],tier:12,size:1,fx:{sell:1.25},
+ {id:'m10',n:'Marca "Kome no Japão"',c:42000000,branch:'comercio',pos:{x:10.7,y:-3.5},req:['m9','m11'],tier:13,size:1,fx:{sell:1.25},
    see:'outdoor gigante com o rosto do Kome; pops de iene viram dourados com logo'},
  {id:'a1',n:'Shiba Ajudante',c:1500,branch:'equipe',pos:{x:0.7,y:1.0},req:[],tier:4,size:1,fx:{help:1},
    see:'Goma chega cavando com tigela ao lado do Kome'},
@@ -191,43 +200,45 @@
    see:'7 shibas; passam a cantar "wan-wan-ho!" em coro'},
  {id:'e3',n:'Apito do Capataz',c:140000,branch:'equipe',pos:{x:2.9,y:5.6},req:['a7'],tier:8,size:0,fx:{hv:1.15},
    see:'um shiba de apito marca o ritmo; ajudantes cavam sincronizados'},
- {id:'a9',n:'Esteira',c:1200000,branch:'equipe',pos:{x:3.6,y:6.7},req:['e3'],tier:9,size:1,fx:{hv:1.3},
+ {id:'a9',n:'Esteira',c:1200000,branch:'equipe',pos:{x:3.6,y:6.7},req:['e3'],tier:10,size:1,fx:{hv:1.3},
    see:'esteira do pé da montanha ao silo com grãos rolando'},
- {id:'e4',n:'Capacetes',c:1300000,branch:'equipe',pos:{x:4.5,y:4.5},req:['a6'],tier:10,size:0,fx:{hm:1.11},
+ {id:'e4',n:'Capacetes',c:1300000,branch:'equipe',pos:{x:4.5,y:4.5},req:['a6'],tier:11,size:0,fx:{hm:1.11},
    see:'todos os ajudantes de capacete amarelo e colete refletivo'},
- {id:'a10',n:'Capatazes',c:3000000,branch:'equipe',pos:{x:4.4,y:6.1},req:['a8'],tier:10,size:0,fx:{help:1},
+ {id:'a10',n:'Capatazes',c:3000000,branch:'equipe',pos:{x:4.4,y:6.1},req:['a8'],tier:11,size:0,fx:{help:1},
    see:'capataz em mini-escavadeira amarela'},
- {id:'e5',n:'Rádio da Obra',c:3600000,branch:'equipe',pos:{x:4.3,y:7.7},req:['a9','a10'],tier:11,size:0,fx:{hv:1.15},
+ {id:'e5',n:'Rádio da Obra',c:3600000,branch:'equipe',pos:{x:4.3,y:7.7},req:['a9','a10'],tier:12,size:0,fx:{hv:1.15},
    see:'antena no pátio; balões "copiado!" e enka baixinho no rádio'},
  {id:'p1',n:'Piloto pro Trator',c:210000,branch:'maquinas',pos:{x:-0.7,y:1.0},req:[],tier:8,size:1,fx:{pilot:'trator'},
    see:'Goma sobe no trator estacionado e empurra ondas sozinha (placa PRECISA-SE some)'},
- {id:'p2',n:'Piloto pra Empilhadeira',c:590000,branch:'maquinas',pos:{x:-1.5,y:2.0},req:['p1'],tier:9,size:1,fx:{pilot:'empilhadeira'},
+ {id:'p1b',n:'Piloto pra Colheitadeira',c:380000,branch:'maquinas',pos:{x:0.2,y:2.0},req:['p1'],tier:10,size:1,fx:{pilot:'colheita'},
+   see:'um shiba assume a colheitadeira no pátio'},
+ {id:'p2',n:'Piloto pra Empilhadeira',c:590000,branch:'maquinas',pos:{x:-1.5,y:2.0},req:['p1'],tier:10,size:1,fx:{pilot:'empilhadeira'},
    see:'Kuro pilota a empilhadeira e empilha paletes no pátio'},
- {id:'p3',n:'Piloto pra Escavadeira',c:2000000,branch:'maquinas',pos:{x:-2.2,y:3.0},req:['p2'],tier:10,size:1,fx:{pilot:'escav'},
+ {id:'p3',n:'Piloto pra Escavadeira',c:2000000,branch:'maquinas',pos:{x:-2.2,y:3.0},req:['p2'],tier:11,size:1,fx:{pilot:'escav'},
    see:'Shiro opera a escavadeira num terraço próprio'},
- {id:'e2a',n:'Oficina',c:1400000,branch:'maquinas',pos:{x:-3.0,y:2.4},req:['p2'],tier:10,size:0,fx:{pm:1.15},
+ {id:'e2a',n:'Oficina',c:1400000,branch:'maquinas',pos:{x:-3.0,y:2.4},req:['p2'],tier:11,size:0,fx:{pm:1.15},
    see:'galpao-oficina; máquinas pilotadas ganham pintura nova e brilho'},
- {id:'bg1',n:'Projeto Bagger 1/3: Esteiras',c:6300000,branch:'maquinas',pos:{x:-2.1,y:4.6},req:['p3'],tier:11,size:1,fx:{part:1},
+ {id:'bg1',n:'Projeto Bagger 1/3: Esteiras',c:6300000,branch:'maquinas',pos:{x:-2.1,y:4.6},req:['p3'],tier:12,size:1,fx:{part:1},
    see:'comboio traz as 3 esteiras; guindastes e soldadores no pátio'},
- {id:'p4',n:'Frota da Pá de Cabo',c:4700000,branch:'maquinas',pos:{x:-2.9,y:4.0},req:['p3'],tier:11,size:1,fx:{pilot:'pacabo'},
+ {id:'p4',n:'Piloto pro Caminhão',c:4700000,branch:'maquinas',pos:{x:-2.9,y:4.0},req:['p3'],tier:12,size:1,fx:{pilot:'caminhao'},
    see:'2 caminhões amarelos de shibas entram no ciclo; a pá de cabo nunca para'},
- {id:'e2b',n:'Turno da Noite',c:4200000,branch:'maquinas',pos:{x:-3.7,y:3.5},req:['e2a'],tier:11,size:0,fx:{pm:1.13},
+ {id:'e2b',n:'Turno da Noite',c:4200000,branch:'maquinas',pos:{x:-3.7,y:3.5},req:['e2a'],tier:12,size:0,fx:{pm:1.13},
    see:'torres de luz; faróis e giroflex nas máquinas pilotadas à noite'},
- {id:'bg2',n:'Projeto Bagger 2/3: Torre e Contrapeso',c:10000000,branch:'maquinas',pos:{x:-2.9,y:5.6},req:['bg1'],tier:11,size:1,fx:{part:1},
+ {id:'bg2',n:'Projeto Bagger 2/3: Torre e Contrapeso',c:8500000,branch:'maquinas',pos:{x:-2.9,y:5.6},req:['bg1'],tier:12,size:1,fx:{part:1},
    see:'torre e contrapeso sobem; silhueta já tapa o sol da tarde'},
- {id:'b0',n:'Buzina',c:293,branch:'maquinas',pos:{x:-3.6,y:6.7},req:['bg2'],tier:12,size:0,fx:{horn:1},
+ {id:'b0',n:'Buzina',c:293,branch:'maquinas',pos:{x:-3.6,y:6.7},req:['bg2'],tier:13,size:0,fx:{horn:1},
    see:'botão BUZINA: onda de choque visível, corvos e shibas pulam'},
- {id:'p5',n:'Piloto pro Caminhão',c:11000000,branch:'maquinas',pos:{x:-3.7,y:5.1},req:['p4'],tier:12,size:1,fx:{pilot:'caminhao'},
+ {id:'p5',n:'Frota da Pá de Cabo',c:11000000,branch:'maquinas',pos:{x:-3.7,y:5.1},req:['p4'],tier:13,size:1,fx:{pilot:'pacabo'},
    see:'o 797 do Kome entra na frota com Pochi no volante (só se vê o capacete)'},
- {id:'b1',n:'Roda Turbo',c:8400000,branch:'maquinas',pos:{x:-4.3,y:7.7},req:['b0'],tier:12,size:0,fx:{dig:1.2},
+ {id:'b1',n:'Roda Turbo',c:8400000,branch:'maquinas',pos:{x:-4.3,y:7.7},req:['b0'],tier:13,size:0,fx:{dig:1.2},
    see:'roda gira 20% mais rápido; caçambas viram borrão, "tchac" mais agudo'},
- {id:'b2',n:'Lança Longa',c:10000000,branch:'maquinas',pos:{x:-4.4,y:6.1},req:['b0'],tier:12,size:0,fx:{boom:1.3},
+ {id:'b2',n:'Lança Longa',c:10000000,branch:'maquinas',pos:{x:-4.4,y:6.1},req:['b0'],tier:13,size:0,fx:{boom:1.3},
    see:'lança estica de 560 pra 730 px com treliça nova'},
- {id:'bK',n:'Mordida Perfeita+',c:14000000,branch:'maquinas',pos:{x:-5.9,y:8.1},req:['b1','b2'],tier:12,size:2,fx:{mordida:1},
+ {id:'bK',n:'Mordida Perfeita+',c:14000000,branch:'maquinas',pos:{x:-5.9,y:8.1},req:['b1','b2'],tier:13,size:2,fx:{mordida:1},
    see:'KEYSTONE: faixa perfeita 0,35-0,75 e x1,6; arco fica dourado e 3 perfeitas seguidas disparam "x3 NESTA MORDIDA"'},
- {id:'b3',n:'Caçambas de Titânio',c:18000000,branch:'maquinas',pos:{x:-5.1,y:8.7},req:['b1'],tier:12,size:1,fx:{powMul:1.5,titan:1},
+ {id:'b3',n:'Caçambas de Titânio',c:18000000,branch:'maquinas',pos:{x:-5.1,y:8.7},req:['b1'],tier:13,size:1,fx:{powMul:1.5,titan:1},
    see:'caçambas azul-titânio; o Núcleo Koshihikari solta lascas douradas a 100%'},
- {id:'b4',n:'Esteira Tronco Dupla',c:24000000,branch:'maquinas',pos:{x:-6.0,y:6.5},req:['b2','a9'],tier:12,size:0,fx:{sell:1.15},
+ {id:'b4',n:'Esteira Tronco Dupla',c:24000000,branch:'maquinas',pos:{x:-6.0,y:6.5},req:['b2','a9'],tier:13,size:0,fx:{sell:1.15},
    see:'segunda esteira paralela até os silos; fluxo de grãos dobra de espessura'},
  {id:'s1',n:'Sacos Maiores',c:840,branch:'sorte',pos:{x:-1.2,y:-0.4},req:[],tier:3,size:1,fx:{sack:1.5},
    see:'sprite do saco 30% maior com laço vermelho'},
@@ -245,13 +256,13 @@
    see:'críticos soltam chuva de 6 moedas; ajudantes também'},
  {id:'s8',n:'Sacos Dourados',c:290000,branch:'sorte',pos:{x:-5.1,y:-0.6},req:['s5'],tier:8,size:0,fx:{sack:1.3},
    see:'sacos dourados com brilho e raio de luz ao estourar'},
- {id:'s9',n:'Onigiri Duplo',c:430000,branch:'sorte',pos:{x:-4.4,y:-2.5},req:['s3'],tier:9,size:0,fx:{oni:0.12},
+ {id:'s9',n:'Onigiri Duplo',c:430000,branch:'sorte',pos:{x:-4.4,y:-2.5},req:['s3'],tier:10,size:0,fx:{oni:0.12},
    see:'onigiris passam em dupla; o segundo é de ume com ponto vermelho'},
- {id:'s10',n:'Veio de Ouro',c:810000,branch:'sorte',pos:{x:-5.9,y:-1.9},req:['s7'],tier:9,size:0,fx:{gold:12},
+ {id:'s10',n:'Veio de Ouro',c:810000,branch:'sorte',pos:{x:-5.9,y:-1.9},req:['s7'],tier:10,size:0,fx:{gold:12},
    see:'bolsões ligados por veios dourados visíveis no corte da montanha'},
- {id:'s11',n:'Chá da Obaa-san',c:590000,branch:'sorte',pos:{x:-5.6,y:-2.9},req:['s9'],tier:9,size:0,fx:{vis:0.05},
+ {id:'s11',n:'Chá da Obaa-san',c:590000,branch:'sorte',pos:{x:-5.6,y:-2.9},req:['s9'],tier:10,size:0,fx:{vis:0.05},
    see:'mesinha de chá no pátio; visitantes ficam +5 s e pagam mais'},
- {id:'s12',n:'DESLIZAMENTO!',c:1200000,branch:'sorte',pos:{x:-6.3,y:-1.0},req:['s8'],tier:10,size:1,fx:{slide:1},
+ {id:'s12',n:'DESLIZAMENTO!',c:1200000,branch:'sorte',pos:{x:-6.3,y:-1.0},req:['s8'],tier:11,size:1,fx:{slide:1},
    see:'avalanche >40.000 px² vira evento: banner, câmera treme, iene x1,5 por 3 s'},
   ];
 
@@ -259,6 +270,67 @@
   D.TIER_SHIFT_FROM = 7;
   for (const n of D.TREE) if (n.tier >= D.TIER_SHIFT_FROM) n.tier += 1;
   for (const h of D.HOUSE) if (h.tier >= D.TIER_SHIFT_FROM) h.tier += 1;
+  /* achados enterrados (adendo §7): saem dos bolsões de ouro; só enfeite, sem efeito no jogo */
+  D.CLOSET = [
+    { id: 'kin', kind: 'pal', n: 'Kome Dourado', d: 'pelo dourado e chapéu vermelho' },
+    { id: 'sakura', kind: 'pal', n: 'Kome Sakura', d: 'chapéu rosa de cerejeira' },
+    { id: 'matcha', kind: 'pal', n: 'Kome Matcha', d: 'chapéu verde de chá' },
+    { id: 'yuki', kind: 'pal', n: 'Kome da Neve', d: 'pelo branquinho e gorro vermelho' },
+    { id: 'sumi', kind: 'pal', n: 'Kome Carvão', d: 'pelo cinza de mineiro' },
+    { id: 'oculos', kind: 'acc', n: 'Óculos Escuros', d: 'estilo de operador de Bagger' },
+    { id: 'cachecol', kind: 'acc', n: 'Cachecol Vermelho', d: 'balança quando ele corre' },
+    { id: 'flor', kind: 'acc', n: 'Flor de Sakura', d: 'presa atrás da orelha' },
+    { id: 'aka', kind: 'pal', n: 'Kome Ruivo', d: 'pelo vermelho-raposa' },
+    { id: 'cha', kind: 'pal', n: 'Kome Chocolate', d: 'pelo marrom e chapéu de palha velho' },
+    { id: 'coroa', kind: 'acc', n: 'Coroa de Ouro', d: 'rei da montanha de arroz' },
+    { id: 'bandana', kind: 'acc', n: 'Bandana Azul', d: 'de quem cava o dia inteiro' },
+    { id: 'gorro', kind: 'acc', n: 'Gorro de Lã', d: 'quentinho, com pompom' },
+    { id: 'laco', kind: 'acc', n: 'Laço Vermelho', d: 'fofura máxima' },
+    { id: 'capa', kind: 'acc', n: 'Capa de Herói', d: 'tremula quando ele corre' },
+    // só aparecem enterradas na ilha delas (coleção longa)
+    { id: 'kuro', kind: 'pal', n: 'Kome de Hokkaido', d: 'pelo preto e caramelo (só em Hokkaido)', island: 1 },
+    { id: 'goma', kind: 'pal', n: 'Kome do Vulcão', d: 'pelo cinza de cinzas (só em Kyushu)', island: 2 },
+    { id: 'shiro', kind: 'pal', n: 'Kome da Praia', d: 'pelo branquinho e chapéu azul (só em Okinawa)', island: 3 },
+  ];
+  // casa do Kome (etapa 3): enfeites, bichinhos e temas. Só visual; preço = segundos da renda atual (sec × ¥/s), então sempre dá pra comprar algo.
+  D.DECOR = [
+    { id: 'flores', kind: 'decor', n: 'Canteiro de flores', d: 'tanpopo, íris e ajisai', sec: 30 },
+    { id: 'lanterna', kind: 'decor', n: 'Lanterna de pedra', d: 'acende sozinha à noite', sec: 45 },
+    { id: 'pedras', kind: 'decor', n: 'Pedras com musgo', d: 'jardim zen', sec: 40 },
+    { id: 'bonsai', kind: 'decor', n: 'Bonsai', d: 'o Kome poda todo domingo', sec: 70 },
+    { id: 'sino', kind: 'decor', n: 'Sino de vento', d: 'fūrin que canta na brisa', sec: 60 },
+    { id: 'sakura', kind: 'decor', n: 'Cerejeira', d: 'pétalas caindo o ano todo', sec: 110 },
+    { id: 'momiji', kind: 'decor', n: 'Bordo vermelho', d: 'momiji de outono', sec: 110 },
+    { id: 'bambu', kind: 'decor', n: 'Bambuzal', d: 'balança com o vento', sec: 90 },
+    { id: 'koinobori', kind: 'decor', n: 'Koinobori', d: 'carpas de pano no mastro', sec: 130 },
+    { id: 'lago', kind: 'decor', n: 'Lago', d: 'com vitórias-régias', sec: 200 },
+    { id: 'torii', kind: 'decor', n: 'Torii', d: 'portal vermelho no quintal', sec: 240 },
+    { id: 'onsen', kind: 'decor', n: 'Onsen', d: 'banho quente de pedras', sec: 320 },
+    { id: 'carpas', kind: 'pet', n: 'Carpas', d: 'nadam no lago (precisa do Lago)', sec: 150, needs: 'lago' },
+    { id: 'borboletas', kind: 'pet', n: 'Borboletas', d: 'visitam as flores', sec: 50 },
+    { id: 'passaros', kind: 'pet', n: 'Passarinhos', d: 'revoada no céu', sec: 60 },
+    { id: 'vagalumes', kind: 'pet', n: 'Vaga-lumes', d: 'piscam no quintal', sec: 90 },
+    { id: 'capivara', kind: 'pet', n: 'Capivara', d: 'de molho no onsen (precisa do Onsen)', sec: 200, needs: 'onsen' },
+    { id: 'goma', kind: 'pet', n: 'Amigo Goma', d: 'shiba cinza que vem brincar', sec: 160, pal: 'goma' },
+    { id: 'kuro', kind: 'pet', n: 'Amiga Kuro', d: 'shiba preta e caramelo', sec: 220, pal: 'kuro' },
+    { id: 'shiro', kind: 'pet', n: 'Amigo Shiro', d: 'shiba branco de chapéu azul', sec: 280, pal: 'shiro' },
+  ];
+  D.decorById = {}; D.DECOR.forEach(x => { D.decorById[x.id] = x; });
+  // temas de fundo: valem pra casa e pro jogo (o que cai do céu e a cor do dia)
+  D.THEMES = [
+    { id: 'verao', n: 'Verão', d: 'céu limpo', sec: 0, fall: null, tint: null },
+    { id: 'primavera', n: 'Primavera', d: 'pétalas de sakura caindo', sec: 90, fall: 'petal', tint: 'rgba(255,200,220,0.10)' },
+    { id: 'outono', n: 'Outono', d: 'folhas de momiji no vento', sec: 120, fall: 'leaf', tint: 'rgba(255,160,60,0.12)' },
+    { id: 'inverno', n: 'Inverno', d: 'neve fofinha', sec: 150, fall: 'snow', tint: 'rgba(200,225,255,0.16)' },
+  ];
+  D.themeById = {}; D.THEMES.forEach(x => { D.themeById[x.id] = x; });
+  // aplica o BOOST: ferramenta do degrau i+1 é paga no degrau i; nós e casas de tier t ficam à venda a partir do degrau t-1
+  (function () {
+    const B = D.ECON.BOOST, b = i => { const k = Math.max(0, Math.min(B.length - 1, i)); return B[k] * (k >= 7 ? 1.12 : 1); };   // 1,12: segura o meio da partida no ritmo antigo
+    D.TOOLS.forEach((t, i) => { if (i > 0) t.cost = Math.round(t.cost * b(i - 1)); });
+    D.TREE.forEach(n => { if (n.tier) { n.c = Math.round(n.c * b(n.tier - 1)); } });
+    D.HOUSE.forEach(h => { const k = b(h.tier - 1); h.c = Math.round(h.c * k); if (h.teaser) h.teaser = Math.round(h.teaser * k); });
+  })();
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
   D.nodeById = {}; D.TREE.forEach(n => { D.nodeById[n.id] = n; });
 })();

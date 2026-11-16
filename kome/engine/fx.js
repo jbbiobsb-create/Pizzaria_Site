@@ -1,5 +1,5 @@
 /* =====================================================================
-   Kome Engine v1.0 · fx.js
+   Pixxel v1.0 · fx.js
    Câmera, partículas, textos flutuantes e efeitos de tela.
 
    - E.Camera     câmera 2D: follow suave, zoom em escala logarítmica (não treme em zoom minúsculo),
@@ -14,8 +14,8 @@
    ===================================================================== */
 (function () {
   'use strict';
-  const E = (window.KomeEngine = window.KomeEngine || {});
-  if (!E.U) throw new Error('KomeEngine: carregue core.js antes de fx.js');
+  const E = (window.Pixxel = window.Pixxel || {});
+  if (!E.U) throw new Error('Pixxel: carregue core.js antes de fx.js');
   const U = E.U, Noise = E.Noise;
   const TAU = Math.PI * 2, HALF_PI = Math.PI / 2;
   const LINE = E.LINE_CSS || '#3B2818';
@@ -799,7 +799,7 @@
     const fx = {
       realTime: true,   // true: anima pelo relógio real (continua durante hitstop / timeScale 0); false: usa o dt recebido
       // flash(cor='#FFFAEE', dur=.25, alfa=.85): clarão que some
-      flash(col, dur, a) { flash.col = col || CREAM; flash.dur = dur || 0.25; flash.t = 0; flash.a = a === undefined ? 0.85 : a; return fx; },
+      flash(col, dur, a) { if (E.reducedMotion) return fx; flash.col = col || CREAM; flash.dur = dur || 0.25; flash.t = 0; flash.a = a === undefined ? 0.85 : a; return fx; },
       // fade(to, dur=.5, cb, cor): escurece (to=1) ou clareia (to=0) a tela; cb quando termina
       fade(to, dur, cb, col) {
         fade.from = fade.a; fade.to = U.clamp(+to, 0, 1); fade.t = 0; fade.dur = dur === undefined ? 0.5 : dur; fade.cb = cb || null;

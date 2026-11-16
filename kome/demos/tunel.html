@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teste: túneis na montanha</title>
+<style>html,body{margin:0;height:100%;background:#1d1b18;overflow:hidden}#info{position:fixed;left:8px;top:6px;color:#FFF8EC;font:700 13px system-ui;text-shadow:0 1px 0 #000}</style>
+</head>
+<body>
+<div id="info"></div>
+<canvas id="c"></canvas>
+<script>
+/* Protótipo pequeno pra decidir se dá pra levar túnel pro jogo.
+   Ideia: a montanha atual é um mapa de altura (uma altura por coluna) e por isso só dá pra cavar a superfície.
+   Aqui ela é uma GRADE de células (areia que cai, estilo Noita), mas só as células perto do que mudou são simuladas
+   ("pedaços acordados"); o resto dorme e custa zero. Desenho: uma imagem do tamanho da grade (1 pixel por célula), ampliada.
+   Clique/segure = cava um círculo (túnel). Botão direito = joga arroz. T = alterna "arroz solto cai" x "arroz firme fica" */
+(function () {
+  'use strict';
+  const GW = 320, GH = 180, CH = 16;                         // grade de células e tamanho do pedaço (chunk)
+  const EMPTY = 0, LOOSE = 1, PACKED = 2, BLACK = 3, AIR_WALL = 4;
+  const cell = new Uint8Array(GW * GH), shade = new Uint8Array(GW * GH);
+  const CX = Math.ceil(GW / CH), CY = Math.ceil(GH / CH), awake = new Uint8Array(CX * CY), next = new Uint8Array(CX * CY);
+  const cv = document.getElementById('c'), g = cv.getContext('2d'), img = g.createImageData(GW, GH), info = document.getElementById('info');
+  const tmp = document.createElement('canvas'); tmp.width = GW; tmp.height = GH; const tg = tmp.getContext('2d');
+  let firm = true, frames = 0, simCells = 0, ms = 0, t0 = performance.now();
+  // montanha: triângulo com camadas (branco em cima, integral no meio, negro embaixo)
+  for (let x = 0; x < GW; x++) {
+    const top = Math.max(0, GH - Math.min(x * 1.3, (GW - x) * 1.3, GH - 8));
+    for (let y = Math.floor(top); y < GH; y++) {
+      const d = y - top, i = y * GW + x;
+      cell[i] = d < 16 ? LOOSE : d < 60 ? PACKED : BLACK;
+      shade[i] = (Math.random() * 3) | 0;                   // 3 tons por material, fixo por célula (vira o "grão")
+    }
+  }
+  const COL = { 1: [[251, 248, 239], [232, 226, 210], [214, 205, 186]], 2: [[216, 191, 147], [196, 170, 126], [176, 150, 108]], 3: [[100, 80, 112], [86, 68, 98], [72, 56, 84]] };
+  const wake = (x, y) => { const cx = (x / CH) | 0, cy = (y / CH) | 0; for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) { const a = cx + k, b = cy + j; if (a >= 0 && b >= 0 && a < CX && b < CY) next[b * CX + a] = 1; } };
+  const at = (x, y) => (x < 0 || y < 0 || x >= GW || y >= GH) ? AIR_WALL : cell[y * GW + x];
+  function swap(a, b) { const c = cell[a]; cell[a] = cell[b]; cell[b] = c; const s = shade[a]; shade[a] = shade[b]; shade[b] = s; }
+  // regra de queda: solto cai e escorrega na diagonal. Firme (prensado/negro) só cai se não tiver NADA embaixo nem do lado (arco segura túnel).
+  function step() {
+    simCells = 0;
+    awake.set(next); next.fill(0);
+    for (let cy = CY - 1; cy >= 0; cy--) for (let cx = 0; cx < CX; cx++) {
+      if (!awake[cy * CX + cx]) continue;
+      const y0 = cy * CH, y1 = Math.min(GH, y0 + CH), x0 = cx * CH, x1 = Math.min(GW, x0 + CH), dir = frames & 1;
+      for (let y = y1 - 1; y >= y0; y--) for (let q = 0; q < x1 - x0; q++) {
+        const x = dir ? x0 + q : x1 - 1 - q, i = y * GW + x, m = cell[i];
+        if (m === EMPTY) continue; simCells++;
+        if (m !== LOOSE && firm) {                            // firme: cai só solto no ar (sem apoio embaixo e dos lados)
+          if (at(x, y + 1) === EMPTY && at(x - 1, y) === EMPTY && at(x + 1, y) === EMPTY && at(x - 1, y + 1) === EMPTY && at(x + 1, y + 1) === EMPTY) { swap(i, i + GW); wake(x, y); }
+          continue;
+        }
+        if (at(x, y + 1) === EMPTY) { swap(i, i + GW); wake(x, y); continue; }
+        const s = Math.random() < 0.5 ? -1 : 1;
+        if (at(x + s, y + 1) === EMPTY) { swap(i, i + GW + s); wake(x, y); }
+        else if (at(x - s, y + 1) === EMPTY) { swap(i, i + GW - s); wake(x, y); }
+      }
+    }
+  }
+  function dig(px, py, r, put) {
+    for (let y = py - r; y <= py + r; y++) for (let x = px - r; x <= px + r; x++) {
+      if (x < 0 || y < 0 || x >= GW || y >= GH || (x - px) ** 2 + (y - py) ** 2 > r * r) continue;
+      const i = y * GW + x;
+      if (put) { if (!cell[i]) { cell[i] = LOOSE; shade[i] = (Math.random() * 3) | 0; } } else cell[i] = EMPTY;
+      wake(x, y);
+    }
+  }
+  function draw() {
+    const d = img.data;
+    for (let i = 0; i < GW * GH; i++) {
+      const m = cell[i], o = i * 4;
+      if (!m) { const y = (i / GW) | 0; d[o] = 130 + y * 0.4; d[o + 1] = 196 + y * 0.2; d[o + 2] = 236; d[o + 3] = 255; continue; }
+      const c = COL[m][shade[i]], above = i >= GW ? cell[i - GW] : 0;
+      const k = above === EMPTY ? 1.08 : 1;                  // beirada (superfície ou teto de túnel) um pouco mais clara
+      d[o] = Math.min(255, c[0] * k); d[o + 1] = Math.min(255, c[1] * k); d[o + 2] = Math.min(255, c[2] * k); d[o + 3] = 255;
+    }
+    // contorno marrom do traço do Kome onde arroz encosta no vazio
+    for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++) {
+      const i = y * GW + x; if (!cell[i]) continue;
+      if (!cell[i - 1] || !cell[i + 1] || !cell[i - GW] || !cell[i + GW]) { const o = i * 4; d[o] = 59; d[o + 1] = 40; d[o + 2] = 24; }
+    }
+    tg.putImageData(img, 0, 0);
+    const k = Math.max(1, Math.floor(Math.min(innerWidth / GW, innerHeight / GH)));
+    cv.width = GW * k; cv.height = GH * k; g.imageSmoothingEnabled = false; g.drawImage(tmp, 0, 0, GW * k, GH * k);
+    return k;
+  }
+  let K = 3, mouse = null;
+  cv.addEventListener('pointerdown', e => { mouse = { b: e.button, x: e.offsetX, y: e.offsetY }; e.preventDefault(); });
+  cv.addEventListener('pointermove', e => { if (mouse) { mouse.x = e.offsetX; mouse.y = e.offsetY; } });
+  addEventListener('pointerup', () => { mouse = null; });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  addEventListener('keydown', e => { if (e.key.toLowerCase() === 't') { firm = !firm; next.fill(1); } });
+  window.__tunel = { dig, step: n => { for (let i = 0; i < n; i++) { step(); frames++; } }, stats: () => ({ simCells, ms: +ms.toFixed(2) }), cell, GW, GH };
+  (function loop() {
+    if (mouse) dig((mouse.x / K) | 0, (mouse.y / K) | 0, 5, mouse.b === 2);
+    const a = performance.now(); step(); step(); ms = ms * 0.9 + (performance.now() - a) * 0.1; frames++;
+    K = draw();
+    info.textContent = 'clique segura = cava túnel · direito = joga arroz · T = arroz firme ' + (firm ? 'LIGADO (túnel fica de pé)' : 'DESLIGADO (tudo desaba)') + ' · simulando ' + simCells + ' células · ' + ms.toFixed(2) + ' ms/quadro';
+    requestAnimationFrame(loop);
+  })();
+})();
+</script>
+</body>
+</html>

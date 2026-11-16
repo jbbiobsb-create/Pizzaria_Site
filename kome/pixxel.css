@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Kome Engine v1.0 · kome.css — HUD em DOM (par do engine/ui.js)
+   Pixxel v1.0 · pixxel.css — HUD em DOM (par do engine/ui.js)
    Pílulas creme, borda #2a1a10, sombra dura de 3-4px, Zen Maru Gothic com fallback.
    Todas as classes têm prefixo .k- ; todas as cores/medidas saem das variáveis abaixo.
    Unidades em px LÓGICOS do stage (a camada escala junto com stage.el).
@@ -87,7 +87,7 @@
 .k-badge {
   position: absolute; right: -7px; top: -8px; min-width: 20px; height: 20px; padding: 0 5px;
   border-radius: 99px; background: var(--k-red); color: #fff; border: 2px solid var(--k-ink);
-  font-size: 11px; font-weight: 900; line-height: 16px; text-align: center; pointer-events: none;
+  font-size: 12px; font-weight: 900; line-height: 16px; text-align: center; pointer-events: none;
   animation: k-badge .35s var(--k-ease-back) both; z-index: 2;
 }
 .k-badge.k-dot { min-width: 12px; width: 12px; height: 12px; padding: 0; right: -4px; top: -5px; }
@@ -132,7 +132,7 @@
 }
 .k-bar-lab > span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .k-bar-lab .k-bar-left { flex: none; }
-.k-bar-lab .k-bar-left { font-size: 11px; font-weight: 900; opacity: .96; }
+.k-bar-lab .k-bar-left { font-size: 12px; font-weight: 900; opacity: .96; }
 .k-bar-lab .k-ico { margin-right: 4px; margin-top: -3px; }
 .k-bar-track {
   position: relative; height: 14px; border: 2px solid var(--k-ink); border-radius: 99px;
@@ -151,7 +151,7 @@
 }
 .k-bar-val {
   position: absolute; right: 7px; top: 0; bottom: 0; display: flex; align-items: center;
-  font-size: 10px; font-weight: 900; color: var(--k-ink); pointer-events: none;
+  font-size: 12px; font-weight: 900; color: var(--k-ink); pointer-events: none;
 }
 .k-bar-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--k-ink); opacity: .28; }
 .k-bar-tick.k-color { opacity: .9; width: 4px; margin-left: -2px; top: auto; height: 4px; border-radius: 2px 2px 0 0; }
@@ -201,9 +201,9 @@
 .k-btn-ico .k-ico-txt { font-size: 24px; }
 .k-btn-t { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; flex: 1 1 auto; }
 .k-btn-t > span { overflow: hidden; text-overflow: ellipsis; }
-.k-btn-t small { font-size: 11.5px; font-weight: 700; opacity: .72; overflow: hidden; text-overflow: ellipsis; }
+.k-btn-t small { font-size: 12px; font-weight: 700; opacity: .72; overflow: hidden; text-overflow: ellipsis; }
 .k-btn-t small:empty { display: none; }
-.k-btn-left { font-size: 11px; font-weight: 900; color: var(--k-goldD); }
+.k-btn-left { font-size: 12px; font-weight: 900; color: var(--k-goldD); }
 .k-btn-left:empty { display: none; }
 .k-btn-bp { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(42, 26, 16, .12); border-radius: 0 0 calc(var(--k-r) - 3px) calc(var(--k-r) - 3px); overflow: hidden; }
 .k-btn-bp i { display: block; height: 100%; width: 0; background: var(--k-greenD); border-radius: 0 4px 4px 0; transition: width .3s var(--k-ease-out); }
@@ -236,7 +236,7 @@
 .k-flyer { width: 108px; }
 .k-flyer .k-btn-ico { background: linear-gradient(#cfe6ef, #fbe8c8); border: 2px solid var(--k-ink); border-radius: 8px; height: 40px; overflow: hidden; }
 .k-flyer .k-btn-t > span { font-size: 12px; }
-.k-flyer .k-btn-t small { font-size: 10.5px; }
+.k-flyer .k-btn-t small { font-size: 12px; }
 
 /* ---------- 7. painel, folha lateral, abas ---------- */
 .k-dim {
@@ -403,7 +403,7 @@
 }
 .k-ach-seal::after { content: ''; position: absolute; inset: -9px; border-radius: 50%; border: 3px solid var(--k-red); opacity: 0; animation: k-ring .5s ease-out .62s; }
 .k-ach-t { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
-.k-ach-t small { font-size: 10.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--k-red); }
+.k-ach-t small { font-size: 12px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--k-red); }
 .k-ach-t b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .k-ach-t i { font-style: normal; font-size: 12px; font-weight: 700; opacity: .7; }
 @keyframes k-ach-in { 0% { transform: translateX(110%); } 100% { transform: none; } }
@@ -442,7 +442,7 @@
 .k-cel-seal {
   position: absolute; right: -30px; top: -30px; width: 78px; height: 78px; border-radius: 50%;
   border: 4px solid var(--k-red); background: rgba(255, 255, 255, .92); color: var(--k-red);
-  display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 11px; font-weight: 900; letter-spacing: .08em; line-height: 1.05; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 12px; font-weight: 900; letter-spacing: .08em; line-height: 1.05; text-transform: uppercase;
   box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px rgba(200, 66, 58, .4);
   animation: k-stamp .6s cubic-bezier(.3, 1.6, .5, 1) .55s both;
 }
@@ -469,7 +469,7 @@
 
 /* ---------- 12. missões ---------- */
 .k-missions { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; position: relative; }
-.k-missions-head { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 900; color: #fff; text-shadow: 0 2px 0 var(--k-ink), 1px 0 0 var(--k-ink), -1px 0 0 var(--k-ink), 0 -1px 0 var(--k-ink); cursor: pointer; pointer-events: auto; position: relative; letter-spacing: .06em; text-transform: uppercase; }
+.k-missions-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 900; color: #fff; text-shadow: 0 2px 0 var(--k-ink), 1px 0 0 var(--k-ink), -1px 0 0 var(--k-ink), 0 -1px 0 var(--k-ink); cursor: pointer; pointer-events: auto; position: relative; letter-spacing: .06em; text-transform: uppercase; }
 .k-missions-head::after { content: ''; position: absolute; inset: -8px -10px; }
 .k-missions-head i { display: inline-block; width: 0; height: 0; border: 5px solid transparent; border-top: 6px solid #fff; border-bottom: 0; filter: drop-shadow(0 2px 0 var(--k-ink)); transition: transform .2s var(--k-ease-back); }
 .k-missions.k-collapsed .k-missions-head i { transform: rotate(-90deg); }
@@ -478,12 +478,12 @@
 .k-mis {
   position: relative; display: flex; align-items: center; gap: 6px; width: 172px; height: 28px; padding: 0 9px 3px 5px; overflow: hidden;
   background: var(--k-glass); border: 2px solid var(--k-ink); border-radius: 10px; box-shadow: 0 2px 0 var(--k-ink);
-  font-size: 11.5px; font-weight: 900; white-space: nowrap; pointer-events: auto;
+  font-size: 12px; font-weight: 900; white-space: nowrap; pointer-events: auto;
   transition: width .25s var(--k-ease-out), background-color .2s, transform .1s;
 }
 .k-mis::after { content: ''; position: absolute; inset: calc(-3px - var(--k-hitpad)) -3px; }
 .k-mis-t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.k-mis-n { flex: none; font-size: 10.5px; opacity: .65; }
+.k-mis-n { flex: none; font-size: 12px; opacity: .65; }
 .k-mis-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(42, 26, 16, .13); }
 .k-mis-bar i { display: block; height: 100%; width: 0; background: var(--k-green); transition: width .3s var(--k-ease-out); border-radius: 0 3px 3px 0; }
 .k-mis.k-empty { opacity: .55; border-style: dashed; box-shadow: none; background: rgba(255, 250, 238, .55); }
@@ -508,7 +508,7 @@
 .k-card:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--k-ink); }
 .k-card-art { display: flex; align-items: center; justify-content: center; width: 100%; height: 46px; border-radius: 8px; background: var(--k-greenL); flex: none; }
 .k-card b { font-size: 12.5px; line-height: 1.15; }
-.k-card span { font-size: 11px; font-weight: 700; opacity: .75; line-height: 1.25; }
+.k-card span { font-size: 12px; font-weight: 700; opacity: .75; line-height: 1.25; }
 .k-card.k-locked { background: var(--k-cream2); border-style: dashed; box-shadow: 0 3px 0 rgba(42, 26, 16, .25); }
 .k-card.k-locked .k-card-art { background: rgba(42, 26, 16, .08); }
 .k-card.k-locked .k-card-art .k-ico { filter: brightness(0); opacity: .3; }
@@ -525,7 +525,7 @@
 .k-setrow { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 2px; border-bottom: 2px dotted rgba(42, 26, 16, .18); }
 .k-setrow:last-child { border-bottom: 0; }
 .k-setrow-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; font-weight: 900; font-size: 14.5px; }
-.k-setrow-t small { font-size: 11.5px; font-weight: 700; opacity: .65; }
+.k-setrow-t small { font-size: 12px; font-weight: 700; opacity: .65; }
 .k-setrow-c { flex: none; display: flex; align-items: center; gap: 8px; }
 .k-toggle {
   position: relative; width: 56px; height: 30px; flex: none; cursor: pointer; padding: 0; pointer-events: auto;
@@ -553,7 +553,7 @@
 @keyframes k-dot { 50% { transform: scale(1.5); } }
 .k-spark.k-lg .k-spark-line { stroke-width: 2.5; }
 .k-rate { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
-.k-rate-line { font-size: 11px; font-weight: 900; color: #fff; padding-left: 6px; text-shadow: 0 2px 0 var(--k-ink), 1px 0 0 var(--k-ink), -1px 0 0 var(--k-ink), 0 -1px 0 var(--k-ink); white-space: nowrap; min-height: 14px; }
+.k-rate-line { font-size: 12px; font-weight: 900; color: #fff; padding-left: 6px; text-shadow: 0 2px 0 var(--k-ink), 1px 0 0 var(--k-ink), -1px 0 0 var(--k-ink), 0 -1px 0 var(--k-ink); white-space: nowrap; min-height: 14px; }
 .k-rate-line.k-swap { animation: k-pane .3s var(--k-ease-out); }
 
 .k-gauge { position: relative; display: inline-flex; flex-direction: column; align-items: center; flex: none; }
@@ -566,7 +566,7 @@
 .k-gauge .k-g-needle path { fill: var(--k-red); stroke: var(--k-ink); stroke-width: 2; stroke-linejoin: round; }
 .k-gauge .k-g-hub { fill: var(--k-cream); stroke: var(--k-ink); stroke-width: 2.5; }
 .k-gauge-v { position: absolute; left: 0; right: 0; text-align: center; font-weight: 900; line-height: 1; }
-.k-gauge-l { font-size: 11px; font-weight: 900; margin-top: -4px; text-align: center; white-space: nowrap; }
+.k-gauge-l { font-size: 12px; font-weight: 900; margin-top: -4px; text-align: center; white-space: nowrap; }
 .k-gauge.k-needle .k-gauge-l { margin-top: 1px; }
 .k-gauge.k-over .k-gauge-v, .k-gauge.k-over .k-gauge-l { color: #fff; text-shadow: 0 2px 0 var(--k-ink), 1px 0 0 var(--k-ink), -1px 0 0 var(--k-ink), 0 -1px 0 var(--k-ink); }
 .k-gauge.k-hot .k-g-fill { stroke: #f3c94a; }
@@ -586,7 +586,7 @@
 .k-tree-chip::after { content: ''; position: absolute; inset: calc(-7px - var(--k-hitpad)) -3px; }
 .k-tree-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--k-ink); }
 .k-tree-chip i { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--k-ink); background: var(--k-accent); display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.k-tree-chip small { font-size: 10.5px; font-weight: 700; opacity: .65; }
+.k-tree-chip small { font-size: 12px; font-weight: 700; opacity: .65; }
 .k-tree-chip.k-can i { animation: k-chip 3s ease-in-out infinite; }
 .k-tree-chip.k-done { background: var(--k-greenL); }
 @keyframes k-chip { 0%, 62%, 100% { box-shadow: 0 0 0 0 rgba(243, 201, 74, 0); } 78% { box-shadow: 0 0 0 5px rgba(243, 201, 74, .85); } }
@@ -605,15 +605,15 @@
 .k-tree-card-ico.k-key { border-radius: 30%; box-shadow: 0 3px 0 var(--k-ink), 0 0 0 3px var(--k-yel), 0 0 0 5px var(--k-ink); }
 .k-tree-card-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
 .k-tree-card-t b { font-size: 16px; }
-.k-tree-card-t small { font-size: 10.5px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; opacity: .65; }
+.k-tree-card-t small { font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; opacity: .65; }
 .k-tree-card-desc { font-size: 13px; font-weight: 900; line-height: 1.3; }
-.k-tree-card-see { font-size: 11.5px; font-weight: 700; line-height: 1.3; opacity: .75; }
+.k-tree-card-see { font-size: 12px; font-weight: 700; line-height: 1.3; opacity: .75; }
 .k-tree-card-desc:empty, .k-tree-card-see:empty { display: none; }
 .k-tree-card .k-btn { justify-content: center; text-align: center; min-height: 46px; margin-top: 2px; }
 .k-tree-card .k-x { position: absolute; right: 7px; top: 6px; width: 30px; height: 30px; box-shadow: 0 2px 0 var(--k-ink); border-radius: 9px; }
 .k-tree-card .k-x::before, .k-tree-card .k-x::after { width: 13px; height: 3px; }
 .k-tree-card-head { padding-right: 30px; }
-.k-tree-hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 11px; font-weight: 900; color: #fff; opacity: .6; text-shadow: 0 2px 0 var(--k-ink); pointer-events: none; }
+.k-tree-hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 12px; font-weight: 900; color: #fff; opacity: .6; text-shadow: 0 2px 0 var(--k-ink); pointer-events: none; }
 
 /* ---------- 17. retrato / telas estreitas ---------- */
 .k-portrait { --k-dock-h: 142px; }

@@ -8,12 +8,12 @@
      --prints  salva os 3 prints oficiais em kome/docs/prints/.
    Sem opção nenhuma roda --rungs e --auto. Sai com código 1 se alguma verificação falhar. */
 const path = require('path'), fs = require('fs');
-const { chromium } = require('playwright');
+const { chromium } = require('./pw');
 const a = process.argv.slice(2), has = k => a.includes(k), val = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
-const OUT = val('--out', '/tmp/claude-0/-home-user-Pizzaria-Site/73bb5c4b-e898-5ba0-a571-a9a62e6621c9/scratchpad/play');
+const OUT = val('--out', path.join(require('os').tmpdir(), 'kome-play'));
 const MAXMIN = +val('--min', 100);
 const all = !has('--rungs') && !has('--auto') && !has('--prints');
-const URL = 'file://' + path.resolve(__dirname, '..', 'index.html') + '?fresh&nofont';
+const URL = 'file://' + path.resolve(__dirname, '..', 'index.html') + '?fresh&nointro&nofont';
 const PRINTS = path.resolve(__dirname, '..', 'docs', 'prints');
 let fails = 0;
 const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
@@ -37,10 +37,10 @@ const BUYNEXT = `(() => { const K = __kome, D = K.data, t = D.TOOLS[K.S.tool + 1
   K.addMoney(Math.ceil(t.cost * D.ECON.COST_TOOL)); if (!K.buyTool()) throw new Error('não comprou ' + t.id); return t.id; })()`;
 
 async function rungs(browser) {
-  console.log('\n== 13 degraus ==');
+  console.log('\n== 14 degraus ==');
   const page = await open(browser);
   fs.mkdirSync(OUT, { recursive: true });
-  for (let i = 0; i < 13; i++) {
+  for (let i = 0; i < 14; i++) {
     const e0 = page.errs.length;
     let id = 'pata';
     try {
@@ -97,7 +97,15 @@ async function prints(browser) {
 
 async function auto(browser) {
   console.log('\n== autoplayer guloso (segura 85%, compra o mais barato) ==');
+  const ISL = has('--island') ? +val('--island', 1) : 0;
+  if (ISL) console.log('(ilha ' + ISL + ')');
   const page = await open(browser);
+  if (ISL) {   // viaja de verdade (cena do barco + recarga) com sementes típicas de quem terminou a ilha anterior
+    const sl = val('--seeds', '{"renda":3,"preco":2,"ferr":1,"grana":2,"ajud":1,"ouro":1}');
+    await Promise.all([page.waitForNavigation({ timeout: 20000 }), page.evaluate(`(() => { const K = __kome; K.S.ended = true; K.S.earned = 3e9; K.S.stats.sl = ${sl}; KomeGame.Islands.go(${ISL}); })()`)]);
+    await page.waitForTimeout(1500);
+    console.log('chegou: ilha ' + await page.evaluate('__kome.S.island') + ' · ferramenta inicial ' + await page.evaluate('__kome.tool.id'));
+  }
   const t0 = Date.now();
   let done = false, log = [];
   while (!done) {
@@ -122,7 +130,7 @@ async function auto(browser) {
           out.push(e);
         }
       }
-      return { out, t: S.time, ended: S.ended, money: S.money, ips: S.ips, dug: 1 - K.heap.area / K.heap.total, tool: K.tool.id, x: K.P.x, n: Object.keys(S.own).length, house: S.house };
+      return { out, t: S.time, ended: S.ended, money: S.money, ips: S.ips, dug: 1 - K.heap.area / K.heap.total, tool: K.tool.id, x: K.P.x, n: Object.keys(S.own).length, total: D.TREE.length, house: S.house };
     })(${MAXMIN})`);
     log = log.concat(r.out);
     if (has('--verbose')) console.log('  ' + fmt(r.t) + ' ' + r.tool + ' ¥' + Math.round(r.money) + ' ¥/s ' + Math.round(r.ips) + ' cavado ' + (r.dug * 100).toFixed(1) + '% x=' + Math.round(r.x) + ' nós ' + r.n);
@@ -138,10 +146,11 @@ async function auto(browser) {
       const toolGaps = log.filter(e => e.k === 'tool').map((e, i, arr) => e.id + ':' + Math.round(e.t - (i ? arr[i - 1].t : 0)) + 's').join(' ');
       console.log('intervalos entre ferramentas: ' + toolGaps);
       console.log('\nRESULTADO: ' + (r.ended ? 'final em ' + (r.t / 60).toFixed(1) + ' min' : 'NÃO terminou em ' + MAXMIN + ' min (casa ' + r.house + '/6, ferramenta ' + r.tool + ')') +
-        ' · compras ' + log.length + ' (nós ' + r.n + '/68) · intervalo máx ' + Math.round(maxGap) + ' s (' + gapAt + ')' +
+        ' · compras ' + log.length + ' (nós ' + r.n + '/' + r.total + ') · intervalo máx ' + Math.round(maxGap) + ' s (' + gapAt + ')' +
         ' · Bagger aos ' + (bag ? (bag.t / 60).toFixed(1) + ' min com ' + (bag.dug * 100).toFixed(1) + '% cavado' : 'nunca') + ' · cavado no fim ' + (r.dug * 100).toFixed(1) + '%');
       const T = (ok, s) => console.log((ok ? '  ok    ' : '  FORA  ') + s);
-      T(r.ended && r.t / 60 >= 60 && r.t / 60 <= 90, 'final entre 60 e 90 min');
+      if (ISL) T(r.ended && r.t / 60 >= 20 && r.t / 60 <= 60, 'ilha entre 20 e 60 min');
+      else T(r.ended && r.t / 60 >= 60 && r.t / 60 <= 90, 'final entre 60 e 90 min');
       T(maxGap <= 180, 'intervalo máximo entre compras <= 180 s');
       T(bag && bag.dug <= 0.5, '<= 50% da montanha cavada quando a Bagger chega');
       console.log('  (simulou ' + (r.t / 60).toFixed(0) + ' min em ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s reais; erros de página: ' + page.errs.length + ')');

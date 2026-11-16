@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Kome Engine v1.0 — core.js
+   Pixxel v1.0 — core.js
    Base de tudo: utilitários (U), RNG, ruído, eventos, pool, tweens, Stage
    (canvas escalável), Input (ponteiro + teclado), Loop, Scenes, Save e timers.
    Zero dependências. Script clássico: carregue ANTES de qualquer outro módulo.
@@ -7,7 +7,10 @@
 (function () {
   'use strict';
   const root = typeof window !== 'undefined' ? window : globalThis;
-  const E = (root.KomeEngine = root.KomeEngine || {});
+  const E = (root.Pixxel = root.Pixxel || {});
+  root.KomeEngine = E;
+  // E.reducedMotion: o sistema pediu menos movimento (acessibilidade). fx.flash e tremores devem respeitar.
+  try { E.reducedMotion = !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { E.reducedMotion = false; }   // nome antigo (Kome Engine), mantido pra projetos que já usavam
   const doc = typeof document !== 'undefined' ? document : null;
 
   E.version = '1.0.0';
@@ -555,7 +558,7 @@
   // E.Stage({canvas|parent, width=960, height=540, fit='contain'|'cover'|'none', maxDpr=2, bg, pixelated=false, integer=false, maxScale, margin=0}) -> stage
   function Stage(opts) {
     opts = opts || {};
-    if (!doc) throw new Error('KomeEngine: E.Stage precisa de um documento (DOM)');
+    if (!doc) throw new Error('Pixxel: E.Stage precisa de um documento (DOM)');
     const q = v => (typeof v === 'string' ? doc.querySelector(v) : v);
     const w = opts.width || 960, h = opts.height || 540;
     const fit = opts.fit || 'contain', maxDpr = opts.maxDpr || 2, pixelated = !!opts.pixelated;
@@ -611,7 +614,8 @@
         const m = opts.margin || 0;
         const aw = Math.max(1, (windowed ? root.innerWidth : parent.clientWidth) - m * 2);
         const ah = Math.max(1, (windowed || inFlow ? root.innerHeight : parent.clientHeight) - m * 2);
-        let s = fit === 'none' ? (opts.scale || 1) : fit === 'cover' ? Math.max(aw / w, ah / h) : Math.min(aw / w, ah / h);
+        const f = typeof fit === 'function' ? fit(aw, ah) : fit;   // fit pode ser função (aw, ah) -> 'contain'|'cover'|'none'
+        let s = f === 'none' ? (opts.scale || 1) : f === 'cover' ? Math.max(aw / w, ah / h) : Math.min(aw / w, ah / h);
         if (opts.maxScale) s = Math.min(s, opts.maxScale);
         if (opts.integer && s >= 1) s = Math.floor(s);
         if (!(s > 0) || !isFinite(s)) s = 1;
@@ -964,7 +968,7 @@
     };
     function need(name) {
       const sc = defs[name];
-      if (!sc) throw new Error('KomeEngine: cena "' + name + '" não existe');
+      if (!sc) throw new Error('Pixxel: cena "' + name + '" não existe');
       return sc;
     }
     function sync() {

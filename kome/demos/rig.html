@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Kome Engine · rig.js</title>
+<title>Pixxel · rig.js</title>
 <style>
   html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }
 </style>
@@ -23,7 +23,7 @@
    Automação: __demo.step(seg) avança o tempo; __demo.aim(x,y,curl) mira a escavadeira (coords do modelo); __demo.tr / .ex / .ln. */
 (function () {
   'use strict';
-  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, Rig = E.Rig;
+  const E = Pixxel, U = E.U, PAL = E.PAL, Draw = E.Draw, Rig = E.Rig;
   const W = 960, H = 540, LINE = E.LINE_CSS, PI = Math.PI, TAU = PI * 2;
   const q = new URLSearchParams(location.search);
   const ONLY = +(q.get('scene') || 0);
