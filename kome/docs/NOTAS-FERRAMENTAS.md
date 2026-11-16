@@ -101,3 +101,31 @@ Interface comum: `G.Tools[id] = {id,name,kind,w,h,meta:{zoom,shake,cycle},create
 - Pontos fracos: rota curta + muitos robôs = fila apertada/garagem cheia (vazão limitada pelas zonas das pontas, ~2,7 entregas/s com 60
   robôs numa rota de 470 px); diminuir a frota é lento (os aposentados terminam a viagem e esperam vaga na pista de ida); o grão na pazinha
   é miúdo em zoom < 1,5; robôs só andam em x (não sobem fundo de cratera nem desviam de máquinas); dança em sincronia passa por largura 0.
+
+## komeoh.js — komeoh (KOME-OH)
+- Carga: depois de core, pix, shiba, fx, terrain, rig e das máquinas (machines-mid, machines-mine, bagger, tbm). Cada máquina que
+  faltar vira peça genérica (detecção na hora, nunca quebra). Demo: `demos/komeoh.html?mode=idle|walk|dig|rocket|combine|tour&z=&face=&t=&night=1&cam=combine`.
+- `G.Tools.komeoh`, kind 'mecha', meta `{zoom:.22, shake:1, cycle, combineT:8, height:1040, walk:92, reach:430, steps}`. Interface comum +
+  `glow(g,m)` (halos aditivos; draw() já chama, repetir depois de um filtro de noite) e `prebake(nível 0|1|2)` (evita o engasgo do 1º quadro).
+- Peças: pés/botas = trator (frente) e empilhadeira (trás, de pé sobre as rodas); tronco = caminhão; peito = roda da Bagger girando;
+  braço esquerdo = lança/braço/caçamba da escavadeira (garra) + casa dela de ombreira; braço direito = lança e caçamba da pá de cabo +
+  casa dela de ombreira; punho = disco do tatuzão + ponta cônica; cabeça de shiba de metal com o Kome na cabine da testa e o kasa de capacete.
+  As máquinas são desenhadas UMA vez por nível de zoom em canvas fora da tela (instâncias próprias; roda da Bagger e disco do tatuzão
+  capturados pelo drawImage que elas fazem). Texto do caminhão tem variante pré-espelhada (face -1 continua legível).
+- Espaço do modelo: origem no chão sob a bacia, +x frente. A máquina é dona de `m.x`: pega `inp.x` no 1º update (ou `create({x})`),
+  depois ANDA até `inp.x` (passos com IK, pés em `inp.floor(x)`, sobe a encosta). Sem `inp.x` e com alvo, se aproxima sozinha até ~430 do alvo.
+- Golpes: `inp.digging` + `inp.tx/ty` alterna garra (crava, arrasta cavando, joga o arroz por cima do ombro até `inp.dumpX`, padrão 700
+  atrás) e soco-broca. `inp.boost >= 1` na SUBIDA dispara o soco foguete (carga 0,62 s, voo ~1700 px/s, fura 1,1 s, volta; cooldown 0,8 s).
+- Âncoras: `bite(m)` = `{x,y,r,active,phase,kind,deep}` na ponta de verdade (garra/broca r=120; foguete r=190, `deep` até 150 px ao
+  longo do voo): usar `heap.digCircle(b.x,b.y,b.r, ...)` enquanto `active`. `dump(m)` = `{x,y,active,tx}` (heap.add em `tx` enquanto ativo).
+  `seat(m)` = cabine na testa.
+- Eventos: stomp, punch, drill, rocket, return (punho encaixou), roar, toss, lock (peça encaixou na combinação), combined.
+  `m.shakeK` (0..1, decai) é uma sugestão de tremor; `m.speed {on,x,y,dir}` liga as linhas de velocidade da ScreenFX durante o voo.
+- Combinação: `create({mode:'combine'})` toca 8 s sozinha (passos ceu, pernas, nucleo, tronco, bracos, peito, punho, cabeca, pose);
+  ler `m.combine {phase, step, fx, fy, zoom}` pra câmera (close nos encaixes), `m.dark` (0..1) pra escurecer o céu, `m.flash`. No fim
+  emite 'combined', `m.mode` vira 'normal' e o título "KOME-OH!" (Draw.text, nunca espelhado) e os raios coloridos somem em ~1,5 s.
+- Custo (Chromium headless, rasterização por software, `__demo.bench`): zoom .22 dpr 1: 1,4 ms parado, 2,0 cavando, 1,5 foguete,
+  2,5 na pose final (raios); dpr 2: 3,1–3,4 ms. 1º quadro de cada nível assa as peças (dezenas de ms; usar prebake).
+- Pontos fracos: vista lateral "de papel" (sem giro 3D); peças da pá de cabo são recortes da máquina inteira (sobra um pedacinho de
+  cabo/sela nas bordas); punho voando passa por cima do corpo; as caçambas das botas não giram as rodas ao andar (sprite fixo);
+  pés podem atravessar um degrau muito íngreme da montanha (o passo só olha o chão no destino).

@@ -53,6 +53,9 @@ kome/
     game.js            estado, economia, drivers das ferramentas, compras, celebração, câmera, laço
     game-world.js      fundo, "régua do mundo", casa, coletor
     game-ui.js         HUD, árvore, ajustes
+    tbm.js             Tatuzão (máquina de túnel)
+    komeoh.js          KOME-OH (robô gigante feito das máquinas)
+    swarm.js           enxame de robozinhos
     tools-hand.js      pata, hashi, tigela, pa, duaspas, carrinho, britadeira (+ G.Props: sacos, ícones)
     machines-mid.js    trator, empilhadeira, escav
     machines-mine.js   pacabo (pá de cabo), caminhao (+ G.Scale: pickup, keitruck, moega)
@@ -102,10 +105,10 @@ Jogável do primeiro arranhão de pata até a Bagger, as 6 etapas da casa e o ca
 10. **Cutscenes** (abertura, revelação da Bagger, final), **conquistas, missões, álbum** (GDD §8.3 e §12).
 11. **Modo infinito**: montanhas diferentes (mochi, oca, vulcão de curry, gelada, gêmea) escolhidas entre 2–3 sorteadas;
     jardim pra decorar; recordes e desafios. Nada de prestígio que zera tudo.
-12. **Tatuzão** (adendo §10): `game/tbm.js` já feito como máquina avulsa; falta ligar no jogo (modo infinito).
-13. **KOME-OH** (adendo §11): todas as máquinas se juntam num robô gigante pilotado pelo Kome, com cena de transformação
+12. **Tatuzão** (adendo §10): `game/tbm.js` PRONTO como máquina avulsa (demo `demos/tbm.html`); falta ligar no jogo (modo infinito).
+13. **KOME-OH** (adendo §11) — `game/komeoh.js` PRONTO como máquina avulsa (demo `demos/komeoh.html`, `?mode=combine`); falta ligar no jogo: todas as máquinas se juntam num robô gigante pilotado pelo Kome, com cena de transformação
     estilo anime e soco foguete. Topo do modo infinito. O dono amou: tratar como peça de destaque.
-14. **Enxame de robozinhos** (adendo §12): automação com dezenas de robôs carregando grão em fila até o coletor.
+14. **Enxame de robozinhos** (adendo §12) — `game/swarm.js` PRONTO (demo `demos/swarm.html`); falta ligar no jogo: automação com dezenas de robôs carregando grão em fila até o coletor.
 15. **Engine**: `gfx.js`, `cutscene.js`, demo do lago de carpas usando só a engine, bundle e `KOME_ENGINE.md` com modelo de
     prompt pra pedir cenas novas; catálogo de bichos e veículos.
 

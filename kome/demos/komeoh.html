@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Kome no Japão · KOME-OH</title>
+<style>html, body { margin: 0; height: 100%; background: #3B2818; overflow: hidden; }</style>
+</head>
+<body>
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/terrain.js"></script>
+<script src="../engine/rig.js"></script>
+<script src="../game/machines-mid.js"></script>
+<script src="../game/machines-mine.js"></script>
+<script src="../game/bagger.js"></script>
+<script src="../game/tbm.js"></script>
+<script src="../game/komeoh.js"></script>
+<script>
+/* Demo de game/komeoh.js: o KOME-OH ao pé de uma montanha de arroz (E.Heap), com a Bagger 293 e um Kome de 44 px do lado pra
+   escala. URL: ?z=zoom &face=-1|1 &mode=idle|walk|dig|rocket|combine|tour &t=segundos (avança e congela) &night=1 &cx=&cy= (câmera)
+   &bagger=0 (sem Bagger) &cam=combine (câmera sugerida pela combinação) &debug=1 (âncoras).
+   tour (padrão): combinação -> anda e sobe -> cava -> soco foguete, em loop. Ponteiro: segurar = golpear no ponto; botão direito /
+   2 dedos = soco foguete. Automação: __demo.step(seg) passos fixos de 1/60; __demo.bench(n) -> ms médios por draw; __demo.m. */
+(function () {
+  'use strict';
+  const E = KomeEngine, U = E.U, PAL = E.PAL, Draw = E.Draw, G = KomeGame, T = G.Tools.komeoh, B = G.Tools.bagger;
+  const W = 960, H = 540, LINE = E.LINE_CSS, PI = Math.PI;
+  const q = new URLSearchParams(location.search);
+  const Z0 = +(q.get('z') || 0.22), FACE = +(q.get('face') || 1) < 0 ? -1 : 1, NIGHT = q.has('night') ? +(q.get('night') || 1) : 0;
+  const MODE = q.get('mode') || 'tour', SHOWB = q.get('bagger') !== '0' && !!B;
+  const stage = E.Stage({ width: W, height: H, bg: '#3B2818' });
+  const g = stage.g, input = E.Input(stage);
+  const parts = E.Particles(1600);
+  const FOOT = 520, heap = E.Heap({ width: 3200, colW: 8, x0: FACE > 0 ? FOOT : -FOOT - 3200, y0: 0, seed: 5 });
+  heap.generate(x => { const d = x * FACE - FOOT; return d > 0 ? Math.min(1250, d * 0.62 + 30 * Math.sin(d * 0.01) + 10 * Math.sin(d * 0.045)) : 0; });
+  const floor = x => Math.min(0, heap.surf(x));
+  let m = null;
+  const inp = { x: 0, y: 0, face: FACE, floor, tx: null, ty: null, digging: false, boost: 0, parts, night: NIGHT, dumpX: null, speedMul: 1 };
+  const bm = SHOWB ? B.create({}) : null, binp = { x: -FACE * 1500, y: 0, face: FACE, floor: x => 0, tx: null, ty: null, digging: false, night: NIGHT, zoom: Z0 };
+  let t = 0, tt = 0, frozen = false, ms = 0, hold = false, rocketBtn = false, px = 0, py = 0, usePtr = false, Z = Z0, lastEv = '', evT = 0;
+  const cam = { x: 0, y: -460 }, view = { x0: 0, x1: 0, y0: 0, y1: 0 };
+  const cvEl = stage.canvas || g.canvas;
+  cvEl.addEventListener('contextmenu', e => e.preventDefault());
+  cvEl.addEventListener('pointerdown', e => { usePtr = true; if (e.button === 2) rocketBtn = true; else hold = true; ptr(e); });
+  cvEl.addEventListener('pointermove', e => { if (usePtr) ptr(e); });
+  window.addEventListener('pointerup', () => { hold = false; rocketBtn = false; });
+  function ptr(e) { const r = cvEl.getBoundingClientRect(), sx = (e.clientX - r.left) / r.width * W, sy = (e.clientY - r.top) / r.height * H; px = (sx - W / 2) / Z + cam.x; py = (sy - H * 0.86) / Z + cam.y; }
+
+  function reset(mode) {
+    tt = 0; parts.clear && parts.clear();
+    const x0 = mode === 'walk' ? -260 * FACE : mode === 'idle' || mode === 'combine' || mode === 'tour' ? 0 : FOOT * FACE + 120 * FACE;
+    m = T.create({ mode: mode === 'combine' || mode === 'tour' ? 'combine' : 'normal', x: x0 });
+    inp.x = x0;
+  }
+  let phase = MODE;
+  reset(MODE);
+  // alvo na encosta a uma distância d à frente do robô
+  function slopeTarget(d, depth) { const x = m.x + FACE * d; return [x, heap.surf(x) + depth]; }
+
+  function update(dt) {
+    t += dt; tt += dt;
+    inp.boost = 0; inp.digging = false; inp.tx = null; inp.ty = null;
+    let mode = phase;
+    if (MODE === 'tour') {
+      if (m.mode === 'combine') mode = 'combine';
+      else { const c = tt - 8; mode = c < 7 ? 'walk' : c < 15 ? 'dig' : c < 21 ? 'rocket' : 'loop'; if (mode === 'loop') { reset('tour'); mode = 'combine'; } }
+    }
+    if (usePtr) { inp.tx = px; inp.ty = py; inp.digging = hold; inp.boost = rocketBtn ? 1 : 0; inp.x = null; }
+    else if (mode === 'walk') { inp.x = (FOOT + 380) * FACE; }
+    else if (mode === 'dig') { const a = slopeTarget(340, 30); inp.tx = a[0]; inp.ty = a[1]; inp.digging = true; inp.x = null; }
+    else if (mode === 'rocket') {
+      const a = slopeTarget(1100, 120); inp.tx = a[0]; inp.ty = a[1]; inp.x = null;
+      const k = MODE === 'tour' ? tt - 23 : tt; inp.boost = (k % 6) > 0.6 && (k % 6) < 0.8 ? 1 : 0;
+      if (!m.rocket && !(m.atk && m.atk.kind === 'rocket')) { inp.digging = false; }
+    }
+    T.update(m, dt, inp);
+    for (let i = 0; i < m.ev.length; i++) { lastEv = m.ev[i] + ' ' + (lastEv.split(' ').slice(0, 5).join(' ')); evT = 2; }
+    const b = T.bite(m);
+    if (b.active) heap.digCircle(b.x, b.y, b.r, (b.kind === 'rocket' ? 90000 : 50000) * dt, { pow: 30 });
+    const d = T.dump(m);
+    if (d.active) heap.add(d.tx, 9000 * dt, 140);
+    heap.relax(dt);
+    parts.update(dt, floor);
+    if (bm) { B.update(bm, dt, binp); }
+    // câmera
+    let fx = m.x + FACE * 220, fy = -520 + H * 0.31 / Z0, zz = Z0;
+    if (m.mode === 'combine' && q.get('cam') === 'combine') { fx = m.combine.fx; zz = m.combine.zoom; fy = m.combine.fy + H * 0.36 / zz; }
+    else if (m.rocket) { fx = (m.x + m.rocket.x) / 2 + FACE * 100; }
+    if (q.has('cx')) fx = +q.get('cx'); if (q.has('cy')) fy = +q.get('cy');
+    cam.x += (fx - cam.x) * Math.min(1, dt * 3); cam.y += (fy - cam.y) * Math.min(1, dt * 3); Z += (zz - Z) * Math.min(1, dt * 3);
+    if (frozen && q.has('cx')) { cam.x = fx; cam.y = fy; }
+    evT -= dt;
+  }
+  const mixc = {}; const mix = (a, b, k) => mixc[a + b + k] || (mixc[a + b + k] = U.mixCss(a, b, k));
+  function hills(k, base, amp, col) {
+    g.fillStyle = col; g.beginPath(); g.moveTo(view.x0, 10);
+    for (let x = view.x0; x <= view.x1 + 60; x += 60) g.lineTo(x, base - amp * (0.6 + 0.4 * Math.sin((x - cam.x * k) * 0.0016 + base) + 0.25 * Math.sin((x - cam.x * k) * 0.005)));
+    g.lineTo(view.x1 + 60, 10); g.closePath(); g.fill();
+  }
+  function render() {
+    stage.begin();
+    const gy = H * 0.86, n = NIGHT, dk = m.dark;
+    const sh = m.shakeK * m.shakeK * 6;
+    g.save(); g.translate(W / 2 + Math.sin(t * 61) * sh, gy + Math.cos(t * 53) * sh); g.scale(Z, Z); g.translate(-cam.x, -cam.y);
+    view.x0 = cam.x - W / 2 / Z; view.x1 = cam.x + W / 2 / Z; view.y0 = cam.y - gy / Z; view.y1 = cam.y + (H - gy) / Z;
+    Draw.lod(Z, 0.6);
+    const sky = n ? '#27325C' : PAL.sky, skyL = n ? '#4A4F7C' : PAL.skyL;
+    g.fillStyle = sky; g.fillRect(view.x0, view.y0, view.x1 - view.x0, view.y1 - view.y0);
+    g.fillStyle = mix(sky, skyL, 0.55); g.fillRect(view.x0, -900, view.x1 - view.x0, 920);
+    hills(0.9, -420, 480, mix(n ? '#3A4470' : PAL.grassL, sky, 0.7));
+    hills(0.8, -160, 240, mix(n ? '#2F3A5E' : PAL.grassL, sky, 0.45));
+    if (dk > 0.01) { g.fillStyle = 'rgba(30,24,60,' + (0.62 * dk) + ')'; g.fillRect(view.x0, view.y0, view.x1 - view.x0, view.y1 - view.y0); }
+    heap.draw(g, view, t);
+    g.fillStyle = '#C7A26A'; g.fillRect(view.x0, 0, view.x1 - view.x0, view.y1);
+    g.fillStyle = PAL.grass; g.fillRect(view.x0, 0, view.x1 - view.x0, 12);
+    g.fillStyle = LINE; g.fillRect(view.x0, -2, view.x1 - view.x0, 4);
+    if (bm) { bm.deferGlow = !!n; B.draw(g, bm); }
+    // escala: Kome a pé (44 px) entre a Bagger e o robô
+    const sx = m.x - FACE * 520;
+    E.drawShiba(g, sx, floor(sx), 'wag', t, { scale: 1, face: FACE });
+    const t0 = performance.now();
+    T.draw(g, m);
+    ms = ms * 0.9 + (performance.now() - t0) * 0.1;
+    parts.draw(g, view);
+    if (n) {
+      g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgba(70,78,140,' + (0.8 * n) + ')'; g.fillRect(view.x0, view.y0, view.x1 - view.x0, view.y1 - view.y0);
+      g.globalCompositeOperation = 'source-over';
+      if (bm) B.glow(g, bm);
+      T.glow(g, m);
+    }
+    if (q.get('debug')) {
+      const b = T.bite(m), d = T.dump(m), s = T.seat(m);
+      g.lineWidth = 3 / Z; g.strokeStyle = b.active ? PAL.red : PAL.cream; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.stroke();
+      g.strokeStyle = d.active ? PAL.gold : PAL.grayL; g.beginPath(); g.arc(d.x, d.y, 10 / Z, 0, 7); g.stroke(); g.beginPath(); g.arc(d.tx, floor(d.tx), 14 / Z, 0, 7); g.stroke();
+      g.strokeStyle = PAL.pink; g.beginPath(); g.arc(s.x, s.y, 8 / Z, 0, 7); g.stroke();
+      if (inp.tx !== null) { g.strokeStyle = PAL.waterL; g.beginPath(); g.arc(inp.tx, inp.ty, 12 / Z, 0, 7); g.stroke(); }
+    }
+    g.restore();
+    Draw.lod(1);
+    Draw.text(g, 'KOME-OH', 12, 20, { size: 16, align: 'left', col: PAL.goldL, sw: 4 });
+    const st = m.mode === 'combine' ? 'combinação: ' + m.combine.step + ' ' + (m.combine.phase * 100 | 0) + '%' : (m.rocket ? 'SOCO FOGUETE: ' + m.rocket.state : m.atk ? 'golpe: ' + m.atk.kind : m.walking ? 'andando' : 'parado');
+    Draw.text(g, st + '   zoom ' + Z.toFixed(2) + '   draw ' + ms.toFixed(2) + ' ms   ' + (evT > 0 ? lastEv : ''), 12, 38, { size: 10.5, align: 'left', col: PAL.cream, sw: 3, weight: 700 });
+  }
+  const loop = E.Loop({ update: dt => { if (!frozen) update(dt); }, render, input });
+  window.__demo = {
+    get m() { return m; }, inp, heap, loop, stage, tool: T, parts,
+    step(sec) { frozen = true; const k = Math.round(sec * 60); for (let i = 0; i < k; i++) update(1 / 60); cam.x = (q.has('cx') ? +q.get('cx') : cam.x); return true; },
+    mode(md) { phase = md; reset(md); return true; },
+    // bench(n): custo médio de T.draw (ms) no zoom atual, com a transformação da câmera aplicada
+    bench(k) {
+      k = k || 200; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); const d = stage.dpr || window.devicePixelRatio || 1;
+      g.scale(d, d); g.translate(W / 2, H * 0.86); g.scale(Z, Z); g.translate(-cam.x, -cam.y); Draw.lod(Z, 0.6);
+      T.draw(g, m); g.getImageData(0, 0, 1, 1); const t0 = performance.now();
+      for (let i = 0; i < k; i++) { m.t += 1 / 60; m.wheelRot += 0.03; m.spin += 0.3; T.draw(g, m); }
+      g.getImageData(0, 0, 1, 1);
+      const r = (performance.now() - t0) / k; g.restore(); return +r.toFixed(3);
+    },
+  };
+  if (q.has('t')) window.__demo.step(+q.get('t'));
+  loop.start();
+})();
+</script>
+</body>
+</html>
