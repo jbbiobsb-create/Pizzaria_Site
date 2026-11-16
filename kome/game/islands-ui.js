@@ -23,7 +23,7 @@
   }
 
   /* ---------- chip do HUD ---------- */
-  function chipShow() { return !!(S && (S.ended || I().islandRun() || S.stats.cs_ilhas)); }
+  function chipShow() { return !!(S && (S.ended || I().islandRun() || S.stats.cs_ilhas || I().event())); }
   function chipTick() {
     if (!S || !G.HUD || !G.HUD.zones || !G.HUD.zones.tc) return;
     if (!chip) {
@@ -37,8 +37,11 @@
     const here = I().island(), nx = I().next(), n = I().index() + 1, lap = I().lap();
     const t = S.ended ? 'Partir pra ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ') : here.n.replace('Ilha Flutuante de ', 'Ilha de ') + ' · ilha ' + n + '/' + D.ISLANDS.length + (lap ? ' · volta ' + (lap + 1) : '');
     const sub = S.ended ? '+' + I().gain() + ' Sementes Douradas · toque!' : 'casa ' + S.house + '/' + D.HOUSE.length + ' · depois: ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ');
+    const ev = I().event(); let sub2 = sub;
+    if (ev) sub2 = ev.n.replace('!', '') + ' ×' + String(ev.mult).replace('.', ',') + ' · ' + Math.ceil(I().eventLeft()) + 's';   // evento da ilha rolando
+    chip.classList.toggle('k-islchip-ev', !!ev);
     const b = chip.querySelector('b'), sm = chip.querySelector('small');
-    if (b.textContent !== t) b.textContent = t; if (sm.textContent !== sub) sm.textContent = sub;
+    if (b.textContent !== t) b.textContent = t; if (sm.textContent !== sub2) sm.textContent = sub2;
     chip.classList.toggle('k-pulse', !!S.ended);
     chip.classList.toggle('k-islchip-go', !!S.ended);
   }

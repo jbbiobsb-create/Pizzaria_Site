@@ -1341,6 +1341,8 @@
   function feelTick(dt, hold) {
     const idle = !hold && Math.abs(P.vx) < 6 && P.ground && !(S.stun > 0);
     FEEL.idle = idle ? FEEL.idle + dt : 0;
+    const ev = G.Islands && G.Islands.event();   // gravidade fofa: parado, o Kome quica sozinho
+    if (ev && ev.grav && idle && P.ground && cur.kind === 'hand' && (FEEL.hop = (FEEL.hop || 0) - dt) <= 0) { FEEL.hop = 1.3; P.vy = -300; P.y -= 2; P.ground = false; }
     if (FAST || !T.head || !(FEEL.cold || FEEL.hot) || (FEEL.puffT -= dt) > 0) return;
     T.head(S.m, HB); const sc = HB.sc || 1;
     if (FEEL.cold) FEEL.puffT = 1;   // o bafo é desenhado em drawBreath
@@ -1369,7 +1371,7 @@
   // bafo de frio: nuvenzinha que sai do focinho a cada `per` segundos, cresce e some
   function drawBreath(g, t, per) {
     if (!T.head) return; const q = (t % per) / 0.9; if (q >= 1) return;
-    T.head(S.m, HB); const sc = HB.sc || 1, f = HB.f, x = HB.x + f * (8 + q * 9) * sc, y = HB.y + (1.5 - q * 3) * sc, r = (1.6 + q * 3.2) * sc;
+    T.head(S.m, HB); const sc = HB.sc || 1, f = HB.f, x = HB.x + f * (10 + q * 10) * sc, y = HB.y + (1.5 - q * 3) * sc, r = (2.4 + q * 4.2) * sc;
     g.save(); g.globalAlpha = 0.95 * (1 - q * q);
     g.fillStyle = '#FFFFFF'; g.strokeStyle = 'rgba(150,180,210,.9)'; g.lineWidth = Math.max(0.4, 0.5 * sc);
     g.beginPath(); g.arc(x, y, r, 0, 6.3); g.arc(x + f * r * 0.9, y - r * 0.35, r * 0.75, 0, 6.3); g.arc(x + f * r * 0.2, y + r * 0.45, r * 0.6, 0, 6.3); g.fill();
