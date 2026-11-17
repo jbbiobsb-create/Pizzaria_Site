@@ -82,7 +82,7 @@
   const SEASONS = [
     { nome: 'Primavera', fest: 'Hanami', tree: 'sakura', grass: '#8FAE62', sub: 'piquenique debaixo das cerejeiras' },
     { nome: 'Verão', fest: 'Hanabi', tree: 'round', grass: '#7F9E5C', sub: 'fogos de artifício na praça' },
-    { nome: 'Outono', fest: 'Tsukimi', tree: 'maple', grass: '#B39A5A', sub: 'lua cheia e colheita' },
+    { nome: 'Outono', fest: 'Tsukimi', tree: 'maple', grass: '#A3A35A', sub: 'lua cheia e colheita' },
     { nome: 'Inverno', fest: 'Shōgatsu', tree: 'pine', grass: '#DCE4E8', sub: 'ano-novo com mochitsuki' },
   ];
 
@@ -988,7 +988,7 @@
     } else if (cena === 'festa' || cena === 'cheia') {
       S.stock = { onigiri: 200, mochi: 70, bento: 24 };
       ['kiku', 'taro', 'genji', 'momo'].forEach(id => { const p = people.find(q => q.def.id === id); addHearts(p, lvNeed(p)); });
-      quiet(14);
+      quiet(14); S.hint = 0;
       people.forEach(p => { p.x = U.clamp(p.x, 400, WORLD - 60); });
       if (cena === 'festa') { S.fest = CFG.FEST_NEED; startFest(); quiet(5); S.camX = S.camT; S.camT = null; }
       else { S.season = 2; S.camX = 820; }
