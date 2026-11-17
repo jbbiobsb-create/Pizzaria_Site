@@ -103,7 +103,8 @@
 .k-cui{position:fixed;inset:0;z-index:56;pointer-events:none;font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','M PLUS Rounded 1c','Nunito','Varela Round','Arial Rounded MT Bold','Trebuchet MS','Segoe UI',system-ui,sans-serif;color:#2A1A10;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;font-variant-numeric:tabular-nums}
 .k-cui *{box-sizing:border-box}
 .k-cui-v{position:absolute;left:0;top:0;transform-origin:0 0}
-.k-cui button{font:inherit;color:inherit;margin:0;cursor:pointer;touch-action:manipulation;border:0;background:none;padding:0}
+.k-cui button{font:inherit;color:inherit;margin:0;cursor:pointer;touch-action:manipulation}
+:where(.k-cui) button{border:0;background:none;padding:0}
 .k-cui-dim{position:absolute;inset:0;background:rgba(29,20,12,.55);pointer-events:auto;opacity:0;transition:opacity .25s}
 .k-cui-dim.on{opacity:1}
 .k-cui-card{position:absolute;background:#FFFAEE;border:3px solid ${INK};border-radius:18px;box-shadow:0 5px 0 ${INK},0 10px 24px rgba(40,20,5,.28);pointer-events:auto;display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateY(14px) scale(.97);transition:opacity .22s,transform .3s cubic-bezier(.2,1.4,.4,1)}
@@ -532,21 +533,21 @@
     if (!T.panel) {
       T.panel = UI.panel({ title: 'Sementes Douradas', icon: 'star', bare: true, onOpen: () => { if (T.tree) T.tree.refresh(); }, onClose: () => { if (T.tick) clearInterval(T.tick); T.tick = 0; } });
       T.count = UI.el('div', 'k-tree-hint', T.panel.head || T.panel.body, '');
-      T.count.style.cssText = 'position:static;margin:0 12px 0 auto;font-size:17px;font-weight:900;background:#FFE9A8;border:2px solid #3B2818;border-radius:12px;padding:4px 10px;white-space:nowrap';
-      const x = T.panel.head && T.panel.head.querySelector('.k-x'); if (x) T.panel.head.insertBefore(T.count, x);
+      T.count.style.cssText = 'position:absolute;left:auto;right:72px;top:12px;bottom:auto;transform:none;z-index:3;font-size:19px;font-weight:900;background:#FFE9A8;color:#2A1A10;border:3px solid #3B2818;border-radius:14px;box-shadow:0 3px 0 #3B2818;padding:6px 12px;white-space:nowrap;pointer-events:none;opacity:1';
     }
     if (!T.tree || T.key !== key) {
       if (T.tree) T.tree.destroy();
       T.key = key; T.nodes = {}; nodes.forEach(n => { T.nodes[n.id] = n; describe(n); });
       T.tree = UI.tree(T.panel.body, {
         nodes, branches: st.branches, center: { icon: ART() && ART().seedIcon ? ART().seedIcon() : 'star', label: 'Sementes', scale: 1.3 },
-        owned: id => A().seedLevel(id) > 0, money: () => A().seeds(), rate: () => 0,
+        owned: id => A().seedLevel(id) > 0, progress: n => U.clamp(A().seeds() / Math.max(1, A().seedCost(n.id)), 0, 1),
         affordable: n => A().seeds() >= A().seedCost(n.id),
         fmtCost: c => '★ ' + fmt(c),
         onBuy(n) { return buySeed(n.id) ? undefined : false; },
         onSelect(n) { T.sel = n.id; levelBtn(); },
       });
       UI.el('div', 'k-tree-hint', T.tree.el, 'nó dourado grandão = máquina absurda · toque num nó, toque de novo pra comprar');
+      T.tree.el.appendChild(T.count);
       T.card = T.tree.el.querySelector('.k-tree-card');
       T.lv = UI.button(T.card, { title: 'Subir nível', icon: 'star', iconSize: 22, center: true, sound: 'none', onClick: () => { if (T.sel) buySeed(T.sel, true); } });
       (T.lv.el || T.lv).style.display = 'none';
@@ -698,7 +699,7 @@
   Object.assign(CU, {
     openPatio, closePatio: () => patio.close(), openHeart, openSeeds, showAway, cochilo: force => (force || napOn() ? (showNap(), true) : false),
     close() { opened.slice().forEach(s => s.close()); if (T.panel) T.panel.close(); },
-    isOpen: () => opened.length > 0, CFG, fit,
+    isOpen: () => opened.length > 0, CFG, fit, seedTreeUI: () => T.tree,
     state: () => ({ patio: patio.isOpen, heart: heart.isOpen, away: away.isOpen, nap: nap.isOpen, napPlay: NAP.play, mult: P.mult }),
   });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(build, 0)); else setTimeout(build, 0);
@@ -771,7 +772,7 @@
       ['absurdo20', 'Portal Onigiri', 'destrava a turma 20: onigiri de outra dimensão', 'absurdo', 5.7, 0.9, ['absurdo19'], 2, 'chest', 3000, 1, 1],
       ['horizonte', 'Horizonte Lotado', 'cada máquina absurda dá +10% em todas as turmas', 'absurdo', 4.7, -1.4, ['absurdo17'], 1, 'mount', 150, 1],
       ['ensaio', 'Ensaio Geral', 'máquina absurda nova chega com 1 unidade', 'absurdo', 4.6, 1.5, ['absurdo19', 'frotaf'], 0, 'horn', 400, 1],
-      ['pertinho', 'Pertinho do Céu', 'turmas absurdas -5% de preço por nível', 'absurdo', 3.5, -2.0, ['absurdo16'], 0, 'yen', 60, 10],
+      ['pertinho', 'Pertinho do Céu', 'turmas absurdas -5% de preço por nível', 'absurdo', 4.4, -4.1, ['absurdo16'], 0, 'yen', 60, 10],
       ['saudade', 'Saudade do Começo', 'Pata e Hashi rendem +1% por máquina absurda que você tem', 'absurdo', 1.8, -3.9, ['absurdo15'], 0, 'paw', 40, 1],
     ];
     const TREE = { branches: BR, nodes: NODES.map(r => ({ id: r[0], n: r[1], desc: r[2], branch: r[3], pos: { x: r[4], y: r[5] }, req: r[6], size: r[7], icon: r[8], base: r[9], max: r[10], absurd: !!r[11] })) };

@@ -872,9 +872,10 @@
     if (L.R < v.x0 - 400 || L.L > v.x1 + 400) { stats.ms = 0; return; }
     const z = Draw.zoom || 1, nk = night();
     const dt = lastT === null ? 0 : clamp(t - lastT, 0, 0.1); lastT = t;
-    drawGiants(g, v, t, nk);
+    const P = stats.part || (stats.part = {}), pn = () => performance.now(); let tp = pn();
+    drawGiants(g, v, t, nk); P.giants = pn() - tp; tp = pn();
     drawGround(g, v);
-    drawFront(g, v, t, z);
+    drawFront(g, v, t, z); P.front = pn() - tp; tp = pn();
     // turmas de mão: as mais perto do centro da tela ganham figuras soltas; o resto (ou zoom aberto) vai em imagem de grupo
     const cx = (v.x0 + v.x1) / 2, vis = [];
     for (const id of PA.HAND) { const H = L.hand[id]; if (H.x1 + 60 < v.x0 || H.x0 - 120 > v.x1) continue; vis.push(id); }
@@ -884,7 +885,9 @@
     figs = 0;
     order.sort((a, b) => PA.HAND.indexOf(b[0]) - PA.HAND.indexOf(a[0]));   // de trás (esquerda) pra frente: nada passa por cima errado
     for (const [id, grp] of order) drawHand(g, id, t, z, grp, nk);
+    P.hand = pn() - tp; tp = pn();
     for (const id of PA.MID) { const B = L.mid[id]; if (B.x1 + 260 < v.x0 || B.x0 - 260 > v.x1) continue; drawMid(g, id, t, z, nk); }
+    P.mid = pn() - tp; tp = pn();
     // placas (por cima do canteiro, cada uma na sua faixa)
     for (const id of PA.HAND) { const H = L.hand[id]; if (H.x1 < v.x0 - 120 || H.x0 > v.x1 + 120) continue; drawSign(g, id, H.sx, 40, 40, 'hand', z, t); }
     for (const id of PA.MID) { const B = L.mid[id]; if (B.x1 < v.x0 - 200 || B.x0 > v.x1 + 200) continue; drawSign(g, id, B.sx, 40, MH[id] * MK[id] + 34, 'mid', z, t); }

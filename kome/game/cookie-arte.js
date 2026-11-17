@@ -68,7 +68,7 @@
       if (inside.length >= total) break; step *= 0.9;
     }
     inside.sort((a, b) => b[1] - a[1]);
-    const gr = step * 0.36;
+    const gr = step * 0.46;
     const show = Math.min(inside.length, Math.round(total * f));
     return anim(c, t => {
       g.clearRect(0, 0, w, h);
