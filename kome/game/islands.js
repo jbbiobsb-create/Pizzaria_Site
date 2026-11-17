@@ -147,7 +147,7 @@
     const m = medalFor(i, sec), was = r.medal | 0, newBest = !r.best || sec < r.best;
     r.n = (r.n | 0) + 1; if (newBest) r.best = Math.round(sec);
     let bonus = 0;
-    if (m > was) { for (let k = was + 1; k <= m; k++) bonus += EG.medal.seeds[MEDALS[k]] | 0; r.medal = m; S.stats.seeds = (S.stats.seeds | 0) + bonus; S.stats.seedsAll = (S.stats.seedsAll | 0) + bonus; }
+    if (m > was) { for (let k = was + 1; k <= m; k++) bonus += EG.medal.seeds[MEDALS[k]] | 0; r.medal = m; S.stats.seeds = Math.floor(S.stats.seeds || 0) + bonus; S.stats.seedsAll = Math.floor(S.stats.seedsAll || 0) + bonus; }
     return { medal: m, was, bonus, best: r.best, newBest, sec, island: D.ISLANDS[i], last: i === D.ISLANDS.length - 1 };
   }
 
@@ -155,7 +155,7 @@
     const c = seedCost(s);
     if (lvl(s.id) >= s.max) return false;
     if (s.req && !lvl(s.req)) { const r = D.SEEDS.find(x => x.id === s.req); UI.toast('Antes: ' + (r ? r.n : s.req), { icon: 'lock', tone: 'bad' }); return false; }
-    if ((S.stats.seeds | 0) < c) { UI.toast('Faltam ' + (c - (S.stats.seeds | 0)) + ' sementes', { icon: 'star', tone: 'bad' }); return false; }
+    if (Math.floor(S.stats.seeds || 0) < c) { UI.toast('Faltam ' + (c - Math.floor(S.stats.seeds || 0)) + ' sementes', { icon: 'star', tone: 'bad' }); return false; }
     S.stats.seeds -= c; sl()[s.id] = lvl(s.id) + 1;
     api.sfx('pling'); api.recompute(); api.save(); fill(panelPane); if (G.IslandsUI) G.IslandsUI.refresh();
     return true;
@@ -172,8 +172,12 @@
     const keep = { v: d.v, tv: d.tv, closet: d.closet, look: d.look, home: d.home, opts: d.opts, day: d.day };
     const stats = d.stats || {};
     if (next === 0 && (d.island | 0) === D.ISLANDS.length - 1) stats.lap = (stats.lap | 0) + 1;   // deu a volta: Honshu de novo, mais caro
-    stats.seeds = (stats.seeds | 0) + g; stats.seedsAll = (stats.seedsAll | 0) + g;
+    stats.seeds = Math.floor(stats.seeds || 0) + g; stats.seedsAll = Math.floor(stats.seedsAll || 0) + g;
     stats.islandsDone = (stats.islandsDone | 0) + 1; stats.arrive = 1; stats.lv = {}; stats.run = {}; stats.patio = {}; stats.earnedEnd = 0;   // Pátio da Frota zera (prestígio)
+    // ¥/s "com você na melhor máquina" é da ILHA (a ferramenta e a Oficina zeram): se ficasse, o R0 do próximo Pátio e a renda
+    // garantida do Goma herdavam a Oficina do Pátio anterior e a economia crescia ×10^6 por viagem até estourar (1e308 = parede da volta 17)
+    delete stats.topIps; delete stats.topWk;
+    if (stats.fab) { stats.fab.slow = 0; stats.fab.pb = 0; }   // Fábrica: o layout fica, o ritmo de cavar medido (valor do item) é da ilha
     stats.earnedAll = (stats.earnedAll || 0) + (d.earned || 0);
     for (const k in d) delete d[k];
     Object.assign(d, keep, { stats, island: next, mount: 1, tool: START_TOOL[U.clamp((stats.sl && stats.sl.ferr) | 0, 0, 3)],
@@ -260,12 +264,12 @@
     const nx = D.ISLANDS[nextIdx()];
     const b = UI.button(col, { title: 'Partir pra ' + nx.n, sub: S.ended ? '+' + gain() + ' sementes · ' + nx.d : 'termine a casa primeiro · ' + nx.d, icon: 'star', tone: S.ended ? 'red' : '', size: 'sm', onClick: travel });
     (b.el || b).style.width = '100%'; if (!S.ended) (b.el || b).style.opacity = '0.6';
-    UI.el('div', 'k-h', col, 'Sementes Douradas: ' + (S.stats.seeds | 0));
+    UI.el('div', 'k-h', col, 'Sementes Douradas: ' + Math.floor(S.stats.seeds || 0));
     UI.el('div', 'k-homehint', col, 'nunca zeram; valem em todas as ilhas');
     for (const s of D.SEEDS) {
       const L = lvl(s.id), full = L >= s.max;
       const bt = UI.button(col, { title: s.n + ' · nível ' + L + '/' + s.max, sub: (full ? 'completo · ' : seedCost(s) + ' sementes · ') + s.d, icon: 'star', size: 'sm', onClick: () => buy(s) });
-      (bt.el || bt).style.width = '100%'; if (full || (S.stats.seeds | 0) < seedCost(s)) (bt.el || bt).style.opacity = '0.6';
+      (bt.el || bt).style.width = '100%'; if (full || Math.floor(S.stats.seeds || 0) < seedCost(s)) (bt.el || bt).style.opacity = '0.6';
     }
   }
 

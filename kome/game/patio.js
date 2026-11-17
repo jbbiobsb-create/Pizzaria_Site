@@ -104,6 +104,7 @@
   /* ---- tempo: renda a cada segundo; chip; painel ---- */
   function tick(dt) {
     if (!api || !S()) return;
+    if (G.Absurdas) G.Absurdas.check(!!(api.fast && api.fast()));   // nó Absurdo novo: cena de chegada (FAST pula)
     if (!on()) { unlock(); chipTick(); return; }
     accT += dt;
     if (accT >= 1) { const v = rate() * accT; accT = 0; if (v > 0 && api.credit) api.credit(v); }
@@ -176,7 +177,7 @@
     // turmas na tela: as abertas + a PRÓXIMA absurda travada ("???", diz qual nó destrava)
     const absList = () => { const out = []; let next = true;
       for (const t of P.turmas) { const ok = unlocked(t); if (!ok && !next) continue; if (!ok) next = false; const sd = t.seed ? seedById(t.seed) : null;
-        out.push({ id: t.id, name: t.n, n: cnt(t.id), rate: rateOf(t.id), absurd: !!t.seed, locked: !ok, lockTxt: ok ? '' : 'destrava com o nó "' + (sd ? sd.n : t.seed) + '" (galho Absurdo da Árvore de Sementes)' }); }
+        out.push({ id: t.id, name: t.n, n: cnt(t.id), rate: rateOf(t.id), absurd: !!t.seed, locked: !ok, lockTxt: ok ? '' : 'destrava com o nó "' + (sd ? sd.n : t.seed) + '"' }); }
       return out; };
     const fam = a => (a.cond === 'segredo' ? 'segredo' : a.cond === 'ganho' ? 'riqueza' : a.cond === 'eventos' ? 'eventos' : 'turmas');
     G.CookieUI.use({
@@ -186,7 +187,7 @@
       price: (id, k) => costN(id, k === 'max' ? Math.max(1, maxK(id)) : k), maxBuy: id => maxK(id),
       buy: (id, k) => buy(id, k === 'max' ? 'max' : k),
       marco: id => { const i = mks(id); if (i >= P.at.length) return null; const r = marcoRow(id);
-        return { at: P.at[i], name: r ? r.n : 'Marco ' + P.at[i], desc: r ? r.d : byId[id].n + ' rende o dobro', mult: sl('marco_turbo') && i < 2 ? 3 : 2, price: marcoCost(id), ready: cnt(id) >= P.at[i], prev: i ? { at: P.at[i - 1] } : null }; },
+        return { at: P.at[i], name: r ? r.n : byId[id].n, desc: r ? r.d : byId[id].n + ' rende o dobro', mult: sl('marco_turbo') && i < 2 ? 3 : 2, price: marcoCost(id), ready: cnt(id) >= P.at[i], prev: i ? { at: P.at[i - 1] } : null }; },
       buyMarco: id => buyMarco(id),
       sinergias: id => SYN.filter(u => u.maq.split('+').indexOf(id) >= 0).map(u => { const [a, b] = u.maq.split('+'), other = a === id ? b : a;
         return { id: u.id, other, otherName: byId[other].n, name: u.n, desc: u.d, mult: u.ef === 'mult_par' ? u.v || 1 : 1 + (u.v || 0), state: synOn(u.id) ? 'on' : synOpen(u) ? 'ready' : 'need', need: u.alvo, have: Math.min(cnt(a), cnt(b)), price: synCost(u) }; }),

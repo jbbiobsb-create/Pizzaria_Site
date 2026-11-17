@@ -70,7 +70,7 @@
   }
   function fillSide() {
     const side = root.querySelector('.k-isl-side'); side.innerHTML = '';
-    root.querySelector('.k-isl-seeds').textContent = '★ ' + (S.stats.seeds | 0) + ' Sementes Douradas';
+    root.querySelector('.k-isl-seeds').textContent = '★ ' + Math.floor(S.stats.seeds || 0) + ' Sementes Douradas';
     root.querySelector('.k-isl-title').textContent = 'A Volta ao Japão' + (I().lap() ? ' · volta ' + (I().lap() + 1) : '') + (S.stats.legend ? ' · Lenda do Japão' : '');
     const i = sel, isl = D.ISLANDS[i], st = stateOf(i), r = I().rec(isl.id), cur = I().index();
     const info = el('div', 'k-isl-info', side);
@@ -102,7 +102,7 @@
     el('div', 'k-isl-sub', sd, 'Sementes Douradas · nunca zeram');
     const grid = el('div', 'k-isl-grid', sd);
     for (const s of D.SEEDS) {
-      const L = I().lvl(s.id), full = L >= s.max, c = I().seedCost(s), can = !full && (S.stats.seeds | 0) >= c;
+      const L = I().lvl(s.id), full = L >= s.max, c = I().seedCost(s), can = !full && Math.floor(S.stats.seeds || 0) >= c;
       const b = el('button', 'k-btn k-isl-seed' + (can ? ' k-can' : '') + (full ? ' k-full' : ''), grid);
       b.innerHTML = '<b>' + s.n + '</b><small>' + s.d + '</small><span class="k-isl-pips"></span><span class="k-isl-cost">' + (full ? 'completo' : '★ ' + c) + '</span>';
       const pp = b.querySelector('.k-isl-pips'); if (s.max > 12) pp.textContent = 'Nv ' + L + '/' + s.max; else for (let k = 0; k < s.max; k++) el('i', k < L ? 'on' : '', pp);   // muitos níveis: texto em vez de paredão de quadradinhos

@@ -409,7 +409,7 @@
     seedGrow: 1.45, patioExp: 0.15,   // camada Cookie: custo das sementes ×1,45/nível; Sementes do Pátio ^0,15
     medal: { ouro: [70, 34, 28, 28, 30], prata: [100, 50, 42, 42, 45], seeds: { bronze: 0, prata: 2, ouro: 5 } },
     ev: { every: [170, 240], first: 120, minTool: 3 },
-    lapStep: 2.5, legend: 2,
+    lapStep: 1, legend: 2,   // lapStep era 2,5: com a economia sem vazamento (topIps/Fábrica zeram na viagem) a campanha passava de 1 h na volta 9 e subia
   };
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
   D.nodeById = {}; D.TREE.forEach(n => { D.nodeById[n.id] = n; });

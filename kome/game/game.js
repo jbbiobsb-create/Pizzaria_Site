@@ -385,7 +385,7 @@
     if (!smallShow && G.Islands) v *= G.Islands.evMult();
     if (!smallShow && G.Events) v *= G.Events.mult(kind);   // eventos dourados da camada Cookie (frenesi, gigante, desfile…)   // evento da ilha (nevasca, erupção, maré, gravidade fofa)
     if (G.Fab && kind !== 2 && !smallShow) G.Fab.dig(v);   // fábrica: ritmo de cavar (a Doca puxa uma % disso)
-    S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind !== 1) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma) S.col.pulse = 1; S.win.inc[kind] += v;
+    S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind === 0) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma e sem prêmio de evento: o prêmio é minutos da renda TOTAL, Pátio junto, e virava o R0 do próximo Pátio) S.col.pulse = 1; S.win.inc[kind] += v;
     if (nListen && !smallShow) em.emit('pay', v, kind);
     if (FAST) return;
     const secs = v / Math.max(1, S.ips), c = S.col;
@@ -2122,7 +2122,7 @@
     if (G.Topo) G.Topo.init({ sfx });
     if (G.Events) G.Events.init({ sfx, fast: () => FAST, ips: () => Math.max(1, S.ips || 0), pay: v => credit(v, 2, false),
       banner: (e, txt) => { sfx('fanfare'); ui(() => UI.banner(e.n.toUpperCase() + '!', txt, { icon: e.icon || 'star', tone: 'gold', dur: 3 })); } });
-    if (G.Patio) G.Patio.init({ sfx, credit: v => credit(v, 1, false), recompute: () => computeStats(),
+    if (G.Patio) G.Patio.init({ sfx, fast: () => FAST, credit: v => credit(v, 1, false), recompute: () => computeStats(),
       ach: a => { sfx('chirin'); ui(() => UI.achievement(a.n, { sub: a.d + ' · +1% no Arroz do Coração', icon: a.icon, kicker: 'Conquista' })); },
       banner: () => { sfx('fanfare'); ui(() => UI.banner('PÁTIO DA FROTA ABRIU!', 'compre várias de cada máquina: toque em Pátio, no topo', { icon: 'star', tone: 'gold', dur: 4.5 })); },
       away: (sec, v) => ui(() => UI.banner('Enquanto você estava fora', 'a frota cavou ¥' + U.fmt(v) + ' em ' + U.fmtTime(sec), { icon: 'yen', tone: 'gold', dur: 6 })) });

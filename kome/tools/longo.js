@@ -63,7 +63,7 @@ const CHUNK = `((secs) => {
     if (S.ended && K.heap.area < K.heap.total * 0.12) { K.newMountain(); note('montanha', 'montanha nova ' + (S.mount | 0)); }
   }
   return { out, dt: S.time - t0, ended: !!S.ended, island: S.island | 0, ips: S.ips, tool: K.tool.id, house: S.house, money: S.money,
-    dug: 1 - K.heap.area / K.heap.total, partir: !!(G.Patio && G.Patio.partir && G.Patio.partir()), seeds: S.stats.seeds | 0, islandsDone: S.stats.islandsDone | 0, earned: S.earned };
+    dug: 1 - K.heap.area / K.heap.total, partir: !!(G.Patio && G.Patio.partir && G.Patio.partir()), seeds: Math.floor(S.stats.seeds || 0), islandsDone: S.stats.islandsDone | 0, earned: S.earned };
 })`;
 // viagem: compra sementes (o mais barato primeiro) e vai pra próxima ilha (recarrega a página)
 const TRAVEL = `(() => { const K = __kome, S = K.S, G = KomeGame, I = G.Islands; if (!I || !I.sim) return -1;
@@ -71,7 +71,7 @@ const TRAVEL = `(() => { const K = __kome, S = K.S, G = KomeGame, I = G.Islands;
   I.go(next); return next; })()`;
 const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I || !I.sim) return 0; let n = 0;
   for (let g = 0; g < 40; g++) { const L = KomeGame.Data.SEEDS.filter(s => ((S.stats.sl || {})[s.id] | 0) < s.max).sort((a, b) => I.sim.seedCost(a) - I.sim.seedCost(b));
-    const s = L[0]; if (!s || (S.stats.seeds | 0) < I.sim.seedCost(s)) break; I.sim.buy(s); n++; } return n; })()`;
+    const s = L[0]; if (!s || Math.floor(S.stats.seeds || 0) < I.sim.seedCost(s)) break; I.sim.buy(s); n++; } return n; })()`;
 
 (async () => {
   const b = await launch(), p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = [];
