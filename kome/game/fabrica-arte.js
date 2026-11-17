@@ -158,10 +158,12 @@
      ====================================================================== */
   const tierOf = lvl => (lvl >= 10 ? 3 : lvl >= 6 ? 2 : lvl >= 3 ? 1 : 0);
   // fogão de tijolo (kamado) da Panela
-  const stove = (t, back) => SP('stove' + t + (back ? 'b' : ''), 40, 60, P => {
+  // inv = peças de lado trocado (chaminé e reloginho), com a LUZ no mesmo lado: é a máquina virada pra esquerda (rot 2).
+  // Antes ela era o desenho espelhado inteiro e a sombra ia junto pro lado errado.
+  const stove = (t, back, inv) => SP('stove' + t + (back ? 'b' : '') + (inv ? 'i' : ''), 40, 60, P => {
     const cx = 20, by = 58, w = 13 + [0, 1, 3, 4][t], top = by - 17 - [0, 1, 3, 5][t];
     if (t >= 1) {                                             // chaminé de lata atrás
-      const ch = 16 + t * 4, x = cx + w - 6;
+      const ch = 16 + t * 4, x = inv ? cx - w + 1 : cx + w - 6;
       P.rect(x, top - ch, 5, ch + 2, K.steel); P.rect(x, top - ch, 1, ch + 2, K.steelL); P.rect(x + 4, top - ch, 1, ch + 2, K.steelD);
       P.rect(x - 1, top - ch - 2, 7, 3, K.steelD); P.rect(x, top - ch + 6, 5, 2, t >= 3 ? K.gold : K.red);
       if (t >= 2) { P.rect(x - 1, top - ch - 5, 7, 1, K.steelDD); P.rect(x + 1, top - ch - 4, 3, 2, K.steelD); P.rect(x - 2, top - ch - 6, 9, 1, K.steel); }
@@ -176,7 +178,7 @@
     P.rect(cx + w - 2, top, 2, by - 3 - top, K.brickD);
     P.rect(cx - w - 1, top - 2, 2 * w + 2, 2, t >= 3 ? K.gold : K.stoneL); P.rect(cx - w - 1, top - 1, 2 * w + 2, 1, t >= 3 ? K.goldD : K.stone);
     if (!back) { P.rrect(cx - 6, by - 13, 12, 10, 4, K.stoneD); P.rrect(cx - 5, by - 12, 10, 9, 3, K.dark); P.rect(cx - 5, by - 6, 10, 3, K.dark); }   // boca do fogo (de costas: só tijolo, a moega entra por cima)
-    if (t >= 2) { P.ell(cx - w + 4, top + 5, 2.5, 2.5, K.cream); P.set(cx - w + 4, top + 5, K.red); P.set(cx - w + 5, top + 4, K.blk); }   // reloginho de pressão
+    if (t >= 2) { const gx = inv ? cx + w - 5 : cx - w + 4; P.ell(gx, top + 5, 2.5, 2.5, K.cream); P.set(gx, top + 5, K.red); P.set(gx + 1, top + 4, K.blk); }   // reloginho de pressão
     if (t >= 3) { P.rect(cx - w, by - 4, 2 * w, 1, K.gold); }
   });
   const pot = t => SP('pot' + t, 40, 18, P => {             // donabe
@@ -200,8 +202,8 @@
   const paddle = SP('paddle', 7, 22, P => { P.rect(3, 6, 1, 15, K.woodL); P.rrect(1, 1, 5, 7, 2, K.woodL); P.rect(4, 2, 1, 5, K.wood); });
 
   // prensa da Moldadora
-  const press = (t, back) => SP('press' + t + (back ? 'b' : ''), 44, 58, P => {
-    const cx = 22, by = 56;
+  const press = (t, back, inv) => SP('press' + t + (back ? 'b' : '') + (inv ? 'i' : ''), 44, 58, P => {
+    const cx = 22, by = 56, sd = inv ? -1 : 1, X = (dx, w) => (inv ? cx - dx - (w || 1) : cx + dx);   // X(dx, largura): mesma peça do outro lado
     P.rect(cx - 15, by - 2, 30, 2, K.woodDD);
     P.rect(cx - 14, by - 11, 28, 9, K.wood); P.rect(cx - 14, by - 11, 28, 2, K.woodL); P.rect(cx - 14, by - 4, 28, 2, K.woodD); P.rect(cx + 11, by - 9, 3, 6, K.woodD);
     P.rect(cx - 6, by - 9, 1, 6, K.woodD); P.rect(cx + 6, by - 9, 1, 6, K.woodD);
@@ -218,11 +220,11 @@
     P.rect(cx - hw - 1, by - 41 - hh, 2 * hw + 2, 2, K.steelD); P.rect(cx - hw + 1, by - 40 - hh, 2 * hw - 2, 2, K.rice); P.rect(cx - hw + 2, by - 39 - hh, 4, 1, K.white);
     P.rect(cx + 2, by - 38 - hh + 3, 2, Math.max(1, hh - 4), K.steelD);
     if (t >= 1) {                                                                                                                      // cano de cobre + volante
-      P.rect(cx + 14, by - 38, 2, 25, K.copper); P.rect(cx + 14, by - 38, 1, 25, K.copperL); P.rect(cx + 13, by - 28, 4, 2, K.copperD); P.rect(cx + 13, by - 19, 4, 2, K.copperD);
-      P.ring(cx - 17, by - 25, 4, 1.4, K.copper); P.set(cx - 17, by - 25, K.copperD);
+      P.rect(X(14, 2), by - 38, 2, 25, K.copper); P.rect(X(14, 2), by - 38, 1, 25, K.copperL); P.rect(X(13, 4), by - 28, 4, 2, K.copperD); P.rect(X(13, 4), by - 19, 4, 2, K.copperD);
+      P.ring(cx - 17 * sd, by - 25, 4, 1.4, K.copper); P.set(cx - 17 * sd, by - 25, K.copperD);
     }
-    if (t >= 2) { P.ell(cx - 10, by - 44, 3, 3, K.cream); P.set(cx - 10, by - 44, K.red); P.set(cx - 9, by - 45, K.blk); P.rect(cx + 9, by - 43, 3, 3, K.goldL); P.rect(cx + 9, by - 40, 3, 1, K.steelD); }
-    if (t >= 3) { P.rect(cx - 16, by - 14, 32, 1, K.goldL); P.rect(cx - 14, by - 11, 28, 1, K.gold); P.rect(cx + 16, by - 47, 3, 9, K.steel); P.rect(cx + 15, by - 49, 5, 2, K.steelD); }
+    if (t >= 2) { P.ell(cx - 10 * sd, by - 44, 3, 3, K.cream); P.set(cx - 10 * sd, by - 44, K.red); P.set(cx - 10 * sd + 1, by - 45, K.blk); P.rect(X(9, 3), by - 43, 3, 3, K.goldL); P.rect(X(9, 3), by - 40, 3, 1, K.steelD); }
+    if (t >= 3) { P.rect(cx - 16, by - 14, 32, 1, K.goldL); P.rect(cx - 14, by - 11, 28, 1, K.gold); P.rect(X(16, 3), by - 47, 3, 9, K.steel); P.rect(X(15, 5), by - 49, 5, 2, K.steelD); }
   });
   const pressHead = SP('presshead', 18, 9, P => { P.rect(1, 1, 16, 4, K.steelD); P.rect(1, 1, 16, 1, K.steel); P.poly([[3, 5], [15, 5], [12, 8], [6, 8]], K.steel); P.rect(7, 2, 4, 2, K.red); });
 
@@ -588,6 +590,15 @@
     D.text(g, String(lvl), x, y + 1, { size: 17, col: INK, sw: 0, weight: 900 });
   }
   A.levelBadge = levelBadge;
+  /* A.tagPos(m, cx, by) -> {x, y}: onde mora a etiqueta (nível + barrinha "ocupada") de cada máquina, em coordenada de tela.
+     Fica NA CABEÇA da máquina (ombro da tampa / canto do funil / acima de quem vira o mochi), do lado do operador: a fileira
+     da frente só cobre o pé e o corpo da de trás, nunca a cabeça. */
+  A.tagPos = function (m, cx, by) {
+    const tr = A.tierOf(m.lvl), s = A.mirrored(m.type, m.rot) ? -1 : 1;
+    if (m.type === 'panela') return { x: cx - 9 * s + 27 * s, y: by + 6 - 38 - [0, 2, 6, 10][tr] - 26 };
+    if (m.type === 'moldadora') return { x: cx - 9 * s + 27 * s, y: by + 6 - 88 - [0, 1, 3, 5][tr] * 2 };
+    return { x: cx + (m.rot % 2 ? 34 : 50 + [0, 0, 4, 6][tr]) * s, y: by - 62 - [0, 2, 12, 16][tr] * 0.5 };
+  };
 
   /* ORIENTAÇÃO  (o.rot = pra onde a máquina solta o produto: 0 direita · 1 baixo/de frente · 2 esquerda · 3 cima/de costas)
      O desenho-base da Panela e da Moldadora solta pela ESQUERDA, com o operador à direita (ele fica do lado por onde o arroz entra).
@@ -608,19 +619,25 @@
   }
 
   // PANELA: donabe num fogão de tijolo, fogo piscando, tampa batendo, shiba de touca mexendo
-  A.panela = oriented('panela', function (g, m, cx, by, t, o) {
-    const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, top = by - 38 - [0, 2, 6, 10][tr];
-    const rot = o.rot | 0, front = rot === 1, back = rot === 3, F = rot !== 1, w2 = (13 + [0, 1, 3, 4][tr]) * 2;
-    const ox = cx + (back ? 22 : 26), oy = by + (front ? -11 : back ? 13 : 4);
+  /* DROP: o CORPO da Panela e da Moldadora assenta 6 px mais embaixo na casa (calha, operador e esteira ficam onde estavam):
+     duas máquinas empilhadas se cobrem menos. Sombra de cada peça sempre do mesmo lado (luz da esquerda) nas 4 direções:
+     flip só desfaz o espelho do quadro (mir); quando a saída é pra esquerda (rot 2) entra o desenho `inv` (peças do outro lado).
+     Calha de lado termina NA BORDA da casa (não entra na vizinha). De costas, a moega é desenhada por cima do operador. */
+  const DROP = 6;
+  A.DROP = DROP;
+  A.panela = oriented('panela', function (g, m, cx, fy, t, o) {
+    const by = fy + DROP, tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, top = by - 38 - [0, 2, 6, 10][tr];
+    const rot = o.rot | 0, front = rot === 1, back = rot === 3, F = A.mirrored('panela', rot), inv = rot === 2, w2 = (13 + [0, 1, 3, 4][tr]) * 2;
+    const ox = cx + (back ? 29 : 26), oy = fy + (front ? -11 : back ? 9 : 4);
     const op = () => {
-      const pal = PALS_COOK[m.id % PALS_COOK.length], pose = working ? 'push' : (m.idle > 6 ? 'sleep' : 'sit');
+      const pal = PALS_COOK[m.id % PALS_COOK.length], pose = working ? 'push' : (m.idle > 6 ? (back ? 'sit' : 'sleep') : 'sit');
       if (working && !back) blit(g, P.paddle, ox - 10, oy - 20, 2, { rot: -0.75 + Math.sin(m.anim * 7) * 0.3 });
       A.worker(g, ox, oy, pose, t + m.id * 0.7, { pal, face: -1, hat: 'toque' });
     };
     shadow(g, mx, by + 2, 36, 8);
     if (front && !o.ghost) op();                                // de frente: o cozinheiro fica atrás do fogão
     if (working && !o.ghost) fx(g, mx, by + 5, '#FFB040', (back ? 0.08 : 0.16) + 0.08 * Math.sin(t * 17 + m.id));
-    blit(g, P.stove(tr, back), mx, by + BASE, 2, { flip: F });
+    blit(g, P.stove(tr, back, inv), mx, by + BASE, 2, { flip: F });
     if (!back) {
       if (working) blit(g, P.flame(Math.floor(t * 9 + m.id) % 3), mx, by - 6, 2);
       else { g.fillStyle = m.idle < 4 ? '#D9502A' : '#6A3A22'; g.fillRect(mx - 6, by - 10, 4, 2); g.fillRect(mx + 2, by - 9, 3, 2); }
@@ -628,35 +645,34 @@
     blit(g, P.pot(tr), mx, top + 6 + sq * 3, 2, { sx: 1 + sq * 0.08, sy: 1 - sq * 0.1, flip: F });
     const rat = working ? Math.abs(Math.sin(m.anim * 13)) : 0;
     blit(g, P.lid(tr), mx + (working ? Math.sin(m.anim * 29) * 1.2 : 0), top - 20 - rat * 4 + sq * 3, 2, { rot: working ? Math.sin(m.anim * 13) * 0.07 : 0, flip: F });
-    if (front) blit(g, P.chuteF, mx, by + BASE + 12);
-    else if (back) { blit(g, P.hopper, mx, by + BASE + 3); blit(g, P.plateU, mx, by + BASE + 1); }
-    else { blit(g, P.chute, mx - w2 - 8, by + BASE + 2); blit(g, P.plate, mx - w2 + 8, by - 9); }
-    if (o.ghost) return;
+    if (front) blit(g, P.chuteF, mx, fy + BASE + 12);
+    else if (!back) { blit(g, P.chute, Math.max(cx - 26, mx - w2 - 8), fy + BASE + 2); blit(g, P.plate, mx - w2 + 8, by - 9); }
+    if (o.ghost) { if (back) { blit(g, P.hopper, mx, fy + BASE + 3); blit(g, P.plateU, mx, fy + BASE + 1); } return; }
     if (!front) op();
+    if (back) { blit(g, P.hopper, mx, fy + BASE + 3); blit(g, P.plateU, mx, fy + BASE + 1); }   // moega por cima: o operador nunca tapa
   });
-  A.panelaTop = (m, cx, by) => ({ x: A.bodyX(m, cx), y: by - 38 - [0, 2, 6, 10][A.tierOf(m.lvl)] - 34 });
+  A.panelaTop = (m, cx, by) => ({ x: A.bodyX(m, cx), y: by + DROP - 38 - [0, 2, 6, 10][A.tierOf(m.lvl)] - 34 });
 
   // MOLDADORA: prensa com pistão, funil de arroz, alavanca e o onigiri pulando pra fora
-  A.moldadora = oriented('moldadora', function (g, m, cx, by, t, o) {
-    const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, k = m.prog;
-    const rot = o.rot | 0, front = rot === 1, back = rot === 3, F = rot !== 1;
+  A.moldadora = oriented('moldadora', function (g, m, cx, fy, t, o) {
+    const by = fy + DROP, tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, k = m.prog;
+    const rot = o.rot | 0, front = rot === 1, back = rot === 3, F = A.mirrored('moldadora', rot), inv = rot === 2, side = rot !== 1;
     let d = 0;                                                  // 0 = pistão em cima, 1 = carimbou
     if (working) { if (k < 0.4) d = -0.12 * Math.sin(k / 0.4 * Math.PI); else if (k < 0.6) d = U.ease.in((k - 0.4) / 0.2); else d = 1 - U.ease.out((k - 0.6) / 0.4); }
-    const ox = cx + (back ? 24 : 28), oy = by + (front ? -11 : back ? 13 : 4);
-    const op = () => A.worker(g, ox, oy, working ? (d > 0.35 ? 'push' : 'stand') : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id * 0.9, { pal: PALS_MOLD[m.id % PALS_MOLD.length], face: -1, hat: 'bone' });
+    const ox = cx + (back ? 31 : 28), oy = fy + (front ? -11 : back ? 9 : 4);
+    const op = () => A.worker(g, ox, oy, working ? (d > 0.35 ? 'push' : 'stand') : (m.idle > 6 ? (back ? 'sit' : 'sleep') : 'sit'), t + m.id * 0.9, { pal: PALS_MOLD[m.id % PALS_MOLD.length], face: -1, hat: 'bone' });
     shadow(g, mx, by + 2, 38, 8);
     if (front && !o.ghost) op();
-    blit(g, P.press(tr, back), mx, by + BASE, 2, { flip: F });
+    blit(g, P.press(tr, back, inv), mx, by + BASE, 2, { flip: F });
     const hb = by - 52 + d * 20, rt = by - 70, rl = Math.max(0, hb - 14 - rt);   // base da cabeça do pistão; haste
     g.fillStyle = INK; g.fillRect(mx - 5, rt, 10, rl + 2);
     g.fillStyle = K.steel; g.fillRect(mx - 3, rt, 6, rl); g.fillStyle = K.steelL; g.fillRect(mx - 3, rt, 2, rl); g.fillStyle = K.steelD; g.fillRect(mx + 1, rt, 2, rl);
     if (m.work) blit(g, k > 0.58 ? item.onigiri : item.cozido, mx, by - 26 + (k > 0.58 ? 0 : 2), 2, { sx: 1 + sq * 0.3, sy: 1 - sq * 0.3 });
     blit(g, P.pressHead, mx, hb + 2);
-    if (tr >= 1) { const a = (working ? m.anim * 5 : 0), wx = mx + (F ? 34 : -34); g.strokeStyle = K.copperD; g.lineWidth = 2; g.beginPath(); g.moveTo(wx + Math.cos(a) * 7, by - 46 + Math.sin(a) * 7); g.lineTo(wx - Math.cos(a) * 7, by - 46 - Math.sin(a) * 7); g.moveTo(wx + Math.cos(a + 1.57) * 7, by - 46 + Math.sin(a + 1.57) * 7); g.lineTo(wx - Math.cos(a + 1.57) * 7, by - 46 - Math.sin(a + 1.57) * 7); g.stroke(); }
-    if (front) blit(g, P.chuteF, mx, by + BASE + 12);
-    else if (back) { blit(g, P.hopper, mx, by + BASE + 3); blit(g, P.plateU, mx, by + BASE + 1); }
-    else { blit(g, P.chute, mx - 38, by + BASE + 2); blit(g, P.plate, mx - 20, by - 5); }
-    if (o.ghost) return;
+    if (tr >= 1) { const a = (working ? m.anim * 5 : 0), wx = mx + (side ? 34 : -34); g.strokeStyle = K.copperD; g.lineWidth = 2; g.beginPath(); g.moveTo(wx + Math.cos(a) * 7, by - 46 + Math.sin(a) * 7); g.lineTo(wx - Math.cos(a) * 7, by - 46 - Math.sin(a) * 7); g.moveTo(wx + Math.cos(a + 1.57) * 7, by - 46 + Math.sin(a + 1.57) * 7); g.lineTo(wx - Math.cos(a + 1.57) * 7, by - 46 - Math.sin(a + 1.57) * 7); g.stroke(); }
+    if (front) blit(g, P.chuteF, mx, fy + BASE + 12);
+    else if (!back) { blit(g, P.chute, cx - 26, fy + BASE + 2); blit(g, P.plate, mx - 20, by - 5); }
+    if (o.ghost) { if (back) { blit(g, P.hopper, mx, fy + BASE + 3); blit(g, P.plateU, mx, fy + BASE + 1); } return; }
     // alavanca (o operador puxa junto com o pistão)
     const pvx = mx + 30, pvy = by - 24, la = -1.95 + Math.max(0, d) * 0.9, lx = pvx + Math.cos(la) * 24, ly = pvy + Math.sin(la) * 24;
     g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 6; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(lx, ly); g.stroke();
@@ -664,6 +680,7 @@
     g.fillStyle = INK; g.beginPath(); g.arc(lx, ly, 5.5, 0, TAU); g.fill(); g.fillStyle = K.red; g.beginPath(); g.arc(lx, ly, 4, 0, TAU); g.fill(); g.fillStyle = K.redL; g.fillRect(lx - 2, ly - 3, 2, 2);
     g.fillStyle = INK; g.beginPath(); g.arc(pvx, pvy, 4, 0, TAU); g.fill(); g.fillStyle = K.steelD; g.beginPath(); g.arc(pvx, pvy, 2.5, 0, TAU); g.fill();
     if (!front) op();
+    if (back) { blit(g, P.hopper, mx, fy + BASE + 3); blit(g, P.plateU, mx, fy + BASE + 1); }   // moega por cima: o operador nunca tapa
     if (m.pop > 0) {                                            // onigiri pronto pula da boca pra saída (no quadro local a saída de lado é sempre pra esquerda)
       const ldx = rot % 2 === 0 ? -1 : 0, ldy = front ? 1 : back ? -1 : 0;
       const u = 1 - m.pop, px = mx + ldx * 34 * u, py = by - 8 + ldy * 20 * u - Math.sin(u * Math.PI) * 20;
@@ -685,7 +702,7 @@
       g.fillStyle = gold ? K.goldL : K.white; g.beginPath(); g.ellipse(cx - 5, my - 1.5, rx * 0.45, ry * 0.4, 0, 0, TAU); g.fill();
     }
     if (o.rot === 1) blit(g, P.chuteF, cx, by + BASE + 26);     // de frente: calha no pé
-    else if (!vert) blit(g, P.chute, cx + sx + 26, by + BASE + 2, 2, { flip: true });   // deitado: calha na ponta de quem vira o mochi
+    else if (!vert) blit(g, P.chute, Math.min(cx + 66, cx + sx + 26), by + BASE + 2, 2, { flip: true });   // deitado: calha na ponta de quem vira o mochi, sem passar da borda da casa
     if (o.ghost) return;
     for (let i = 0; i < Math.min(4, m.inB.cozido); i++) blit(g, item.cozido, cx - 20 + i * 13, by + 9, 1);
     if (m.inB.gold) blit(g, item.gold, cx + 32, by + 9, 1);

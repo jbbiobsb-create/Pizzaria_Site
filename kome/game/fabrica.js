@@ -622,8 +622,10 @@
      ====================================================================== */
   const mbase = (m, r) => (m.type === 'pilao' && m.rot % 2 === 1 ? { cx: r.x + r.w / 2, by: r.y + CH + 26 } : m.type === 'divisor' ? { cx: r.x + r.w / 2, by: r.y + r.h / 2 } : { cx: r.x + r.w / 2, by: r.y + r.h - 16 });
   const MO = { ghost: false, vert: false, rot: 0, dx: 0, dy: 0, vx: 0, vy: 0, item: null };
-  /* Máquina alta × esteira da linha de trás: quando passa item atrás (ou quando você está mexendo nas esteiras), a parte da
-     máquina que invade a casa de cima fica ~45% transparente. A máquina é desenhada numa camada à parte só nesse caso. */
+  /* Máquina alta × esteira da linha de trás. A máquina fica SEMPRE sólida enquanto a fábrica trabalha: o item que passa
+     escondido atrás dela aparece num balãozinho em cima da tampa (hiddenItems), andando junto com ele. Só quando o jogador
+     está MONTANDO (ferramenta na mão ou arrastando esteira) a parte que invade a casa de cima fica ~45% transparente, pra
+     enxergar a esteira de trás. A máquina é desenhada numa camada à parte só nesse caso. */
   let fadeCv = null, fadeG = null;
   function behindOf(m) {                                     // 0 nada · 1 tem esteira atrás · 2 tem item passando atrás
     if (m.type === 'divisor' || (m.type === 'pilao' && m.rot % 2 === 1) || m.y + Math.min(0, DY[m.rot]) <= 0) return 0;
@@ -637,7 +639,27 @@
   }
   function fadeTick(dt) {
     const building = !!(S.tool || (drag && drag.mode !== 'move'));
-    for (const m of machines) { const b = behindOf(m), want = b === 2 || (b === 1 && building) ? 1 : 0; m.fade = (m.fade || 0) + (want - (m.fade || 0)) * Math.min(1, dt * (want ? 10 : 4)); }
+    for (const m of machines) { const b = behindOf(m), want = b >= 1 && building ? 1 : 0; m.fade = (m.fade || 0) + (want - (m.fade || 0)) * Math.min(1, dt * (want ? 10 : 4)); }
+  }
+  // balãozinho do item escondido: bolinha creme com o item pequeno, em cima da máquina, no x de onde ele está passando
+  const HIP = { x: 0, y: 0 };
+  function hiddenItems(m, t, cx, by) {
+    if (m.type === 'divisor' || (m.fade || 0) > 0.5 || behindOf(m) < 2) return;
+    const mxb = A.bodyX(m, cx), half = m.type === 'pilao' ? 62 : 30, topY = (m.type === 'moldadora' ? by - 104 : m.type === 'pilao' ? by - 76 : by - 86) - [0, 2, 8, 12][A.tierOf(m.lvl)];
+    for (const [a, b] of mcells(m.type, m.x, m.y, m.rot)) {
+      const c = cellAt(a, b - 1); if (!c || c.k !== 'b' || !c.items.length) continue;
+      const v = bcell[b - 1] && bcell[b - 1][a]; if (!v) continue;
+      for (let i = 0; i < c.items.length; i++) {
+        const it = c.items[i]; A.itemAt(v, it.from === undefined ? (c.dir + 2) % 4 : it.from, it.p, c.dir, HIP);
+        const d = Math.abs(HIP.x - mxb); if (d > half) continue;
+        const al = U.clamp((half - d) / 10, 0, 1) * 0.95, x = Math.round(HIP.x), y = Math.round(topY + Math.sin(t * 5 + i + a) * 1.5), ic = A.item[it.t];
+        g.globalAlpha = al;
+        g.fillStyle = INK; g.beginPath(); g.arc(x, y, 11, 0, TAU); g.fill(); g.beginPath(); g.moveTo(x - 4, y + 9); g.lineTo(x, y + 16); g.lineTo(x + 4, y + 9); g.fill();
+        g.fillStyle = '#FFF6DE'; g.beginPath(); g.arc(x, y, 9, 0, TAU); g.fill();
+        if (ic) { g.imageSmoothingEnabled = false; g.drawImage(ic, Math.round(x - ic.width / 2), Math.round(y - ic.height / 2)); }
+        g.globalAlpha = 1;
+      }
+    }
   }
   // selo verde "dá pra subir": só no upgrade MAIS BARATO que o dinheiro paga (máquina ou doca); com um cartão de máquina aberto, em todos
   let upPick = null, upAll = false;
@@ -685,18 +707,23 @@
     }
     if (ghost) return;
     if (m.type === 'divisor') return;
-    // barrinha "ocupada %" e plaquinha de nível, no pé da máquina (de frente a calha ocupa o pé: descem um pouco)
-    const mxb = A.bodyX(m, cx), bw = 30, bx = mxb - (m.lvl < 2 ? 15 : 3), bY = by + (m.rot === 1 ? (m.type === 'pilao' ? 4 : 19) : 9);
-    g.fillStyle = INK; D.rrect(g, bx - 2, bY - 2, bw + 4, 8, 3); g.fill();
-    g.fillStyle = '#5a4030'; g.fillRect(bx, bY, bw, 4);
-    g.fillStyle = m.busy > 0.85 ? C.ora : m.busy > 0.4 ? C.gold : C.grassL; g.fillRect(bx, bY, bw * U.clamp(m.busy, 0, 1), 4);
-    A.levelBadge(g, bx - 15, bY + 2, m.lvl);
     // balõezinhos de estado
-    const topY = m.type === 'moldadora' ? by - 92 : m.type === 'pilao' ? by - 84 : by - 80, hot = m.blocked || (m.full > 0 && m.busy > 0.8);
-    if (m.blocked) bubble(cx + 22, topY, '!', C.red, t);
-    else if (hot) bubble(cx + 22, topY, '!', C.ora, t);
+    const mxb = A.bodyX(m, cx), topY = (m.type === 'moldadora' ? by - 92 : m.type === 'pilao' ? by - 84 : by - 80), hot = m.blocked || (m.full > 0 && m.busy > 0.8), sgn = A.mirrored(m.type, m.rot) ? -1 : 1;
+    if (m.blocked) bubble(cx - 22 * sgn, topY, '!', C.red, t);
+    else if (hot) bubble(cx - 22 * sgn, topY, '!', C.ora, t);
     else if (!m.work && m.idle > 6 && !m.out.length) { const u = (t * 0.6 + m.id * 0.3) % 1, zx = m.type === 'pilao' ? 34 : A.mirrored(m.type, m.rot) ? -30 : 34; txt('z', cx + zx + u * 8, by - 40 - u * 16, { size: TXT + u * 4, col: C.cream, sw: 3, alpha: 1 - u }); }
-    if (!hot && S.sel !== m && m.lvl < MAX_LVL && (upPick === m || (upAll && money() >= levelPrice(m)))) blit(SPR.up, mxb + 2, topY + 14 + upBob(t, m.id), 2);
+    if (!hot && S.sel !== m && m.lvl < MAX_LVL && (upPick === m || (upAll && money() >= levelPrice(m)))) blit(SPR.up, mxb - 4 * sgn, topY + 8 + upBob(t, m.id), 2);
+  }
+  /* etiqueta de cada máquina (plaquinha de nível + barrinha "ocupada %"): desenhada DEPOIS de todas as máquinas, na cabeça dela
+     (A.tagPos), do lado do operador. A fileira da frente não cobre mais, e ela não entra na casa de baixo. */
+  function drawMachineTag(m, t) {
+    if (m.type === 'divisor') return;
+    const r = mrect(m.type, m.x, m.y, m.rot), b = mbase(m, r), p = A.tagPos(m, b.cx, b.by), bw = 26, x = Math.round(p.x), y = Math.round(p.y);
+    g.fillStyle = INK; D.rrect(g, x - bw / 2 - 2, y + 10, bw + 4, 8, 3); g.fill();
+    g.fillStyle = '#5a4030'; g.fillRect(x - bw / 2, y + 12, bw, 4);
+    g.fillStyle = m.busy > 0.85 ? C.ora : m.busy > 0.4 ? C.gold : C.grassL; g.fillRect(x - bw / 2, y + 12, bw * U.clamp(m.busy, 0, 1), 4);
+    A.levelBadge(g, x, y, m.lvl);
+    hiddenItems(m, t, b.cx, b.by);
   }
   function bubble(x, y, s, col, t) {
     const b = Math.sin(t * 6) * 2;
@@ -1186,6 +1213,7 @@
     const ms = machines.slice().sort((a, b) => (a.y + (a.type === 'pilao' && a.rot % 2 === 1 ? 1 : 0)) - (b.y + (b.type === 'pilao' && b.rot % 2 === 1 ? 1 : 0)) || a.x - b.x);
     const moving = drag && drag.mode === 'move' && drag.moved ? drag.m : null;
     for (const m of ms) { if (m === moving) { g.globalAlpha = 0.35; drawMachine(m, t); g.globalAlpha = 1; } else drawMachine(m, t); }
+    for (const m of ms) if (m !== moving) drawMachineTag(m, t);   // etiquetas por cima de tudo: nunca ficam embaixo da fileira da frente
     drawGhost(t);
     ps.draw(g); fl.draw(g);
     A.corner(g, t); A.cornerR(g);
@@ -1211,6 +1239,7 @@
     }
     drawTopBar(t);
     drawBottomBar(t);
+    if (G.News) G.News.draw(g, 166, 52, dt, { maxW: 400 });   // evento do modo infinito + avisos do jogo (ficavam escondidos atrás desta tela)
     if (S.sel === 'dock') drawDockCard(t); else if (S.sel === 'sale') drawSaleCard(t); else if (S.sel) drawCard(S.sel, t);
     if (S.sel !== 'dock' && !dockMax() && (upPick === 'dock' || (upAll && money() >= dockPrice()))) blit(SPR.up, GEO.feedX - 34, 122 + upBob(t, 0), 2);
     drawOverlayMsgs(t, dt);
