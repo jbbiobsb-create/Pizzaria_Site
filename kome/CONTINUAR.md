@@ -393,3 +393,33 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - Bichos novos por planilha: Ursinho, Lobinho, Panda; Tanuki virou arte gerada (mesmo id).
 
 ## Fábrica (fase 1) — feita e no jogo (17/11). Estado e o que falta: docs/PASSAGEM-fabrica.md
+
+## Fábrica com cara de jogo (17/11, noite) — pedido do dono: "arruma esse gráfico tosqueira, quero um jogo de verdade"
+- **Tela nova** (`game/fabrica-arte.js` = arte, `game/fabrica.js` = regras + HUD + toque). Galpão em vista 3/4 enchendo a
+  tela: parede do fundo com vigas, janelas shoji, noren KOME PACK, lanternas, relógio, prateleira; chão de tábuas com sol
+  entrando; porta da ENTRADA (montanha de arroz e o Kome cavando lá fora) e porta da VENDA (kei-truck que carrega e sai).
+  Grid 8×6 com casas de 80×57 (era 52). Sumiram os dois painéis de texto.
+- **Máquinas com volume** (pixel escala 2, mais altas que a casa, desenho por linha): Panela (fogão de tijolo, fogo, tampa
+  batendo, vapor, shiba de touca mexendo), Moldadora (prensa com pistão, funil, alavanca, onigiri pulando), Pilão (dois
+  shibas, kine com antecipação e amassada, farinha, "PON!"), Divisor (mesa giratória com cancela). Níveis 3, 6 e 10 mudam o
+  desenho (chaminé, cobre, tamanho, ouro).
+- **Esteiras** com trilho, saia de aço, ripas em V andando e peça de CURVA; item com sombra e balancinho.
+- **HUD de jogo**: ← Montanha e ¥ em cima à esquerda, faixa de produção no meio, metas em chips; barra de botões quadrados
+  embaixo (ícone + preço, cadeado com progresso); cartão pequeno flutuando ao lado da máquina/doca; botão "?"; tutorial de
+  4 passos com o Kome. Selo verde = dá pra subir de nível.
+- **Suco**: pop e poeira ao pôr, estrelas e "visual novo!" ao subir, moedas voando da venda pro ¥, cartão de PRODUTO NOVO,
+  luz de fim de tarde com lanternas (segue `S.tod`), poeirinha no sol.
+- **Sons novos** (definidos no fabrica.js com `E.Sfx.define` / `E.Loops.define`): borbulho da panela (loop), "ploc",
+  "PON!" + latidinho, caixa registradora (tom sobe com o preço), pop de pôr, jingle de nível. Respeitam o mudo.
+- **Pátio**: o galpão KOME PACK aparece e trabalha assim que a Fábrica abre (industry.js `working()`).
+- **Ritmo** (resposta do designer de 17/11, no fim de docs/design/fabrica.md): níveis baratos como tapa-buraco. Conserto
+  junto: `G.Fab.dig()` só conta com a fábrica aberta (antes a 1ª média de renda engolia a campanha inteira e os preços do
+  começo saíam errados). `tools/fabrica-sim.js --runs 8` mostra mediana e faixa (cada partida varia muito).
+- Prints: docs/prints/fabrica-nova*.png e fabrica-mundo.png. Ganchos novos de teste: `G.Fab.quiet()`, `select(x,y|'dock')`,
+  `tool(id)`, `activity()`.
+- **NÃO testado nesta rodada** (o dono testa no PC dele): check.js, sweep.js, monkey.js, playtest; arrastar esteira/mover
+  máquina com dedo de verdade; som no aparelho; HTML único da área de trabalho (rodar `node tools/single.js`).
+- Pontos fracos conhecidos: máquina alta esconde um pedaço da esteira da linha de trás; as máquinas não giram o desenho
+  (só as setas e a saída mudam); faixa preta dos lados no celular bem largo (o palco é 16:9); o caminhão é enfeite (o ¥ entra
+  na hora da venda, como antes).
+

@@ -15,7 +15,9 @@ Leia isto ANTES de procurar no código. Use os nomes de função com `grep -n "f
 | Save novo de camada | sobe `SAVE_V` e põe 1 função em `MIGR` (topo do game.js); testar com `node tools/alicerce.js` | `game/game.js` |
 | Segunda tela vista de cima (grid, toque, arrastar caminho, barra de ferramentas) | `E.Board({cols, rows, tools, drawCell, onTap, onDrag})` | `engine/board.js` |
 | Tela da Fábrica (em obras; só no ?dev) | `G.Topo.open()`; esteira de teste na memória | `game/topo.js` |
-| FÁBRICA (grid, máquinas, doca, divisor, save, offline) | `G.Fab` (open, place, belt, state, persist) · números `D.FAB` · metas `node tools/fabrica-sim.js` | `game/fabrica.js` (ver docs/PASSAGEM-fabrica.md) |
+| FÁBRICA (grid, máquinas, doca, divisor, save, offline, HUD, toque) | `G.Fab` (open, place, belt, state, persist) · números `D.FAB` · metas `node tools/fabrica-sim.js --runs 8` | `game/fabrica.js` (ver docs/PASSAGEM-fabrica.md) |
+| ARTE da Fábrica (galpão 3/4, máquinas por nível, esteiras, itens, toucas, kei-truck) | `G.FabArt` (geo, bg, belts, panela/moldadora/pilao/divisor, item, spr, worker) | `game/fabrica-arte.js` (carrega antes do fabrica.js) |
+| Galpão KOME PACK do pátio trabalhando (porta, caixas, kei-truck, vapor) | `working()` dentro de `drawFactory`; aparece com `G.Fab.on()`; vapor por `G.Fab.activity()` | `game/industry.js` |
 | Vida no quintal da Casa (bichos andam/param) | `brain()`/`think()` | `game/home.js` |
 | Ver todos os desenhos | `node tools/galeria.js` → 1 imagem | `%TEMP%/kome-galeria.png` |
 | Ajustar números jogando | abrir o jogo com `?dev` (painel de desenvolvedor) | `game/dev.js` |

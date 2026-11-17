@@ -193,7 +193,7 @@
     pend.t -= dt;
     if (!(pend.v > 0) || pend.t > 0) return;
     if (!S.fast && pend.v >= 1) {
-      const b = pend.best, size = 12 + Math.log2(b + 1) * 2.6, x = GEO.collX + 34, y = GEO.WALL + 26;
+      const b = pend.best, size = 12 + Math.log2(b + 1) * 2.6, x = GEO.doorOut.x + 78, y = GEO.WALL - 34;   // o +¥ estoura em cima do kei-truck
       const c = b >= 40 ? C.goldL : b >= 10 ? C.sakura : b >= 4 ? C.yelL : C.cream;
       fl.add(x + U.rnd(-8, 8), y, '+¥' + U.fmt(pend.v), { size, c, life: 1.1 + b / 60, pop: 1 + b / 30, shake: b >= 40 ? 1.2 : 0 });
       if (b >= 40) ps.burst(x, y, 10, { c: [C.gold, C.goldL], shape: 'star', speed: [60, 160], life: 0.7, up: 80 });
@@ -568,13 +568,13 @@
     truck.t += dt;
     if (truck.st === 'in') {
       truck.dx = 0;
-      if (truck.pile > 0 && truck.n < 9 && (truck.pt -= dt) <= 0) { truck.pile--; truck.n++; truck.bump = 1; truck.pt = 0.14; }
-      if (truck.n >= 9 && truck.t > 0.6) { truck.st = 'out'; truck.t = 0; sfx('horn', { vol: 0.25, pitch: 1.5 }); }
+      if (truck.pile > 0 && truck.n < 9 && (truck.pt -= dt) <= 0) { truck.pile--; truck.n++; truck.bump = 1; truck.pt = 0.07; }
+      if (truck.n >= 9 && truck.t > 0.5) { truck.st = 'out'; truck.t = 0; sfx('horn', { vol: 0.25, pitch: 1.5 }); }
     } else if (truck.st === 'out') {
-      truck.dx = U.ease.in(Math.min(1, truck.t / 1.1)) * 200;
-      if (truck.t >= 1.1) { truck.st = 'away'; truck.t = 0; truck.n = 0; truck.trips++; fl.add(GEO.doorOut.x + 70, GEO.doorOut.y + 64, 'carga entregue!', { size: 14, c: C.goldL, life: 1.3 }); }
-    } else if (truck.st === 'away') { truck.dx = 200; if (truck.t >= 1.5) { truck.st = 'back'; truck.t = 0; } }
-    else { truck.dx = (1 - U.ease.out(Math.min(1, truck.t / 1.0))) * 200; if (truck.t >= 1.0) { truck.st = 'in'; truck.t = 0; truck.dx = 0; } }
+      truck.dx = U.ease.in(Math.min(1, truck.t / 0.9)) * 200;
+      if (truck.t >= 0.9) { truck.st = 'away'; truck.t = 0; truck.n = 0; truck.trips++; fl.add(GEO.doorOut.x + 70, GEO.doorOut.y + 64, 'carga entregue!', { size: 14, c: C.goldL, life: 1.3 }); }
+    } else if (truck.st === 'away') { truck.dx = 200; if (truck.t >= 0.9) { truck.st = 'back'; truck.t = 0; } }
+    else { truck.dx = (1 - U.ease.out(Math.min(1, truck.t / 0.8))) * 200; if (truck.t >= 0.8) { truck.st = 'in'; truck.t = 0; truck.dx = 0; } }
     for (const c of coins) { if (!c.on) continue; c.t += dt; if (c.t >= c.d) { c.on = false; yenBump = 1; } }
   }
   function drawBays(t) {
@@ -615,7 +615,7 @@
   /* ======================================================================
      Máquinas
      ====================================================================== */
-  const mbase = (m, r) => (m.type === 'pilao' && m.rot % 2 === 1 ? { cx: r.x + r.w / 2, by: r.y + CH + 30 } : m.type === 'divisor' ? { cx: r.x + r.w / 2, by: r.y + r.h / 2 } : { cx: r.x + r.w / 2, by: r.y + r.h - 12 });
+  const mbase = (m, r) => (m.type === 'pilao' && m.rot % 2 === 1 ? { cx: r.x + r.w / 2, by: r.y + CH + 26 } : m.type === 'divisor' ? { cx: r.x + r.w / 2, by: r.y + r.h / 2 } : { cx: r.x + r.w / 2, by: r.y + r.h - 16 });
   const MO = { ghost: false, vert: false, dx: 0, dy: 0, vx: 0, vy: 0, item: null };
   function drawMachine(m, t, ghost) {
     const r = mrect(m.type, m.x, m.y, m.rot), b = mbase(m, r), cx = b.cx, by = b.by;
@@ -898,7 +898,7 @@
     const st = TUT[S.tut], r = st.r(), pad = 6;
     g.save();
     g.fillStyle = 'rgba(30,18,10,.6)';
-    g.beginPath(); g.rect(0, 0, W, H); D.rrect(g, r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2, 12); g.fill('evenodd');
+    g.beginPath(); g.rect(0, 0, W, H); g.rect(r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2); g.fill('evenodd');   // escurece tudo menos o alvo
     g.strokeStyle = C.goldL; g.lineWidth = 3; g.setLineDash([9, 6]); g.lineDashOffset = -t * 30;
     D.rrect(g, r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2, 12); g.stroke(); g.setLineDash([]);
     g.restore();

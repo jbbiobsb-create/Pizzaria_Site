@@ -42,3 +42,12 @@ Pra quem continuar (outro chat). Ler antes: `CLAUDE.md` (regras), `MAPA.md` (ond
 JS clássico sem build, roda de file://; balanço só em data.js; criança joga (sem dinheiro real, culpa, punição);
 estruturas/coisas pequenas em pixel, máquinas grandes vetor; celular deitado é o padrão; commitar a cada passo que funciona;
 regerar os HTMLs da área de trabalho (`node tools/single.js "<Desktop>/Kome no Japão (celular).html"` e `--dev` pro admin).
+
+## Atualização de 17/11 (noite): tela nova, galpão no mundo, sons, ritmo
+- A apresentação foi refeita: `game/fabrica-arte.js` (arte, `G.FabArt`) + `game/fabrica.js` (regras, HUD em canvas, toque).
+  Itens 2 e 3 do "Falta" acima estão FEITOS (galpão do pátio trabalhando em `industry.js · working()`; sons `fab-*`).
+  As máquinas continuam desenhadas em código (Pix), não por ficha `tipo: 'maquina'`.
+- Item 1 (calibrar): decisões do designer e tabela nova no fim de `docs/design/fabrica.md`. A espera máxima ficou em
+  ~178 s de mediana, mas só 6 de 12 partidas ficam ≤ 180 s (o estouro é no fim, quando os níveis baratos acabam).
+- Não rodei check/sweep/monkey/playtest nesta rodada (o dono testa). Ver "Fábrica com cara de jogo" no CONTINUAR.md.
+

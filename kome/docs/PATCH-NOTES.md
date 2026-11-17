@@ -1,3 +1,18 @@
+# Kome no Japão — A FÁBRICA DE CARA NOVA (17/11)
+
+- **A Fábrica virou um lugar**: galpão de madeira visto de cima, com janelas de papel, o noren KOME PACK, lanternas, um
+  gato dormindo nas caixas e o sol entrando pelas janelas. No fim da tarde as lanternas acendem.
+- **Máquinas grandonas e vivas**: a Panela ferve num fogão de tijolo com um shiba de touca mexendo; a Moldadora tem pistão,
+  funil e alavanca, e o onigiri pula pra fora; no Pilão dois shibas batem o mochi: "PON!".
+- **Subir de nível muda a máquina**: nos níveis 3, 6 e 10 ela ganha chaminé, cobre, fica maior e por fim dourada.
+- **Esteiras de verdade**, com curva, e os produtos passeando em cima. Travou? Os itens se amontoam e aparece um "!".
+- **Entrada e Venda**: de um lado o Kome cavando lá fora e os sacos entrando; do outro o kei-truck branco sendo carregado.
+  Quando enche, ele vai embora e volta. As moedas voam até o seu dinheiro.
+- **Botões novos**: barra de botões quadrados embaixo, cartãozinho ao lado da máquina, metas no alto, botão "?" com a ajuda.
+- **Sons novos**: panela borbulhando, "ploc" da moldadora, "PON!" do pilão, caixa registradora.
+- **No pátio**, o galpão KOME PACK agora trabalha: caixas saindo pela porta e o kei-truck levando.
+- **Níveis mais baratos**: sempre tem alguma coisa pra comprar na fábrica. O Pilão agora abre com 1.000 onigiris.
+
 # Kome no Japão — A VOLTA AO JAPÃO (fim de jogo)
 
 - **Cutscene nova** depois do final: o corretor traz uma carta, o mapa do Japão acende ilha por ilha e o Kome fica de olho brilhando. Dá pra rever no mapa.

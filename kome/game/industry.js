@@ -201,7 +201,8 @@
     const n = 2 + Math.round(a * 6);
     for (let i = 0; i < n; i++) {
       const q = (t * (0.22 + a * 0.2) + i / n) % 1, rr = 2 + Math.round(q * (2 + a * 6));
-      g.globalAlpha = 0.8 * (1 - q); blitAt(g, fumaca(rr), -118 + q * (10 + a * 16) + Math.sin(t * 1.3 + i * 2) * 3 - rr, -70 - q * (26 + a * 34) + rr);
+      const px = Math.round(-116 + q * (10 + a * 16) + Math.sin(t * 1.3 + i * 2) * 3), py = Math.round(-72 - q * (26 + a * 34));
+      g.globalAlpha = 0.85 * (1 - q); g.fillStyle = '#F4F2EA'; g.fillRect(px - rr, py - rr + 1, rr * 2, rr * 2 - 2); g.fillRect(px - rr + 1, py - rr, rr * 2 - 2, rr * 2); g.fillStyle = '#DDD9CC'; g.fillRect(px - rr + 1, py + rr - 2, rr * 2 - 2, 1);   // baforada em pixel (sem contorno)
     }
     g.globalAlpha = 1;
     // esteirinha da porta pra esquerda, com as caixas andando

@@ -204,3 +204,53 @@ vira material. Proposta: só o koshi conta como Arroz Dourado pro pilão.
 para mas ajudantes, frota, Goma e eventos continuam.
 
 Se ninguém mudar nada, o programador segue as propostas acima.
+
+### Resposta do designer (17/11) — as 3 metas de ritmo que estavam FORA
+(decisões do designer; o programador aplicou em `game/data.js · D.FAB` e conferiu com `node tools/fabrica-sim.js --runs 12`)
+
+- **(a) Fatia aos 15 min:** a meta nova é **15–25%** (os 23% medidos estão bons; os 10% de antes eram tímidos demais).
+- **(b) Espera máxima entre compras (499 s) NÃO está boa:** o **nível vira o tapa-buraco**. Sempre tem que existir alguma
+  coisa da fábrica comprável em até 180 s. Crescimento do preço do nível de ~1,6 pra perto de 1,35, e a doca parecido.
+- **(c) Grid cheio:** a meta nova é **"enche entre 60 e 120 min"** (48 casas é o limite de longo prazo; só mexer se não
+  encher em 2 h).
+
+**O que o programador aplicou** (números finais em `D.FAB`):
+
+| Número | Antes | Agora | Por quê |
+|---|---|---|---|
+| `lvl.cost` (crescimento do nível de máquina) | 1,6 | **1,25** | com 1,35 a espera ficava em ~217 s (mediana de 8 partidas); 1,30 deu ~206 s; 1,25 foi o primeiro a ficar em volta de 180 s |
+| `lvl.base` (novo) | 1 | **0,45** | 1º nível custa ~56% da máquina: tapa-buraco de verdade desde o começo |
+| `lvl.cap` (novo) | — | **45** | o nível do Pilão usa no máximo o preço-base da Moldadora (antes cobrava 6× o da Panela e nunca era "barato") |
+| `dock.price` · `dock.costGrow` (novo) | 30 · 1,6 | **55 · 1,25** | primeiros níveis mais caros (segura a fatia aos 15 min), últimos mais baratos (não vira espera de 5 min no fim) |
+| `unlock.pilao` | 600 | **1000** | com o conserto abaixo o começo ficou mais rápido; 1000 onigiris põe o Pilão de volta em ~13 min |
+
+**Conserto que mudou as medidas:** `G.Fab.dig()` somava a renda de cavar da campanha inteira antes de a fábrica abrir; a
+primeira "renda média" saía absurda e os preços do começo variavam de 0,4 a 5 min pra 1ª compra. Agora só conta com a
+fábrica aberta e a 1ª medida já vale.
+
+**O robô do simulador mudou** (senão nível barato fazia ele nunca comprar o Pilão): junta dinheiro pra próxima peça da
+planta, compra na hora um nível que custe até 25% dela e, depois de 90 s sem comprar nada, leva o nível mais barato se
+couber em 60% do bolso. `--coceira` e `--barato` mudam isso. O resultado depende bastante desse jeito de jogar.
+
+**Tabela final** (12 partidas de 125 min; cada partida varia muito porque sacos, onigiris e bolsões pagam em rajada e
+não entram no preço-base da fábrica):
+
+| Meta | Mediana | Faixa | Dentro |
+|---|---|---|---|
+| 1ª compra (Moldadora) ≤ 2 min | 0,9 min | 0,0 a 2,4 min | 9/12 |
+| 1º onigiri ≤ 3 min | 0,9 min | 0,1 a 2,5 min | 12/12 |
+| Pilão abre ~15 min (10–22) | 13,1 min | 7,2 a 27,0 min | 10/12 |
+| Fábrica 15–25% da renda aos 15 min | 22% | 16% a 26% | 11/12 |
+| Fábrica ~30% depois de 1 h (22–40%) | 29% | 23% a 34% | 12/12 |
+| Teto ~50% (máx ≤ 55%) | 43% | 27% a 50% | 12/12 |
+| Espera máx entre compras ≤ 180 s | **178 s** | 150 a 279 s | **6/12** |
+| (quando aconteceu a espera máx) | 102 min | 38 a 127 min | — |
+| Grid enche entre 60 e 120 min | 105 min | 97 a 120 min | 7/12 (5 não encheram em 125 min) |
+
+Leitura honesta: a espera caiu de 499 s pra ~180 s na mediana, mas **metade das partidas ainda passa de 180 s**, quase
+sempre lá pelos 100 min, quando os níveis baratos acabam (96 de 108 níveis comprados). Pra fechar de vez precisa de mais
+conteúdo barato no fim (mais níveis, mais máquinas ou grid maior), não de mais ajuste de número. O dono vai testar e
+ajustar no PC dele; os botões são `lvl.cost`, `lvl.base`, `dock.price` e `priceK` (testar sem editar:
+`node tools/fabrica-sim.js --runs 8 --set lvl.cost=1.3,priceK=2.8`).
+
+A regra "Pilão abre com 600 onigiris" do texto lá em cima agora é **1000** (`D.FAB.unlock.pilao`).
