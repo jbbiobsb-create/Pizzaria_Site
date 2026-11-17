@@ -158,7 +158,7 @@
      ====================================================================== */
   const tierOf = lvl => (lvl >= 10 ? 3 : lvl >= 6 ? 2 : lvl >= 3 ? 1 : 0);
   // fogão de tijolo (kamado) da Panela
-  const stove = t => SP('stove' + t, 40, 60, P => {
+  const stove = (t, back) => SP('stove' + t + (back ? 'b' : ''), 40, 60, P => {
     const cx = 20, by = 58, w = 13 + [0, 1, 3, 4][t], top = by - 17 - [0, 1, 3, 5][t];
     if (t >= 1) {                                             // chaminé de lata atrás
       const ch = 16 + t * 4, x = cx + w - 6;
@@ -175,7 +175,7 @@
     for (const [x, y] of [[cx - w + 1, top], [cx + 4, top + 4], [cx - 9, top + 8], [cx + w - 5, top + 8]]) P.rect(x, y, 3, 3, K.brickL);
     P.rect(cx + w - 2, top, 2, by - 3 - top, K.brickD);
     P.rect(cx - w - 1, top - 2, 2 * w + 2, 2, t >= 3 ? K.gold : K.stoneL); P.rect(cx - w - 1, top - 1, 2 * w + 2, 1, t >= 3 ? K.goldD : K.stone);
-    P.rrect(cx - 6, by - 13, 12, 10, 4, K.stoneD); P.rrect(cx - 5, by - 12, 10, 9, 3, K.dark); P.rect(cx - 5, by - 6, 10, 3, K.dark);   // boca do fogo
+    if (!back) { P.rrect(cx - 6, by - 13, 12, 10, 4, K.stoneD); P.rrect(cx - 5, by - 12, 10, 9, 3, K.dark); P.rect(cx - 5, by - 6, 10, 3, K.dark); }   // boca do fogo (de costas: só tijolo, a moega entra por cima)
     if (t >= 2) { P.ell(cx - w + 4, top + 5, 2.5, 2.5, K.cream); P.set(cx - w + 4, top + 5, K.red); P.set(cx - w + 5, top + 4, K.blk); }   // reloginho de pressão
     if (t >= 3) { P.rect(cx - w, by - 4, 2 * w, 1, K.gold); }
   });
@@ -200,13 +200,15 @@
   const paddle = SP('paddle', 7, 22, P => { P.rect(3, 6, 1, 15, K.woodL); P.rrect(1, 1, 5, 7, 2, K.woodL); P.rect(4, 2, 1, 5, K.wood); });
 
   // prensa da Moldadora
-  const press = t => SP('press' + t, 44, 58, P => {
+  const press = (t, back) => SP('press' + t + (back ? 'b' : ''), 44, 58, P => {
     const cx = 22, by = 56;
     P.rect(cx - 15, by - 2, 30, 2, K.woodDD);
     P.rect(cx - 14, by - 11, 28, 9, K.wood); P.rect(cx - 14, by - 11, 28, 2, K.woodL); P.rect(cx - 14, by - 4, 28, 2, K.woodD); P.rect(cx + 11, by - 9, 3, 6, K.woodD);
     P.rect(cx - 6, by - 9, 1, 6, K.woodD); P.rect(cx + 6, by - 9, 1, 6, K.woodD);
-    P.rect(cx - 5, by - 9, 10, 5, K.dark); P.rect(cx - 6, by - 4, 12, 2, K.steelD); P.rect(cx - 6, by - 4, 12, 1, K.steel);          // boca de saída + bandeja
-    P.ell(cx - 10, by - 7, 2, 2, K.red); P.ell(cx + 10, by - 7, 2, 2, K.red);
+    if (!back) {
+      P.rect(cx - 5, by - 9, 10, 5, K.dark); P.rect(cx - 6, by - 4, 12, 2, K.steelD); P.rect(cx - 6, by - 4, 12, 1, K.steel);        // boca de saída + bandeja
+      P.ell(cx - 10, by - 7, 2, 2, K.red); P.ell(cx + 10, by - 7, 2, 2, K.red);
+    } else { for (const x of [cx - 11, cx - 4, cx + 3, cx + 10]) P.set(x, by - 7, K.woodDD); }                                        // de costas: tábua pregada
     P.rect(cx - 16, by - 14, 32, 3, K.steel); P.rect(cx - 16, by - 14, 32, 1, K.steelL); P.rect(cx - 16, by - 12, 32, 1, K.steelD);   // mesa de aço
     for (const x of [cx - 14, cx + 11]) { P.rect(x, by - 35, 3, 21, K.steelD); P.rect(x, by - 35, 1, 21, K.steel); }                   // colunas
     P.rect(cx - 16, by - 40, 32, 6, t >= 3 ? K.gold : K.red); P.rect(cx - 16, by - 40, 32, 1, t >= 3 ? K.goldL : K.redL); P.rect(cx - 16, by - 35, 32, 1, t >= 3 ? K.goldD : K.redD);
@@ -247,6 +249,31 @@
     P.ell(17, 13, 14, 7, K.steelDD); P.rect(3, 9, 28, 4, K.steelDD); P.ell(17, 9, 14, 7, K.steel); P.ell(17, 9, 11, 5, K.steelL); P.ell(17, 9, 8, 3.5, K.steel);
     P.ell(17, 9, 3, 2, K.red); P.set(16, 8, K.redL);
     for (const [x, y] of [[6, 9], [28, 9], [17, 4], [17, 14]]) P.set(x, y, K.steelD);
+  });
+  // peças que mostram pra onde a máquina está virada: calha de saída (de lado, de frente, de costas), plaquinha de seta e moega
+  const chute = SP('chute', 13, 11, P => {                   // de lado: desce pra ESQUERDA
+    P.rect(8, 6, 2, 3, K.steelDD); P.poly([[11, 1], [11, 6], [1, 9], [1, 4]], K.steelD); P.poly([[11, 2], [11, 4], [1, 7], [1, 5]], K.steelL);
+    P.rect(5, 4, 2, 2, K.gold);
+  });
+  const chuteF = SP('chutef', 16, 10, P => {                 // de frente: desce pra quem olha (seta pra baixo)
+    P.poly([[4, 1], [11, 1], [14, 8], [1, 8]], K.steel); P.rect(4, 1, 8, 1, K.steelDD); P.line(4, 1, 1, 8, 1, K.steelL); P.line(11, 1, 14, 8, 1, K.steelD);
+    P.rect(2, 8, 12, 1, K.steelDD); P.rect(5, 3, 6, 1, K.gold); P.rect(6, 4, 4, 1, K.gold); P.rect(7, 5, 2, 2, K.gold);
+  });
+  const chuteB = SP('chuteb', 16, 10, P => {                 // de costas: sobe pro fundo (seta pra cima)
+    P.poly([[4, 1], [11, 1], [14, 8], [1, 8]], K.steelD); P.rect(4, 1, 8, 1, K.steelL); P.line(4, 1, 1, 8, 1, K.steel); P.line(11, 1, 14, 8, 1, K.steelDD);
+    P.rect(7, 2, 2, 2, K.gold); P.rect(6, 4, 4, 1, K.gold); P.rect(5, 5, 6, 1, K.gold);
+  });
+  const plate = SP('plate', 9, 9, P => {                     // plaquinha dourada, seta pra ESQUERDA
+    P.rect(1, 1, 7, 7, K.gold); P.rect(1, 1, 7, 1, K.goldL); P.rect(1, 7, 7, 1, K.goldD);
+    for (const [x, y] of [[5, 2], [4, 3], [3, 4], [4, 5], [5, 6]]) { P.set(x, y, INK); P.set(x + 1, y, INK); }
+  });
+  const plateU = SP('plateu', 9, 9, P => {                   // seta pra CIMA
+    P.rect(1, 1, 7, 7, K.gold); P.rect(1, 1, 7, 1, K.goldL); P.rect(1, 7, 7, 1, K.goldD);
+    for (const [x, y] of [[2, 5], [3, 4], [4, 3], [5, 4], [6, 5]]) { P.set(x, y, INK); P.set(x, y + 1, INK); }
+  });
+  const hopper = SP('hopper', 16, 12, P => {                 // moega (onde o operador despeja o arroz), vista de costas
+    P.poly([[1, 2], [14, 2], [11, 10], [4, 10]], K.steel); P.rect(1, 1, 14, 2, K.steelD); P.rect(2, 1, 12, 1, K.steelL);
+    P.rect(3, 2, 10, 2, K.rice); P.rect(4, 2, 3, 1, K.white); P.rect(10, 4, 2, 5, K.steelD); P.rect(4, 4, 1, 5, K.steelL);
   });
   const flag = SP('flag', 12, 9, P => { P.poly([[1, 1], [10, 4], [1, 7]], K.gold); P.rect(1, 1, 2, 7, K.goldD); P.set(4, 3, K.goldL).set(5, 4, K.goldL); });
 
@@ -432,7 +459,7 @@
 
   G.FabArt = {
     geo, K, PX, blit, shadow, item, hat, spr, worker, tierOf, SPARK, WIN, LAMPS,
-    parts: { stove, pot, lid, flame, paddle, press, pressHead, usu, bucket, turn, flag },
+    parts: { stove, pot, lid, flame, paddle, press, pressHead, usu, bucket, turn, flag, chute, chuteF, chuteB, plate, plateU, hopper },
     bg() { if (!bgCv) paintBg(); return bgCv; }, sun() { if (!sunCv) paintSun(); return sunCv; }, dusk() { if (!duskCv) paintDusk(); return duskCv; },
   };
 })();
@@ -555,44 +582,80 @@
   function fx(g, x, y, col, a) { g.fillStyle = col; g.globalAlpha = a; g.beginPath(); g.ellipse(x, y, 36, 11, 0, 0, TAU); g.fill(); g.globalAlpha = 1; }
   function levelBadge(g, x, y, lvl) {
     if (lvl < 2) return;
-    const tr = A.tierOf(lvl), w = lvl >= 10 ? 22 : 18;
-    g.fillStyle = INK; D.rrect(g, x - w / 2 - 1.5, y - 8.5, w + 3, 17, 6); g.fill();
-    g.fillStyle = tr >= 3 ? K.goldL : tr >= 2 ? K.copperL : tr >= 1 ? '#DDE6EE' : K.cream; D.rrect(g, x - w / 2, y - 7, w, 14, 5); g.fill();
-    D.text(g, String(lvl), x, y + 0.5, { size: 12, col: INK, sw: 0, weight: 900 });
+    const tr = A.tierOf(lvl), w = lvl >= 10 ? 28 : 20;
+    g.fillStyle = INK; D.rrect(g, x - w / 2 - 2, y - 11, w + 4, 22, 7); g.fill();
+    g.fillStyle = tr >= 3 ? K.goldL : tr >= 2 ? K.copperL : tr >= 1 ? '#DDE6EE' : K.cream; D.rrect(g, x - w / 2, y - 9, w, 18, 5); g.fill();
+    D.text(g, String(lvl), x, y + 1, { size: 17, col: INK, sw: 0, weight: 900 });
   }
   A.levelBadge = levelBadge;
 
+  /* ORIENTAÇÃO  (o.rot = pra onde a máquina solta o produto: 0 direita · 1 baixo/de frente · 2 esquerda · 3 cima/de costas)
+     O desenho-base da Panela e da Moldadora solta pela ESQUERDA, com o operador à direita (ele fica do lado por onde o arroz entra).
+       rot 2 = base · rot 0 = base espelhada · rot 1 = de frente (calha no pé, operador atrás) · rot 3 = de costas, espelhada
+       (parede sem boca, moega com seta pra cima, operador na frente).
+     O Pilão-base solta pela DIREITA (rot 0); rot 2 e rot 3 espelham (quem bate troca de lado); em pé a calha fica na frente (1) ou atrás (3).
+     As peças de corpo levam flip quando precisa, pra sombra ficar do mesmo lado em 0, 1 e 3. */
+  const MIR = { panela: [1, 0, 0, 1], moldadora: [1, 0, 0, 1], pilao: [0, 0, 1, 1], divisor: [0, 0, 0, 0] };
+  A.mirrored = (type, rot) => !!(MIR[type] && MIR[type][rot | 0]);
+  A.bodyX = (m, cx) => (m.type === 'panela' || m.type === 'moldadora' ? cx + (A.mirrored(m.type, m.rot) ? 9 : -9) : cx);   // centro do corpo, já na tela
+  function oriented(type, fn) {
+    return function (g, m, cx, by, t, o) {
+      const mir = A.mirrored(type, o.rot);
+      if (mir) { g.save(); g.translate(cx * 2, 0); g.scale(-1, 1); }
+      fn(g, m, cx, by, t, o);
+      if (mir) g.restore();
+    };
+  }
+
   // PANELA: donabe num fogão de tijolo, fogo piscando, tampa batendo, shiba de touca mexendo
-  A.panela = function (g, m, cx, by, t, o) {
+  A.panela = oriented('panela', function (g, m, cx, by, t, o) {
     const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, top = by - 38 - [0, 2, 6, 10][tr];
+    const rot = o.rot | 0, front = rot === 1, back = rot === 3, F = rot !== 1, w2 = (13 + [0, 1, 3, 4][tr]) * 2;
+    const ox = cx + (back ? 22 : 26), oy = by + (front ? -11 : back ? 13 : 4);
+    const op = () => {
+      const pal = PALS_COOK[m.id % PALS_COOK.length], pose = working ? 'push' : (m.idle > 6 ? 'sleep' : 'sit');
+      if (working && !back) blit(g, P.paddle, ox - 10, oy - 20, 2, { rot: -0.75 + Math.sin(m.anim * 7) * 0.3 });
+      A.worker(g, ox, oy, pose, t + m.id * 0.7, { pal, face: -1, hat: 'toque' });
+    };
     shadow(g, mx, by + 2, 36, 8);
-    if (working && !o.ghost) fx(g, mx, by + 5, '#FFB040', 0.16 + 0.08 * Math.sin(t * 17 + m.id));
-    blit(g, P.stove(tr), mx, by + BASE);
-    if (working) blit(g, P.flame(Math.floor(t * 9 + m.id) % 3), mx, by - 6, 2);
-    else { g.fillStyle = m.idle < 4 ? '#D9502A' : '#6A3A22'; g.fillRect(mx - 6, by - 10, 4, 2); g.fillRect(mx + 2, by - 9, 3, 2); }
-    blit(g, P.pot(tr), mx, top + 6 + sq * 3, 2, { sx: 1 + sq * 0.08, sy: 1 - sq * 0.1 });
+    if (front && !o.ghost) op();                                // de frente: o cozinheiro fica atrás do fogão
+    if (working && !o.ghost) fx(g, mx, by + 5, '#FFB040', (back ? 0.08 : 0.16) + 0.08 * Math.sin(t * 17 + m.id));
+    blit(g, P.stove(tr, back), mx, by + BASE, 2, { flip: F });
+    if (!back) {
+      if (working) blit(g, P.flame(Math.floor(t * 9 + m.id) % 3), mx, by - 6, 2);
+      else { g.fillStyle = m.idle < 4 ? '#D9502A' : '#6A3A22'; g.fillRect(mx - 6, by - 10, 4, 2); g.fillRect(mx + 2, by - 9, 3, 2); }
+    }
+    blit(g, P.pot(tr), mx, top + 6 + sq * 3, 2, { sx: 1 + sq * 0.08, sy: 1 - sq * 0.1, flip: F });
     const rat = working ? Math.abs(Math.sin(m.anim * 13)) : 0;
-    blit(g, P.lid(tr), mx + (working ? Math.sin(m.anim * 29) * 1.2 : 0), top - 20 - rat * 4 + sq * 3, 2, { rot: working ? Math.sin(m.anim * 13) * 0.07 : 0 });
+    blit(g, P.lid(tr), mx + (working ? Math.sin(m.anim * 29) * 1.2 : 0), top - 20 - rat * 4 + sq * 3, 2, { rot: working ? Math.sin(m.anim * 13) * 0.07 : 0, flip: F });
+    if (front) blit(g, P.chuteF, mx, by + BASE + 12);
+    else if (back) { blit(g, P.hopper, mx, by + BASE + 3); blit(g, P.plateU, mx, by + BASE + 1); }
+    else { blit(g, P.chute, mx - w2 - 8, by + BASE + 2); blit(g, P.plate, mx - w2 + 8, by - 9); }
     if (o.ghost) return;
-    const pal = PALS_COOK[m.id % PALS_COOK.length], pose = working ? 'push' : (m.idle > 6 ? 'sleep' : 'sit');
-    if (working) blit(g, P.paddle, cx + 16, by - 16, 2, { rot: -0.75 + Math.sin(m.anim * 7) * 0.3 });
-    A.worker(g, cx + 26, by + 4, pose, t + m.id * 0.7, { pal, face: -1, hat: 'toque' });
-  };
-  A.panelaTop = (m, cx, by) => ({ x: cx - 9, y: by - 38 - [0, 2, 6, 10][A.tierOf(m.lvl)] - 34 });
+    if (!front) op();
+  });
+  A.panelaTop = (m, cx, by) => ({ x: A.bodyX(m, cx), y: by - 38 - [0, 2, 6, 10][A.tierOf(m.lvl)] - 34 });
 
   // MOLDADORA: prensa com pistão, funil de arroz, alavanca e o onigiri pulando pra fora
-  A.moldadora = function (g, m, cx, by, t, o) {
+  A.moldadora = oriented('moldadora', function (g, m, cx, by, t, o) {
     const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, k = m.prog;
+    const rot = o.rot | 0, front = rot === 1, back = rot === 3, F = rot !== 1;
     let d = 0;                                                  // 0 = pistão em cima, 1 = carimbou
     if (working) { if (k < 0.4) d = -0.12 * Math.sin(k / 0.4 * Math.PI); else if (k < 0.6) d = U.ease.in((k - 0.4) / 0.2); else d = 1 - U.ease.out((k - 0.6) / 0.4); }
+    const ox = cx + (back ? 24 : 28), oy = by + (front ? -11 : back ? 13 : 4);
+    const op = () => A.worker(g, ox, oy, working ? (d > 0.35 ? 'push' : 'stand') : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id * 0.9, { pal: PALS_MOLD[m.id % PALS_MOLD.length], face: -1, hat: 'bone' });
     shadow(g, mx, by + 2, 38, 8);
-    blit(g, P.press(tr), mx, by + BASE);
+    if (front && !o.ghost) op();
+    blit(g, P.press(tr, back), mx, by + BASE, 2, { flip: F });
     const hb = by - 52 + d * 20, rt = by - 70, rl = Math.max(0, hb - 14 - rt);   // base da cabeça do pistão; haste
     g.fillStyle = INK; g.fillRect(mx - 5, rt, 10, rl + 2);
     g.fillStyle = K.steel; g.fillRect(mx - 3, rt, 6, rl); g.fillStyle = K.steelL; g.fillRect(mx - 3, rt, 2, rl); g.fillStyle = K.steelD; g.fillRect(mx + 1, rt, 2, rl);
     if (m.work) blit(g, k > 0.58 ? item.onigiri : item.cozido, mx, by - 26 + (k > 0.58 ? 0 : 2), 2, { sx: 1 + sq * 0.3, sy: 1 - sq * 0.3 });
     blit(g, P.pressHead, mx, hb + 2);
-    if (tr >= 1) { const a = (working ? m.anim * 5 : 0); g.strokeStyle = K.copperD; g.lineWidth = 2; g.beginPath(); g.moveTo(mx - 34 + Math.cos(a) * 7, by - 46 + Math.sin(a) * 7); g.lineTo(mx - 34 - Math.cos(a) * 7, by - 46 - Math.sin(a) * 7); g.moveTo(mx - 34 + Math.cos(a + 1.57) * 7, by - 46 + Math.sin(a + 1.57) * 7); g.lineTo(mx - 34 - Math.cos(a + 1.57) * 7, by - 46 - Math.sin(a + 1.57) * 7); g.stroke(); }
+    if (tr >= 1) { const a = (working ? m.anim * 5 : 0), wx = mx + (F ? 34 : -34); g.strokeStyle = K.copperD; g.lineWidth = 2; g.beginPath(); g.moveTo(wx + Math.cos(a) * 7, by - 46 + Math.sin(a) * 7); g.lineTo(wx - Math.cos(a) * 7, by - 46 - Math.sin(a) * 7); g.moveTo(wx + Math.cos(a + 1.57) * 7, by - 46 + Math.sin(a + 1.57) * 7); g.lineTo(wx - Math.cos(a + 1.57) * 7, by - 46 - Math.sin(a + 1.57) * 7); g.stroke(); }
+    if (front) blit(g, P.chuteF, mx, by + BASE + 12);
+    else if (back) { blit(g, P.hopper, mx, by + BASE + 3); blit(g, P.plateU, mx, by + BASE + 1); }
+    else { blit(g, P.chute, mx - 38, by + BASE + 2); blit(g, P.plate, mx - 20, by - 5); }
     if (o.ghost) return;
     // alavanca (o operador puxa junto com o pistão)
     const pvx = mx + 30, pvy = by - 24, la = -1.95 + Math.max(0, d) * 0.9, lx = pvx + Math.cos(la) * 24, ly = pvy + Math.sin(la) * 24;
@@ -600,19 +663,20 @@
     g.strokeStyle = K.steel; g.lineWidth = 3; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(lx, ly); g.stroke();
     g.fillStyle = INK; g.beginPath(); g.arc(lx, ly, 5.5, 0, TAU); g.fill(); g.fillStyle = K.red; g.beginPath(); g.arc(lx, ly, 4, 0, TAU); g.fill(); g.fillStyle = K.redL; g.fillRect(lx - 2, ly - 3, 2, 2);
     g.fillStyle = INK; g.beginPath(); g.arc(pvx, pvy, 4, 0, TAU); g.fill(); g.fillStyle = K.steelD; g.beginPath(); g.arc(pvx, pvy, 2.5, 0, TAU); g.fill();
-    const pal = PALS_MOLD[m.id % PALS_MOLD.length];
-    A.worker(g, cx + 28, by + 4, working ? (d > 0.35 ? 'push' : 'stand') : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id * 0.9, { pal, face: -1, hat: 'bone' });
-    if (m.pop > 0) {                                            // onigiri pronto pula da boca pra saída
-      const u = 1 - m.pop, px = mx + (o.dx || 0) * 34 * u, py = by - 8 + (o.dy || 0) * 20 * u - Math.sin(u * Math.PI) * 20;
-      blit(g, item.onigiri, px, py, 2, { rot: (o.dx || 1) * u * 1.2 });
+    if (!front) op();
+    if (m.pop > 0) {                                            // onigiri pronto pula da boca pra saída (no quadro local a saída de lado é sempre pra esquerda)
+      const ldx = rot % 2 === 0 ? -1 : 0, ldy = front ? 1 : back ? -1 : 0;
+      const u = 1 - m.pop, px = mx + ldx * 34 * u, py = by - 8 + ldy * 20 * u - Math.sin(u * Math.PI) * 20;
+      blit(g, item.onigiri, px, py, 2, { rot: (ldx || 1) * u * 1.2 });
     }
-  };
+  });
 
   // PILÃO: usu grandão, um shiba bate com o kine (antecipa, desce, amassa) e o outro vira o mochi entre as batidas
-  A.pilao = function (g, m, cx, by, t, o) {
+  A.pilao = oriented('pilao', function (g, m, cx, by, t, o) {
     const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, vert = !!o.vert, gold = m.rec === 1;
     const rim = by - 44 - [0, 2, 12, 16][tr], rw = 22 + [0, 2, 6, 8][tr], sx = vert ? 36 : 50 + [0, 0, 4, 6][tr];
     shadow(g, cx, by + 2, vert ? 44 : 62, 9);
+    if (o.rot === 3) blit(g, P.chuteB, cx, rim - 4);              // de costas: a calha sobe por trás do usu
     blit(g, P.usu(tr), cx, by + BASE);
     if (m.work || m.inB.cozido > 0) {                           // a massa
       const rx = rw - 6 + sq * 7, ry = 6 - sq * 2.2, my = rim - 1 + sq * 2;
@@ -620,6 +684,8 @@
       g.fillStyle = gold ? K.gold : K.mochi; g.beginPath(); g.ellipse(cx, my, rx, ry, 0, 0, TAU); g.fill();
       g.fillStyle = gold ? K.goldL : K.white; g.beginPath(); g.ellipse(cx - 5, my - 1.5, rx * 0.45, ry * 0.4, 0, 0, TAU); g.fill();
     }
+    if (o.rot === 1) blit(g, P.chuteF, cx, by + BASE + 26);     // de frente: calha no pé
+    else if (!vert) blit(g, P.chute, cx + sx + 26, by + BASE + 2, 2, { flip: true });   // deitado: calha na ponta de quem vira o mochi
     if (o.ghost) return;
     for (let i = 0; i < Math.min(4, m.inB.cozido); i++) blit(g, item.cozido, cx - 20 + i * 13, by + 9, 1);
     if (m.inB.gold) blit(g, item.gold, cx + 32, by + 9, 1);
@@ -648,7 +714,7 @@
     g.fillStyle = K.woodL; g.fillRect(-hw + 1, -hh + 1, hw * 2 - 2, 4); g.fillStyle = K.woodD; g.fillRect(-hw + 1, hh - 4, hw * 2 - 2, 3);
     if (tr >= 1) { g.fillStyle = tr >= 3 ? K.gold : K.copper; g.fillRect(-hw + 3, -hh, 3, hh * 2); g.fillRect(hw - 6, -hh, 3, hh * 2); }
     g.restore();
-  };
+  });
   A.pilaoRim = (m, cx, by) => ({ x: cx, y: by - 44 - [0, 2, 12, 16][A.tierOf(m.lvl)] });
 
   // DIVISOR: mesa giratória com cancela que troca de lado e bandeirinha apontando
@@ -728,9 +794,9 @@
   function plate(g, x, y, w, txt, col, colD, sway) {
     g.save(); g.translate(x, y); g.rotate(sway);
     g.fillStyle = INK; g.fillRect(-w / 2 + 6, -2, 2, 8); g.fillRect(w / 2 - 8, -2, 2, 8);
-    g.fillStyle = INK; D.rrect(g, -w / 2 - 2, 4, w + 4, 22, 5); g.fill();
-    g.fillStyle = col; D.rrect(g, -w / 2, 6, w, 18, 4); g.fill(); g.fillStyle = colD; g.fillRect(-w / 2 + 2, 20, w - 4, 3); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(-w / 2 + 3, 7, w - 6, 2);
-    D.text(g, txt, 0, 15.5, { size: 12, col: K.cream, sw: 0, weight: 900 });
+    g.fillStyle = INK; D.rrect(g, -w / 2 - 2, 4, w + 4, 28, 6); g.fill();
+    g.fillStyle = col; D.rrect(g, -w / 2, 6, w, 24, 5); g.fill(); g.fillStyle = colD; g.fillRect(-w / 2 + 2, 26, w - 4, 3); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(-w / 2 + 3, 7, w - 6, 2);
+    D.text(g, txt, 0, 18, { size: 17, col: K.cream, sw: 0, weight: 900 });
     g.restore();
   }
   A.wall = function (g, t, o) {
@@ -745,8 +811,8 @@
     D.text(g, 'KOME PACK', nx, ny + 20, { size: 18, col: K.cream, sw: 0, weight: 900 });
     g.fillStyle = K.cream; g.beginPath(); g.ellipse(nx - 9, ny + 38, 4, 2.6, -0.5, 0, TAU); g.fill(); g.beginPath(); g.ellipse(nx + 1, ny + 37, 4, 2.6, 0.3, 0, TAU); g.fill(); g.beginPath(); g.ellipse(nx + 10, ny + 39, 4, 2.6, -0.2, 0, TAU); g.fill();
     // placas penduradas nas portas
-    plate(g, A.geo.doorIn.x + 44, 45, 74, 'ENTRADA', K.green, K.greenD, Math.sin(t * 1.3) * 0.03);
-    plate(g, A.geo.doorOut.x + 36, 45, 60, 'VENDA', K.red, K.redD, Math.sin(t * 1.3 + 2) * 0.03);
+    plate(g, A.geo.doorIn.x + 54, 45, 96, 'ENTRADA', K.green, K.greenD, Math.sin(t * 1.3) * 0.03);
+    plate(g, A.geo.doorOut.x + 42, 45, 74, 'VENDA', K.red, K.redD, Math.sin(t * 1.3 + 2) * 0.03);
     // relógio (o ponteiro grande dá uma volta por dia do jogo)
     blit(g, spr.clock, 282, 90);
     const tod = o.tod || 0, a1 = tod * TAU * 2 - Math.PI / 2, a2 = tod * TAU * 24 - Math.PI / 2;
@@ -765,7 +831,7 @@
     blit(g, spr.crate, 40, 528); blit(g, spr.crate, 84, 530); blit(g, spr.crate, 60, 494);
     const f = Math.floor(t * 0.8) % 2;
     blit(g, f ? spr.cat1 : spr.cat0, 60, 458 + (f ? 0 : 0), 2);
-    const u = (t * 0.5) % 1; D.text(g, 'z', 78 + u * 8, 440 - u * 14, { size: 9 + u * 4, col: K.cream, sw: 3, alpha: 1 - u });
+    const u = (t * 0.5) % 1; D.text(g, 'z', 78 + u * 8, 440 - u * 14, { size: 17 + u * 3, col: K.cream, sw: 3, alpha: 1 - u });
     blit(g, spr.plant, 122, 532);
   };
   A.cornerR = function (g) {

@@ -28,13 +28,23 @@
   const powK = id => (S && S.ended && id ? 1 + 0.04 * (lv()[id] | 0) * Math.pow(1.5, miles(lv()[id] | 0)) : 1);
   // preço proporcional ao tamanho da máquina: nível da pata é barato, nível da Bagger é caro
   const cost = t => { const k = (D.TOOLS.indexOf(t) + 1) / D.TOOLS.length; return Math.max(100, Math.ceil(45 * Math.max(10, G.priceIps ? G.priceIps() : (S.ips || 0)) * k * Math.pow(1.12, lv()[t.id] | 0) / 10) * 10); };
-  function up(t) {
-    const c = cost(t);
-    if (S.money < c) { UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: t.name }); return; }
+  // up(t, {quiet}): compra 1 nível. quiet = quem chamou cuida do aviso, da festa e da escolha do marco (a tela nova da Oficina).
+  // Devolve null se faltou dinheiro, senão { L, mile, cost }.
+  function up(t, o) {
+    const q = !!(o && o.quiet), c = cost(t);
+    if (S.money < c) { if (!q) UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: t.name }); return null; }
     S.money -= c; const L = (lv()[t.id] | 0) + 1; lv()[t.id] = L; if (G.priceBump) G.priceBump();
-    api.recompute(); api.sfx(MILES.indexOf(L) >= 0 ? 'fanfare' : 'pling');
-    if (MILES.indexOf(L) >= 0) { UI.banner(t.name + ' nível ' + L + '!', 'marco: o bônus dela dobrou', { icon: 'star', tone: 'gold', dur: 2.6 }); if (G.Ind) G.Ind.specChoice(t, () => { api.recompute(); api.save(); refresh(); }); }
+    const mile = MILES.indexOf(L) >= 0;
+    api.recompute(); if (!q) api.sfx(mile ? 'fanfare' : 'pling');
+    if (mile && !q) { UI.banner(t.name + ' nível ' + L + '!', 'marco: o bônus dela dobrou', { icon: 'star', tone: 'gold', dur: 2.6 }); if (G.Ind) G.Ind.specChoice(t, () => { api.recompute(); api.save(); refresh(); }); }
     api.save(); refresh();
+    return { L, mile, cost: c };
+  }
+  // info(t): tudo que a ficha da máquina mostra (as contas ficam aqui; a tela só desenha)
+  function info(t) {
+    const L = lv()[t.id] | 0, sk = G.Ind ? G.Ind.speedK(t.id) : 1, pw = n => 1 + 0.04 * n * Math.pow(1.5, miles(n));
+    return { L, cost: cost(t), mult: 1 + bonusOf(L) * sk, multNext: 1 + bonusOf(L + 1) * sk, pow: pw(L), powNext: pw(L + 1),
+      miles: miles(L), nextMile: MILES.find(m => m > L) || 0, prevMile: MILES.filter(m => m <= L).pop() || 0, spec: ((S.stats.spec || {})[t.id] || []).slice() };
   }
   function refresh() {
     if (!panel) return;
@@ -51,10 +61,19 @@
       const el = btn.el || btn; el.style.width = '100%'; if (S.money < c) el.style.opacity = '0.6';
     }
   }
-  function open() {
+  // A Oficina é um LUGAR (game/oficina.js). A lista antiga continua aqui de reserva: abre se a tela nova não carregou,
+  // se ela der erro ao abrir, ou com ?oficina=lista no endereço (G.Inf.classic = true faz o mesmo pelo console).
+  function openList() {
     if (!S.ended) return false;
     if (!panel) panel = UI.panel({ title: 'Oficina do Kome', icon: 'bolt', side: 'right', onOpen: refresh });
     panel.open(); refresh(); return true;
+  }
+  function open() {
+    if (!S.ended) return false;
+    if (G.Ofi && !G.Inf.classic && !/[?&]oficina=lista\b/.test(location.search)) {
+      try { if (G.Ofi.open()) return true; } catch (e) { if (window.console) console.warn('[kome] oficina nova falhou, abrindo a lista', e); try { G.Ofi.close(); } catch (e2) { /* */ } }
+    }
+    return openList();
   }
 
   /* ---- eventos ---- */
@@ -85,7 +104,8 @@
     init(a) { api = a; S = G.S; },
     sim: { cost, up },   // tools/longo.js (simulador de horas) compra sem abrir a tela
     addEvent: e => { if (!EVENTS.some(x => x.id === e.id)) EVENTS.push(e); },   // fichas de conteudo/ (tipo evento)
-    mult, powK, evMult, tick, open, event: () => ev,
-    levels: lv,
+    mult, powK, evMult, tick, open, openList, event: () => ev,
+    levels: lv, info, up, owned, playing: () => (api && api.playing ? api.playing() : null), MILES, classic: false,
+    recompute() { api.recompute(); api.save(); refresh(); },
   };
 })();

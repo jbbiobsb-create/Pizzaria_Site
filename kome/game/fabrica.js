@@ -104,7 +104,7 @@
   }
   function sellLoose(item, px, py) {          // item que sai do mundo (esteira apagada etc.): vende na hora, nada se perde
     const v = (ITEMS[item.t].val - ITEMS[item.t].base) * unitV(); pay(v); S.facAcc += v;
-    if (!S.fast && px !== undefined && v > 0) fl.add(px, py, '+¥' + U.fmt(v), { size: 11, c: C.cream, life: 0.8 });
+    if (!S.fast && px !== undefined && v > 0) fl.add(px, py, '+¥' + U.fmt(v), { size: 17, c: C.cream, life: 0.8 });
   }
   function clearBelt(x, y) {
     const c = cellAt(x, y); if (!c || c.k !== 'b') return;
@@ -193,10 +193,10 @@
     pend.t -= dt;
     if (!(pend.v > 0) || pend.t > 0) return;
     if (!S.fast && pend.v >= 1) {
-      const b = pend.best, size = 12 + Math.log2(b + 1) * 2.6, x = GEO.doorOut.x + 78, y = GEO.WALL - 34;   // o +¥ estoura em cima do kei-truck
+      const b = pend.best, size = 17 + Math.log2(b + 1) * 2.2, x = GEO.doorOut.x + 78, y = GEO.WALL - 34;   // o +¥ estoura em cima do kei-truck
       const c = b >= 40 ? C.goldL : b >= 10 ? C.sakura : b >= 4 ? C.yelL : C.cream;
       popK = (popK + 1) % 3;   // 3 posições alternadas: os +¥ não se encavalam
-      fl.add(x + (popK - 1) * 34, y - popK * 6, '+¥' + U.fmt(pend.v), { size, c, life: 0.85 + b / 90, pop: 1 + b / 30, shake: b >= 40 ? 1.2 : 0 });
+      fl.add(x + (popK - 1) * 40, y - popK * 9, '+¥' + U.fmt(pend.v), { size, c, life: 0.85 + b / 90, pop: 1 + b / 30, shake: b >= 40 ? 1.2 : 0 });
       if (b >= 40) ps.burst(x, y, 10, { c: [C.gold, C.goldL], shape: 'star', speed: [60, 160], life: 0.7, up: 80 });
       coinFly(x, y, b >= 40 ? 4 : b >= 10 ? 3 : b >= 4 ? 2 : 1); saleFlash = 1;
       sfx('fab-caixa', { pitch: 0.82 + Math.min(1.1, Math.log2(b + 1) * 0.17), vol: 0.5 });   // produto mais caro = sininho mais agudo
@@ -313,7 +313,7 @@
       if (Math.random() < 0.2) { const p = A.panelaTop(m, b.cx, b.by); ps.add({ x: p.x + U.rnd(-12, 12), y: p.y + U.rnd(0, 8), vx: U.rnd(-10, 10), vy: U.rnd(-58, -30), shape: 'puff', c: Math.random() < 0.5 ? '#FFFFFF' : '#F3EEE2', w: U.rnd(4, 8), life: U.rnd(0.7, 1.2), drag: 0.8 }); }
     } else if (m.type === 'moldadora') {
       const n = Math.floor(m.prog + 0.4);   // 1 carimbada por onigiri, em 60%
-      if (n > m.hitN) { m.hitN = n; m.sq = 0.8; ps.puff(b.cx - 9, b.by - 28, 5, 6, { c: C.rice }); sfx('fab-ploc', { pitch: U.rnd(0.94, 1.08), vol: 0.6 }); }
+      if (n > m.hitN) { m.hitN = n; m.sq = 0.8; ps.puff(A.bodyX(m, b.cx), b.by - 28, 5, 6, { c: C.rice }); sfx('fab-ploc', { pitch: U.rnd(0.94, 1.08), vol: 0.6 }); }
     } else if (m.type === 'pilao') {
       const n = Math.floor(m.prog * 4 + 0.4);     // 4 marteladas por mochi (o kine encosta em 80% de cada ciclo)
       if (n > m.hitN) {
@@ -322,7 +322,7 @@
         ps.burst(p.x, p.y - 2, 9, { c: [C.rice, C.cream, '#FFFFFF'], shape: 'dot', speed: [40, 120], life: 0.55, up: 80, w: 2.5 });
         ps.puff(p.x, p.y, 4, 7, { c: C.rice });
         sfx('fab-pon', { vol: 0.6, pitch: U.rnd(0.92, 1.08) });
-        if (n % 2 === 0 || Math.random() < 0.2) fl.add(p.x + U.rnd(-10, 10), p.y - 30, 'PON!', { size: 15, c: C.cream, life: 0.55, pop: 1.5, vy: -30, rot: U.rnd(-0.2, 0.2) });
+        if (n % 2 === 0 || Math.random() < 0.2) fl.add(p.x + U.rnd(-10, 10), p.y - 30, 'PON!', { size: 18, c: C.cream, life: 0.55, pop: 1.5, vy: -30, rot: U.rnd(-0.2, 0.2) });
         if (Math.random() < 0.3) sfx('yip', { vol: 0.3, pitch: U.rnd(1.05, 1.3) });   // "yoisho!" de shiba
       }
     }
@@ -419,7 +419,7 @@
     const c = cellAt(x, y); if (!c) return false;
     if (c.k === 'b') { clearBelt(x, y); sfx('click'); return true; }
     const ref = removeMachine(c.m); GS().money += ref; a.cost -= ref;
-    if (!S.fast) { ps.puff(cellX(x), cellY(y) + 12, 8, 8, { c: C.sand }); if (ref > 0) fl.add(cellX(x), cellY(y) - 18, 'devolveu ¥' + U.fmt(ref), { size: 13, c: C.goldL }); sfx('pop', { vol: 0.4 }); }
+    if (!S.fast) { ps.puff(cellX(x), cellY(y) + 12, 8, 8, { c: C.sand }); if (ref > 0) fl.add(cellX(x), cellY(y) - 18, 'devolveu ¥' + U.fmt(ref), { size: 17, c: C.goldL }); sfx('pop', { vol: 0.4 }); }
     return true;
   }
   function rotateMachine(m) {
@@ -445,8 +445,8 @@
     m.sq = 1; sfx('fab-jingle', { vol: 0.8 }); const c = mcenter(m), tierUp = m.lvl === 3 || m.lvl === 6 || m.lvl === 10;
     if (!S.fast) {
       ps.burst(c.x, c.y - 20, tierUp ? 30 : 16, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [80, tierUp ? 280 : 200], life: 0.8 }); ps.sparkle(c.x, c.y - 24, 8, { c: [C.goldL, '#FFFFFF'], r: 34 });
-      fl.add(c.x, c.y - 50, 'Nv. ' + m.lvl + '!', { size: tierUp ? 20 : 16, c: C.goldL, pop: 1.4 });
-      if (tierUp) { fl.add(c.x, c.y - 74, 'visual novo!', { size: 13, c: C.cream, delay: 0.25 }); sfx('fanfare', { vol: 0.5 }); }
+      fl.add(c.x, c.y - 50, 'Nv. ' + m.lvl + '!', { size: tierUp ? 22 : 18, c: C.goldL, pop: 1.4 });
+      if (tierUp) { fl.add(c.x, c.y - 78, 'visual novo!', { size: 17, c: C.cream, delay: 0.25 }); sfx('fanfare', { vol: 0.5 }); }
     }
   }
   function setRecipe(m, i) {
@@ -463,7 +463,7 @@
     if (money() < p) { toast('Falta ¥' + U.fmt(p - money())); sfx('error'); return; }
     const a = beginAction(); spend(p); a.cost = p; S.dockLvl++; commit(a);
     sfx('fab-jingle', { vol: 0.8 });
-    if (!S.fast) { ps.burst(GEO.feedX, 180, 22, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [60, 220], life: 0.8 }); fl.add(GEO.feedX, 150, 'Doca Nv. ' + S.dockLvl + '!', { size: 16, c: C.goldL, pop: 1.4 }); }
+    if (!S.fast) { ps.burst(GEO.feedX, 180, 22, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [60, 220], life: 0.8 }); fl.add(GEO.feedX, 150, 'Doca Nv. ' + S.dockLvl + '!', { size: 18, c: C.goldL, pop: 1.4 }); }
   }
 
   /* ======================================================================
@@ -475,8 +475,11 @@
   const T = (size, col, align, extra) => Object.assign({ size, col: col || INK, sw: 0, align: align || 'center', weight: 900 }, extra || {});
   const fmt1 = v => (Math.round(v * 10) / 10).toLocaleString('pt-BR');
   const fmtK = n => (n < 10000 ? String(Math.floor(n)) : n < 1e6 ? fmt1(n / 1000) + 'k' : fmt1(n / 1e6) + 'M');   // contador curtinho do HUD
-  const BAY_IN = { x: 4, y: 40, w: 150, h: 430 }, BAY_OUT = { x: 806, y: 40, w: 150, h: 430 }, YEN = { x: 152, y: 25 };
-  const PHRASE = { cozido: 'fofinho, ainda soltando vapor', onigiri: 'o triângulo que move o Japão', mochi: "batido no pilão com muito esforço e um 'yoisho!'", mochid: 'dizem que dá sorte. dizem que dá MUITA sorte' };
+  const BAY_IN = { x: 4, y: 40, w: 150, h: 430 }, BAY_OUT = { x: 806, y: 40, w: 150, h: 430 }, YEN = { x: 148, y: 25 };
+  const PHRASE = { cozido: 'fofinho, ainda soltando vapor', onigiri: 'o triângulo que move o Japão', mochi: "batido no pilão com um 'yoisho!'", mochid: 'dizem que dá MUITA sorte' };
+  // REGRA DE TEXTO: o palco de 960×540 encolhe pra ~0,72 no celular de 844×390, então nada de texto abaixo de 17 px aqui (= 12 px no aparelho)
+  const TXT = 17;
+  const textW = (s, size) => { D.text(g, '', 0, 0, { size: size || TXT }); return g.measureText(s).width; };
 
   /* ---- overlay da fábrica: stage próprio (960×540) por cima do jogo ---- */
   const root = document.createElement('div'); root.className = 'k-fab';
@@ -574,7 +577,7 @@
       if (truck.n >= 9 && truck.t > 0.5) { truck.st = 'out'; truck.t = 0; sfx('horn', { vol: 0.25, pitch: 1.5 }); }
     } else if (truck.st === 'out') {
       truck.dx = U.ease.in(Math.min(1, truck.t / 0.9)) * 200;
-      if (truck.t >= 0.9) { truck.st = 'away'; truck.t = 0; truck.n = 0; truck.trips++; fl.add(GEO.doorOut.x + 70, GEO.doorOut.y + 64, 'carga entregue!', { size: 14, c: C.goldL, life: 1.3 }); }
+      if (truck.t >= 0.9) { truck.st = 'away'; truck.t = 0; truck.n = 0; truck.trips++; fl.add(GEO.doorOut.x + 70, GEO.doorOut.y + 64, 'carga entregue!', { size: 17, c: C.goldL, life: 1.3 }); }
     } else if (truck.st === 'away') { truck.dx = 200; if (truck.t >= 0.9) { truck.st = 'back'; truck.t = 0; } }
     else { truck.dx = (1 - U.ease.out(Math.min(1, truck.t / 0.8))) * 200; if (truck.t >= 0.8) { truck.st = 'in'; truck.t = 0; truck.dx = 0; } }
     for (const c of coins) { if (!c.on) continue; c.t += dt; if (c.t >= c.d) { c.on = false; yenBump = 1; } }
@@ -598,7 +601,7 @@
     for (let i = 0; i < cnt; i++) { const y = GEO.WALL + 16 + ((t * BELT_SPEED * CH * 0.6 + i * L / cnt) % L); A.drawItem(g, i % 4 === 3 && S.goldMix > 0.02 ? 'gold' : 'raw', GEO.feedX, y, t, i); }
     for (let r = 0; r < GH; r++) if (dockRowAnim[r] > 0) { const a = 1 - dockRowAnim[r]; A.drawItem(g, 'raw', GEO.feedX + a * (GX - GEO.feedX + 6), cellY(r), t, r, 0); }
     // plaquinha de nível da doca
-    A.levelBadge(g, GEO.feedX - 34, 142, lv);
+    A.levelBadge(g, GEO.feedX - 34, 144, lv);
 
     // VENDA: itens subindo, mesa de embalar, pilha esperando o caminhão
     for (let i = 0; i < ship.length; i++) {
@@ -618,44 +621,88 @@
      Máquinas
      ====================================================================== */
   const mbase = (m, r) => (m.type === 'pilao' && m.rot % 2 === 1 ? { cx: r.x + r.w / 2, by: r.y + CH + 26 } : m.type === 'divisor' ? { cx: r.x + r.w / 2, by: r.y + r.h / 2 } : { cx: r.x + r.w / 2, by: r.y + r.h - 16 });
-  const MO = { ghost: false, vert: false, dx: 0, dy: 0, vx: 0, vy: 0, item: null };
+  const MO = { ghost: false, vert: false, rot: 0, dx: 0, dy: 0, vx: 0, vy: 0, item: null };
+  /* Máquina alta × esteira da linha de trás: quando passa item atrás (ou quando você está mexendo nas esteiras), a parte da
+     máquina que invade a casa de cima fica ~45% transparente. A máquina é desenhada numa camada à parte só nesse caso. */
+  let fadeCv = null, fadeG = null;
+  function behindOf(m) {                                     // 0 nada · 1 tem esteira atrás · 2 tem item passando atrás
+    if (m.type === 'divisor' || (m.type === 'pilao' && m.rot % 2 === 1) || m.y + Math.min(0, DY[m.rot]) <= 0) return 0;
+    let res = 0;
+    for (const [a, b] of mcells(m.type, m.x, m.y, m.rot)) {
+      const c = cellAt(a, b - 1); if (!c) continue;
+      if (c.k === 'b') res = Math.max(res, c.items.length ? 2 : 1);
+      else if (c.m !== m && c.m.type === 'divisor') res = Math.max(res, c.m.out.length ? 2 : 1);
+    }
+    return res;
+  }
+  function fadeTick(dt) {
+    const building = !!(S.tool || (drag && drag.mode !== 'move'));
+    for (const m of machines) { const b = behindOf(m), want = b === 2 || (b === 1 && building) ? 1 : 0; m.fade = (m.fade || 0) + (want - (m.fade || 0)) * Math.min(1, dt * (want ? 10 : 4)); }
+  }
+  // selo verde "dá pra subir": só no upgrade MAIS BARATO que o dinheiro paga (máquina ou doca); com um cartão de máquina aberto, em todos
+  let upPick = null, upAll = false;
+  function pickUp() {
+    upPick = null; upAll = false;
+    if (S.tut >= 0 || S.tool) return;
+    upAll = !!(S.sel && typeof S.sel === 'object');
+    const mny = money(); let best = Infinity;
+    for (const m of machines) { if (m.type === 'divisor' || m.lvl >= MAX_LVL) continue; const p = levelPrice(m); if (p <= mny && p < best) { best = p; upPick = m; } }
+    if (!dockMax()) { const p = dockPrice(); if (p <= mny && p < best) upPick = 'dock'; }
+  }
+  const upBob = (t, k) => Math.sin(t * 2.2 + k) * 2;
   function drawMachine(m, t, ghost) {
     const r = mrect(m.type, m.x, m.y, m.rot), b = mbase(m, r), cx = b.cx, by = b.by;
-    MO.ghost = !!ghost; MO.vert = m.rot % 2 === 1; MO.dx = DX[m.rot]; MO.dy = DY[m.rot];
-    g.save();
-    if (ghost) g.globalAlpha = ghost;
+    MO.ghost = !!ghost; MO.vert = m.rot % 2 === 1; MO.rot = m.rot; MO.dx = DX[m.rot]; MO.dy = DY[m.rot];
+    const fade = ghost ? 0 : (m.fade || 0), dpr = stage.dpr;
+    let q = g, px = 0, py = 0, fw = 0, fh = 0;
+    if (fade > 0.02) {
+      fw = Math.ceil((r.w + 100) * dpr); fh = Math.ceil((r.h + 130) * dpr);
+      if (!fadeCv) { fadeCv = document.createElement('canvas'); fadeG = fadeCv.getContext('2d'); }
+      if (fadeCv.width < fw || fadeCv.height < fh) { fadeCv.width = Math.max(fadeCv.width, fw); fadeCv.height = Math.max(fadeCv.height, fh); }
+      px = Math.round((r.x - 50) * dpr); py = Math.round((r.y - 100) * dpr);
+      q = fadeG; q.setTransform(1, 0, 0, 1, 0, 0); q.globalAlpha = 1; q.globalCompositeOperation = 'source-over'; q.clearRect(0, 0, fw, fh);
+      q.setTransform(dpr, 0, 0, dpr, -px, -py);
+    }
+    q.save();
+    if (ghost) q.globalAlpha = ghost;
     const pop = m.sq || 0;                                   // pulinho ao pôr / subir de nível
-    if (pop > 0 && !ghost) { g.translate(cx, by); g.scale(1 + pop * 0.06, 1 - pop * 0.06); g.translate(-cx, -by); }
-    if (m.type === 'panela') A.panela(g, m, cx, by, t, MO);
-    else if (m.type === 'moldadora') A.moldadora(g, m, cx, by, t, MO);
-    else if (m.type === 'pilao') A.pilao(g, m, cx, by, t, MO);
+    if (pop > 0 && !ghost) { q.translate(cx, by); q.scale(1 + pop * 0.06, 1 - pop * 0.06); q.translate(-cx, -by); }
+    if (m.type === 'panela') A.panela(q, m, cx, by, t, MO);
+    else if (m.type === 'moldadora') A.moldadora(q, m, cx, by, t, MO);
+    else if (m.type === 'pilao') A.pilao(q, m, cx, by, t, MO);
     else {
       const ds = sideDirs(m), k = m.flip === undefined ? m.side : m.flip;   // m.flip segue m.side com molinha
       MO.vx = U.lerp(DX[ds[0]], DX[ds[1]], k) + DX[m.rot] * 0.55 * (1 - Math.abs(k * 2 - 1)); MO.vy = U.lerp(DY[ds[0]], DY[ds[1]], k) + DY[m.rot] * 0.55 * (1 - Math.abs(k * 2 - 1));
       MO.item = m.out.length ? m.out[0].t : null;
-      A.divisor(g, m, cx, by, t, MO);
+      A.divisor(q, m, cx, by, t, MO);
     }
-    g.restore();
+    q.restore();
+    if (q !== g) {                                           // apaga em degradê o que passa da borda de cima da casa e cola no palco, pixel com pixel
+      const gr = q.createLinearGradient(0, r.y - 14, 0, r.y + 2);
+      gr.addColorStop(0, 'rgba(0,0,0,' + (0.55 * fade).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      q.globalCompositeOperation = 'destination-out'; q.fillStyle = gr; q.fillRect(r.x - 50, r.y - 100, r.w + 100, 102); q.globalCompositeOperation = 'source-over';
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false; g.drawImage(fadeCv, 0, 0, fw, fh, px, py, fw, fh); g.restore();
+    }
     if (ghost) return;
     if (m.type === 'divisor') return;
-    // barrinha "ocupada %" e plaquinha de nível, no pé da máquina
-    const bw = 34, bx = cx - bw / 2 + (m.type === 'pilao' ? 0 : -9), bY = by + 9;
+    // barrinha "ocupada %" e plaquinha de nível, no pé da máquina (de frente a calha ocupa o pé: descem um pouco)
+    const mxb = A.bodyX(m, cx), bw = 30, bx = mxb - (m.lvl < 2 ? 15 : 3), bY = by + (m.rot === 1 ? (m.type === 'pilao' ? 4 : 19) : 9);
     g.fillStyle = INK; D.rrect(g, bx - 2, bY - 2, bw + 4, 8, 3); g.fill();
     g.fillStyle = '#5a4030'; g.fillRect(bx, bY, bw, 4);
     g.fillStyle = m.busy > 0.85 ? C.ora : m.busy > 0.4 ? C.gold : C.grassL; g.fillRect(bx, bY, bw * U.clamp(m.busy, 0, 1), 4);
-    A.levelBadge(g, bx - 14, bY + 1, m.lvl);
+    A.levelBadge(g, bx - 15, bY + 2, m.lvl);
     // balõezinhos de estado
-    const topY = m.type === 'moldadora' ? by - 92 : m.type === 'pilao' ? by - 84 : by - 80;
+    const topY = m.type === 'moldadora' ? by - 92 : m.type === 'pilao' ? by - 84 : by - 80, hot = m.blocked || (m.full > 0 && m.busy > 0.8);
     if (m.blocked) bubble(cx + 22, topY, '!', C.red, t);
-    else if (m.full > 0 && m.busy > 0.8) bubble(cx + 22, topY, '!', C.ora, t);
-    else if (!m.work && m.idle > 6 && !m.out.length) { const u = (t * 0.6 + m.id * 0.3) % 1; txt('z', cx + 34 + u * 8, by - 40 - u * 16, { size: 10 + u * 5, col: C.cream, sw: 3, alpha: 1 - u }); }
-    else if (S.tut < 0 && !S.tool && m.lvl < MAX_LVL && money() >= levelPrice(m) && S.sel !== m) blit(SPR.up, cx + 24, topY + 12 + Math.sin(t * 5 + m.id) * 2.5, 2);
+    else if (hot) bubble(cx + 22, topY, '!', C.ora, t);
+    else if (!m.work && m.idle > 6 && !m.out.length) { const u = (t * 0.6 + m.id * 0.3) % 1, zx = m.type === 'pilao' ? 34 : A.mirrored(m.type, m.rot) ? -30 : 34; txt('z', cx + zx + u * 8, by - 40 - u * 16, { size: TXT + u * 4, col: C.cream, sw: 3, alpha: 1 - u }); }
+    if (!hot && S.sel !== m && m.lvl < MAX_LVL && (upPick === m || (upAll && money() >= levelPrice(m)))) blit(SPR.up, mxb + 2, topY + 14 + upBob(t, m.id), 2);
   }
   function bubble(x, y, s, col, t) {
     const b = Math.sin(t * 6) * 2;
-    g.fillStyle = INK; g.beginPath(); g.arc(x, y + b, 11, 0, TAU); g.fill(); g.beginPath(); g.moveTo(x - 5, y + b + 8); g.lineTo(x - 9, y + b + 17); g.lineTo(x + 2, y + b + 10); g.fill();
-    g.fillStyle = col; g.beginPath(); g.arc(x, y + b, 9, 0, TAU); g.fill();
-    txt(s, x, y + b + 0.5, { size: 14, col: C.cream, sw: 0, weight: 900 });
+    g.fillStyle = INK; g.beginPath(); g.arc(x, y + b, 12.5, 0, TAU); g.fill(); g.beginPath(); g.moveTo(x - 5, y + b + 9); g.lineTo(x - 9, y + b + 19); g.lineTo(x + 2, y + b + 11); g.fill();
+    g.fillStyle = col; g.beginPath(); g.arc(x, y + b, 10.5, 0, TAU); g.fill();
+    txt(s, x, y + b + 1, { size: 18, col: C.cream, sw: 0, weight: 900 });
   }
   function arrow(x, y, d, col, k) {
     g.save(); g.translate(x, y); g.scale(1, CH / CW * 1.15); g.rotate(ang(d)); g.scale(k || 1, k || 1);
@@ -704,9 +751,10 @@
     g.fillStyle = 'rgba(255,255,255,.5)'; D.rrect(g, x + 4, y + 2.5 + dy, w - 8, 3, 1.5); g.fill();
     const cx = x + w / 2;
     if (o.sub) {
-      txt(label, cx, y + h / 2 - 8 + dy, T(o.size || 14, off ? '#8a7a66' : INK));
-      txt(o.sub, cx, y + h / 2 + 9 + dy, T(o.subSize || 12, o.subCol || (off ? '#8a7a66' : '#6B4A2E')));
-    } else txt(label, cx, y + h / 2 + 1 + dy, T(o.size || 14, off ? '#8a7a66' : INK));
+      txt(label, cx, y + h / 2 - 10 + dy, T(o.size || TXT, off ? '#8a7a66' : INK));
+      txt(o.sub, cx, y + h / 2 + 10 + dy, T(o.subSize || TXT, o.subCol || (off ? '#8a7a66' : '#6B4A2E')));
+    } else txt(label, cx, y + h / 2 + 1 + dy, T(o.size || TXT, off ? '#8a7a66' : INK));
+    if (o.lock) blit(SPR.lock, x + 14, y + h / 2 + 8 + dy, 2);
     hit(x, y, w, h, fn, { x, y });
   }
   function meter(x, y, w, h, k, col) {
@@ -717,47 +765,53 @@
   function check(x, y, col) { g.strokeStyle = INK; g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x - 1, y + 5); g.lineTo(x + 7, y - 5); g.stroke(); g.strokeStyle = col; g.lineWidth = 3; g.stroke(); }
 
   const chipPop = [0, 0];
-  function goalChip(i, x, name, n, need, done, icon) {
-    const p = chipPop[i], y = 6 - Math.sin(Math.min(1, p) * Math.PI) * 4;
-    pill(x, y, 112, 38, done ? '#DDF0C2' : C.cream);
-    blit(done ? icon : SPR.lock, x + 19, y + 30, 2, done ? null : { alpha: 0.9 });
-    txt(name, x + 36, y + 12, T(13, INK, 'left'));
-    if (done) { txt('liberado', x + 36, y + 27, T(12, C.grassD, 'left')); check(x + 98, y + 25, C.grass); }
-    else { meter(x + 36, y + 22, 44, 7, n / need, C.gold); txt(need >= 1000 ? Math.floor(Math.min(n, need) / need * 100) + '%' : Math.min(n, need) + '/' + need, x + 84, y + 26, T(12, '#6B4A2E', 'left')); }
-    hit(x, y, 112, 38, () => { toast(done ? name + ': liberado!' : i === 0 ? 'Pilão: faça ' + UNLOCK.pilao + ' onigiris (' + S.made.onigiri + ' até agora)' : 'Mochi Dourado: ' + UNLOCK.dourado + ' mochis e Arroz Dourado no Armazém'); sfx('click'); });
+  function goalChip(i, x, name, n, need, done, icon) {       // ícone do produto + "3/20" com barrinha (ou "liberado"); o nome aparece no toque
+    const p = chipPop[i], y = 6 - Math.sin(Math.min(1, p) * Math.PI) * 4, w = 116;
+    pill(x, y, w, 38, done ? '#DDF0C2' : C.cream);
+    blit(icon, x + 20, y + 31, 2, done ? null : { alpha: 0.45 });
+    if (done) txt('liberado', x + 38, y + 20, T(TXT, C.grassD, 'left'));
+    else {
+      blit(SPR.lock, x + 28, y + 35, 2);
+      txt(need >= 1000 ? Math.floor(Math.min(n, need) / need * 100) + '%' : Math.min(n, need) + '/' + need, x + 76, y + 14, T(TXT, '#6B4A2E'));
+      meter(x + 44, y + 26, 64, 6, n / need, C.gold);
+    }
+    hit(x, y, w, 38, () => { toast(done ? name + ': liberado!' : i === 0 ? 'Pilão: faça ' + UNLOCK.pilao + ' onigiris (' + S.made.onigiri + ' até agora)' : 'Mochi Dourado: ' + UNLOCK.dourado + ' mochis e Arroz Dourado no Armazém'); sfx('click'); });
   }
   function drawTopBar(t) {
-    button(8, 6, 116, 38, '← Montanha', close, { fill: '#F6B6B0', size: 14 });
+    button(8, 6, 112, 38, '← Montanha', close, { fill: '#F6B6B0' });
     // dinheiro (as moedas da venda voam pra cá)
     const bump = Math.sin(Math.min(1, yenBump) * Math.PI) * 0.12;
-    pill(132, 6, 150, 38);
+    pill(128, 6, 136, 38);
     blit(SPR.coin, YEN.x, 36 - bump * 20, 2 + bump * 2);
-    txt(U.fmt(Math.floor(money())), YEN.x + 18, 26, T(18, INK, 'left'));
-    // produção: ¥/s da fábrica, fatia da renda e os 4 produtos
+    txt(U.fmt(Math.floor(money())), YEN.x + 17, 26, T(18, INK, 'left'));
+    // produção numa linha só: ¥/s da fábrica, fatia da renda (a % vai dentro da barra) e os 4 produtos
     const rt = rates(), tot = rt.raw + rt.fac, sh = tot > 0 ? rt.fac / tot : 0;
-    pill(290, 6, 426, 38);
-    txt('Fábrica', 302, 15, T(12, '#8A6A4A', 'left'));
-    txt('¥' + U.fmt(rt.fac) + '/s', 302, 31, T(16, INK, 'left'));
-    meter(396, 12, 72, 8, sh, C.ora);
-    txt(Math.round(sh * 100) + '% da renda', 432, 31, T(12, C.oraD));
-    g.fillStyle = 'rgba(59,40,24,.18)'; g.fillRect(478, 11, 2, 28);
+    pill(272, 6, 432, 38);
+    txt('¥' + U.fmt(rt.fac) + '/s', 284, 26, T(18, INK, 'left'));
+    const mx0 = 376, mw = 62;
+    g.fillStyle = INK; D.rrect(g, mx0 - 1.5, 13.5, mw + 3, 25, 9); g.fill();
+    g.fillStyle = '#E6DCC4'; D.rrect(g, mx0, 15, mw, 22, 8); g.fill();
+    if (sh > 0.02) { g.fillStyle = C.ora; D.rrect(g, mx0, 15, Math.max(16, mw * Math.min(1, sh)), 22, 8); g.fill(); }
+    txt(Math.round(sh * 100) + '%', mx0 + mw / 2, 26.5, T(TXT, INK));
+    g.fillStyle = 'rgba(59,40,24,.18)'; g.fillRect(446, 11, 2, 28);
     ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => {
-      const x = 486 + i * 58, locked = (k === 'mochi' && !S.unlocked.pilao) || (k === 'mochid' && !S.unlocked.mochid);
-      blit(ICON[k], x + 13, 37, 2, { alpha: locked ? 0.3 : 1 });
-      txt(locked ? '?' : fmtK(S.made[k]), x + 30, 26, T(13, locked ? '#9a8a76' : INK, 'left'));
+      const x = 452 + i * 62, locked = (k === 'mochi' && !S.unlocked.pilao) || (k === 'mochid' && !S.unlocked.mochid);
+      blit(ICON[k], x + 14, 37, 2, { alpha: locked ? 0.3 : 1 });
+      txt(locked ? '?' : fmtK(S.made[k]), x + 30, 26, T(TXT, locked ? '#9a8a76' : INK, 'left'));
     });
-    goalChip(0, 722, 'Pilão', S.made.onigiri, UNLOCK.pilao, S.unlocked.pilao, ICON.mochi);
-    goalChip(1, 840, 'Dourado', S.made.mochi, UNLOCK.dourado, S.unlocked.mochid, ICON.mochid);
+    hit(272, 6, 432, 38, () => { toast('a fábrica rende ¥' + U.fmt(rt.fac) + '/s: ' + Math.round(sh * 100) + '% da sua renda'); sfx('click'); });
+    goalChip(0, 712, 'Pilão', S.made.onigiri, UNLOCK.pilao, S.unlocked.pilao, ICON.mochi);
+    goalChip(1, 836, 'Dourado', S.made.mochi, UNLOCK.dourado, S.unlocked.mochid, ICON.mochid);
   }
 
   const TOOLS = [
     { id: 'panela', name: 'Panela', hint: 'toque numa casa pra pôr' }, { id: 'moldadora', name: 'Moldadora', hint: 'toque numa casa pra pôr' }, { id: 'pilao', name: 'Pilão', hint: 'ocupa 2 casas' },
     { id: 'esteira', name: 'Esteira', hint: 'arraste pelas casas' }, { id: 'divisor', name: 'Divisor', hint: 'um pra cada lado' }, { id: 'borracha', name: 'Borracha', hint: 'devolve 100%' }, { id: 'undo', name: 'Desfazer', hint: '' },
   ];
-  const BAR = { w: 68, h: 62, gap: 6, y: 474 }; BAR.x = (W - (BAR.w * 7 + BAR.gap * 6)) / 2;
+  const BAR = { w: 72, h: 66, gap: 6, y: 470 }; BAR.x = (W - (BAR.w * 7 + BAR.gap * 6)) / 2;
   let toolT = 0, hoverTool = -1;
   function drawBottomBar(t) {
-    g.fillStyle = 'rgba(40,22,8,.42)'; D.rrect(g, BAR.x - 10, BAR.y - 8, BAR.w * 7 + BAR.gap * 6 + 20, 90, 16); g.fill();
+    g.fillStyle = 'rgba(40,22,8,.42)'; D.rrect(g, BAR.x - 10, BAR.y - 8, BAR.w * 7 + BAR.gap * 6 + 20, 94, 16); g.fill();
     TOOLS.forEach((tl, i) => {
       const x = BAR.x + i * (BAR.w + BAR.gap), on = S.tool === tl.id, y = BAR.y - (on ? 5 + Math.sin(t * 6) * 1.5 : 0);
       const lockP = tl.id === 'pilao' && !S.unlocked.pilao, isM = MDEF[tl.id] && tl.id !== 'divisor', p = isM ? machinePrice(tl.id) : 0, can = !isM || money() >= p;
@@ -765,7 +819,7 @@
       g.fillStyle = 'rgba(40,22,8,.30)'; D.rrect(g, x - 2, y + 2, BAR.w + 4, BAR.h + 6, 12); g.fill();
       g.fillStyle = INK; D.rrect(g, x - 2.5, y - 2.5, BAR.w + 5, BAR.h + 7.5, 12); g.fill();
       g.fillStyle = on ? C.gold : lockP ? '#D8CCB4' : C.cream; D.rrect(g, x, y + dy, BAR.w, BAR.h, 10); g.fill();
-      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, x + 4, y + 4 + dy, BAR.w - 8, 38, 7); g.fill();
+      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, x + 4, y + 4 + dy, BAR.w - 8, 40, 7); g.fill();
       g.fillStyle = 'rgba(255,255,255,.55)'; D.rrect(g, x + 5, y + 2.5 + dy, BAR.w - 10, 3, 1.5); g.fill();
       const ix = x + BAR.w / 2, iy = y + dy;
       g.imageSmoothingEnabled = false;
@@ -774,12 +828,12 @@
       else if (tl.id === 'undo') blit(SPR.undo, ix, iy + 37, 3, { alpha: undo.length ? 1 : 0.4 });
       else g.drawImage(A.icon(tl.id), ix - 24, iy + 1);
       let sub, col = '#6B4A2E';
-      if (lockP) { sub = Math.floor(Math.min(1, S.made.onigiri / UNLOCK.pilao) * 100) + '%'; meter(x + 8, y + 49, BAR.w - 16, 6, S.made.onigiri / UNLOCK.pilao, C.gold); sub = null; }
+      if (lockP) { sub = Math.floor(Math.min(1, S.made.onigiri / UNLOCK.pilao) * 100) + '%'; meter(x + 8, y + 51, BAR.w - 16, 8, S.made.onigiri / UNLOCK.pilao, C.gold); sub = null; }
       else if (isM) { sub = p > 0 ? '¥' + U.fmt(p) : 'grátis'; col = can ? C.grassD : C.redD; }
       else if (tl.id === 'esteira' || tl.id === 'divisor') sub = 'grátis';
       else if (tl.id === 'borracha') sub = 'apagar';
-      else sub = undo.length ? 'voltar ' + undo.length : 'voltar';
-      if (sub) txt(sub, ix, y + 52 + dy, T(sub.length > 7 ? 12 : 14, col));
+      else { sub = 'voltar'; if (!undo.length) col = '#a8987e'; }
+      if (sub) txt(sub, ix, y + 55 + dy, T(TXT, col));
       hit(x, BAR.y - 6, BAR.w, BAR.h + 8, () => {
         if (tl.id === 'undo') return doUndo();
         if (lockP) { toast('O Pilão abre com ' + UNLOCK.pilao + ' onigiris (você fez ' + S.made.onigiri + ')'); sfx('error'); return; }
@@ -788,14 +842,14 @@
       // etiqueta com o nome (some sozinha; volta se passar o mouse)
       const show = (on && toolT < 2.6) || hoverTool === i;
       if (show) {
-        const label = tl.name + (on && tl.hint ? ' · ' + tl.hint : ''), tw = Math.max(70, label.length * 7.9 + 22), lx = U.clamp(ix - tw / 2, 6, W - tw - 6), a = on ? U.clamp((2.6 - toolT) * 3, 0, 1) : 1;
+        const label = tl.name + (on && tl.hint ? ' · ' + tl.hint : ''), tw = Math.max(70, textW(label) + 24), lx = U.clamp(ix - tw / 2, 6, W - tw - 6), a = on ? U.clamp((2.6 - toolT) * 3, 0, 1) : 1;
         g.globalAlpha = hoverTool === i ? 1 : a;
-        g.fillStyle = INK; D.rrect(g, lx, y - 30, tw, 22, 8); g.fill(); g.beginPath(); g.moveTo(ix - 6, y - 9); g.lineTo(ix, y - 3); g.lineTo(ix + 6, y - 9); g.fill();
-        txt(label, lx + tw / 2, y - 18.5, T(13, C.cream)); g.globalAlpha = 1;
+        g.fillStyle = INK; D.rrect(g, lx, y - 36, tw, 28, 9); g.fill(); g.beginPath(); g.moveTo(ix - 6, y - 9); g.lineTo(ix, y - 3); g.lineTo(ix + 6, y - 9); g.fill();
+        txt(label, lx + tw / 2, y - 21.5, T(TXT, C.cream)); g.globalAlpha = 1;
       }
     });
     // ajuda
-    button(890, 476, 62, 58, '?', () => { helpOpen = !helpOpen; sfx('click'); }, { size: 26, on: helpOpen });
+    button(890, 472, 62, 62, '?', () => { helpOpen = !helpOpen; sfx('click'); }, { size: 26, on: helpOpen });
   }
 
   /* ---- cartões flutuantes (máquina, divisor, docas): pequenos, presos ao lado do que foi tocado ---- */
@@ -815,78 +869,81 @@
     return { x, y };
   }
   function removeBtn(m, x, y, w) {
-    button(x, y, w, 44, 'Tirar', () => { const a = beginAction(); const c = mcenter(m); const ref = removeMachine(m); GS().money += ref; a.cost = -ref; commit(a); sfx('pop'); if (!S.fast) { ps.puff(c.x, c.y + 10, 10, 9, { c: C.sand }); if (ref) fl.add(c.x, c.y - 10, 'devolveu ¥' + U.fmt(ref), { size: 13, c: C.goldL }); } },
-      { size: 13, sub: m.paid + m.spent > 0 ? '+¥' + U.fmt(m.paid + m.spent) : 'grátis', subSize: 12, subCol: C.grassD });
+    button(x, y, w, 50, 'Tirar', () => { const a = beginAction(); const c = mcenter(m); const ref = removeMachine(m); GS().money += ref; a.cost = -ref; commit(a); sfx('pop'); if (!S.fast) { ps.puff(c.x, c.y + 10, 10, 9, { c: C.sand }); if (ref) fl.add(c.x, c.y - 10, 'devolveu ¥' + U.fmt(ref), { size: 17, c: C.goldL }); } },
+      { sub: m.paid + m.spent > 0 ? '+¥' + U.fmt(m.paid + m.spent) : 'grátis', subCol: C.grassD });
+  }
+  function lvlTag(x, y, lvl, fill) {                          // etiqueta "Nv. 3" no canto do cartão
+    g.fillStyle = INK; D.rrect(g, x - 68, y + 6, 60, 26, 9); g.fill(); g.fillStyle = fill; D.rrect(g, x - 66, y + 8, 56, 22, 7); g.fill();
+    txt('Nv. ' + lvl, x - 38, y + 19.5, T(TXT, INK));
   }
   function drawCard(m, t) {
-    const r = mrect(m.type, m.x, m.y, m.rot), ax = r.x + r.w, ay = r.y + r.h / 2 - 10, def = MDEF[m.type], w = 236;
+    const r = mrect(m.type, m.x, m.y, m.rot), ax = r.x + r.w, ay = r.y + r.h / 2 - 10, def = MDEF[m.type], w = 250;
     if (m.type === 'divisor') {
-      const c = floatCard(ax - 6, ay + 10, w, 132, m.x < 5 ? 1 : -1, r.x + 6), x = c.x + 10, y = c.y;
-      txt('Divisor', x, y + 18, T(15, INK, 'left'));
-      txt('entra por trás e sai', c.x + w / 2, y + 42, T(13, '#6B4A2E')); txt('um pra cada lado', c.x + w / 2, y + 58, T(13, '#6B4A2E'));
-      button(x, y + 76, 104, 44, 'Girar', () => rotateMachine(m), { size: 14 }); removeBtn(m, x + 112, y + 76, 104);
+      const c = floatCard(ax - 6, ay + 10, w, 146, m.x < 5 ? 1 : -1, r.x + 6), x = c.x + 10, y = c.y;
+      txt('Divisor', x, y + 19, T(18, INK, 'left'));
+      txt('entra por trás e sai', c.x + w / 2, y + 46, T(TXT, '#6B4A2E')); txt('um pra cada lado', c.x + w / 2, y + 67, T(TXT, '#6B4A2E'));
+      button(x, y + 86, 111, 50, 'Girar', () => rotateMachine(m)); removeBtn(m, x + 119, y + 86, 111);
       return;
     }
-    const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 270 : 222, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1, r.x + 4), x = c.x + 10;
+    const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 330 : 282, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1, r.x + 4), x = c.x + 10;
     let y = c.y;
-    txt(def.name, x, y + 18, T(16, INK, 'left'));
-    g.fillStyle = INK; D.rrect(g, c.x + w - 64, y + 7, 54, 22, 8); g.fill(); g.fillStyle = [C.cream, '#DDE6EE', K.copperL, C.goldL][A.tierOf(m.lvl)]; D.rrect(g, c.x + w - 62, y + 9, 50, 18, 6); g.fill();
-    txt('Nv. ' + m.lvl, c.x + w - 37, y + 18.5, T(14, INK));
+    txt(def.name, x, y + 19, T(18, INK, 'left'));
+    lvlTag(c.x + w, y, m.lvl, [C.cream, '#DDE6EE', K.copperL, C.goldL][A.tierOf(m.lvl)]);
     // receita: o que entra → o que sai e quanto vale
-    g.fillStyle = '#F1E4C2'; D.rrect(g, x, y + 34, w - 20, 36, 8); g.fill();
-    let ix = x + 18; for (const k in R.in) for (let i = 0; i < R.in[k]; i++) { blit(ICON[k], ix, y + 64, 2); ix += 22; }
-    g.fillStyle = INK; g.beginPath(); g.moveTo(ix - 4, y + 46); g.lineTo(ix + 6, y + 52); g.lineTo(ix - 4, y + 58); g.fill();
-    blit(ICON[R.out], ix + 26, y + 64, 2);
-    txt('vale ' + ITEMS[R.out].val + '×', c.x + w - 16, y + 52.5, T(14, C.goldD, 'right'));
-    y += 78;
+    g.fillStyle = '#F1E4C2'; D.rrect(g, x, y + 38, w - 20, 36, 8); g.fill();
+    let ix = x + 18; for (const k in R.in) for (let i = 0; i < R.in[k]; i++) { blit(ICON[k], ix, y + 68, 2); ix += 22; }
+    g.fillStyle = INK; g.beginPath(); g.moveTo(ix - 4, y + 50); g.lineTo(ix + 6, y + 56); g.lineTo(ix - 4, y + 62); g.fill();
+    blit(ICON[R.out], ix + 26, y + 68, 2);
+    txt('vale ' + ITEMS[R.out].val + '×', c.x + w - 16, y + 56.5, T(TXT, C.goldD, 'right'));
+    y += 82;
     if (two) {
       def.recipes.forEach((rc, i) => {
         const lock = i === 1 && !S.unlocked.mochid;
-        button(x + i * 110, y, 106, 40, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, size: 14, sub: lock ? UNLOCK.dourado + ' mochis' : fmt1(rc.time / speedOf(m)) + ' s', subSize: 13 });
+        button(x + i * 119, y, 111, 40, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, lock });
       });
       y += 48;
     }
     const st = m.blocked ? ['saída travada', C.redD] : (m.full > 0 && m.busy > 0.8) ? ['fila cheia: gargalo aqui!', C.oraD] : (m.work && m.prog < 1) ? ['trabalhando · ' + fmt1(R.time / speedOf(m)) + ' s cada', C.grassD] : ['esperando ingrediente', '#8A6A4A'];
-    txt('ocupada', x, y + 7, T(13, '#6B4A2E', 'left')); meter(x + 62, y + 2, 104, 9, m.busy, m.busy > 0.85 ? C.ora : C.gold);
-    txt(Math.round(m.busy * 100) + '%', c.x + w - 10, y + 7, T(13, INK, 'right'));
-    txt(st[0], c.x + w / 2, y + 25, T(13, st[1]));
-    y += 38;
+    txt('ocupada', x, y + 9, T(TXT, '#6B4A2E', 'left')); meter(x + 70, y + 4, 112, 10, m.busy, m.busy > 0.85 ? C.ora : C.gold);
+    txt(Math.round(m.busy * 100) + '%', c.x + w - 10, y + 9, T(TXT, INK, 'right'));
+    txt(st[0], c.x + w / 2, y + 31, T(TXT, st[1]));
+    y += 46;
     const p = levelPrice(m), max = m.lvl >= MAX_LVL, nextT = m.lvl < 3 ? 3 : m.lvl < 6 ? 6 : 10;
-    button(x, y, w - 20, 46, max ? 'Nível máximo' : 'Subir nível', () => levelUp(m), { off: max || money() < p, fill: '#DDF0C2', sub: max ? 'tudo dourado!' : '¥' + U.fmt(p) + ' · +25% rápida', subCol: max ? C.goldD : money() >= p ? C.grassD : C.redD, size: 14 });
-    if (!max) txt(m.lvl + 1 === nextT ? 'o próximo nível muda o visual!' : 'visual novo no Nv. ' + nextT, c.x + w / 2, y + 59, T(12, m.lvl + 1 === nextT ? C.oraD : '#8A6A4A'));
-    y += 70;
-    button(x, y, 104, 44, 'Girar', () => rotateMachine(m), { size: 14 }); removeBtn(m, x + 112, y, 104);
+    button(x, y, w - 20, 52, max ? 'Nível máximo' : 'Subir nível', () => levelUp(m), { off: max || money() < p, fill: '#DDF0C2', sub: max ? 'tudo dourado!' : '¥' + U.fmt(p) + ' · +25% rápida', subCol: max ? C.goldD : money() >= p ? C.grassD : C.redD });
+    if (!max) txt(m.lvl + 1 === nextT ? 'próximo nível: visual novo!' : 'visual novo no Nv. ' + nextT, c.x + w / 2, y + 70, T(TXT, m.lvl + 1 === nextT ? C.oraD : '#8A6A4A'));
+    y += 88;
+    button(x, y, 111, 50, 'Girar', () => rotateMachine(m)); removeBtn(m, x + 119, y, 111);
   }
   function drawDockCard(t) {
-    const w = 256, h = 190, c = floatCard(BAY_IN.x + BAY_IN.w - 10, 230, w, h, 1), x = c.x + 10, y = c.y, cap = dockCap(), use = Math.min(S.dockUse, cap), max = dockMax(), p = dockPrice();
-    txt('Doca de Entrada', x, y + 18, T(15, INK, 'left'));
-    g.fillStyle = INK; D.rrect(g, c.x + w - 64, y + 7, 54, 22, 8); g.fill(); g.fillStyle = C.cream; D.rrect(g, c.x + w - 62, y + 9, 50, 18, 6); g.fill(); txt('Nv. ' + S.dockLvl, c.x + w - 37, y + 18.5, T(14, INK));
-    txt('puxa ' + fmt1(dockPct() * 100) + '% do arroz que você cava', c.x + w / 2, y + 44, T(13, '#6B4A2E'));
-    meter(x, y + 58, w - 20, 9, use / Math.max(0.01, cap), C.grass);
-    txt('usando ' + fmt1(use) + ' de ' + fmt1(cap) + ' sacos/s', c.x + w / 2, y + 80, T(13, '#6B4A2E'));
-    txt('1 saco na esteira = ¥' + U.fmt(unitV()), c.x + w / 2, y + 98, T(13, C.goldD));
-    button(x, y + 110, w - 20, 46, max ? 'Doca no máximo' : 'Subir doca', dockUp, { off: max || money() < p, fill: '#DDF0C2', size: 14, sub: max ? '' : '¥' + U.fmt(p) + ' · puxa mais arroz', subCol: money() >= p ? C.grassD : C.redD });
-    txt(S.digRate > 0 ? 'o resto vende cru: nada se perde' : 'cave na montanha pra fábrica andar!', c.x + w / 2, y + 172, T(12, S.digRate > 0 ? '#8A6A4A' : C.redD));
+    const w = 290, h = 214, c = floatCard(BAY_IN.x + BAY_IN.w - 10, 230, w, h, 1), x = c.x + 10, y = c.y, cap = dockCap(), use = Math.min(S.dockUse, cap), max = dockMax(), p = dockPrice();
+    txt('Doca de Entrada', x, y + 19, T(18, INK, 'left'));
+    lvlTag(c.x + w, y, S.dockLvl, C.cream);
+    txt('puxa ' + fmt1(dockPct() * 100) + '% do arroz que você cava', c.x + w / 2, y + 48, T(TXT, '#6B4A2E'));
+    meter(x, y + 62, w - 20, 10, use / Math.max(0.01, cap), C.grass);
+    txt('usando ' + fmt1(use) + ' de ' + fmt1(cap) + ' sacos/s', c.x + w / 2, y + 88, T(TXT, '#6B4A2E'));
+    txt('1 saco na esteira = ¥' + U.fmt(unitV()), c.x + w / 2, y + 110, T(TXT, C.goldD));
+    button(x, y + 126, w - 20, max ? 40 : 52, max ? 'Doca no máximo' : 'Subir doca', dockUp, { off: max || money() < p, fill: '#DDF0C2', sub: max ? '' : '¥' + U.fmt(p) + ' · puxa mais arroz', subCol: money() >= p ? C.grassD : C.redD });
+    txt(S.digRate > 0 ? 'o resto vende cru: nada se perde' : 'cave lá fora pra fábrica andar!', c.x + w / 2, y + 196, T(TXT, S.digRate > 0 ? '#8A6A4A' : C.redD));
   }
   function drawSaleCard(t) {
-    const w = 236, h = 120, c = floatCard(BAY_OUT.x + 10, 230, w, h, -1), x = c.x + 10, y = c.y;
-    txt('Doca de Venda', x, y + 18, T(15, INK, 'left'));
-    txt('o que chega aqui vende sozinho', c.x + w / 2, y + 42, T(13, '#6B4A2E'));
-    txt('e o kei-truck leva embora', c.x + w / 2, y + 58, T(13, '#6B4A2E'));
-    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 14 + i * 54, y + 106, 2); txt(ITEMS[k].val + '×', x + 29 + i * 54, y + 94, T(13, C.goldD, 'left')); });
+    const w = 270, h = 134, c = floatCard(BAY_OUT.x + 10, 230, w, h, -1), x = c.x + 10, y = c.y;
+    txt('Doca de Venda', x, y + 19, T(18, INK, 'left'));
+    txt('o que chega aqui vende sozinho', c.x + w / 2, y + 48, T(TXT, '#6B4A2E'));
+    txt('e o kei-truck leva embora', c.x + w / 2, y + 69, T(TXT, '#6B4A2E'));
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 14 + i * 63, y + 122, 2); txt(ITEMS[k].val + '×', x + 30 + i * 63, y + 109, T(TXT, C.goldD, 'left')); });
   }
   let helpOpen = false;
   function drawHelp() {
     g.fillStyle = 'rgba(30,18,10,.55)'; g.fillRect(0, 0, W, H);
-    const w = 520, h = 300, x = (W - w) / 2, y = 110;
+    const w = 600, h = 336, x = (W - w) / 2, y = 96;
     pill(x, y, w, h, '#FFF6DE', 14);
     E.drawShibaHead(g, x + 52, y + 50, performance.now() / 1000, { scale: 1.1, expr: 'happy' });
-    txt('Como montar a fábrica', x + 100, y + 34, T(18, INK, 'left'));
-    txt('o arroz entra pela ENTRADA e tem que chegar na VENDA', x + 100, y + 58, T(12, '#6B4A2E', 'left'));
+    txt('Como montar a fábrica', x + 100, y + 32, T(20, INK, 'left'));
+    txt('o arroz entra pela ENTRADA e tem que chegar na VENDA', x + 100, y + 60, T(TXT, '#6B4A2E', 'left'));
     const tips = ['Pôr máquina: toque no botão e depois numa casa', 'Mover: arraste a máquina · Girar: toque duas vezes', 'Esteira: escolha Esteira e arraste o dedo pelas casas', 'Toque numa esteira pra virar a direção dela', 'Toque numa máquina: nível, receita, girar e tirar', 'Divisor: reparte os itens, um pra cada lado'];
-    tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 96 + i * 24, 4, 0, TAU); g.fill(); txt(s, x + 48, y + 97 + i * 24, T(13, INK, 'left')); });
-    txt('quanto vale cada coisa (× o saco cru):', x + 30, y + 250, T(12, '#6B4A2E', 'left'));
-    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 50 + i * 110, y + 286, 2); txt(ITEMS[k].val + '×', x + 68 + i * 110, y + 273, T(14, C.goldD, 'left')); });
+    tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 100 + i * 27, 4, 0, TAU); g.fill(); txt(s, x + 48, y + 101 + i * 27, T(TXT, INK, 'left')); });
+    txt('quanto vale cada coisa (× o saco cru):', x + 30, y + 272, T(TXT, '#6B4A2E', 'left'));
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 64 + i * 130, y + 320, 2); txt(ITEMS[k].val + '×', x + 84 + i * 130, y + 307, T(18, C.goldD, 'left')); });
     hit(0, 0, W, H, () => { helpOpen = false; sfx('click'); });
   }
 
@@ -905,7 +962,7 @@
     g.strokeStyle = C.goldL; g.lineWidth = 3; g.setLineDash([9, 6]); g.lineDashOffset = -t * 30;
     D.rrect(g, r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2, 12); g.stroke(); g.setLineDash([]);
     g.restore();
-    const bw = 446, bh = 140;
+    const bw = 520, bh = 154;
     let bx = U.clamp(r.x + r.w / 2 - bw / 2, 20, W - bw - 20), by = r.y + r.h + 20;
     if (by + bh > H - 10) by = r.y - bh - 22;
     if (S.tut === 0) { bx = r.x + r.w + 26; by = 200; }
@@ -913,11 +970,11 @@
     hit(0, 0, W, H, () => {}, null);      // o tutorial segura o toque: só os botões dele respondem
     pill(bx, by, bw, bh, '#FFF6DE', 14);
     E.drawShibaHead(g, bx + 46, by + 54, t, { scale: 1.15, expr: 'happy', pal: (GS().look && GS().look.pal) || 'kome' });
-    for (let i = 0; i < 4; i++) { g.fillStyle = i === S.tut ? C.gold : i < S.tut ? C.grass : '#D8CCB4'; g.beginPath(); g.arc(bx + bw - 62 + i * 14, by + 18, 4, 0, TAU); g.fill(); }
-    txt(st.t, bx + 92, by + 26, T(18, INK, 'left'));
-    st.s.forEach((s, i) => txt(s, bx + 92, by + 52 + i * 20, T(14, '#6B4A2E', 'left')));
-    button(bx + bw - 140, by + bh - 54, 126, 44, S.tut === 3 ? 'Começar!' : 'Próximo', () => { S.tut++; sfx('click'); if (S.tut >= TUT.length) endTut(); }, { on: true, size: 15 });
-    button(bx + 92, by + bh - 54, 150, 44, 'Pular tutorial', endTut, { size: 13 });
+    for (let i = 0; i < 4; i++) { g.fillStyle = i === S.tut ? C.gold : i < S.tut ? C.grass : '#D8CCB4'; g.beginPath(); g.arc(bx + bw - 64 + i * 15, by + 18, 4.5, 0, TAU); g.fill(); }
+    txt(st.t, bx + 92, by + 27, T(20, INK, 'left'));
+    st.s.forEach((s, i) => txt(s, bx + 92, by + 55 + i * 22, T(TXT, '#6B4A2E', 'left')));
+    button(bx + bw - 146, by + bh - 56, 132, 46, S.tut === 3 ? 'Começar!' : 'Próximo', () => { S.tut++; sfx('click'); if (S.tut >= TUT.length) endTut(); }, { on: true, size: 18 });
+    button(bx + 92, by + bh - 56, 150, 46, 'Pular tutorial', endTut);
   }
   function endTut() { S.tut = -1; S.tutDone = true; persist(); }
 
@@ -1053,29 +1110,31 @@
     if (banner) {
       banner.life -= dt; const a = U.clamp(Math.min(banner.life, 3.2 - banner.life) * 3, 0, 1), k = U.ease.back(U.clamp((3.2 - banner.life) * 3, 0, 1));
       g.globalAlpha = a; g.save(); g.translate(W / 2, 188); g.scale(k, k); g.translate(-W / 2, -188);
-      pill(W / 2 - 230, 150, 460, 76, '#FFE9A8', 14);
-      txt(banner.t, W / 2, 178, T(23, INK)); txt(banner.sub, W / 2, 206, T(13, '#6B4A2E')); g.restore(); g.globalAlpha = 1;
+      const bw2 = Math.max(460, textW(banner.sub) + 48);
+      pill(W / 2 - bw2 / 2, 148, bw2, 80, '#FFE9A8', 14);
+      txt(banner.t, W / 2, 176, T(23, INK)); txt(banner.sub, W / 2, 207, T(TXT, '#6B4A2E')); g.restore(); g.globalAlpha = 1;
       if (banner.life <= 0) banner = null;
     } else if (firstCard) {
       const f = firstCard; f.life -= dt; f.t += dt;
       const a = U.clamp(Math.min(f.life * 4, f.t * 6), 0, 1), k = U.ease.back(U.clamp(f.t * 3.5, 0, 1));
       g.globalAlpha = a; g.save(); g.translate(W / 2, 200); g.scale(k, k); g.translate(-W / 2, -200);
-      pill(W / 2 - 200, 144, 400, 112, '#FFF6DE', 14);
-      g.fillStyle = '#FFE9A8'; g.beginPath(); g.arc(W / 2 - 146, 200, 40, 0, TAU); g.fill();
-      for (let i = 0; i < 8; i++) { const an = t * 0.8 + i * TAU / 8; g.fillStyle = 'rgba(243,201,74,.5)'; g.beginPath(); g.moveTo(W / 2 - 146, 200); g.arc(W / 2 - 146, 200, 46, an, an + 0.2); g.fill(); }
-      blit(ICON[f.k], W / 2 - 146, 222 + Math.sin(t * 4) * 2, 4);
-      txt('PRODUTO NOVO!', W / 2 - 92, 166, T(12, C.oraD, 'left'));
-      txt(ITEMS[f.k].name, W / 2 - 92, 189, T(22, INK, 'left'));
-      txt(PHRASE[f.k] || '', W / 2 - 92, 213, T(PHRASE[f.k] && PHRASE[f.k].length > 38 ? 11 : 12, '#6B4A2E', 'left'));
-      txt('vale ' + ITEMS[f.k].val + '× o saco cru', W / 2 - 92, 234, T(13, C.goldD, 'left'));
+      pill(W / 2 - 230, 142, 460, 118, '#FFF6DE', 14);
+      const ccx = W / 2 - 176;
+      g.fillStyle = '#FFE9A8'; g.beginPath(); g.arc(ccx, 201, 40, 0, TAU); g.fill();
+      for (let i = 0; i < 8; i++) { const an = t * 0.8 + i * TAU / 8; g.fillStyle = 'rgba(243,201,74,.5)'; g.beginPath(); g.moveTo(ccx, 201); g.arc(ccx, 201, 46, an, an + 0.2); g.fill(); }
+      blit(ICON[f.k], ccx, 223 + Math.sin(t * 4) * 2, 4);
+      txt('PRODUTO NOVO!', W / 2 - 120, 162, T(TXT, C.oraD, 'left'));
+      txt(ITEMS[f.k].name, W / 2 - 120, 187, T(22, INK, 'left'));
+      txt(PHRASE[f.k] || '', W / 2 - 120, 213, T(TXT, '#6B4A2E', 'left'));
+      txt('vale ' + ITEMS[f.k].val + '× o saco cru', W / 2 - 120, 238, T(TXT, C.goldD, 'left'));
       g.restore(); g.globalAlpha = 1;
       if (f.life <= 0) { firstCard = null; if (firstQueue.length) firstMade(firstQueue.shift()); }
     }
     if (toastMsg) {
       toastMsg.life -= dt; g.globalAlpha = U.clamp(toastMsg.life * 3, 0, 1);
-      const tw = Math.max(200, toastMsg.t.length * 7.6 + 28);
-      g.fillStyle = 'rgba(42,26,16,.9)'; D.rrect(g, W / 2 - tw / 2, 432, tw, 28, 10); g.fill();
-      txt(toastMsg.t, W / 2, 446.5, T(13, C.cream)); g.globalAlpha = 1;
+      const tw = Math.max(200, textW(toastMsg.t) + 32);
+      g.fillStyle = 'rgba(42,26,16,.92)'; D.rrect(g, W / 2 - tw / 2, 426, tw, 34, 11); g.fill();
+      txt(toastMsg.t, W / 2, 443.5, T(TXT, C.cream)); g.globalAlpha = 1;
       if (toastMsg.life <= 0) toastMsg = null;
     }
   }
@@ -1098,7 +1157,7 @@
     for (let i = 0; i < 2; i++) chipPop[i] = Math.max(0, chipPop[i] - dt * 1.4);
     for (const m of machines) if (m.type === 'divisor') m.flip = m.flip === undefined ? m.side : m.flip + (m.side - m.flip) * Math.min(1, dt * 14);
     while (pendingBanners.length) { const [a, b] = pendingBanners.shift(); S.fast = false; celebrate(a, b); }
-    bubbleLoop();
+    fadeTick(dt); bubbleLoop();
     render(dt);
     raf = requestAnimationFrame(frame);
   }
@@ -1123,7 +1182,7 @@
     if (S.sel && typeof S.sel === 'object') selRing(S.sel, t);
     drawBays(t);
     drawBeltItems(t);
-    drawGhostCells = null;
+    drawGhostCells = null; pickUp();
     const ms = machines.slice().sort((a, b) => (a.y + (a.type === 'pilao' && a.rot % 2 === 1 ? 1 : 0)) - (b.y + (b.type === 'pilao' && b.rot % 2 === 1 ? 1 : 0)) || a.x - b.x);
     const moving = drag && drag.mode === 'move' && drag.moved ? drag.m : null;
     for (const m of ms) { if (m === moving) { g.globalAlpha = 0.35; drawMachine(m, t); g.globalAlpha = 1; } else drawMachine(m, t); }
@@ -1153,7 +1212,7 @@
     drawTopBar(t);
     drawBottomBar(t);
     if (S.sel === 'dock') drawDockCard(t); else if (S.sel === 'sale') drawSaleCard(t); else if (S.sel) drawCard(S.sel, t);
-    else if (S.tut < 0 && !S.tool && !dockMax() && money() >= dockPrice()) blit(SPR.up, GEO.feedX - 34, 124 + Math.sin(t * 5) * 2.5, 2);
+    if (S.sel !== 'dock' && !dockMax() && (upPick === 'dock' || (upAll && money() >= dockPrice()))) blit(SPR.up, GEO.feedX - 34, 122 + upBob(t, 0), 2);
     drawOverlayMsgs(t, dt);
     if (helpOpen) drawHelp();
     if (S.tut >= 0) drawTutorial(t);

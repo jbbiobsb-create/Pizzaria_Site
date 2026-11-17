@@ -46,54 +46,68 @@
     for (const id in sp) for (const ch of sp[id]) if (ch === 'd') gold++;
     s.gold *= 1 + 0.1 * gold;
   }
-  // especialização: a Oficina chama ao bater um marco
+  // especialização: a Oficina chama ao bater um marco. spec(t, 'r'|'d') grava a escolha (a tela nova usa direto)
+  function spec(t, ch) { const sp = S.stats.spec || (S.stats.spec = {}); (sp[t.id] || (sp[t.id] = [])).push(ch === 'd' ? 'd' : 'r'); }
   function specChoice(t, done) {
-    const sp = S.stats.spec || (S.stats.spec = {}), arr = sp[t.id] || (sp[t.id] = []);
     UI.dialog({ kicker: 'Marco da ' + t.name, title: 'Pra onde ela vai?', text: 'Escolha um caminho (dá pra mudar na próxima ilha).',
       buttons: [
-        { title: 'Mais rápida', sub: 'bônus desta máquina +50%', onClick: () => { arr.push('r'); done(); } },
-        { title: 'Mais dourada', sub: '+10% em todos os bolsões dourados', onClick: () => { arr.push('d'); done(); } },
+        { title: 'Mais rápida', sub: 'bônus desta máquina +50%', onClick: () => { spec(t, 'r'); done(); } },
+        { title: 'Mais dourada', sub: '+10% em todos os bolsões dourados', onClick: () => { spec(t, 'd'); done(); } },
       ] });
   }
   const speedK = id => { const a = (S.stats.spec || {})[id] || []; return 1 + 0.5 * a.filter(c => c === 'r').length; };
 
-  function pay(c, what, fn) {
-    if (S.money < c) { UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: what }); return false; }
+  function pay(c, what, fn, quiet) {
+    if (S.money < c) { if (!quiet) UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: what }); return false; }
     S.money -= c; fn(); if (G.priceBump) G.priceBump(); api.recompute(); api.save(); api.sfx('pling'); return true;
   }
-  // seções no painel da Oficina
+  /* compras: a lista antiga e a tela nova da Oficina chamam AS MESMAS funções (q = quieto: sem aviso em DOM nem passeio de
+     câmera, porque a tela nova fica por cima do jogo e faz a festa dela). Devolvem true se comprou. */
+  const buy = {
+    giant(q) {
+      const r = run(), gp = Math.min(D.GIANT.length, r.giant | 0), part = D.GIANT[gp]; if (!part) return false;   // nunca passa de 4 (save mexido não quebra a tela)
+      return pay(cost.giant(), part.n, () => {
+        r.giant = gp + 1; if (q) return;
+        if (api.visit) setTimeout(() => api.visit(lastRX - 300, 0.24, -420, 3.8), 300);
+        if (r.giant === 4) { UI.banner('BAGGER GIGANTE!', 'duas rodas, 50% maior que a 293', { icon: 'horn', tone: 'gold', dur: 3.5 }); api.sfx('fanfare'); }
+        else UI.banner(part.n + '!', 'peça ' + r.giant + ' de 4', { icon: 'gear', dur: 2 });
+      }, q);
+    },
+    fab(q) { const r = run(); return pay(cost.fab(), 'Fábrica', () => { r.fab = (r.fab | 0) + 1; }, q); },
+    shop(id, q) { const r = run(), sh = D.SHOPS.find(x => x.id === id); if (!sh) return false; return pay(cost.shop(id), sh.n, () => { r.shops[id] = (r.shops[id] | 0) + 1; if (!r.client) r.client = id; }, q); },
+    client(id) { const r = run(); if (!r.shops[id]) return false; r.client = id; api.recompute(); api.save(); return true; },
+    paint(id, q) { const r = run(); r.paint = id; api.save(); if (!q && api.visit) api.visit(lastRX - 300, 0.24, -420, 2.5); return true; },
+  };
+  // seções no painel da Oficina (lista antiga, de reserva)
   function fillPanel(col, refresh) {
     const r = run(), row = (o) => { const b = UI.button(col, Object.assign({ size: 'sm' }, o)); (b.el || b).style.width = '100%'; return b; };
     UI.el('div', 'k-h', col, 'Máquina gigante');
-    const gp = Math.min(D.GIANT.length, r.giant | 0), part = D.GIANT[gp];   // nunca passa de 4 (save mexido não quebra a tela)
+    const gp = Math.min(D.GIANT.length, r.giant | 0), part = D.GIANT[gp];
     UI.el('div', 'k-homehint', col, 'Bagger Gigante: ' + gp + '/4 peças' + (gp ? ' · renda ×' + String(D.GIANT[gp - 1].mult).replace('.', ',') : ''));
-    if (part) row({ title: 'Peça ' + (gp + 1) + ': ' + part.n, sub: '¥ ' + U.fmt(cost.giant()) + ' · ' + part.d, icon: 'horn',
-      onClick: () => pay(cost.giant(), part.n, () => { r.giant = gp + 1; if (api.visit) setTimeout(() => api.visit(lastRX - 300, 0.24, -420, 3.8), 300);
-        if (r.giant === 4) { UI.banner('BAGGER GIGANTE!', 'duas rodas, 50% maior que a 293', { icon: 'horn', tone: 'gold', dur: 3.5 }); api.sfx('fanfare'); }
-        else UI.banner(part.n + '!', 'peça ' + r.giant + ' de 4', { icon: 'gear', dur: 2 }); }) && refresh() });
+    if (part) row({ title: 'Peça ' + (gp + 1) + ': ' + part.n, sub: '¥ ' + U.fmt(cost.giant()) + ' · ' + part.d, icon: 'horn', onClick: () => buy.giant() && refresh() });
     else {
       UI.el('div', 'k-homehint', col, '✓ Bagger Gêmea completa, cavando do outro lado da montanha');
       const line = UI.el('div', 'k-row', col); line.style.flexWrap = 'wrap'; line.style.gap = '4px';
-      for (const [id, n] of [['kawaii', 'Pintura kawaii'], ['dino', 'Pintura dinossauro'], ['normal', 'Pintura de fábrica']]) {
-        UI.button(line, { title: ((r.paint || 'kawaii') === id ? '✓ ' : '') + n, size: 'sm', onClick: () => { r.paint = id; api.save(); if (api.visit) api.visit(lastRX - 300, 0.24, -420, 2.5); refresh(); } });
+      for (const [id, n] of PAINTS) {
+        UI.button(line, { title: ((r.paint || 'kawaii') === id ? '✓ ' : '') + n, size: 'sm', onClick: () => { buy.paint(id); refresh(); } });
       }
     }
     UI.el('div', 'k-h', col, 'Fábrica no pé da montanha · nível ' + (r.fab | 0));
-    row({ title: 'Ampliar a fábrica', sub: '¥ ' + U.fmt(cost.fab()) + ' · +12% de renda · ' + nextFab(r.fab | 0), icon: 'gear', onClick: () => pay(cost.fab(), 'Fábrica', () => { r.fab = (r.fab | 0) + 1; }) && refresh() });
+    row({ title: 'Ampliar a fábrica', sub: '¥ ' + U.fmt(cost.fab()) + ' · +12% de renda · ' + nextFab(r.fab | 0), icon: 'gear', onClick: () => buy.fab() && refresh() });
     UI.el('div', 'k-h', col, 'Cidade que compra');
     UI.el('div', 'k-homehint', col, 'cada nível de loja +4% de renda; a cliente escolhida ganha o bônus dela');
     for (const sh of D.SHOPS) {
       const L = r.shops[sh.id] | 0, on = r.client === sh.id;
-      row({ title: (on ? '★ ' : '') + sh.n + ' · nível ' + L, sub: '¥ ' + U.fmt(cost.shop(sh.id)) + ' · ' + sh.d, icon: on ? 'star' : 'rice',
-        onClick: () => pay(cost.shop(sh.id), sh.n, () => { r.shops[sh.id] = L + 1; if (!r.client) r.client = sh.id; }) && refresh() });
+      row({ title: (on ? '★ ' : '') + sh.n + ' · nível ' + L, sub: '¥ ' + U.fmt(cost.shop(sh.id)) + ' · ' + sh.d, icon: on ? 'star' : 'rice', onClick: () => buy.shop(sh.id) && refresh() });
     }
     const owned = D.SHOPS.filter(sh => r.shops[sh.id]);
     if (owned.length > 1) {
       const line = UI.el('div', 'k-row', col); line.style.flexWrap = 'wrap'; line.style.gap = '4px';
       UI.el('div', 'k-homehint', col, 'trocar a cliente (de graça):');
-      for (const sh of owned) UI.button(line, { title: (r.client === sh.id ? '✓ ' : '') + sh.n, size: 'sm', onClick: () => { r.client = sh.id; api.recompute(); api.save(); refresh(); } });
+      for (const sh of owned) UI.button(line, { title: (r.client === sh.id ? '✓ ' : '') + sh.n, size: 'sm', onClick: () => { buy.client(sh.id); refresh(); } });
     }
   }
+  const PAINTS = [['kawaii', 'Pintura kawaii'], ['dino', 'Pintura dinossauro'], ['normal', 'Pintura de fábrica']];
   const nextFab = L => L < 1 ? 'esteira' : L < 3 ? 'Komes empacotando' : L < 5 ? 'braço robô' : L < 7 ? 'robozinhos' : 'mais de tudo';
 
   /* ---- mundo ---- */
@@ -268,6 +282,7 @@
     sim: { cost, pay, run },   // tools/longo.js
     paintFilter: () => TWIN_PAINT[G.twinPaint || run().paint || 'kawaii'],
     showTwin: () => api.visit && api.visit(lastRX - 300, 0.24, -420, 3.8),   // câmera vai até a gêmea (compra de peça e testes)
-    applyStats, fillPanel, tick, drawBack, drawFront, drawFactory, zoomK, specChoice, speedK, run,
+    applyStats, fillPanel, tick, drawBack, drawFront, drawFactory, zoomK, specChoice, spec, speedK, run,
+    buy, cost, nextFab, PAINTS, shopSum,
   };
 })();
