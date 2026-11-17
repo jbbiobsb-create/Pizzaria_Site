@@ -712,7 +712,7 @@
     for (; hx < WL.MX1; hx += 8) if (heap.height(hx) > 70) break;
     const mk = m.k || 1, maxX = hx - 340 * mk + (b0.x - m.x);
     inp.x = P.x; inp.y = 0; inp.face = 1; inp.floor = baggerFloor; inp.t = S.time; inp.zoom = cam.z;
-    inp.tx = hold ? Math.min(maxX, Math.max(ptr.wx, Wd.X.front - Wd.X.lane + 70 + 900 * mk + (b0.x - m.x))) : b0.x; inp.ty = ptr.wy;   // de ré, para antes do pátio
+    inp.tx = hold ? Math.min(maxX, Math.max(ptr.wx, Wd.X.front - Wd.X.lane + 70 + 780 * mk + (b0.x - m.x))) : b0.x; inp.ty = ptr.wy;   // de ré, para antes do pátio
     inp.digging = hold || S.cele.spin; inp.speedMul = animSpeed() * (S.own.b1 ? 1.2 : 1); inp.boost = S.estreia > 0 ? 1 : 0;
     inp.horn = S.hornT > 0; if (S.hornT > 0) S.hornT -= dt;
     const bt = heap.bite(b0.x, b0.y, b0.r, 1, 12);
@@ -771,7 +771,7 @@
   const iW = { x: 0, y: 0, face: 1, tx: null, ty: null, digging: false, power: 1, speedMul: 1, vx: 0, floor: null, t: 0, parts: null, boost: 0, night: 0, zoom: 1 };
   function fleetWork(f, i, dt, atFace) {
     const t = TOOLS[D.toolIndex[f.id]], spd = Math.min(220, t.spd * 0.6), TW = G.Tools[f.id].w;
-    if (!f.st) { f.st = 'park'; f.wt = 1.5 + i * 2.2; f.vx = 0; }
+    if (!f.st || !(f.wt === f.wt)) { f.st = 'park'; f.wt = 1.5 + i * 2.2; f.vx = 0; }   // (wt sem número = veio do modo acelerado)
     const home = PARK(f.id);
     let face = home + t.park, digX = home, tx = home;
     if (atFace) {
@@ -798,7 +798,7 @@
   }
   function fleetTick(dt) {
     // só com o Kome a pé e sem gigante na frente as pequenas vão até o barranco; senão trabalham na vaga (bancada de rechego)
-    const k = cur.kind, atFace = (k === 'hand' || k === 'push' || k === 'jack') && !(S.bag && S.tool === NT - 1);
+    const k = cur.kind, atFace = (k === 'hand' || k === 'push' || k === 'jack') && !S.bag;   // Bagger na frente (montando ou pronta): ninguém passa por cima dela
     for (let i = 0; i < S.fleet.length; i++) {
       const f = S.fleet[i];
       if (st.pilots[f.id] && WORKERS[f.id]) { if (!FAST || !f.warm) fleetWork(f, i, dt, atFace); else { f.x = PARK(f.id); f.y = LANE_Y; f.st = 'park'; f.bay = false; f.biteX = 0; } continue; }
@@ -1754,7 +1754,7 @@
       g.fillStyle = PAL.line; g.beginPath(); g.moveTo(x + d * 8, y); g.lineTo(x - d * 5, y - 9); g.lineTo(x - d * 5, y + 9); g.closePath(); g.fill();
     }
     g.globalAlpha = 1;
-    if (!vila.panned && (more[0] || more[1])) Draw.text(g, 'arraste pra passear pela vila · toque pra voltar', W / 2, H * 0.475, { size: 18, col: PAL.cream, sw: 5 });
+    if (!vila.panned && (more[0] || more[1])) Draw.text(g, 'arraste pra passear pela vila · toque pra voltar', W / 2, H * 0.795, { size: 18, col: PAL.cream, sw: 5 });   // na faixa de terra, embaixo da rua: não tapa casa nem placa
     g.restore();
   }
   function drawFlight(g, t) {

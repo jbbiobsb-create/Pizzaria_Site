@@ -577,12 +577,13 @@
     Draw.box(g, cx + wB + 2, yB - 20, 6, 20, PAL.yel, { ol: 1 });
     g.save(); g.translate(cx + wB + 5, yB - 18); g.rotate(-1.05); Draw.box(g, -2, -56, 4, 56, PAL.cream, { ol: 1 }); g.fillStyle = PAL.red; for (let i = 0; i < 3; i++) g.fillRect(-2, -50 + i * 18, 4, 8); g.restore();
     // espelho de esquina (laranja) num poste, do lado da Oficina
-    Draw.box(g, L + 2, -96, 4, 96, YC.steelD, { ol: 1 }); Draw.circle(g, L + 16, -92, 13, '#E8893A', { ol: 1.6 }); Draw.circle(g, L + 16, -92, 9, '#BFE3F2', { ol: 1 });
-    g.fillStyle = '#FFFFFF'; g.fillRect(L + 11, -97, 5, 3);
-    // tralha de beco (arte gerada): máquina de venda e lixeira do lado da Oficina, caixotes e cone do lado do galpão
-    art(g, 'prop_venda', L + 46, 2, 6); art(g, 'prop_lixeira', L + 84, 1.5, 7);
-    art(g, 'prop_caixote', R - 34, 2, 6); art(g, 'prop_caixote', R - 68, 2, 6); art(g, 'prop_caixote', R - 50, 2, -24); art(g, 'prop_cone', R - 98, 1.5, 8);
-    if (isNight()) { g.globalAlpha = 0.35; Draw.circle(g, L + 46, -40, 34, '#FFE9A8', { ol: 0 }); g.globalAlpha = 1; }   // a máquina de venda ilumina o beco de noite
+    Draw.box(g, L - 8, -96, 4, 96, YC.steelD, { ol: 1 }); Draw.circle(g, L + 6, -92, 13, '#E8893A', { ol: 1.6 }); Draw.circle(g, L + 6, -92, 9, '#BFE3F2', { ol: 1 });
+    g.fillStyle = '#FFFFFF'; g.fillRect(L + 1, -97, 5, 3);
+    // tralha de beco (arte gerada): máquina de venda e lixeira do lado da Oficina, caixotes do lado do galpão. Tudo fora da faixa do
+    // meio (cx ± 38), que é por onde o kei-truck sobe: ele não passa por cima de nada.
+    art(g, 'prop_venda', L + 28, 2, 6); art(g, 'prop_lixeira', L + 68, 1.5, 7); art(g, 'prop_cone', L - 22, 1.5, 8);
+    art(g, 'prop_caixote', R - 20, 2, 6); art(g, 'prop_caixote', R - 56, 2, 6); art(g, 'prop_caixote', R - 38, 2, -24);
+    if (isNight()) { g.globalAlpha = 0.35; Draw.circle(g, L + 28, -40, 34, '#FFE9A8', { ol: 0 }); g.globalAlpha = 1; }   // a máquina de venda ilumina o beco de noite
   }
   /* RUA DO COMÉRCIO (fim da rua da vila): as lojas do modo infinito (D.SHOPS + fichas 'loja') viram prédio quando têm nível.
      Freguesia (shibas na porta) cresce com o nível; a loja CLIENTE ganha bandeira vermelha, lanterna acesa e a plaquinha. */

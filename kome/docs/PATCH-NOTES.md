@@ -1,3 +1,25 @@
+# Kome no Japão — SEM PONTOS FRACOS (17/11)
+
+- **O pátio anda com você**: o estacionamento, o coletor e as máquinas agora acompanham a frente da montanha. Acabou a
+  frota lá longe.
+- **A frota trabalha na vaga**: com o caminhão ou a Bagger na frente, cada máquina pequena cava no seu montinho, sem
+  passar por cima de ninguém.
+- **Bagger Gêmea ao lado da 293**: a 293 despeja num monte e as duas rodas rosa da Gêmea comem o monte. Dá pra ver as duas
+  juntas na tela.
+- **Voo pra Vila melhor**: não afasta tanto (bom no celular), tem nuvem e vento passando. Na vila, arraste pra passear.
+- **Rua do comércio**: as lojas da Oficina (Konbini, Sushi, Mochi, Sake, Exportadora, Ramen) viram prédios de verdade no
+  fim da rua da vila, com freguesia na porta. A cliente escolhida ganha placa, bandeiras e lanternas acesas.
+- **Dois horizontes**: atrás da cava, chaminés, guindastes e tanques em névoa; a cidadezinha fofa só atrás da vila.
+- **Esteira por baixo do pátio**: entra num túnel perto do coletor e sai na porta do galpão. O beco do kei-truck virou
+  ruazinha, e o caminhãozinho vira e some nela.
+- **Oficina**: no marco dá pra "decidir depois" (fica um selo na máquina e nada é escolhido sozinho); botão "Usar esta
+  máquina"; os cartões da Gêmea e das lojas não tapam mais a máquina; mais vida no piso e um segundo mecânico soldando;
+  os avisos do jogo (conquista, missão, evento) aparecem dentro da Oficina e da Fábrica.
+- **Fábrica**: o nível e a barrinha de cada máquina ficam na cabeça dela (a fileira da frente não cobre mais); a máquina
+  não fica mais transparente com a esteira cheia (o item escondido aparece num balãozinho); sombra do lado certo em todas
+  as direções.
+- Consertos: nome comprido no cartão da casa, placas legíveis nas ilhas espelhadas, shisas de Okinawa no pedestal.
+
 # Kome no Japão — A FÁBRICA DE CARA NOVA (17/11)
 
 - **A Fábrica virou um lugar**: galpão de madeira visto de cima, com janelas de papel, o noren KOME PACK, lanternas, um

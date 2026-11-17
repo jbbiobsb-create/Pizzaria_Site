@@ -36,12 +36,13 @@
     const off = kind === 'moega' ? 104 : kind === 'silo' ? 64 : 38;             // meia largura do coletor
     const on = S.tool >= (TI.trator || 7) && (kind === 'kei' || kind === 'silo' || kind === 'moega') && !!(S.own.a7 || X.fab);
     const gk = X.gemeaK;
-    showIn = on && (gk ? true : col.x - off - X.tunIn > 46);
+    showIn = on && (gk ? !!(G.Ind && (G.Ind.run().giant | 0) >= 3) : col.x - off - X.tunIn > 46);
     showOut = on && !!X.fab;
     if (on && gk) run('a', [[col.x - off, -40], [X.pilha + 26, -PILE_H - 30]], 70 + 25 * rate, 0.4 / rate, dt, 210);
     else if (showIn) run('a', [[col.x - off, -30], [X.tunIn + 6, -30]], 60 + 25 * rate, 0.42 / rate, dt);
     else belts.a = null;
-    if (on && gk) run('c', [[X.gemea - 752 * gk + 40, -34], [X.tunIn + 6, -30]], 60 + 25 * rate, 0.42 / rate, dt); else belts.c = null;
+    const twinDigs = gk && G.Ind && (G.Ind.run().giant | 0) >= 3;   // sem a lança (peças 1 e 2) a Gêmea ainda não descarrega: o monte só junta estoque
+    if (on && twinDigs) run('c', [[X.gemea - 752 * gk + 40, -34], [X.tunIn + 6, -30]], 60 + 25 * rate, 0.42 / rate, dt); else belts.c = null;
     if (showOut) run('b', [[X.tunOut - 6, -30], [X.fab + 70, -30], [X.fab + 14, -44]], 55 + 20 * rate, 0.6 / rate, dt); else belts.b = null;
   }
   // boca do túnel da esteira: casamata de concreto vista de lado (a esteira entra pela face `dir`: +1 = pela direita)
@@ -61,7 +62,7 @@
     if (belts.b) belts.b.draw(g, t);
     if (belts.c) belts.c.draw(g, t);
     if (belts.a) belts.a.draw(g, t);
-    if ((belts.a || belts.c) && showIn && X.tunIn) portal(g, X.tunIn - 8, 1);
+    if ((belts.a || belts.c) && showIn && X.tunIn) portal(g, X.tunIn - 8, 1);   // (com a Gêmea só depois da lança: antes não chega esteira nenhuma na boca)
     if (belts.b && X.tunOut) portal(g, X.tunOut + 8, -1);
   }
   G.Belts = { tick, draw, belts, PILE_H };

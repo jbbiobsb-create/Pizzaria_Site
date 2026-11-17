@@ -262,7 +262,7 @@
     else k = 1 - (u - 13) / 3;
     const moving = k >= 0, kk = Math.max(0, k);
     const run = U.ease.inOut(Math.min(1, kk / 0.45)), deep = U.clamp((kk - 0.45) / 0.55, 0, 1), dz = U.ease.in(deep);
-    const tx = -292 - run * 76, ty = -dz * 15, sc = 0.75 * (1 - 0.5 * dz), turn = U.clamp((kk - 0.36) / 0.18, 0, 1);   // turn 0 = de lado, 1 = de traseira
+    const tx = -292 - run * 71, ty = -dz * 15, sc = 0.75 * (1 - 0.5 * dz), turn = U.clamp((kk - 0.36) / 0.18, 0, 1);   // turn 0 = de lado, 1 = de traseira
     const bob = moving ? Math.abs(Math.sin(t * 20)) * 0.6 : 0, al = 1 - U.clamp((deep - 0.8) / 0.2, 0, 1);
     g.globalAlpha = al;
     if (moving && turn < 0.5) for (let i = 0; i < 3; i++) { const q = (t * 2.2 + i / 3) % 1; g.fillStyle = 'rgba(214,196,160,' + (0.6 * (1 - q)).toFixed(2) + ')'; g.beginPath(); g.arc(tx + 24 + q * 14, -3 - q * 5, 2 + q * 3, 0, 6.3); g.fill(); }

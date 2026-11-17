@@ -184,7 +184,7 @@
         const px = x + s * 120;
         Draw.box(g, px - 34, -16, 68, 16, '#B7AFA2', { r: 2 }); Draw.box(g, px - 38, -20, 76, 6, '#D6CFC4', { r: 2 });
         g.save(); g.translate(px, 0); g.scale(-s, 1);
-        A.draw(g, 'shisa', r.from + (Math.floor(((t || 0) + (s > 0 ? 0.7 : 0)) * 4) % n), -Math.round(a.w * 1.2), -20 - Math.round(a.h * 2.4) + 4, { scale: 2.4 });
+        A.draw(g, 'shisa', r.from + (Math.floor(((t || 0) + (s > 0 ? 0.7 : 0)) * 4) % n), 0, -16, { scale: 2.4 });   // Assets.draw ancora nos PÉS: sentado em cima do pedestal (antes flutuava no ar)
         g.restore();
       }
       return;
