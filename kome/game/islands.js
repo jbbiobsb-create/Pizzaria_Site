@@ -88,6 +88,13 @@
     { id: 'pote', n: 'Pote Fundo', d: '+0,1% por conquista por nível', max: 20, base: 4, g: 'Coração' },
     { id: 'cochilo', n: 'Cochilo Produtivo', d: 'offline rende +10% por nível (até 100%)', max: 5, base: 2, g: 'Poupança' },
     { id: 'cama', n: 'Cama Grande', d: 'teto offline +4 h por nível (até 24 h)', max: 4, base: 3, g: 'Poupança' },
+    // galho Absurdo: cada nó destrava uma máquina absurda no Pátio (D.PATIO.turmas, campo seed); req = nó anterior da cadeia
+    { id: 'absurdo15', n: 'Frota de Tatuzões', d: 'destrava a turma 15 no Pátio: tatuzões cavando em fila indiana', max: 1, base: 25, g: 'Absurdo' },
+    { id: 'absurdo16', n: 'Kome-Oh em Série', d: 'destrava a turma 16: robôs gigantes de linha de montagem', max: 1, base: 75, g: 'Absurdo', req: 'absurdo15' },
+    { id: 'absurdo17', n: 'Trem-Bala de Arroz', d: 'destrava a turma 17: 300 km/h de arroz', max: 1, base: 200, g: 'Absurdo', req: 'absurdo16' },
+    { id: 'absurdo18', n: 'Foguete de Mochi', d: 'destrava a turma 18: o arroz vai pro espaço', max: 1, base: 500, g: 'Absurdo', req: 'absurdo17' },
+    { id: 'absurdo19', n: 'Escavadeira do Monte Fuji', d: 'destrava a turma 19: a montanha vira pá', max: 1, base: 1200, g: 'Absurdo', req: 'absurdo18' },
+    { id: 'absurdo20', n: 'Portal Onigiri', d: 'destrava a turma 20: onigiri de outra dimensão', max: 1, base: 3000, g: 'Absurdo', req: 'absurdo19' },
   ];
   const START_TOOL = [0, 3, 5, 7];
 
@@ -147,6 +154,7 @@
   function buy(s) {
     const c = seedCost(s);
     if (lvl(s.id) >= s.max) return false;
+    if (s.req && !lvl(s.req)) { const r = D.SEEDS.find(x => x.id === s.req); UI.toast('Antes: ' + (r ? r.n : s.req), { icon: 'lock', tone: 'bad' }); return false; }
     if ((S.stats.seeds | 0) < c) { UI.toast('Faltam ' + (c - (S.stats.seeds | 0)) + ' sementes', { icon: 'star', tone: 'bad' }); return false; }
     S.stats.seeds -= c; sl()[s.id] = lvl(s.id) + 1;
     api.sfx('pling'); api.recompute(); api.save(); fill(panelPane); if (G.IslandsUI) G.IslandsUI.refresh();

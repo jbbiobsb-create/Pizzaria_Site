@@ -36,6 +36,14 @@
       { id: 'empilhadeira', n: 'Balé das Empilhadeiras', c: 3.2e7, r: 5.8e4 }, { id: 'colheita', n: 'Fila de Colheitadeiras', c: 2.1e8, r: 2.5e5 },
       { id: 'escav', n: 'Escavadeiras Coreografadas', c: 1.3e9, r: 1.1e6 }, { id: 'caminhao', n: 'Caravana de Caminhões', c: 8.8e9, r: 4.7e6 },
       { id: 'pacabo', n: 'Pás de Cabo no Horizonte', c: 5.7e10, r: 2.0e7 }, { id: 'bagger', n: 'Frota Bagger', c: 3.7e11, r: 8.6e7 },
+      // MÁQUINAS ABSURDAS 15–20 (mesma série: custo 10 × 6,5^i, rende 0,5 × 4,3^i): travadas até o nó `seed` (galho Absurdo de
+      // D.SEEDS, islands.js); `tool` = G.Tools da cena de chegada (game/absurdas.js); id = PA.ABSURD do patio-arte.js
+      { id: 'tatus', n: 'Frota de Tatuzões', c: 2.4e12, r: 3.7e8, seed: 'absurdo15', tool: 'tbm' },
+      { id: 'komeohs', n: 'Kome-Oh em Série', c: 1.56e13, r: 1.59e9, seed: 'absurdo16', tool: 'komeoh' },
+      { id: 'trembala', n: 'Trem-Bala de Arroz', c: 1.0e14, r: 6.8e9, seed: 'absurdo17', tool: 'trembala' },
+      { id: 'foguete', n: 'Foguete de Mochi', c: 6.6e14, r: 2.9e10, seed: 'absurdo18', tool: 'foguete' },
+      { id: 'fuji', n: 'Escavadeira do Monte Fuji', c: 4.3e15, r: 1.3e11, seed: 'absurdo19', tool: 'fuji' },
+      { id: 'portal', n: 'Portal Onigiri', c: 2.8e16, r: 5.4e11, seed: 'absurdo20', tool: 'portal' },
     ],
   };
   // TATUZÃO (game/tatuzao.js): vende depois do final; price em segundos de renda; cada anel paga ringSec s da renda de agora

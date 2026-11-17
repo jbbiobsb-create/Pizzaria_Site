@@ -20,12 +20,16 @@
   const byId = {}; P.turmas.forEach(t => { byId[t.id] = t; });
   const R0 = () => st().R0 || 10;
   const sl = id => ((S().stats.sl || {})[id] | 0);   // nível de semente (islands.js · D.SEEDS)
+  // máquina absurda (turma com `seed`): travada até o nó do galho Absurdo da árvore de sementes
+  const unlocked = t => !!t && (!t.seed || sl(t.seed) > 0);
+  const openTurmas = () => P.turmas.filter(unlocked);
   const unitCost = (t, n) => t.c * R0() * Math.pow(0.99, sl('desc_frota')) * Math.pow(P.grow, n);
   function costN(id, k) {   // custo de comprar k unidades a partir da quantidade atual
     const t = byId[id], n = cnt(id), g = P.grow;
     return t.c * R0() * Math.pow(0.99, sl('desc_frota')) * Math.pow(g, n) * (Math.pow(g, k) - 1) / (g - 1);
   }
   function maxK(id) {   // quantas dá pra comprar agora
+    if (!unlocked(byId[id])) return 0;
     const t = byId[id], n = cnt(id), g = P.grow, m = S().money, c0 = t.c * R0() * Math.pow(0.99, sl('desc_frota')) * Math.pow(g, n);
     if (m < c0) return 0;
     return Math.max(1, Math.floor(Math.log(m * (g - 1) / c0 + 1) / Math.log(g)));
@@ -50,7 +54,7 @@
   const perAch = () => 0.01 + 0.001 * sl('pote') + TIG.reduce((s, u) => s + (H0().tig[u.id] ? (u.v || 0) : 0), 0);
   const heart = () => 1 + achN() * perAch();
   function achOk(a) {
-    const s = S(), n = a.maq === 'todas' ? Math.min(...P.turmas.map(t => cnt(t.id))) : cnt(a.maq);
+    const s = S(), n = a.maq === 'todas' ? Math.min(...openTurmas().map(t => cnt(t.id))) : cnt(a.maq);
     if (a.cond === 'qtd') return n >= a.alvo;
     if (a.cond === 'ganho') return (s.stats.earnedAll || 0) + (s.earned || 0) >= a.alvo;
     if (a.cond === 'eventos') return (s.stats.goldEv | 0) >= a.alvo;
@@ -79,7 +83,7 @@
     if (api && api.banner) api.banner();
   }
   function buy(id, k) {
-    if (!on() || !byId[id]) return 0;
+    if (!on() || !unlocked(byId[id])) return 0;
     const want = k === 'max' ? maxK(id) : k | 0; if (want <= 0) return 0;
     const c = costN(id, want); if (S().money < c) return 0;
     if (!cnt(id)) st().lastNew = S().time;
@@ -145,7 +149,7 @@
     if (G.Events) { const bk = UI.button(body, { title: 'Livro dos Eventos', sub: 'o que já apareceu e a chance de cada um', size: 'sm', onClick: () => { panel.book = true; body.innerHTML = ''; const back = UI.button(body, { title: '← voltar pro Pátio', size: 'sm', onClick: () => fill() }); (back.el || back).style.width = '100%'; G.Events.fillBook(body); } }); (bk.el || bk).style.width = '100%'; }
     for (const u of SYN) if (synOpen(u)) extra('⇄ ' + u.n, u.d, synCost(u), () => buySyn(u));
     for (const u of TIG) if (tigOpen(u)) extra('♥ ' + u.n, u.d, tigCost(u), () => buyTig(u));
-    for (const t of P.turmas) {
+    for (const t of openTurmas()) {
       const n = cnt(t.id), k = mode === 'max' ? Math.max(1, maxK(t.id)) : mode, c = costN(t.id, k), can = S().money >= c;
       const b = UI.button(body, { title: t.n + ' ×' + n, sub: '¥' + U.fmt(c) + (k > 1 ? ' (' + k + ')' : '') + ' · +¥' + U.fmt(t.r * R0() * Math.pow(2, mks(t.id)) * k) + '/s', size: 'sm', onClick: () => { buy(t.id, mode === 'max' ? 'max' : mode); fill(); } });
       const el = b.el || b; el.style.width = '100%'; if (!can) el.style.opacity = '0.55';
@@ -169,10 +173,15 @@
   function adapter() {
     if (!G.CookieUI || !G.CookieUI.use) return false;
     const I = () => G.Islands, seedById = id => D.SEEDS.find(s => s.id === id);
+    // turmas na tela: as abertas + a PRÓXIMA absurda travada ("???", diz qual nó destrava)
+    const absList = () => { const out = []; let next = true;
+      for (const t of P.turmas) { const ok = unlocked(t); if (!ok && !next) continue; if (!ok) next = false; const sd = t.seed ? seedById(t.seed) : null;
+        out.push({ id: t.id, name: t.n, n: cnt(t.id), rate: rateOf(t.id), absurd: !!t.seed, locked: !ok, lockTxt: ok ? '' : 'destrava com o nó "' + (sd ? sd.n : t.seed) + '" (galho Absurdo da Árvore de Sementes)' }); }
+      return out; };
     const fam = a => (a.cond === 'segredo' ? 'segredo' : a.cond === 'ganho' ? 'riqueza' : a.cond === 'eventos' ? 'eventos' : 'turmas');
     G.CookieUI.use({
       ready: () => on(), money: () => S().money,
-      patio: () => P.turmas.map(t => ({ id: t.id, name: t.n, n: cnt(t.id), rate: rateOf(t.id) })),
+      patio: () => absList(),
       total: () => ({ rate: rate(), n: totalN() }),
       price: (id, k) => costN(id, k === 'max' ? Math.max(1, maxK(id)) : k), maxBuy: id => maxK(id),
       buy: (id, k) => buy(id, k === 'max' ? 'max' : k),
@@ -188,9 +197,9 @@
       buyTigela: i => (TIG[i] ? buyTig(TIG[i]) : false),
       seeds: () => S().stats.seeds | 0,
       seedTree: () => {
-        const BR = { Viagem: { name: 'Viagem', color: '#E3BC62', icon: 'boat' }, 'Pátio': { name: 'Pátio', color: '#7DB34A', icon: 'paw' }, Sorte: { name: 'Sorte', color: '#F3C94A', icon: 'star' }, 'Coração': { name: 'Coração', color: '#E86A7A', icon: 'star' }, 'Poupança': { name: 'Poupança', color: '#6FA8DC', icon: 'yen' } };
+        const BR = { Viagem: { name: 'Viagem', color: '#E3BC62', icon: 'boat' }, 'Pátio': { name: 'Pátio', color: '#7DB34A', icon: 'paw' }, Sorte: { name: 'Sorte', color: '#F3C94A', icon: 'star' }, 'Coração': { name: 'Coração', color: '#E86A7A', icon: 'star' }, 'Poupança': { name: 'Poupança', color: '#6FA8DC', icon: 'yen' }, Absurdo: { name: 'Absurdo', color: '#E3BC62', icon: 'drill' } };
         const col = {}; return { branches: BR, nodes: D.SEEDS.map(s => { const b = s.g || 'Viagem', k = Object.keys(BR).indexOf(b), r = (col[b] = (col[b] | 0) + 1) - 1;
-          return { id: s.id, n: s.n, desc: s.d, branch: b, pos: { x: (k - 2) * 1.6, y: -1 - r * 1.2 }, req: [], size: 1, icon: BR[b].icon, max: s.max || 0 }; }) };
+          return { id: s.id, n: s.n, desc: s.d, branch: b, pos: { x: (k - 2) * 1.6, y: -1 - r * 1.2 }, req: s.req ? [s.req] : [], size: b === 'Absurdo' ? 2 : 1, icon: BR[b].icon, max: s.max || 0, absurd: b === 'Absurdo' }; }) };
       },
       seedLevel: id => ((S().stats.sl || {})[id] | 0), seedCost: id => { const s = seedById(id); return s && I() ? I().seedCost(s) : Infinity; },
       buySeed: id => { const s = seedById(id); return !!(s && I() && I().buy(s) !== false); },
@@ -205,7 +214,8 @@
     tick, open, rate, on, heart, achN,
     // simulador (tools/longo.js) e testes
     partir: () => { const sp = G.Islands.seedsPatio(), sb = G.Islands.seedsBase(); return on() && sp >= sb && sb > 0 && S().time - (st().lastNew || 0) > (P.plateau || 240) && S().time - (st().t0 || 0) > (P.minRun || 1800); },
-    sim: { types: () => P.turmas.map(t => t.id), cost: id => costN(id, 1), count: cnt, buy: id => buy(id, 1) > 0,
+    unlocked: id => unlocked(byId[id]), turma: id => byId[id] || null,
+    sim: { types: () => openTurmas().map(t => t.id), cost: id => costN(id, 1), count: cnt, buy: id => buy(id, 1) > 0,
       marco: id => (nextMarco(id) >= 0 ? marcoCost(id) : Infinity), buyMarco, unlock: () => { unlock(); return on(); },
       extras: () => SYN.filter(synOpen).map(u => [synCost(u), u.n, () => buySyn(u)]).concat(TIG.filter(tigOpen).map(u => [tigCost(u), u.n, () => buyTig(u)])) },
     get state() { return on() ? { R0: R0(), rate: rate(), n: Object.assign({}, st().n), m: Object.assign({}, st().m) } : null; },
