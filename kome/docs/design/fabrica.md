@@ -180,6 +180,8 @@ O protótipo jogável (`demos/fabrica.html`) mostrou 7 problemas; a spec acima j
 Também ficou como regra (era improviso do protótipo): máquina recebe por trás e pelos lados, e item sem uso passa reto.
 
 ## Fim de jogo da fábrica (resposta do designer, 18/11) — status: rascunho
+> **Ajuste de 19/11 (ver `jogo-infinito.md`):** o dono quer jogo sem fim. Onde este documento fala em nível máximo ou em
+> "até 3 estrelas", vale o `jogo-infinito.md`: sementes e Selo de Qualidade **sem teto**.
 Problema medido: depois do minuto ~100 acabam os níveis baratos e a espera passa de 3 min; em 5 de 12 partidas o grid não
 lota. Resposta: **conteúdo no fim**, em três degraus que também gastam espaço.
 

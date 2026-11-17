@@ -2,6 +2,9 @@
 status: rascunho
 camada: 2 · Ilhas   ·   depende de: islands.js (gain, seedCost), D.SEEDS, D.ENDGAME
 
+> **Ajuste de 19/11 (ver `jogo-infinito.md`):** o dono quer jogo sem fim. Onde este documento fala em nível máximo ou em
+> "até 3 estrelas", vale o `jogo-infinito.md`: sementes e Selo de Qualidade **sem teto**.
+
 ## Em uma frase
 Resposta ao `ACHADO-sementes.md`: as sementes passam a medir **como você jogou a ilha**, não quanto tempo deixou o modo
 infinito ligado, e maxar a árvore vira meta de várias voltas.
