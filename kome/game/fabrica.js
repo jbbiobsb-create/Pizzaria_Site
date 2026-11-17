@@ -485,7 +485,7 @@
   const root = document.createElement('div'); root.className = 'k-fab';
   document.body.appendChild(root);
   const css = document.createElement('style');
-  css.textContent = '.k-fab{position:fixed;inset:0;z-index:55;background:#2a1a10;display:none}.k-fab.k-fab-open{display:block}.k-fabchip{background:#FFE0C2}';
+  css.textContent = '.k-fab{position:fixed;inset:0;z-index:55;background:#2a1a10;display:none}.k-fab.k-fab-open{display:block}';
   document.head.appendChild(css);
   const stage = E.Stage({ parent: root, width: W, height: H, bg: '#2a1a10' });
   const g = stage.g;
@@ -1287,18 +1287,12 @@
   let hudBtn = null, hudT = 0;
   function hudTick(dt) {
     hudT -= dt; if (hudT > 0) return; hudT = 0.5;
-    if (!G.HUD || !G.HUD.zones || !G.HUD.zones.tc) return;
-    if (!hudBtn) {
-      hudBtn = document.createElement('button'); hudBtn.className = 'k-btn k-islchip k-fabchip';
-      hudBtn.innerHTML = '<span class="k-islchip-t"><b>Fábrica</b><small></small></span>';
-      hudBtn.addEventListener('click', () => open());
-      G.HUD.zones.tc.appendChild(hudBtn);
-    }
-    hudBtn.style.display = S.on ? '' : 'none'; if (!S.on) return;
+    if (!G.HUD || !G.HUD.chip) return;
+    if (!hudBtn) { hudBtn = G.HUD.chip({ id: 'fabrica', icon: 'factory', label: 'Fábrica', order: 20, tone: '#FFE0C2', show: false, onClick: () => open() }); if (!hudBtn) return; }
+    if (!S.on) { hudBtn.set({ show: false }); return; }
     const rt = rates(), tot = rt.raw + rt.fac, sh = tot > 0 ? Math.round(rt.fac / tot * 100) : 0;
-    const sub = (S.tutDone ? '¥' + U.fmt(rt.fac) + '/s · ' + sh + '%' : 'nova! toque');
-    const sm = hudBtn.querySelector('small'); if (sm.textContent !== sub) sm.textContent = sub;
-    hudBtn.classList.toggle('k-pulse', !S.tutDone);
+    hudBtn.el.title = 'Fábrica: ¥' + U.fmt(rt.fac) + '/s · ' + sh + '% da renda';
+    hudBtn.set({ show: true, prio: S.tutDone ? 0 : 2, hint: S.tutDone ? '' : 'nova! toque' });
   }
 
   /* ---- passo por tempo (G.Sim): roda com a tela aberta ou fechada ---- */

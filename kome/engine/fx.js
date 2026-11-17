@@ -687,7 +687,7 @@
     const sp = { x: 0, y: 0 }, st = { size: 16, c: CREAM, stroke: LINE, pop: 1, shake: 0 };
     const fl = {
       list,
-      // add(x,y,txt,{c='#FFFAEE',size=16,life=1.1,vy=-46,vx=0,stroke=LINE,pop=1,sw,rot,shake=0,delay=0}): cria um texto que sobe
+      // add(x,y,txt,{c='#FFFAEE',size=16,life=1.1,vy=-46,vx=0,stroke=LINE,pop=1,sw,rot,shake=0,delay=0,ui=false}): cria um texto que sobe
       //   pop: força do estouro de entrada (0 = sem) ; shake: tremidinha (px) pra valores absurdos ; stroke:null = sem contorno
       add(x, y, txt, o) {
         let f;
@@ -700,7 +700,7 @@
         f.life = f.life0 = o.life || 1.1; f.vy = o.vy === undefined ? -46 : o.vy; f.vx = o.vx || 0;
         f.stroke = o.stroke === undefined ? LINE : o.stroke; f.sw = o.sw || 0;
         f.pop = o.pop === undefined ? 1 : +o.pop; f.age = -(o.delay || 0);
-        f.rot = o.rot === undefined ? (Math.random() * 2 - 1) * 0.07 : o.rot; f.shake = o.shake || 0;
+        f.rot = o.rot === undefined ? (Math.random() * 2 - 1) * 0.07 : o.rot; f.shake = o.shake || 0; f.ui = !!o.ui;   // ui: x,y já em coords de TELA (não segue a câmera)
         return f;
       },
       // style(valor, out?) -> {size,c,stroke,pop,shake}: estilo pelo tamanho do número (pequeno creme, grande dourado, absurdo vermelho)
@@ -742,7 +742,7 @@
           const f = list[i];
           if (f.age < 0) continue;
           let x = f.x, y = f.y;
-          if (cam) {
+          if (cam && !f.ui) {
             cam.toScreen(x, y, sp); x = sp.x + cam.sx * 0.5; y = sp.y + cam.sy * 0.5;
             if (x < -200 || x > cam.vw + 200 || y < -60 || y > cam.vh + 60) continue;
           }

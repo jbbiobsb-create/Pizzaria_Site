@@ -53,17 +53,12 @@
   /* ---- chip de compra no topo (só depois do final, até comprar) ---- */
   function chipTick(dt) {
     if ((chipT -= dt) > 0) return; chipT = 0.5;
-    const s = S(); if (!s || !G.HUD || !G.HUD.zones || !G.HUD.zones.tc) return;
-    if (!chip) {
-      chip = document.createElement('button'); chip.className = 'k-btn k-islchip'; chip.style.background = '#E2E8EE';
-      chip.innerHTML = '<span class="k-islchip-t"><b>Tatuzão</b><small></small></span>';
-      chip.addEventListener('click', e => { e.stopPropagation(); buy(); chip.blur(); });
-      G.HUD.zones.tc.appendChild(chip);
-    }
-    const on = s.ended && !owned() && !!T(); chip.style.display = on ? '' : 'none'; if (!on) return;
-    const c = price(), sub = s.money >= c ? '¥' + U.fmt(c) + ' · comprar!' : 'faltam ¥' + U.fmt(c - s.money);
-    const sm = chip.querySelector('small'); if (sm.textContent !== sub) sm.textContent = sub;
-    chip.classList.toggle('k-pulse', s.money >= c);
+    const s = S(); if (!s || !G.HUD || !G.HUD.chip) return;
+    if (!chip) { chip = G.HUD.chip({ id: 'tatuzao', icon: 'drill', label: 'Tatuzão', order: 30, tone: '#E2E8EE', show: false, onClick: () => buy() }); if (!chip) return; }
+    const on = s.ended && !owned() && !!T(); if (!on) { chip.set({ show: false }); return; }
+    const c = price(), can = s.money >= c;
+    chip.el.title = 'Tatuzão: ¥' + U.fmt(c);
+    chip.set({ show: true, prio: can ? 2.2 : 0, hint: can ? '¥' + U.fmt(c) + ' · comprar!' : '' });
   }
   function buy() {
     const s = S(), c = price();

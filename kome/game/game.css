@@ -38,6 +38,7 @@ body.k-pfix .k-hudfix .k-zone-dock{align-content:flex-end}
  display:flex;align-items:center;justify-content:center;font:900 22px system-ui,sans-serif;color:#3B2818;line-height:1;user-select:none;-webkit-user-select:none}
 .k-zout{left:calc(50% - 74px)}
 .k-zin{left:calc(50% + 30px)}
+body.k-zbl .k-zout{left:12px}body.k-zbl .k-fullscr{left:62px;margin-left:0}body.k-zbl .k-zin{left:112px}
 
 /* casa do Kome: HUD do jogo some enquanto o quintal está aberto */
 .k-ui.k-athome > .k-l1{display:none}
@@ -70,11 +71,18 @@ body.k-tight .k-zone-tr .k-flyer{max-width:120px}
 /* cena do fim do dia: só o céu e a casa (sem a barra da montanha por cima do título) */
 body.k-night .k-zone-tl, body.k-night .k-zone-tc, body.k-night .k-vpad{opacity:0;pointer-events:none;transition:opacity .4s}
 /* ---- Volta ao Japão (islands-ui.js): chip do HUD, mapa das ilhas, tutorial ---- */
-.k-islchip{min-height:40px;padding:4px 12px 4px 8px;gap:8px;margin-top:2px;background:#E8F4FB}
-.k-islchip-t{display:flex;flex-direction:column;line-height:1.1}
-.k-islchip-t b{font-size:13px}.k-islchip-t small{font-size:11px;font-weight:700;opacity:.75}
-.k-islchip.k-islchip-go{background:#FFE9A8}
-.k-islchip.k-islchip-ev{background:#FFD25E}
+.k-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 6px;margin-top:5px;max-height:108px;overflow:hidden;padding:0 10px 10px}
+.k-chip{min-height:44px;min-width:44px;padding:3px 11px 3px 8px;gap:6px;background:#E8F4FB;white-space:nowrap;position:relative;flex:0 0 auto;max-width:100%}
+.k-chip-i{display:flex;align-items:center}
+.k-chip b{font-size:13px;line-height:1.1}
+.k-chip small{display:none;font-size:12px;font-weight:700;opacity:.85;overflow:hidden;text-overflow:ellipsis}
+.k-chip.k-chip-hot{background:#FFE9A8;order:9}
+.k-chip.k-chip-hot small{display:inline}
+.k-chip.k-chip-dot::before{content:'';position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:#F3C94A;border:2px solid #3B2818}
+/* olhando a Vila: some o que é só de cavar (combo, barra de compras, buzina, direcional); ficam iene, chips e a casa */
+.k-zone-dock,.k-vpad,.k-digonly{transition:opacity .25s}
+body.k-vila .k-zone-dock,body.k-vila .k-vpad,body.k-vila .k-digonly{opacity:0 !important;pointer-events:none !important}
+body.k-vila .k-zone-dock *,body.k-vila .k-vpad *{pointer-events:none !important}
 .k-isl{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(30,20,12,.55);font-family:var(--k-font);font-weight:700;color:var(--k-ink);padding:10px;box-sizing:border-box}
 .k-isl *{box-sizing:border-box}
 .k-isl.k-open{display:flex}

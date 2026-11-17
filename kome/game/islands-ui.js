@@ -24,26 +24,21 @@
 
   /* ---------- chip do HUD ---------- */
   function chipShow() { return !!(S && (S.ended || I().islandRun() || S.stats.cs_ilhas || I().event())); }
+  let chipH = null;
+  const shortIsl = n => n.replace('Ilha Flutuante de ', '').replace(/^Ilha d[eo] /, '');
   function chipTick() {
-    if (!S || !G.HUD || !G.HUD.zones || !G.HUD.zones.tc) return;
-    if (!chip) {
-      chip = document.createElement('button'); chip.className = 'k-btn k-islchip';
-      chip.innerHTML = '<span class="k-islchip-i"></span><span class="k-islchip-t"><b></b><small></small></span>';
-      const ic = UI.iconEl ? UI.iconEl('boat', 22) : null; if (ic) chip.querySelector('.k-islchip-i').appendChild(ic);
-      chip.addEventListener('click', () => { if (coach && coach.step === 0) coachNext(); else open(); });
-      G.HUD.zones.tc.appendChild(chip);
+    if (!S || !G.HUD || !G.HUD.chip) return;
+    if (!chipH) {
+      chipH = G.HUD.chip({ id: 'ilhas', icon: 'boat', label: 'Ilhas', order: 40, show: false, onClick: () => { if (coach && coach.step === 0) coachNext(); else open(); } });
+      if (!chipH) return; chip = chipH.el;
     }
-    const on = chipShow(); chip.style.display = on ? '' : 'none'; if (!on) return;
-    const here = I().island(), nx = I().next(), n = I().index() + 1, lap = I().lap();
-    const t = S.ended ? 'Partir pra ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ') : here.n.replace('Ilha Flutuante de ', 'Ilha de ') + ' · ilha ' + n + '/' + D.ISLANDS.length + (lap ? ' · volta ' + (lap + 1) : '');
-    const sub = S.ended ? '+' + I().gain() + ' Sementes Douradas · toque!' : 'casa ' + S.house + '/' + D.HOUSE.length + ' · depois: ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ');
-    const ev = I().event(); let sub2 = sub;
-    if (ev) sub2 = ev.n.replace('!', '') + ' ×' + String(ev.mult).replace('.', ',') + ' · ' + Math.ceil(I().eventLeft()) + 's';   // evento da ilha rolando
-    chip.classList.toggle('k-islchip-ev', !!ev);
-    const b = chip.querySelector('b'), sm = chip.querySelector('small');
-    if (b.textContent !== t) b.textContent = t; if (sm.textContent !== sub2) sm.textContent = sub2;
-    chip.classList.toggle('k-pulse', !!S.ended);
-    chip.classList.toggle('k-islchip-go', !!S.ended);
+    const on = chipShow(); if (!on) { chipH.set({ show: false }); return; }
+    const here = I().island(), nx = I().next(), n = I().index() + 1, lap = I().lap(), ev = I().event(), g = I().gain();
+    chip.title = here.n + ' · ilha ' + n + '/' + D.ISLANDS.length + (lap ? ' · volta ' + (lap + 1) : '') + ' · casa ' + S.house + '/' + D.HOUSE.length;
+    // viagem liberada ganha de tudo (prio 3); evento da ilha rolando avisa (prio 1.5); senão é só o atalho "Ilhas"
+    if (S.ended) chipH.set({ show: true, prio: 3, hot: 'Partir pra ' + shortIsl(nx.n), hint: g > 0 ? '+' + g + (g === 1 ? ' semente' : ' sementes') : 'toque!' });
+    else if (ev) chipH.set({ show: true, prio: 1.5, hot: ev.n.replace('!', ''), hint: '×' + String(ev.mult).replace('.', ',') + ' · ' + Math.ceil(I().eventLeft()) + 's' });
+    else chipH.set({ show: true, prio: 0, hint: '' });
   }
 
   /* ---------- mapa ---------- */

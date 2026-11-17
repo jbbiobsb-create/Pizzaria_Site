@@ -361,17 +361,20 @@
     return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
   }
   function drawShopCard(t) {
-    const I = G.Ind, r = I.run(), list = DATA.SHOPS, n = list.length, rows = Math.ceil(n / 2), x = RC.x + 12, w = RC.w - 24;
-    const gh = rows * 38, y = boardCard(36 + gh + 162, GEO.cork, t);
+    // uma loja por linha, com o NOME escrito (antes eram 2 colunas só com ícone e nível: ninguém sabia qual era qual)
+    const I = G.Ind, r = I.run(), list = DATA.SHOPS, n = list.length, x = RC.x + 12, w = RC.w - 24, rh = n > 8 ? 26 : n > 6 ? 29 : 32;
+    const gh = n * rh, y = boardCard(36 + gh + 162, GEO.cork, t);
     txt('Cidade que compra', x, y + 22, T(19, INK, 'left'));
     list.forEach((sh, i) => {
-      const cx = x + (i % 2) * 113, cy = y + 36 + Math.floor(i / 2) * 38, on = V.shop === sh.id, L = r.shops[sh.id] | 0, cl = r.client === sh.id;
-      g.fillStyle = INK; D.rrect(g, cx - 2, cy - 2, 111, 34, 9); g.fill();
-      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, cx, cy, 107, 30, 7); g.fill();
-      blit(A.flyerOf(sh.id), cx + 17, cy + 28, 2, { alpha: L ? 1 : 0.6 });
-      if (cl) blit(SPR.star, cx + 42, cy + 23, 2);
-      txt('Nv ' + L, cx + 101, cy + 16, T(17, L ? INK : '#9a8a76', 'right'));
-      hit(cx - 2, cy - 2, 111, 36, () => { V.shop = sh.id; sfx('click', { pitch: 1.2 }); }, null);
+      const cx = x, cy = y + 36 + i * rh, on = V.shop === sh.id, L = r.shops[sh.id] | 0, cl = r.client === sh.id, bh = rh - 6;
+      g.fillStyle = INK; D.rrect(g, cx - 2, cy - 2, w + 4, bh + 4, 9); g.fill();
+      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, cx, cy, w, bh, 7); g.fill();
+      blit(A.flyerOf(sh.id), cx + 17, cy + bh - 1, bh >= 26 ? 2 : 1.6, { alpha: L ? 1 : 0.6 });
+      let nm = shopName(sh); const mx = Math.floor((w - 36 - 58 - (cl ? 18 : 0)) / (17 * 0.56)); if (nm.length > mx) nm = nm.slice(0, mx - 1) + '…';
+      txt(nm, cx + 36, cy + bh / 2 + 1, T(17, L ? INK : '#6E5A44', 'left'));
+      if (cl) blit(SPR.star, cx + w - 66, cy + bh / 2 + 8, 2);
+      txt('Nv ' + L, cx + w - 8, cy + bh / 2 + 1, T(17, L ? INK : '#9a8a76', 'right'));
+      hit(cx - 2, cy - 2, w + 4, rh, () => { V.shop = sh.id; sfx('click', { pitch: 1.2 }); }, null);
     });
     const sh = list.find(q => q.id === V.shop) || list[0], L = r.shops[sh.id] | 0, c = I.cost.shop(sh.id), can = money() >= c, cl = r.client === sh.id, by = y + 36 + gh + 6, ds = shopDesc(sh);
     fit(sh.n || sh.id, x, by + 12, w, 18, INK, 'left');

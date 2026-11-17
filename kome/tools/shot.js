@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Kome tools: abre uma página local no Chromium headless, roda JS opcional e tira screenshot.
    uso: node kome/tools/shot.js <arquivo.html|url> <saida.png> [--wait ms] [--size 960x540] [--scale 1]
-        [--eval "js"]... [--click x,y]... [--hold x,y,ms] [--query "?a=1"] [--full]
+        [--eval "js"]... [--click x,y]... [--hold x,y,ms] [--query "?a=1"] [--full] [--mob]
    --eval roda depois do wait inicial; se retornar valor, é impresso como JSON (EVAL: ...).
    As ações rodam na ordem em que aparecem. Erros de console/página são impressos (PAGEERROR/CONSOLE).
    Sai com código 1 se houve erro de página. */
@@ -10,7 +10,7 @@ const { chromium } = require('./pw');
 (async () => {
   const a = process.argv.slice(2);
   if (a.length < 2) { console.error('uso: shot.js <html> <png> [opções]'); process.exit(2); }
-  const [target, out] = a; const acts = []; let wait = 600, size = [960, 540], scale = 1, query = '', full = false;
+  const [target, out] = a; const acts = []; let wait = 600, size = [960, 540], scale = 1, query = '', full = false, mob = false;
   for (let i = 2; i < a.length; i++) {
     const k = a[i], v = a[i + 1];
     if (k === '--wait') { acts.push(['wait', +v]); if (!acts.some(x => x[0] !== 'wait')) wait = +v; i++; }
@@ -22,10 +22,11 @@ const { chromium } = require('./pw');
     else if (k === '--shot') { acts.push(['shot', v]); i++; }
     else if (k === '--query') { query = v; i++; }
     else if (k === '--full') full = true;
+    else if (k === '--mob') mob = true;   // emula celular (toque + pointer: coarse): liga o modo k-mob do jogo
   }
   const url = /^https?:|^file:/.test(target) ? target : 'file://' + path.resolve(target) + query;
   const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
-  const page = await browser.newPage({ viewport: { width: size[0], height: size[1] }, deviceScaleFactor: scale });
+  const page = await browser.newPage({ viewport: { width: size[0], height: size[1] }, deviceScaleFactor: scale, isMobile: mob, hasTouch: mob });
   let errs = 0;
   page.on('pageerror', e => { errs++; console.log('PAGEERROR:', e.message, (e.stack || '').split('\n').slice(1, 4).join(' | ')); });
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log('CONSOLE.' + m.type() + ':', m.text()); else if (m.text().startsWith('[kome]')) console.log(m.text()); });

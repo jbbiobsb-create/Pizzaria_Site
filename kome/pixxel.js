@@ -1,5 +1,5 @@
-/* Pixxel — bundle gerado por tools/build.js em 2026-11-16. Não edite aqui: edite engine/*.js e rode o build.
-   Módulos: core, pix, shiba, fx, terrain, rig, audio, nature, ui */
+/* Pixxel — bundle gerado por tools/build.js em 2026-11-17. Não edite aqui: edite engine/*.js e rode o build.
+   Módulos: core, pix, assets, shiba, fx, terrain, rig, audio, nature, ui, board, sim */
 
 /* ===== engine/core.js ===== */
 /* ==========================================================================
@@ -2280,6 +2280,9 @@
 
   // Draw.text(g, txt, x, y, {size=16, col='#FFFAEE', stroke=LINE_CSS, sw=4, align='center', font, weight=900, rot, baseline='middle', shadow=0, alpha})
   //   texto de jogo com traço grosso arredondado; shadow = deslocamento (px) de uma sombra dura embaixo
+  // transformação com reflexo (determinante < 0): espelho do mundo ou scale(-1, 1) de máquina virada
+  function mirrored(g) { if (!g.getTransform) return false; const m = g.getTransform(); return m.a * m.d - m.b * m.c < 0; }
+  Draw.mirrored = mirrored;
   Draw.text = function (g, txt, x, y, o) {
     o = o || NO;
     const size = o.size || 16, sw = o.sw !== undefined ? o.sw : 4, stroke = o.stroke !== undefined ? o.stroke : LINE_CSS;
@@ -2288,7 +2291,8 @@
     g.textAlign = o.align || 'center'; g.textBaseline = o.baseline || 'middle';
     g.lineJoin = 'round'; g.lineCap = 'round'; g.miterLimit = 2;
     if (o.alpha !== undefined) g.globalAlpha = pa * o.alpha;
-    if (rot) { g.save(); g.translate(x, y); g.rotate(rot); x = 0; y = 0; }
+    const fl = mirrored(g);   // mundo espelhado (ou máquina virada): o texto continua legível
+    if (rot || fl) { g.save(); g.translate(x, y); if (fl) g.scale(-1, 1); if (rot) g.rotate(fl ? -rot : rot); x = 0; y = 0; }
     if (stroke && sw > 0) {
       g.strokeStyle = stroke; g.lineWidth = sw;
       if (o.shadow) g.strokeText(txt, x, y + o.shadow);
@@ -2296,7 +2300,7 @@
     }
     g.fillStyle = o.col ? col2(o.col) : '#FFFAEE';
     g.fillText(txt, x, y);
-    if (rot) g.restore();
+    if (rot || fl) g.restore();
     if (o.alpha !== undefined) g.globalAlpha = pa;
   };
 
@@ -2341,7 +2345,8 @@
       g.font = fontOf(size, weight, o.font);
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = ink;
-      g.fillText(texto, x + w / 2, y + (h - pad) / 2 + size * 0.04);
+      const tx = x + w / 2, ty = y + (h - pad) / 2 + size * 0.04;
+      if (mirrored(g)) { g.save(); g.translate(tx, ty); g.scale(-1, 1); g.fillText(texto, 0, 0); g.restore(); } else g.fillText(texto, tx, ty);
     }
   };
 
@@ -2437,6 +2442,104 @@
   E.spriteText = spriteText;
   E.drawSprite = drawSprite;
   E.Draw = Draw;
+})();
+
+
+/* ===== engine/assets.js ===== */
+/* ============================================================================
+   Pixxel v1.1 — assets.js
+   Carrega o que sai do Pixxel Estúdio e toca as animações no jogo.
+     E.Assets.add(id, def)            registra (o .pixxel.js exportado chama isso sozinho)
+     E.Assets.fromSheet(id, png, json) carrega spritesheet + JSON (formato Aseprite também serve)
+     E.Assets.get(id) -> asset | null ; E.Assets.ready(id) -> bool ; E.Assets.list()
+     E.Assets.whenReady(fn)           chama quando tudo que foi registrado carregou
+     E.Anim(id, tag='parado')         -> anim { tag, frame, t, done, flip, play(tag, restart), update(dt), draw(g, x, y, o) }
+     E.Assets.draw(g, id, frame, x, y, o) desenha um quadro com âncora nos pés
+   def = { img: dataURL|url|HTMLImageElement, w, h, frames: [dur ms...], anims: {nome: {from, to, dir}},
+           tipo, altura, ancora: 'pés'|'centro' }
+   Desenho: pés em (x,y), escala o.scale (padrão 1), o.flip espelha, o.alpha.
+   Depende de: core.js (opcional pix.js pra E.drawSprite)
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  const E = (root.Pixxel = root.Pixxel || {});
+  const store = Object.create(null), waiting = [];
+  let pending = 0;
+
+  function finish() { pending = Math.max(0, pending - 1); if (!pending) while (waiting.length) { try { waiting.shift()(); } catch (e) { console.error(e); } } }
+  function loadImg(src, cb) {
+    if (typeof Image === 'undefined') return cb(null);
+    if (src && src.tagName) { if (src.complete) cb(src); else src.onload = () => cb(src); return; }
+    const im = new Image(); im.onload = () => cb(im); im.onerror = () => { console.warn('Pixxel.Assets: não carregou', String(src).slice(0, 60)); cb(null); }; im.src = src;
+  }
+
+  const Assets = {
+    // add(id, def): registra e começa a carregar a imagem
+    add(id, def) {
+      const a = store[id] = Object.assign({ id, ok: false, cols: 0, frames: [100], anims: {}, ancora: 'pés' }, def);
+      if (!a.anims || !Object.keys(a.anims).length) a.anims = { parado: { from: 0, to: a.frames.length - 1, dir: 'forward' } };
+      pending++;
+      loadImg(def.img, im => { a.image = im; if (im) { a.cols = Math.max(1, Math.floor(im.width / a.w)); a.ok = true; } finish(); });
+      return a;
+    },
+    // fromSheet(id, pngUrl, json): json = objeto ou url; aceita o JSON do Estúdio e o do Aseprite (hash ou array)
+    fromSheet(id, png, json) {
+      const go = j => {
+        const fr = Array.isArray(j.frames) ? j.frames : Object.values(j.frames), f0 = fr[0].frame;
+        const anims = {}; ((j.meta && j.meta.frameTags) || []).forEach(t => anims[t.name] = { from: t.from, to: t.to, dir: t.direction || 'forward' });
+        const px = (j.meta && j.meta.pixxel) || {};
+        return Assets.add(id, { img: png, w: f0.w, h: f0.h, frames: fr.map(f => f.duration || 100), rects: fr.map(f => f.frame), anims, tipo: px.tipo, altura: px.altura });
+      };
+      if (typeof json === 'string') { pending++; fetch(json).then(r => r.json()).then(j => { go(j); finish(); }).catch(e => { console.warn(e); finish(); }); return null; }
+      return go(json);
+    },
+    get: id => store[id] || null,
+    ready: id => !!(store[id] && store[id].ok),
+    list: () => Object.keys(store),
+    whenReady(fn) { if (!pending) fn(); else waiting.push(fn); },
+    // rect(a, frame) -> {x,y,w,h} na imagem
+    rect(a, f) { if (a.rects) return a.rects[f]; return { x: (f % a.cols) * a.w, y: Math.floor(f / a.cols) * a.h, w: a.w, h: a.h }; },
+    // draw(g, id, frame, x, y, {scale=1, flip, alpha=1, ancora}) — pés em (x,y)
+    draw(g, id, f, x, y, o) {
+      const a = typeof id === 'string' ? store[id] : id; if (!a || !a.ok) return;
+      o = o || {}; const r = Assets.rect(a, f | 0), s = o.scale || 1, w = r.w * s, h = r.h * s, anc = o.ancora || a.ancora;
+      const dx = Math.round(x - w / 2), dy = Math.round(anc === 'centro' ? y - h / 2 : y - h);
+      g.save(); if (o.alpha != null) g.globalAlpha *= o.alpha; g.imageSmoothingEnabled = s < 1;
+      if (o.flip) { g.translate(dx + w, dy); g.scale(-1, 1); g.drawImage(a.image, r.x, r.y, r.w, r.h, 0, 0, w, h); }
+      else g.drawImage(a.image, r.x, r.y, r.w, r.h, dx, dy, w, h);
+      g.restore();
+    },
+  };
+
+  // E.Anim(id, tag) -> tocador de animação por tag (forward | reverse | pingpong), respeita a duração de cada quadro
+  function Anim(id, tag) {
+    const A = {
+      id, tag: null, frame: 0, t: 0, done: false, flip: false, speed: 1, loop: true, dir: 1,
+      get asset() { return store[id]; },
+      play(t, restart) { const a = store[id]; if (!a) return A; if (!a.anims[t]) t = Object.keys(a.anims)[0]; if (A.tag === t && !restart) return A; A.tag = t; const an = a.anims[t]; A.frame = an.dir === 'reverse' ? an.to : an.from; A.t = 0; A.done = false; A.dir = an.dir === 'reverse' ? -1 : 1; return A; },
+      update(dt) {
+        const a = store[id]; if (!a || !a.ok) return A; if (!A.tag) A.play(tag || 'parado'); const an = a.anims[A.tag]; if (!an || A.done) return A;
+        A.t += dt * 1000 * A.speed;
+        let guard = 0;
+        while (A.t >= (a.frames[A.frame] || 100) && guard++ < 64) {
+          A.t -= a.frames[A.frame] || 100; let nf = A.frame + A.dir;
+          if (nf > an.to || nf < an.from) {
+            if (an.dir === 'pingpong') { A.dir = -A.dir; nf = A.frame + A.dir; if (an.from === an.to) nf = an.from; }
+            else if (!A.loop) { A.done = true; break; } else nf = A.dir > 0 ? an.from : an.to;
+          }
+          A.frame = Math.max(an.from, Math.min(an.to, nf));
+        }
+        return A;
+      },
+      draw(g, x, y, o) { Assets.draw(g, id, A.frame, x, y, Object.assign({ flip: A.flip }, o || {})); return A; },
+    };
+    if (tag) A.tag = null, A.play(tag);
+    return A;
+  }
+
+  E.Assets = Assets;
+  E.Anim = Anim;
 })();
 
 
@@ -2551,6 +2654,8 @@
     matcha: { h: '#8DB255', g: '#5F8236', o: '#D9A066', c: '#EBEBEB', k: '#2A1A10', n: '#2A1A10', p: '#D95763' },
     kin:    { h: '#C8423A', g: '#93302A', o: '#EDBE4A', c: '#FFF3C4', k: '#3A2408', n: '#3A2408', p: '#E8707A' },
     sumi:   { h: '#C8423A', g: '#93302A', o: '#5A5F6B', c: '#D9DDE3', k: '#16181D', n: '#16181D', p: '#E8707A' },
+    momo:   { h: '#9ED9A8', g: '#6DAE7A', o: '#F6D3DC', c: '#FFF8F8', k: '#3A2018', n: '#3A2018', p: '#E8607A' },
+    nihon:  { h: '#D8263A', g: '#A3182A', o: '#F8F4EC', c: '#FFFFFF', k: '#2A1A10', n: '#2A1A10', p: '#E8607A' },
   };
 
   const LE = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
@@ -3689,6 +3794,7 @@
       shake: 0,                    // legado: amplitude em px de tela, decai sozinha
       trauma: 0,                   // 0..1; o tremor é trauma² (pancada grande treme MUITO mais que pequena)
       maxShake: 16, maxRoll: 0.03, shakeFreq: 26, traumaDecay: 1.3,
+      mx: 1,                       // espelho horizontal do mundo: -1 = +x do mundo vai pra ESQUERDA da tela (simulação intacta)
       snap: 0,                     // >0: arredonda a translação pra 1/snap px de tela (use stage.dpr com pixel art parada)
       sx: 0, sy: 0, roll: 0,       // tremor atual (px de tela, rad); calculado no update
       ox: 0, oy: 0,                // deslocamento do kick (px de tela), volta sozinho com mola
@@ -3747,7 +3853,7 @@
         }
         g.translate(px, py);
         if (c.roll) g.rotate(c.roll);
-        g.scale(z, z);
+        g.scale(z * c.mx, z);
         g.translate(-c.x, -c.y);
         return c;
       },
@@ -3755,7 +3861,7 @@
       unapply(g) {
         const z = c.z * (1 + c.zp);
         g.translate(c.x, c.y);
-        g.scale(1 / z, 1 / z);
+        g.scale(1 / (z * c.mx), 1 / z);
         if (c.roll) g.rotate(-c.roll);
         g.translate(-(vw / 2 + c.sx + c.ox), -(vh / 2 + c.sy + c.oy));
         return c;
@@ -3766,13 +3872,13 @@
       // toWorld(sx,sy,out?) -> {x,y}: tela -> mundo (ignora o tremor, pra clique não tremer junto)
       toWorld(sx, sy, out) {
         out = out || { x: 0, y: 0 };
-        out.x = (sx - vw / 2) / c.z + c.x; out.y = (sy - vh / 2) / c.z + c.y;
+        out.x = (sx - vw / 2) / (c.z * c.mx) + c.x; out.y = (sy - vh / 2) / c.z + c.y;
         return out;
       },
       // toScreen(wx,wy,out?) -> {x,y}: mundo -> tela (ignora o tremor)
       toScreen(wx, wy, out) {
         out = out || { x: 0, y: 0 };
-        out.x = (wx - c.x) * c.z + vw / 2; out.y = (wy - c.y) * c.z + vh / 2;
+        out.x = (wx - c.x) * c.z * c.mx + vw / 2; out.y = (wy - c.y) * c.z + vh / 2;
         return out;
       },
       // view(out?, pad=0) -> {x0,x1,y0,y1}: retângulo de mundo visível (pad em unidades de mundo)
@@ -3798,7 +3904,7 @@
           else c.z *= Math.pow(r, 1 - Math.exp(-c.zk * dt));
         }
         if (anchor.on) {
-          c.x = anchor.wx - (anchor.sx - vw / 2) / c.z; c.y = anchor.wy - (anchor.sy - vh / 2) / c.z;
+          c.x = anchor.wx - (anchor.sx - vw / 2) / (c.z * c.mx); c.y = anchor.wy - (anchor.sy - vh / 2) / c.z;
           if (c.z === c.tz) anchor.on = false;
         } else if (c.auto) chase(dt, c.k);
         clampBounds();
@@ -4319,7 +4425,7 @@
     const sp = { x: 0, y: 0 }, st = { size: 16, c: CREAM, stroke: LINE, pop: 1, shake: 0 };
     const fl = {
       list,
-      // add(x,y,txt,{c='#FFFAEE',size=16,life=1.1,vy=-46,vx=0,stroke=LINE,pop=1,sw,rot,shake=0,delay=0}): cria um texto que sobe
+      // add(x,y,txt,{c='#FFFAEE',size=16,life=1.1,vy=-46,vx=0,stroke=LINE,pop=1,sw,rot,shake=0,delay=0,ui=false}): cria um texto que sobe
       //   pop: força do estouro de entrada (0 = sem) ; shake: tremidinha (px) pra valores absurdos ; stroke:null = sem contorno
       add(x, y, txt, o) {
         let f;
@@ -4332,7 +4438,7 @@
         f.life = f.life0 = o.life || 1.1; f.vy = o.vy === undefined ? -46 : o.vy; f.vx = o.vx || 0;
         f.stroke = o.stroke === undefined ? LINE : o.stroke; f.sw = o.sw || 0;
         f.pop = o.pop === undefined ? 1 : +o.pop; f.age = -(o.delay || 0);
-        f.rot = o.rot === undefined ? (Math.random() * 2 - 1) * 0.07 : o.rot; f.shake = o.shake || 0;
+        f.rot = o.rot === undefined ? (Math.random() * 2 - 1) * 0.07 : o.rot; f.shake = o.shake || 0; f.ui = !!o.ui;   // ui: x,y já em coords de TELA (não segue a câmera)
         return f;
       },
       // style(valor, out?) -> {size,c,stroke,pop,shake}: estilo pelo tamanho do número (pequeno creme, grande dourado, absurdo vermelho)
@@ -4374,7 +4480,7 @@
           const f = list[i];
           if (f.age < 0) continue;
           let x = f.x, y = f.y;
-          if (cam) {
+          if (cam && !f.ui) {
             cam.toScreen(x, y, sp); x = sp.x + cam.sx * 0.5; y = sp.y + cam.sy * 0.5;
             if (x < -200 || x > cam.vw + 200 || y < -60 || y > cam.vh + 60) continue;
           }
@@ -12671,5 +12777,188 @@
     iconSrc: srcIcon,
   });
   E.UI = UI;
+})();
+
+
+/* ===== engine/board.js ===== */
+/* ============================================================================
+   Pixxel v1.0 — board.js
+   E.Board: SEGUNDA TELA, vista de cima, em grid (fábrica, cidade, mapa de regiões...). Tela cheia por cima do jogo,
+   com canvas próprio, barra de ferramentas embaixo e botão de voltar. Feita pro celular DEITADO (toque) e pro mouse.
+     const b = E.Board({
+       cols: 8, rows: 6, title: 'Fábrica', back: 'Montanha',
+       tools: [{ id: 'esteira', label: 'Esteira', icon: 'belt' }, ...],   // botões da barra (icon = ícone do E.UI, opcional)
+       floor(c, r) -> cor do ladrilho (padrão: grama em xadrez)
+       drawCell(g, c, r, x, y, s, t)  -> desenha o que tem na célula (x,y = canto, s = lado em px)
+       draw(g, view, t)               -> desenho livre por cima (view = {x, y, s, cols, rows, w, h})
+       onTap(c, r), onDrag(cells, done)  -> cells = [[c,r]...] em caminho contínuo (4 vizinhos), done no fim
+       onTool(id), onOpen(), onClose()
+     });
+     b.open() · b.close() · b.isOpen() · b.tool (id ativo ou null) · b.setTool(id) · b.sel ([c,r] ou null)
+     b.cellAt(px, py) -> [c,r] ou null · b.view · b.toast(txt) · b.el (raiz DOM) · b.bar (barra, pra pôr mais coisas)
+   Sem ferramenta ativa, arrastar move a vista (quando o grid não cabe). Toque = selecionar.
+   Depende de: core.js (E.UI é opcional, só pros ícones)
+   ============================================================================ */
+(function () {
+  'use strict';
+  const E = (window.Pixxel = window.Pixxel || {});
+  const LINE = '#3B2818';
+  let css = false;
+  function style() {
+    if (css) return; css = true;
+    const s = document.createElement('style');
+    s.textContent = [
+      '.px-board{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:#6E9E4A;opacity:0;pointer-events:none;transform:scale(.97);transition:opacity .18s,transform .18s;touch-action:none;font-family:var(--k-font,system-ui,sans-serif)}',
+      '.px-board.px-open{opacity:1;pointer-events:auto;transform:none}',
+      '.px-board-top{display:flex;align-items:center;gap:8px;padding:6px 10px;padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));background:#FFF8EC;border-bottom:3px solid ' + LINE + '}',
+      '.px-board-top b{font-size:17px;color:' + LINE + ';flex:1}',
+      '.px-board-wrap{flex:1;position:relative;min-height:0}',
+      '.px-board canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}',
+      '.px-board-bar{display:flex;gap:6px;padding:6px 10px;padding-bottom:max(6px,env(safe-area-inset-bottom));background:#FFF8EC;border-top:3px solid ' + LINE + ';overflow-x:auto}',
+      '.px-board-btn{min-height:40px;min-width:44px;padding:4px 12px;border:3px solid ' + LINE + ';border-radius:12px;background:#FFF1D6;color:' + LINE + ';font-family:inherit;font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}',
+      '.px-board-btn canvas,.px-board-btn .k-ico{position:static!important;flex:none}',
+      '.px-board-btn.px-on{background:#F3C94A;transform:translateY(1px)}',
+      '.px-board-back{background:#F6B6B0}',
+      '.px-board-toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#FFF8EC;border:3px solid ' + LINE + ';border-radius:12px;padding:4px 12px;font-weight:800;font-size:14px;color:' + LINE + ';opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}',
+      '.px-board-toast.px-on{opacity:1}',
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+  const el = (tag, cls, parent, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; if (parent) parent.appendChild(e); return e; };
+  function icon(name, size) {
+    const UI = E.UI; if (!UI || !UI.icon || !name) return null;
+    try { const c = UI.icon(name, size || 22); return c && c.nodeType ? c : null; } catch (e) { return null; }
+  }
+
+  function Board(o) {
+    o = o || {}; style();
+    const cols = o.cols || 8, rows = o.rows || 6;
+    const root = el('div', 'px-board'), top = el('div', 'px-board-top', root);
+    const back = el('button', 'px-board-btn px-board-back', top, '← ' + (o.back || 'Voltar'));
+    el('b', '', top, o.title || '');
+    const wrap = el('div', 'px-board-wrap', root), cv = el('canvas', '', wrap), toastEl = el('div', 'px-board-toast', wrap);
+    const bar = el('div', 'px-board-bar', root);
+    document.body.appendChild(root);
+    const B = { el: root, bar, cols, rows, tool: null, sel: null, view: { x: 0, y: 0, s: 40, cols, rows, w: 0, h: 0 }, pan: { x: 0, y: 0 } };
+    const btns = {};
+    (o.tools || []).forEach(tl => {
+      const b = el('button', 'px-board-btn', bar); const ic = icon(tl.icon); if (ic) b.appendChild(ic); el('span', '', b, tl.label);
+      b.onclick = () => B.setTool(B.tool === tl.id ? null : tl.id); btns[tl.id] = b;
+    });
+    back.onclick = () => B.close();
+    B.setTool = id => { B.tool = id || null; for (const k in btns) btns[k].classList.toggle('px-on', k === B.tool); if (o.onTool) o.onTool(B.tool); };
+    let tT = 0;
+    B.toast = txt => { toastEl.textContent = txt; toastEl.classList.add('px-on'); clearTimeout(tT); tT = setTimeout(() => toastEl.classList.remove('px-on'), 1600); };
+
+    // layout: célula do maior tamanho que cabe (mín. 40 px pra dar toque); se não couber, a vista rola
+    function layout(w, h) {
+      const pad = 12, s = Math.max(40, Math.floor(Math.min((w - pad * 2) / cols, (h - pad * 2) / rows)));
+      const gw = cols * s, gh = rows * s;
+      const minX = Math.min(pad, w - gw - pad), minY = Math.min(pad, h - gh - pad);
+      if (gw + pad * 2 <= w) B.pan.x = 0; else B.pan.x = Math.max(minX - (w - gw) / 2, Math.min(pad - (w - gw) / 2, B.pan.x));
+      if (gh + pad * 2 <= h) B.pan.y = 0; else B.pan.y = Math.max(minY - (h - gh) / 2, Math.min(pad - (h - gh) / 2, B.pan.y));
+      Object.assign(B.view, { s, x: Math.round((w - gw) / 2 + B.pan.x), y: Math.round((h - gh) / 2 + B.pan.y), w, h });
+    }
+    B.cellAt = (px, py) => { const v = B.view, c = Math.floor((px - v.x) / v.s), r = Math.floor((py - v.y) / v.s); return c >= 0 && r >= 0 && c < cols && r < rows ? [c, r] : null; };
+
+    const floor = o.floor || ((c, r) => ((c + r) & 1 ? '#8DBE5C' : '#82B454'));
+    let raf = 0;
+    function frame() {
+      if (!B.isOpen()) { raf = 0; return; }
+      const dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.max(100, wrap.clientWidth), h = Math.max(80, wrap.clientHeight);
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+      layout(w, h);
+      const g = cv.getContext('2d'), t = performance.now() / 1000, v = B.view;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
+      g.fillStyle = '#6E9E4A'; g.fillRect(0, 0, w, h);
+      // moldura de madeira
+      g.fillStyle = '#9A6A44'; g.fillRect(v.x - 8, v.y - 8, cols * v.s + 16, rows * v.s + 16);
+      g.strokeStyle = LINE; g.lineWidth = 3; g.strokeRect(v.x - 8, v.y - 8, cols * v.s + 16, rows * v.s + 16);
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const x = v.x + c * v.s, y = v.y + r * v.s;
+        g.fillStyle = floor(c, r); g.fillRect(x, y, v.s, v.s);
+        if (o.drawCell) { try { o.drawCell(g, c, r, x, y, v.s, t); } catch (e) { /* célula com erro não derruba a tela */ } }
+      }
+      g.strokeStyle = 'rgba(59,40,24,.18)'; g.lineWidth = 1;
+      for (let c = 1; c < cols; c++) { g.beginPath(); g.moveTo(v.x + c * v.s + 0.5, v.y); g.lineTo(v.x + c * v.s + 0.5, v.y + rows * v.s); g.stroke(); }
+      for (let r = 1; r < rows; r++) { g.beginPath(); g.moveTo(v.x, v.y + r * v.s + 0.5); g.lineTo(v.x + cols * v.s, v.y + r * v.s + 0.5); g.stroke(); }
+      if (o.draw) { try { o.draw(g, v, t); } catch (e) { /* idem */ } }
+      // rastro do arraste e seleção pulsando
+      if (drag && drag.on && drag.cells.length) { g.fillStyle = 'rgba(243,201,74,.45)'; for (const [c, r] of drag.cells) g.fillRect(v.x + c * v.s + 2, v.y + r * v.s + 2, v.s - 4, v.s - 4); }
+      if (B.sel) { const [c, r] = B.sel, p = 2 + Math.sin(t * 6) * 1.5; g.strokeStyle = '#FFF3B0'; g.lineWidth = 3; g.strokeRect(v.x + c * v.s + p, v.y + r * v.s + p, v.s - p * 2, v.s - p * 2); g.strokeStyle = LINE; g.lineWidth = 1.5; g.strokeRect(v.x + c * v.s + p - 2, v.y + r * v.s + p - 2, v.s - p * 2 + 4, v.s - p * 2 + 4); }
+      raf = requestAnimationFrame(frame);
+    }
+
+    // entrada: toque = selecionar; arrastar com ferramenta = caminho de células; arrastar sem ferramenta = mover a vista
+    let drag = null;
+    const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    function stepTo(cells, to) {   // completa o caminho com vizinhos de 4 lados (esteira não anda na diagonal)
+      let [c, r] = cells[cells.length - 1];
+      while (c !== to[0] || r !== to[1]) { if (c !== to[0]) c += Math.sign(to[0] - c); else r += Math.sign(to[1] - r); cells.push([c, r]); }
+    }
+    cv.addEventListener('pointerdown', e => { const p = pos(e); drag = { p0: p, last: p, cell: B.cellAt(p[0], p[1]), on: false, cells: [] }; try { cv.setPointerCapture(e.pointerId); } catch (x) { /* */ } });
+    cv.addEventListener('pointermove', e => {
+      if (!drag) return; const p = pos(e);
+      if (!drag.on && Math.hypot(p[0] - drag.p0[0], p[1] - drag.p0[1]) > 8) { drag.on = true; if (B.tool && drag.cell) drag.cells = [drag.cell.slice()]; }
+      if (!drag.on) return;
+      if (B.tool) { const c = B.cellAt(p[0], p[1]); if (c && drag.cells.length) { const l = drag.cells[drag.cells.length - 1]; if (l[0] !== c[0] || l[1] !== c[1]) { stepTo(drag.cells, c); if (o.onDrag) o.onDrag(drag.cells, false); } } }
+      else { B.pan.x += p[0] - drag.last[0]; B.pan.y += p[1] - drag.last[1]; }
+      drag.last = p;
+    });
+    const up = () => {
+      if (!drag) return; const d = drag; drag = null;
+      if (!d.on) { if (d.cell) { B.sel = d.cell; if (o.onTap) o.onTap(d.cell[0], d.cell[1]); } else B.sel = null; }
+      else if (B.tool && d.cells.length && o.onDrag) o.onDrag(d.cells, true);
+    };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { drag = null; });
+
+    B.isOpen = () => root.classList.contains('px-open');
+    B.open = () => { if (B.isOpen()) return B; root.classList.add('px-open'); if (!raf) raf = requestAnimationFrame(frame); if (o.onOpen) o.onOpen(); return B; };
+    B.close = () => { if (!B.isOpen()) return B; root.classList.remove('px-open'); drag = null; if (o.onClose) o.onClose(); return B; };
+    window.addEventListener('keydown', e => { if (e.key === 'Escape' && B.isOpen()) B.close(); });
+    return B;
+  }
+  E.Board = Board;
+})();
+
+
+/* ===== engine/sim.js ===== */
+/* ============================================================================
+   Pixxel v1.0 — sim.js
+   E.Sim: sistemas que rodam por TEMPO, separados do desenho. Base pra ganho offline, fábrica e cidade
+   funcionarem fora da tela, e pra simuladores de balanço rodarem rápido em headless.
+     const sim = E.Sim();
+     sim.add('fabrica', { tick(dt) {...}, offline(dt) { ...; return { yen: 10 } } });
+     sim.tick(dt)                 -> chama tick(dt) de todos (no loop do jogo)
+     sim.catchUp(secs, {maxStep}) -> tempo fora: chama offline(dt) em passos de até maxStep s (padrão 60),
+                                     soma os números que cada sistema devolve -> { fabrica: { yen: 600 }, ... }
+     sim.list()                   -> ids registrados
+   Sistema sem offline() simplesmente não anda enquanto o jogo está fechado (nada estraga quando você sai).
+   Depende de: core.js
+   ============================================================================ */
+(function () {
+  'use strict';
+  const E = (window.Pixxel = window.Pixxel || {});
+  function Sim() {
+    const list = [];
+    const merge = (into, r) => { for (const k in r) if (typeof r[k] === 'number') into[k] = (into[k] || 0) + r[k]; };
+    const sim = {
+      add(id, sys) { const i = list.findIndex(s => s.id === id); const s = Object.assign({ id }, sys); if (i >= 0) list[i] = s; else list.push(s); return sim; },
+      get: id => list.find(s => s.id === id) || null,
+      list: () => list.map(s => s.id),
+      tick(dt) { for (let i = 0; i < list.length; i++) { const s = list[i]; if (s.tick) { try { s.tick(dt); } catch (e) { console.warn('[pixxel] sim ' + s.id, e); } } } },
+      catchUp(secs, o) {
+        const max = (o && o.maxStep) || 60, out = {};
+        let left = Math.max(0, +secs || 0);
+        while (left > 0) {
+          const d = Math.min(max, left); left -= d;
+          for (const s of list) if (s.offline) { try { const r = s.offline(d); if (r) merge(out[s.id] || (out[s.id] = {}), r); } catch (e) { console.warn('[pixxel] sim offline ' + s.id, e); } }
+        }
+        return out;
+      },
+    };
+    return sim;
+  }
+  E.Sim = Sim;
 })();
 

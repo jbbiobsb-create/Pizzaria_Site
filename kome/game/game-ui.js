@@ -11,6 +11,59 @@
   let acc = 0, sampleT = 0, lastComboTone = '';
 
   const yen = v => '¥ ' + U.fmt(Math.ceil(v));
+
+  /* ---- FILEIRA DE CHIPS (logo abaixo da barra da montanha): Vila, Fábrica, Tatuzão, Ilhas... tudo que é "atalho pra outro
+     lugar" entra aqui por G.HUD.chip({id, icon, label, order, tone, onClick}) -> {el, set({label, hot, hint, prio, show, icon, tone})}.
+     Chip = ícone + nome curto (44 px de toque). Só UM chip por vez (o de maior prio > 0 e com hint) abre o texto de detalhe e
+     pulsa; os outros com prio > 0 ganham só uma bolinha dourada. Quebra em até 2 linhas e nunca entra no iene nem na casa. */
+  if (UI && UI.defineIcon) {
+    UI.defineIcon('mount', (P, C) => { P.poly([[0, 14], [6, 3], [10, 9], [12, 6], [16, 14]], C.gold || '#E0B040').poly([[4, 7], [6, 3], [8, 6]], '#FFF8EC').rect(0, 14, 16, 2, '#7A5034'); });
+    UI.defineIcon('factory', (P, C) => { P.rect(11, 1, 3, 7, '#8A5A44').rect(1, 8, 14, 7, C.red || '#C8423A').poly([[1, 8], [5, 5], [5, 8], [9, 5], [9, 8]], C.red || '#C8423A').rect(3, 10, 2, 2, '#FFF3B0').rect(7, 10, 2, 2, '#FFF3B0').rect(11, 10, 2, 5, '#5A3A28'); });
+    UI.defineIcon('drill', (P, C) => { P.rect(1, 5, 8, 7, '#C9D2DA').rect(1, 7, 8, 1, '#8794A0').poly([[9, 3], [15, 8], [9, 13]], C.gold || '#E0B040').rect(11, 6, 1, 5, '#9A6A20').rect(2, 12, 2, 2, '#5A3A28').rect(6, 12, 2, 2, '#5A3A28'); });
+  }
+  const chips = []; let chipRow = null, chipFitT = 0;
+  function chipFit() {   // largura máxima: do fim do iene/¥-s até o começo do cartão da casa, medido na tela (vale pra celular)
+    if (!chipRow || !yenPill) return;
+    const pr = chipRow.parentNode.getBoundingClientRect(), k = pr.width / (chipRow.parentNode.offsetWidth || 1) || 1, cx = pr.left + pr.width / 2;
+    let l = 0, r = window.innerWidth;
+    for (const e of [yenPill.el || yenPill, rate && (rate.el || rate)]) if (e && e.getBoundingClientRect) { const b = e.getBoundingClientRect(); if (b.width) l = Math.max(l, b.right); }
+    const fe = flyer && (flyer.el || flyer); if (fe && fe.getBoundingClientRect) { const b = fe.getBoundingClientRect(); if (b.width && b.left > cx) r = b.left; }
+    const w = Math.max(200, Math.floor(2 * Math.min(cx - l, r - cx) / k) - 20);
+    if (chipRow._w !== w) { chipRow._w = w; chipRow.style.maxWidth = w + 'px'; }
+  }
+  function chipLayout() {
+    let top = null;
+    for (const c of chips) if (c.on && c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
+    for (const c of chips) {
+      const hot = c === top, e = c.el;
+      e.style.display = c.on ? '' : 'none';
+      e.classList.toggle('k-chip-hot', hot); e.classList.toggle('k-pulse', hot);
+      e.classList.toggle('k-chip-dot', !hot && c.on && c.prio > 0);
+      const lb = hot && c.hot ? c.hot : c.label, hi = hot ? '· ' + c.hint : '';
+      if (c.b.textContent !== lb) c.b.textContent = lb;
+      if (c.sm.textContent !== hi) c.sm.textContent = hi;
+      const tn = hot ? '' : (c.tone || ''); if (e.style.background !== tn) e.style.background = tn;
+    }
+    chipFit();
+  }
+  HUD.chip = function (o) {
+    const Z = HUD.zones.tc; if (!Z || !UI) return null;
+    if (!chipRow) { chipRow = document.createElement('div'); chipRow.className = 'k-chips'; Z.appendChild(chipRow); window.addEventListener('resize', () => setTimeout(chipFit, 60)); }
+    const b = document.createElement('button'); b.className = 'k-btn k-chip'; b.setAttribute('data-chip', o.id);
+    b.innerHTML = '<span class="k-chip-i"></span><b></b><small></small>';
+    const c = { id: o.id, el: b, b: b.querySelector('b'), sm: b.querySelector('small'), ic: b.querySelector('.k-chip-i'), label: o.label || '', hot: '', hint: '', prio: 0, on: o.show !== false, tone: o.tone || '', order: o.order || 0, icon: null };
+    c.set = function (p) {
+      if (p.icon !== undefined && p.icon !== c.icon) { c.icon = p.icon; c.ic.textContent = ''; const i = UI.iconEl ? UI.iconEl(p.icon, 20) : null; if (i) c.ic.appendChild(i); }
+      if (p.label !== undefined) c.label = p.label; if (p.hot !== undefined) c.hot = p.hot;
+      if (p.hint !== undefined) c.hint = p.hint || ''; if (p.prio !== undefined) c.prio = +p.prio || 0;
+      if (p.show !== undefined) c.on = !!p.show; if (p.tone !== undefined) c.tone = p.tone;
+      chipLayout(); return c;
+    };
+    b.addEventListener('click', e => { e.stopPropagation(); if (o.onClick) o.onClick(e); b.blur(); });
+    let at = null; for (const q of chips) if (q.order > c.order) { at = q; break; }
+    chips.splice(at ? chips.indexOf(at) : chips.length, 0, c); chipRow.insertBefore(b, at ? at.el : null);
+    return c.set({ icon: o.icon || 'star' });
+  };
   function icon(id) { return G.Props ? G.Props.icon(id) : 'paw'; }
 
   // descrição curta do efeito de um nó (a partir do fx)
@@ -47,6 +100,17 @@
   }
 
   // init(api): monta o HUD. api = {stage, buyTool, buyNode, buyHouse, horn, nodeState, exportStr, importStr, reset, setOpt}
+  // lane(out): faixa livre AO LADO do iene (entre o iene e a barra da montanha), em coords do palco: é onde os "+¥" grandes sobem
+  HUD.lane = function (out) {
+    if (!yenPill || !mount || !api) return null;
+    const cv = api.stage && api.stage.cv, ye = yenPill.el || yenPill, me = mount.el || mount, re = rate && (rate.el || rate);
+    if (!cv || !ye.getBoundingClientRect || !me.getBoundingClientRect) return null;
+    const c = cv.getBoundingClientRect(), y = ye.getBoundingClientRect(), m = me.getBoundingClientRect(), k = cv.width / (api.stage.dpr || 1) / (c.width || 1);
+    if (!y.width || !m.width) return null;
+    const r = re && re.getBoundingClientRect ? re.getBoundingClientRect() : y;
+    out.x0 = (Math.max(y.right, r.right) + 8 - c.left) * k; out.x1 = (m.left - 8 - c.left) * k; out.y = (y.bottom - 4 - c.top) * k;
+    return out.x1 - out.x0 > 110 ? out : null;
+  };
   HUD.init = function (a) {
     api = a; S = G.S;
     if (!UI) return;
@@ -60,6 +124,7 @@
       () => U.fmt(S.dug * 40) + ' grãos cavados',
       () => 'tempo: ' + U.fmtTime(S.time) ] });
     combo = UI.bar(Z.tl, { size: 'sm', label: 'combo', value: '×1,00', endowed: 0.1 });
+    (combo.el || combo).classList.add('k-digonly');
 
     mount = UI.goal(Z.tc, { label: 'Montanha', w: 250, pct: true, done: 'acabou!', endowed: 0.12,
       ticks: [{ at: 0.06, color: PAL.pressD }, { at: 0.23, color: PAL.sakuraD || PAL.pink }, { at: 0.8, color: PAL.gold }] });

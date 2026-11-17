@@ -353,6 +353,7 @@
   const edge = { x: 0, y: 0 };
   const DIESEL_TINT = ['#8FB8E8', '#4F78B0'];
   let popT = -9, popN = 0;
+  const LANE = { x0: 0, x1: 0, y: 0 }; let laneF = null, laneV = 0, laneC = false, laneT = -9;
   let smallV = 0, smallK = 0, smallT = 0, smallShow = false;
   function smallTick(dt) {
     smallT += dt; if (smallT < 1.2 || smallV <= 0) return;
@@ -380,7 +381,19 @@
     popN = S.time - popT < 0.4 ? Math.min(4, popN + 1) : 0; popT = S.time;
     y -= popN * (POP[i][1] + 4) / Math.max(0.4, cam.z);
     const txt = '+¥' + U.fmt(v) + (crit ? ' kin!' : '') + (st.nodes && S.own.m_d ? ' ^_^' : '');
-    floaters.add(x + U.rnd(-4, 4) / cam.z, y, txt, { c: kind === 1 ? PAL.grayL : crit ? PAL.gold : S.own.m10 ? PAL.goldL : POP[i][2], size: (kind === 1 ? 10 : POP[i][1]) * (crit ? 1.25 : 1), life: 0.9 + i * 0.15, shake: cur.kind === 'jack' ? 1.2 : i >= 4 ? 1.5 : 0, pop: 1 + i * 0.25 });
+    const col = kind === 1 ? PAL.grayL : crit ? PAL.gold : S.own.m10 ? PAL.goldL : POP[i][2];
+    // pop GRANDE (>= 10 s de renda): não nasce mais em cima do coletor (tapava esteira, máquinas e o "MORDIDA PERFEITA" da roda).
+    // Sobe na faixa livre ao lado do iene, tamanho travado, e pops seguidos SOMAM no mesmo texto em vez de empilhar.
+    const ln = i >= 2 && kind !== 1 && HUD.lane ? HUD.lane(LANE) : null;
+    if (ln) {
+      const live = laneF && laneF.life > 0 && laneF.ui && S.time - laneT < 0.7;
+      laneV = live ? laneV + v : v; laneC = live ? laneC || crit : !!crit; laneT = S.time;
+      let t2 = '+¥' + U.fmt(laneV) + (laneC ? ' kin!' : ''), sz = (ln.x1 - ln.x0) / (t2.length * 0.6);
+      if (sz < 18 && laneC) { t2 = '+¥' + U.fmt(laneV); sz = (ln.x1 - ln.x0) / (t2.length * 0.6); }   // faixa estreita (celular): sem o "kin!", o dourado já diz
+      sz = U.clamp(sz, 15, 24);
+      if (live) { laneF.txt = t2; laneF.size = sz; laneF.life = laneF.life0; laneF.y = Math.max(laneF.y, ln.y - 14); laneF.vy = -18; laneF.c = laneC ? PAL.gold : col; }
+      else laneF = floaters.add((ln.x0 + ln.x1) / 2, ln.y, t2, { c: col, size: sz, life: 1.25, vy: -34, rot: 0, pop: 1, ui: true });
+    } else floaters.add(x + U.rnd(-4, 4) / cam.z, y, txt, { c: col, size: Math.min(24, (kind === 1 ? 10 : POP[i][1]) * (crit ? 1.25 : 1)), life: 0.9 + i * 0.15, shake: cur.kind === 'jack' ? 1.2 : 0, pop: 1 + Math.min(i, 2) * 0.25 });
     if (i >= 2 && kind !== 1) { parts.coins(x, y, 2 + i * 2); HUD.bump(); }
     if (i >= 4) fx.hitstop(0.06);
     if (crit && S.own.s7) parts.coins(x, y, 6);
@@ -1531,6 +1544,8 @@
     cam.zoomTo(z, zk);
     let fxx = P.x, fyy = P.y;
     if (S.camLock) { cam.zoomTo(S.camLock.z, 9); cam.follow(S.camLock.x, S.camLock.y !== undefined ? S.camLock.y : -120, dt, 9); cam.update(dt); return; }   // só pra testes/prints
+    if (vila.on !== vila.cls) { vila.cls = vila.on; document.body.classList.toggle('k-vila', vila.on); }   // some o HUD de cavar (game.css)
+    if (vila.on && vila.k >= 1 && !vila.auto && vila.hintT === undefined) vila.hintT = 3.6; if (vila.hintT > 0 && vila.k >= 1) vila.hintT -= dt;
     if (vila.on || vila.k > 0) {
       if (vila.on && vila.auto > 0 && vila.k >= 1 && (vila.auto -= dt) <= 0) vila.on = false;
       if (vila.hold === undefined) vila.k = U.clamp(vila.k + (vila.on ? dt : -dt) / 1.5, 0, 1); else vila.k = vila.hold;   // hold: só pros prints (voo congelado)
@@ -1754,7 +1769,7 @@
       g.fillStyle = PAL.line; g.beginPath(); g.moveTo(x + d * 8, y); g.lineTo(x - d * 5, y - 9); g.lineTo(x - d * 5, y + 9); g.closePath(); g.fill();
     }
     g.globalAlpha = 1;
-    if (!vila.panned && (more[0] || more[1])) Draw.text(g, 'arraste pra passear pela vila · toque pra voltar', W / 2, H * 0.795, { size: 18, col: PAL.cream, sw: 5 });   // na faixa de terra, embaixo da rua: não tapa casa nem placa
+    if (vila.hintT > 0 && !vila.panned) { g.globalAlpha = Math.min(1, vila.hintT / 0.6); Draw.text(g, 'arraste pra passear · toque pra voltar', W / 2, H * 0.82, { size: 18, col: PAL.cream, sw: 5 }); g.globalAlpha = 1; }   // 1 vez por sessão, 3 s e some   // na faixa de terra, embaixo da rua: não tapa casa nem placa
     g.restore();
   }
   function drawFlight(g, t) {
@@ -1942,6 +1957,7 @@
       const dock = kids('.k-zone-dock > :not(.k-spacer)'), top = kids('.k-zone-tl > *, .k-zone-tc > *, .k-zone-tr > *');
       const topB = top.reduce((m, r) => Math.max(m, r.bottom), 0);
       if (portFix) {
+        document.body.classList.remove('k-zbl');
         // em pé: controles colados embaixo, barra de compras logo acima deles
         const s = U.clamp(Math.min(vw * 0.3, vh * 0.15), 92, 128), b = 18;
         place(joy, s, 'left', b); place(dig, s * 0.92, 'right', b + s * 0.04);
@@ -1961,14 +1977,16 @@
       if (UI.root) UI.root.style.removeProperty('--k-pad-dock');
       // deitado: no vão entre o HUD de cima e a barra de compras
       const dockT = dock.reduce((m, r) => Math.min(m, r.top), vh);
-      const L = r => r.left < vw * 0.3, Rr = r => r.right > vw * 0.7;
+      const L = r => r.left < vw * 0.3 && r.right < vw * 0.5, Rr = r => r.right > vw * 0.7 && r.left > vw * 0.5;   // a fileira de chips cruza o meio: é do centro
       const tl = top.filter(L).reduce((m, r) => Math.max(m, r.bottom), 0), tr = top.filter(Rr).reduce((m, r) => Math.max(m, r.bottom), 0);
-      const sj = U.clamp(dockT - tl - 16, 64, 88), sd = U.clamp(dockT - tr - 16, 64, 84);
+      // zoom e tela cheia: no canto esquerdo, embaixo do combo (antes ficavam no meio, em cima dos chips); sem espaço, voltam pro centro
+      const zl = dockT - tl - 68 >= 64; document.body.classList.toggle('k-zbl', zl);
+      const sj = U.clamp(dockT - tl - 16 - (zl ? 52 : 0), 64, 88), sd = U.clamp(dockT - tr - 16, 64, 84);
       place(joy, sj, 'left', vh - dockT + 10);
       place(dig, sd, 'right', vh - dockT + 10);
       const tc = top.filter(r => !L(r) && !Rr(r)).reduce((m, r) => Math.max(m, r.bottom), 0);
-      full.style.top = px(tc + 6);
-      document.body.style.setProperty('--k-tip-top', px(Math.max(topB, tc + 46) + 8));
+      full.style.top = px(zl ? tl + 8 : tc + 6);
+      document.body.style.setProperty('--k-tip-top', px(Math.max(topB, tc + (zl ? 0 : 46)) + 8));
     }
     const relayout = () => { fitHud(); layoutPad(); zbs && syncZb(); };
     // painel aberto (menu, árvore, ajustes, oficina…): esconde joystick, CAVAR e zoom pra não ficarem por cima
@@ -2047,13 +2065,9 @@
       reset: () => { save.clear(); saveNow = () => {}; location.reload(); } });
     if (UI) UI.sound = !S.opts.mute;
     // chip "Vila" <-> "Montanha" no topo (junto do chip das ilhas e da Fábrica)
-    if (HUD.zones && HUD.zones.tc) {
-      const b = document.createElement('button'); b.className = 'k-btn k-islchip k-vilachip'; b.style.background = '#FFE3EE';
-      b.innerHTML = '<span class="k-islchip-t"><b></b><small></small></span>';
-      b.addEventListener('click', e => { e.stopPropagation(); vilaGo(!vila.on); b.blur(); });
-      HUD.zones.tc.appendChild(b);
-      const bt = b.querySelector('b'), sm = b.querySelector('small');
-      const tick = () => { const on = vila.on, a = on ? 'Montanha' : 'Vila', c = on ? 'voltar pro pátio' : 'ver a Vila do Kome'; if (bt.textContent !== a) { bt.textContent = a; sm.textContent = c; } b.style.display = S.stats.tipDone || S.time > 31 ? '' : 'none'; };
+    if (HUD.chip) {
+      const vc = HUD.chip({ id: 'vila', icon: 'house', label: 'Vila', order: 10, tone: '#FFE3EE', show: false, onClick: () => vilaGo(!vila.on) });
+      const tick = () => { if (vc) vc.set({ label: vila.on ? 'Montanha' : 'Vila', icon: vila.on ? 'mount' : 'house', show: !!(S.stats.tipDone || S.time > 31) }); };
       setInterval(tick, 300); tick();
     }
     if (G.Ind) G.Ind.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
@@ -2102,6 +2116,7 @@
     playAs(i, twin) { S.cele.t = -1; const ok = playAs(i, twin); cam.snapTo(P.x, P.y - 60, cur.zoom); return ok && cur.id; },
     paused: () => !!cs || !!S.endOpen || !!(G.Home && G.Home.isOpen()) || !!(G.IslandsUI && (G.IslandsUI.isOpen() || G.IslandsUI.coaching())) || PORTRAIT(),   // robô: pausa de propósito não é travamento
     addMoney(v) { S.money += v; return S.money; },
+    pop(v, crit, kind) { credit(v, kind | 0, !!crit); },   // prints: estoura um "+¥" de pagamento
     vila(on, x, z) { const ok = vilaGo(on !== false, x, z); return ok; }, vilaK: () => vila.k, vilaHold(k) { vila.hold = k === null ? undefined : k; },
     // step(seg, dt=1/30): avança a simulação sem desenhar (determinístico o bastante pro autoplayer)
     step(sec, h) { h = h || 1 / 30; FAST = true; const n = Math.round(sec / h); try { for (let i = 0; i < n; i++) update(h); } finally { FAST = false; } return S.time; },
