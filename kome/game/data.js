@@ -107,9 +107,13 @@
      Preços em segundos de renda (G.priceIps). */
   D.FAB = {
     beltSpeed: 2, priceK: 3.0,   // priceK: calibrado no tools/fabrica-sim.js (a tabela abaixo é a da spec)
-    dock: { pct0: 0.025, pctLvl: 0.035, pctMax: 0.25, items0: 1, itemsGrow: 1.4, price: 30 },   // items0 1 = a Panela grátis dá conta sozinha
-    lvl: { speed: 0.25, cost: 1.6, max: 10 },
-    unlock: { pilao: 600, dourado: 20 },
+    // doca: price/costGrow = preço do nível (price × costGrow^nível, em s de renda × priceK). É ela que manda na fatia da renda.
+    dock: { pct0: 0.025, pctLvl: 0.035, pctMax: 0.25, items0: 1, itemsGrow: 1.4, price: 55, costGrow: 1.25 },   // items0 1 = a Panela grátis dá conta sozinha
+    // nível de máquina = tapa-buraco (resposta do designer de 17/11): preço = min(preço da máquina, cap) × base × cost^nível.
+    // cost 1,25 e base 0,45: o 1º nível custa ~56% da máquina e sempre tem um nível comprável em ≤ 180 s; cap 45: o Pilão não
+    // cobra 6× mais que a Panela por nível. Conferir com `node tools/fabrica-sim.js --runs 8`.
+    lvl: { speed: 0.25, cost: 1.25, base: 0.45, cap: 45, max: 10 },
+    unlock: { pilao: 1000, dourado: 20 },   // 1000 onigiris ≈ 12–15 min (era 600 com o preço-base inflado do começo; ver PASSAGEM)
     items: { raw: { val: 1, base: 1 }, gold: { val: 6, base: 6 }, cozido: { val: 2, base: 1 }, onigiri: { val: 4, base: 1 },
       mochi: { val: 12, base: 2 }, mochid: { val: 48, base: 8 } },
     machines: {

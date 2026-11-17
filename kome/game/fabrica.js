@@ -16,7 +16,7 @@
   const GW = 8, GH = 6, CELL = 52, GX = 272, GY = 104;
   const BELT_SPEED = F.beltSpeed, SP = 0.25;
   const LVL_SPEED = F.lvl.speed, LVL_COST = F.lvl.cost, MAX_LVL = F.lvl.max;
-  const UNLOCK_PILAO = F.unlock.pilao, UNLOCK_DOURADO = F.unlock.dourado;
+  const UNLOCK = F.unlock;   // lido ao vivo (painel ?dev e fabrica-sim --set)
   const ITEMS = {
     raw: { name: 'Arroz cru' }, gold: { name: 'Arroz Dourado' }, cozido: { name: 'Arroz Cozido' },
     onigiri: { name: 'Onigiri' }, mochi: { name: 'Mochi' }, mochid: { name: 'Mochi Dourado' },
@@ -61,9 +61,10 @@
   // preço em segundos da renda MÉDIA de cavar (1 min). Não usa o G.priceIps do jogo: ele guarda o pico de todos os tempos,
   // que no núcleo dourado da Bagger fica muitas vezes acima da renda normal da montanha nova (1ª compra levava 30 min)
   const priceIps = () => Math.max(10, S.slow || S.digRate || (GS() && GS().ips) || 10) * (F.priceK || 1);
-  const dockPrice = () => F.dock.price * Math.pow(LVL_COST, S.dockLvl) * priceIps();
+  const dockMax = () => dockPct() >= F.dock.pctMax;
+  const dockPrice = () => F.dock.price * Math.pow(F.dock.costGrow || F.lvl.cost, S.dockLvl) * priceIps();
   const machinePrice = type => MDEF[type].price * priceIps();
-  const levelPrice = m => Math.max(MDEF[m.type].price, 20) * Math.pow(LVL_COST, m.lvl) * priceIps();
+  const levelPrice = m => Math.min(Math.max(MDEF[m.type].price, 20), F.lvl.cap || 1e9) * (F.lvl.base || 1) * Math.pow(F.lvl.cost, m.lvl) * priceIps();
   const recipeOf = m => MDEF[m.type].recipes[m.rec] || { in: {}, out: null, time: 1 };
   const speedOf = m => 1 + LVL_SPEED * (m.lvl - 1);
   function rates() {
@@ -210,7 +211,8 @@
     S.rateT += dt;
     if (S.rateT >= 1) {
       const k = Math.min(1, S.rateT / 8);
-      S.slow += (S.digAcc / S.rateT - S.slow) * Math.min(1, S.rateT / 60);
+      const r0 = S.digAcc / S.rateT;
+      if (!(S.slow > 0)) S.slow = r0; else S.slow += (r0 - S.slow) * Math.min(1, S.rateT / 60);   // 1ª medida já vale (não sobe de zero)
       S.digRate += (S.digAcc / S.rateT - S.digRate) * k; S.sackRate += (S.sackAcc / S.rateT - S.sackRate) * k;
       if (S.sackAcc > 0) S.goldMix += (S.goldAcc / S.sackAcc - S.goldMix) * k;
       S.digAcc = S.sackAcc = S.goldAcc = 0; S.rateT = 0;
@@ -276,8 +278,8 @@
       if (allStuck && keep.length >= 3) c.jam = Math.min(6, c.jam + dt); else c.jam = Math.max(0, c.jam - dt * 2);
     }
     // 4) desbloqueios
-    if (!S.unlocked.pilao && S.made.onigiri >= UNLOCK_PILAO) { S.unlocked.pilao = true; celebrate('Pilão liberado!', 'você fez ' + UNLOCK_PILAO + ' onigiris: agora dá pra bater mochi'); }
-    if (!S.unlocked.mochid && S.made.mochi >= UNLOCK_DOURADO && hasGold()) { S.unlocked.mochid = true; celebrate('Receita Mochi Dourado!', '2 cozidos + 1 Arroz Dourado no pilão: vale 48×'); }
+    if (!S.unlocked.pilao && S.made.onigiri >= UNLOCK.pilao) { S.unlocked.pilao = true; celebrate('Pilão liberado!', 'você fez ' + UNLOCK.pilao + ' onigiris: agora dá pra bater mochi'); }
+    if (!S.unlocked.mochid && S.made.mochi >= UNLOCK.dourado && hasGold()) { S.unlocked.mochid = true; celebrate('Receita Mochi Dourado!', '2 cozidos + 1 Arroz Dourado no pilão: vale 48×'); }
     // 5) renda da fábrica por segundo (média dos últimos 10 s)
     S.secT += dt;
     if (S.secT >= 1) { S.hist.push(S.facAcc / S.secT); if (S.hist.length > 10) S.hist.shift(); S.facAcc = 0; S.secT = 0; }
@@ -376,7 +378,7 @@
   function toast(t) { if (S.fast) return; toastMsg = { t, life: 1.8 }; }
 
   function buyMachine(type, x, y, rot, free) {
-    if (type === 'pilao' && !S.unlocked.pilao && !free) { toast('O Pilão abre com ' + UNLOCK_PILAO + ' onigiris'); sfx('error'); return null; }
+    if (type === 'pilao' && !S.unlocked.pilao && !free) { toast('O Pilão abre com ' + UNLOCK.pilao + ' onigiris'); sfx('error'); return null; }
     const at = fitAnchor(type, x, y, rot);
     if (!at) { sfx('error'); return null; }
     const price = free ? 0 : machinePrice(type);
@@ -420,13 +422,14 @@
   }
   function setRecipe(m, i) {
     if (m.rec === i) return;
-    if (i === 1 && !S.unlocked.mochid) { toast('Mochi Dourado abre com ' + UNLOCK_DOURADO + ' mochis'); sfx('error'); return; }
+    if (i === 1 && !S.unlocked.mochid) { toast('Mochi Dourado abre com ' + UNLOCK.dourado + ' mochis'); sfx('error'); return; }
     const a = beginAction();
     const c = mcenter(m), need = MDEF[m.type].recipes[i].in;
     for (const k in m.inB) if (!need[k]) { for (let j = 0; j < m.inB[k]; j++) sellLoose({ t: k }, c.x, c.y - 10); m.inB[k] = 0; }
     m.rec = i; commit(a); sfx('click');
   }
   function dockUp() {
+    if (dockMax()) { toast('A doca já está no máximo'); return; }
     const p = dockPrice();
     if (money() < p) { toast('Falta ¥' + U.fmt(p - money())); sfx('error'); return; }
     const a = beginAction(); spend(p); a.cost = p; S.dockLvl++; commit(a);
@@ -923,8 +926,8 @@
     if (S.sel && S.sel !== 'dock') return drawCard(S.sel, t);
     if (S.sel === 'dock') { txt('Doca de Entrada', X, 80, T(14)); txt('puxa ' + fmt1(dockCap()) + ' sacos/s', X, 100, T(12, '#6B4A2E')); txt('veja à esquerda', X, 118, T(11, '#8A6A4A')); }
     txt('Metas da fábrica', X, 80, T(14));
-    goal(796, 98, 'Pilão', S.made.onigiri, UNLOCK_PILAO, 'onigiris', S.unlocked.pilao, ICON.onigiri);
-    goal(796, 160, 'Mochi Dourado', S.made.mochi, UNLOCK_DOURADO, 'mochis', S.unlocked.mochid, ICON.mochid);
+    goal(796, 98, 'Pilão', S.made.onigiri, UNLOCK.pilao, 'onigiris', S.unlocked.pilao, ICON.onigiri);
+    goal(796, 160, 'Mochi Dourado', S.made.mochi, UNLOCK.dourado, 'mochis', S.unlocked.mochid, ICON.mochid);
     txt('Como jogar', X, 236, T(13));
     const tips = ['toque o botão e a casa', 'pra pôr máquina', 'arraste pra mover', 'toque 2× pra girar', 'Esteira: arraste o dedo', 'toque numa esteira: gira', 'toque na máquina:', 'cartão com nível'];
     tips.forEach((s, i) => txt(s, X, 256 + i * 16, T(11, i % 2 ? '#8A6A4A' : '#6B4A2E')));
@@ -954,7 +957,7 @@
     if (def.recipes.length > 1) {
       def.recipes.forEach((rc, i) => {
         const lock = i === 1 && !S.unlocked.mochid;
-        button(794 + i * 75, 156, 71, 44, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, size: 12, sub: lock ? UNLOCK_DOURADO + ' mochis' : (rc.time + ' s'), subSize: 11 });
+        button(794 + i * 75, 156, 71, 44, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, size: 12, sub: lock ? UNLOCK.dourado + ' mochis' : (rc.time + ' s'), subSize: 11 });
       });
       y = 214;
     }
@@ -985,7 +988,7 @@
       let sub = '', off = false, subCol;
       if (MDEF[tl.id] && tl.id !== 'divisor') {
         const p = machinePrice(tl.id);
-        if (tl.id === 'pilao' && !S.unlocked.pilao) { sub = S.made.onigiri + '/' + UNLOCK_PILAO + ' onigiris'; off = true; }
+        if (tl.id === 'pilao' && !S.unlocked.pilao) { sub = S.made.onigiri + '/' + UNLOCK.pilao + ' onigiris'; off = true; }
         else { sub = '¥' + U.fmt(p); subCol = money() >= p ? C.grassD : C.redD; }
       } else if (tl.id === 'esteira' || tl.id === 'divisor') sub = 'grátis';
       else if (tl.id === 'borracha') sub = 'devolve 100%';
@@ -993,7 +996,7 @@
       const icon = tl.id === 'pilao' && !S.unlocked.pilao ? SPR.lock : toolIcon(tl.id);
       button(x, y, w, 56, tl.name, () => {
         if (tl.id === 'undo') return doUndo();
-        if (off) { toast('O Pilão abre com ' + UNLOCK_PILAO + ' onigiris'); sfx('error'); return; }
+        if (off) { toast('O Pilão abre com ' + UNLOCK.pilao + ' onigiris'); sfx('error'); return; }
         S.tool = S.tool === tl.id ? null : tl.id; S.sel = null; sfx('click');
       }, { on: S.tool === tl.id, off, sub, subCol, icon, iconS: tl.id === 'esteira' || tl.id === 'divisor' || tl.id === 'borracha' || tl.id === 'undo' ? 2.4 : 3, iconX: 26, iconY: 10, textX: 48, size: 13 });
     });
@@ -1338,8 +1341,8 @@
       if (yen > 0 && api.toast) api.toast('Enquanto você estava fora', 'a fábrica terminou o que estava na esteira: +¥' + U.fmt(yen));
     },
     // chamados pelo game.js / items.js
-    dig(v) { S.digAcc += v; },
-    sacks(id, n) { S.sackAcc += n; if (id === 'koshi') S.goldAcc += n; },
+    dig(v) { if (S.on) S.digAcc += v; },                       // só conta com a fábrica aberta (senão a campanha inteira entrava na 1ª média)
+    sacks(id, n) { if (!S.on) return; S.sackAcc += n; if (id === 'koshi') S.goldAcc += n; },
     open, close, isOpen, unlock: () => unlock(true), on: () => S.on, persist,
     // testes e simulador
     step(sec) { const f = S.fast; S.fast = true; let left = sec; while (left > 1e-6) { const st = Math.min(left, 1 / 30); sim(st, false); left -= st; } S.fast = f; return G.Fab.state; },
@@ -1361,7 +1364,7 @@
     get state() {
       const rt = rates();
       return { on: S.on, fac: Math.round(rt.fac), raw: Math.round(rt.raw), share: +(rt.fac / Math.max(1, rt.raw + rt.fac)).toFixed(3), unit: unitV(),
-        made: Object.assign({}, S.made), unlocked: Object.assign({}, S.unlocked), dock: S.dockLvl, dockUse: +S.dockUse.toFixed(2), firstSale: S.firstSale,
+        made: Object.assign({}, S.made), unlocked: Object.assign({}, S.unlocked), dock: S.dockLvl, dockMax: dockMax(), dockUse: +S.dockUse.toFixed(2), firstSale: S.firstSale,
         machines: machines.map(m => ({ type: m.type, x: m.x, y: m.y, rot: m.rot, lvl: m.lvl, busy: +m.busy.toFixed(2) })), free: (() => { let n = 0; for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) if (!grid[y][x]) n++; return n; })() };
     },
   };
