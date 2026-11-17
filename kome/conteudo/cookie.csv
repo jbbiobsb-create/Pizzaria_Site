@@ -1,31 +1,674 @@
 tipo;id;nome;desc;maquina;condicao;alvo;efeito;valor;preco;peso;duracao;icone
-upgrade;pata_meias;Meias Antiderrapantes;Pata que não escorrega cava o dobro. Ciência.;pata;qtd;1;mult_maquina;2;10;;;paw
-upgrade;pata_unha;Unha Cortada pela Vó;Ela insistiu. Funcionou.;pata;qtd;5;mult_maquina;2;50;;;paw
-upgrade;hashi_elastico;Hashi de Treino com Elástico;Até o vovô Tetsu acerta grão por grão agora.;hashi;qtd;1;mult_maquina;2;10;;;check
-upgrade;tigela_funda;Tigela Sem Fundo (Quase);Tem fundo sim. Só fica bem longe.;tigela;qtd;25;mult_maquina;2;500;;;rice
-upgrade;britadeira_samba;Britadeira no Ritmo;15 pancadas por segundo e agora todas no tempo da música.;britadeira;qtd;50;mult_maquina;2;5e4;;;bolt
-upgrade;trator_enka;Buzina que Toca Enka;Os grãos saem do caminho por respeito.;trator;qtd;100;mult_maquina;2;5e6;;;horn
-upgrade;escav_cotovelo;Braço com Cotovelo Extra;Ninguém sabe onde ele dobra. Nem ele.;escav;qtd;150;mult_maquina;2;5e8;;;gear
-upgrade;bagger_copo;Bagger com Porta-Copos;14.200 toneladas e finalmente um lugar pro chá.;bagger;qtd;1;mult_maquina;2;10;;;horn
-upgrade;carona_trator;Carona no Trator;Cada Pata vai de carona e o trator fica 1% mais animado por Pata.;pata+trator;par;15;sinergia;0.01;30;;;swap
-upgrade;tigela_coracao_1;Tigela do Coração I;Cada conquista passa a valer +1% a mais. O coração cresce.;;conquistas;25;coracao;0.01;600;;;star
-conquista;matilha;Matilha;Tenha 10 Patas no pátio. Já dá pra fazer fila indiana.;pata;qtd;10;;;;;;paw
-conquista;cem_tratores;Cem Tratores e Um Sonho;Tenha 100 tratores. O sonho é estacionar todos.;trator;qtd;100;;;;;;trophy
-conquista;concessionaria;Já Dá pra Abrir uma Concessionária;Tenha 50 de cada uma das 14 turmas.;todas;qtd;50;;;;;;trophy
-conquista;quatrilhao;Quatrilhão de Grãos e Zero Arrependimento;Ganhe ¥1 quatrilhão no total.;;ganho;1e15;;;;;;yen
-conquista;sete_sortes;Sete Sortes;Pegue 7 eventos dourados. Sem pressa.;;eventos;7;;;;;;sack
-conquista;saudade;Saudade do Começo;Compre 1 hashi tendo 100 Baggers. O Kome nunca esquece as origens.;hashi;segredo;hashi_com_100_bagger;;;;;;check
-evento;frenesi;Frenesi do Shiba;Todo mundo corre! Renda ×7.;;sorteio;;frenesi;7;;40;60;bolt
+upgrade;m_pata_1;Meias Antiderrapantes;Pata que não escorrega cava o dobro. Ciência.;pata;qtd;1;mult_maquina;2;10;;;paw
+upgrade;m_pata_5;Unha Cortada pela Vó;Ela insistiu. Funcionou.;pata;qtd;5;mult_maquina;2;50;;;paw
+upgrade;m_pata_25;Almofadinha com Gel;Tecnologia de tênis de corrida aplicada a quem nunca correu de nada.;pata;qtd;25;mult_maquina;2;500;;;paw
+upgrade;m_pata_50;Pata de Home Office;Cava de pijama da cintura pra baixo. Ninguém percebe na câmera.;pata;qtd;50;mult_maquina;2;5e4;;;paw
+upgrade;m_pata_100;Luva de Boxe ao Contrário;Bate pra dentro. O arroz não entende, mas obedece.;pata;qtd;100;mult_maquina;2;5e6;;;paw
+upgrade;m_pata_150;Pata com Cashback;Cada patada devolve 2% em patada. O banco odeia esse truque.;pata;qtd;150;mult_maquina;2;5e8;;;paw
+upgrade;m_pata_200;Coach de Patada;Ele não sabe cavar, mas vende um curso sobre isso em 12x sem juros.;pata;qtd;200;mult_maquina;2;5e10;;;paw
+upgrade;m_pata_250;Pata Wi-Fi 6;Cava sem fio. Ninguém sabe como. A senha está na etiqueta.;pata;qtd;250;mult_maquina;2;5e12;;;paw
+upgrade;m_pata_300;Patada em 4K HDR;Cada grão em alta definição. Dá pra ver o arroz te julgando.;pata;qtd;300;mult_maquina;2;5e14;;;paw
+upgrade;m_pata_350;Pata Quântica;Está cavando e não está cavando até alguém abrir o extrato.;pata;qtd;350;mult_maquina;2;5e16;;;paw
+upgrade;m_pata_400;Patas Sincronizadas por Blockchain;Ninguém pediu. Funciona igual. Mas agora tem whitepaper.;pata;qtd;400;mult_maquina;2;5e18;;;paw
+upgrade;m_pata_450;Pata que Viu o Código-Fonte;Descobriu que o arroz é um array. Agora cava por índice.;pata;qtd;450;mult_maquina;2;5e20;;;paw
+upgrade;m_pata_500;A Pata Primordial;Antes do Big Bang havia uma patada. Era esta, de meias.;pata;qtd;500;mult_maquina;2;5e22;;;paw
+upgrade;m_hashi_1;Hashi de Treino com Elástico;Até o vovô Tetsu acerta grão por grão agora.;hashi;qtd;1;mult_maquina;2;10;;;check
+upgrade;m_hashi_5;Hashi Descartável Premium;Vem num saquinho de papel escrito obrigado. Já motiva.;hashi;qtd;5;mult_maquina;2;50;;;check
+upgrade;m_hashi_25;Hashi com Mira Laser;Pega o grão a 3 metros. O grão nem viu.;hashi;qtd;25;mult_maquina;2;500;;;check
+upgrade;m_hashi_50;Pinça de Sobrancelha Industrial;Precisão de salão, volume de mineradora.;hashi;qtd;50;mult_maquina;2;5e4;;;check
+upgrade;m_hashi_100;Hashi Ergonômico com Apoio de Pulso;Recomendado pelo RH depois da terceira tendinite.;hashi;qtd;100;mult_maquina;2;5e6;;;check
+upgrade;m_hashi_150;Hashi de Titânio Aeroespacial;Sobrou de um satélite. O satélite está bem, obrigado.;hashi;qtd;150;mult_maquina;2;5e8;;;check
+upgrade;m_hashi_200;Hashi Atualizou Sozinho;Reiniciou às 3 da manhã sem pedir. Agora pega 2 grãos por vez.;hashi;qtd;200;mult_maquina;2;5e10;;;check
+upgrade;m_hashi_250;Técnica do Mestre do Sushi;Treinou 20 anos só pra segurar o hashi. Mais 20 pra soltar.;hashi;qtd;250;mult_maquina;2;5e12;;;check
+upgrade;m_hashi_300;Hashi de Sabre de Luz;Faz vuuum. O arroz não queima, só fica constrangido.;hashi;qtd;300;mult_maquina;2;5e14;;;check
+upgrade;m_hashi_350;Hashi Telepático;Pensa no grão e o grão vem. Às vezes vem um boleto junto.;hashi;qtd;350;mult_maquina;2;5e16;;;check
+upgrade;m_hashi_400;Hashis Gêmeos Separados no Nascimento;Se reencontraram no pátio. Choraram. A produção dobrou.;hashi;qtd;400;mult_maquina;2;5e18;;;check
+upgrade;m_hashi_450;Hashi de Dez Metros;Pega o arroz da ilha vizinha. Os vizinhos estão processando.;hashi;qtd;450;mult_maquina;2;5e20;;;check
+upgrade;m_hashi_500;O Hashi que Segura o Universo;Se ele soltar, começa o Big Crunch. Sem pressão.;hashi;qtd;500;mult_maquina;2;5e22;;;check
+upgrade;m_tigela_1;Tigela com Bico;Agora derrama no lugar certo. Às vezes.;tigela;qtd;1;mult_maquina;2;10;;;rice
+upgrade;m_tigela_5;Pote de Micro-ondas Veterano;Tem a mancha de molho de 2019. Faz parte da personalidade.;tigela;qtd;5;mult_maquina;2;50;;;rice
+upgrade;m_tigela_25;Tigela Sem Fundo (Quase);Tem fundo sim. Só fica bem longe.;tigela;qtd;25;mult_maquina;2;500;;;rice
+upgrade;m_tigela_50;Marmita Térmica de Escritório;Leva o almoço e volta com 4 kg de arroz. Ninguém pergunta.;tigela;qtd;50;mult_maquina;2;5e4;;;rice
+upgrade;m_tigela_100;Pote Emprestado da Mãe;Se não devolver, ela vem buscar. Por isso rende o dobro.;tigela;qtd;100;mult_maquina;2;5e6;;;rice
+upgrade;m_tigela_150;Tigela por Assinatura;Chega uma nova todo mês. Cancelar exige ligar num 0800.;tigela;qtd;150;mult_maquina;2;5e8;;;rice
+upgrade;m_tigela_200;Tigela Fractal;Dentro de cada tigela tem outra tigela. Dentro dessa, arroz.;tigela;qtd;200;mult_maquina;2;5e10;;;rice
+upgrade;m_tigela_250;Tigela Banhada a Ouro de Tolo;Parece rica. É rica. De arroz.;tigela;qtd;250;mult_maquina;2;5e12;;;rice
+upgrade;m_tigela_300;Tigela de Bolso Dimensional;Cabe um caminhão de arroz. A chave de casa não, essa sumiu.;tigela;qtd;300;mult_maquina;2;5e14;;;rice
+upgrade;m_tigela_350;Tigela com IA Generativa;Gera arroz. Às vezes com seis dedos, mas é arroz.;tigela;qtd;350;mult_maquina;2;5e16;;;rice
+upgrade;m_tigela_400;Tigela do Tamanho de um Estádio;Fizeram uma final de Copa dentro. O VAR confirmou: arroz.;tigela;qtd;400;mult_maquina;2;5e18;;;rice
+upgrade;m_tigela_450;Tigela que Come Tigelas;Ouroboros de cerâmica. Muito filosófica. Muito cheia.;tigela;qtd;450;mult_maquina;2;5e20;;;rice
+upgrade;m_tigela_500;A Tigela do Fim dos Tempos;Quando ela encher, o jogo acaba. Ela nunca enche.;tigela;qtd;500;mult_maquina;2;5e22;;;rice
+upgrade;m_pa_1;Cabo de Madeira Lixado;Zero farpa. O sindicato aprovou.;pa;qtd;1;mult_maquina;2;10;;;mount
+upgrade;m_pa_5;Pá com Adesivo de Chama;Adesivo de chama deixa tudo 30% mais rápido. Fato automobilístico.;pa;qtd;5;mult_maquina;2;50;;;mount
+upgrade;m_pa_25;Pá Dobrável de Camping;Abre, cava, fecha. Nunca mais fecha direito, mas cava.;pa;qtd;25;mult_maquina;2;500;;;mount
+upgrade;m_pa_50;Pá com Bluetooth;Toca podcast de produtividade. O shiba finge que escuta.;pa;qtd;50;mult_maquina;2;5e4;;;mount
+upgrade;m_pa_100;Pá Assinada pelo Ministro;Ele inaugurou a obra e foi embora. A pá ficou. A pá trabalha.;pa;qtd;100;mult_maquina;2;5e6;;;mount
+upgrade;m_pa_150;Pá com Pau de Selfie;Cava e posta o story ao mesmo tempo. Engajamento alto.;pa;qtd;150;mult_maquina;2;5e8;;;mount
+upgrade;m_pa_200;Pá com Plano de Saúde;Trabalhador com dentista cava o dobro. Os estudos confirmam.;pa;qtd;200;mult_maquina;2;5e10;;;mount
+upgrade;m_pa_250;Pá Lendária da Sexta-Feira;Só funciona às 17h59. Mas aí funciona MUITO.;pa;qtd;250;mult_maquina;2;5e12;;;mount
+upgrade;m_pa_300;Pá Forjada em Lava;Esquenta o arroz no caminho. Spoiler da Fábrica.;pa;qtd;300;mult_maquina;2;5e14;;;mount
+upgrade;m_pa_350;Pá com Garantia Estendida Infinita;O vendedor ofereceu, o shiba aceitou. Agora ela não pode quebrar por contrato.;pa;qtd;350;mult_maquina;2;5e16;;;mount
+upgrade;m_pa_400;Excalipá;Tirada de uma pedra por um shiba muito nobre e um pouco confuso.;pa;qtd;400;mult_maquina;2;5e18;;;mount
+upgrade;m_pa_450;Pá que Cava Buraco no Tempo;Cava amanhã o arroz de ontem. A contabilidade desistiu.;pa;qtd;450;mult_maquina;2;5e20;;;mount
+upgrade;m_pa_500;A Primeira Pá do Universo;Achada no fundo da montanha com a etiqueta de preço ainda colada.;pa;qtd;500;mult_maquina;2;5e22;;;mount
+upgrade;m_duaspas_1;Pás Combinando;Duas pás iguais. Dupla sertaneja do arroz.;duaspas;qtd;1;mult_maquina;2;10;;;swap
+upgrade;m_duaspas_5;Ginástica Rítmica de Pá;Gira, cava, gira. Os jurados dão 10 em arroz.;duaspas;qtd;5;mult_maquina;2;50;;;swap
+upgrade;m_duaspas_25;Modo Ambidestro;Os shibas descobriram que têm duas patas da frente. Revolução.;duaspas;qtd;25;mult_maquina;2;500;;;swap
+upgrade;m_duaspas_50;Pás em Paralelo;Multithread de verdade. O Kome leu sobre isso num fórum.;duaspas;qtd;50;mult_maquina;2;5e4;;;swap
+upgrade;m_duaspas_100;Rivalidade Saudável;Uma quer cavar mais que a outra. O RH chama de cultura de alta performance.;duaspas;qtd;100;mult_maquina;2;5e6;;;swap
+upgrade;m_duaspas_150;Pás Casadas no Civil;Agora dividem o arroz em comunhão parcial de bens.;duaspas;qtd;150;mult_maquina;2;5e8;;;swap
+upgrade;m_duaspas_200;Dupla de Filme Policial;Uma segue o manual, a outra não segue regras. Juntas, cavam o crime.;duaspas;qtd;200;mult_maquina;2;5e10;;;swap
+upgrade;m_duaspas_250;Pás Nunchaku;Ninguém sabe cavar com isso. Mas é estiloso demais pra parar.;duaspas;qtd;250;mult_maquina;2;5e12;;;swap
+upgrade;m_duaspas_300;Dupla Dinâmica Turbo;Quatro pás agora. Ninguém mudou o nome da turma por preguiça.;duaspas;qtd;300;mult_maquina;2;5e14;;;swap
+upgrade;m_duaspas_350;Pás Treinadas em Rede Neural;Viram 10 milhões de vídeos de gente cavando. Overfitting de arroz.;duaspas;qtd;350;mult_maquina;2;5e16;;;swap
+upgrade;m_duaspas_400;Pás Hélice;Giram tão rápido que o shiba decola. Cava do alto agora.;duaspas;qtd;400;mult_maquina;2;5e18;;;swap
+upgrade;m_duaspas_450;Dueto de Ópera com Pá;Cantam enquanto cavam. O público chora arroz.;duaspas;qtd;450;mult_maquina;2;5e20;;;swap
+upgrade;m_duaspas_500;Dualidade Onda-Partícula de Pá;É uma pá e são duas pás. Física de pátio.;duaspas;qtd;500;mult_maquina;2;5e22;;;swap
+upgrade;m_carrinho_1;Pneu Calibrado;Finalmente alguém achou o posto com calibrador funcionando.;carrinho;qtd;1;mult_maquina;2;10;;;sack
+upgrade;m_carrinho_5;Buzina de Bicicleta;Fom fom. O arroz abre caminho por educação.;carrinho;qtd;5;mult_maquina;2;50;;;sack
+upgrade;m_carrinho_25;Carrinho Rebaixado;Som no talo, neon embaixo. O arroz viaja com estilo.;carrinho;qtd;25;mult_maquina;2;500;;;sack
+upgrade;m_carrinho_50;Carrinho com Câmbio Automático;Ninguém sabia que carrinho de mão tinha marcha. Agora tem cinco.;carrinho;qtd;50;mult_maquina;2;5e4;;;sack
+upgrade;m_carrinho_100;Carrinho de Supermercado Aposentado;Já viu coisas. Roda torta, alma forte.;carrinho;qtd;100;mult_maquina;2;5e6;;;sack
+upgrade;m_carrinho_150;Carrinho com Airbag;Bateu no muro, o airbag abriu, o arroz nem sentiu.;carrinho;qtd;150;mult_maquina;2;5e8;;;sack
+upgrade;m_carrinho_200;Carrinho com Selo Verde;Zero emissão. Só um shiba ofegante, que é energia renovável.;carrinho;qtd;200;mult_maquina;2;5e10;;;sack
+upgrade;m_carrinho_250;Carrinho Velozes e Furiosos;É sobre família. E arroz.;carrinho;qtd;250;mult_maquina;2;5e12;;;sack
+upgrade;m_carrinho_300;Carrinho com Piloto Automático;Leva sozinho. O shiba vai atrás lendo mangá.;carrinho;qtd;300;mult_maquina;2;5e14;;;sack
+upgrade;m_carrinho_350;Carrinho de Fórmula 1;Pit stop em 2,1 segundos. Trocaram o arroz e o pneu.;carrinho;qtd;350;mult_maquina;2;5e16;;;sack
+upgrade;m_carrinho_400;Carrinho Hipersônico;Passa a barreira do som com um shiba sorrindo de óculos escuros.;carrinho;qtd;400;mult_maquina;2;5e18;;;sack
+upgrade;m_carrinho_450;Carrinho que Empurra a Si Mesmo;Moto-perpétuo. A física convocou uma reunião de emergência.;carrinho;qtd;450;mult_maquina;2;5e20;;;sack
+upgrade;m_carrinho_500;O Carrinho de Mão de Deus;Uma roda só. Carrega uma galáxia de arroz. Não pede ajuda.;carrinho;qtd;500;mult_maquina;2;5e22;;;sack
+upgrade;m_britadeira_1;Protetor de Ouvido Rosa;O shiba agora aguenta o barulho. E fica lindo.;britadeira;qtd;1;mult_maquina;2;10;;;bolt
+upgrade;m_britadeira_5;Britadeira com Amortecedor;Treme o chão, não treme a pata. A ergonomia chegou.;britadeira;qtd;5;mult_maquina;2;50;;;bolt
+upgrade;m_britadeira_25;Britadeira às 7h de Sábado;O vizinho odeia. O arroz cede. Funciona assim no mundo todo.;britadeira;qtd;25;mult_maquina;2;500;;;bolt
+upgrade;m_britadeira_50;Britadeira no Ritmo;15 pancadas por segundo e agora todas no tempo da música.;britadeira;qtd;50;mult_maquina;2;5e4;;;bolt
+upgrade;m_britadeira_100;Britadeira com Modo Massagem;Metade do tempo cava, metade relaxa as costas. Mesmo assim dobra.;britadeira;qtd;100;mult_maquina;2;5e6;;;bolt
+upgrade;m_britadeira_150;Bateria de Rodinha de Hamster;A bateria é um shiba correndo numa rodinha. Ele adora.;britadeira;qtd;150;mult_maquina;2;5e8;;;bolt
+upgrade;m_britadeira_200;Britadeira Lo-fi;Lo-fi beats to dig rice to. Dez milhões de views.;britadeira;qtd;200;mult_maquina;2;5e10;;;bolt
+upgrade;m_britadeira_250;Britadeira com Cancelamento de Ruído;Não faz barulho nenhum. Os vizinhos ficaram desconfiados.;britadeira;qtd;250;mult_maquina;2;5e12;;;bolt
+upgrade;m_britadeira_300;Britadeira Sismológica;Detectada por três observatórios. Todos pediram autógrafo.;britadeira;qtd;300;mult_maquina;2;5e14;;;bolt
+upgrade;m_britadeira_350;Britadeira Pula-Pula;Cava pulando. O shiba ganhou panturrilha de atleta.;britadeira;qtd;350;mult_maquina;2;5e16;;;bolt
+upgrade;m_britadeira_400;Britadeira de Show de Metal;Bate cabeça junto. O arroz abre roda punk e sai sozinho.;britadeira;qtd;400;mult_maquina;2;5e18;;;bolt
+upgrade;m_britadeira_450;Britadeira que Quebra a Quarta Parede;Martela a tela. Por dentro. Com carinho.;britadeira;qtd;450;mult_maquina;2;5e20;;;bolt
+upgrade;m_britadeira_500;A Batida do Coração da Terra;O planeta pulsa no ritmo dela. Os sismógrafos dançam.;britadeira;qtd;500;mult_maquina;2;5e22;;;bolt
+upgrade;m_trator_1;Banco Acolchoado;Bunda feliz, trator produtivo.;trator;qtd;1;mult_maquina;2;10;;;horn
+upgrade;m_trator_5;Cheirinho de Pinheiro no Retrovisor;Aroma Floresta Boreal e o trator se sente renovado.;trator;qtd;5;mult_maquina;2;50;;;horn
+upgrade;m_trator_25;Trator com Ar-Condicionado;O shiba não sai mais da cabine. Nem no almoço.;trator;qtd;25;mult_maquina;2;500;;;horn
+upgrade;m_trator_50;Trator no Grupo da Família;Manda bom dia com flor brilhante e cava o dobro.;trator;qtd;50;mult_maquina;2;5e4;;;horn
+upgrade;m_trator_100;Buzina que Toca Enka;Os grãos saem do caminho por respeito.;trator;qtd;100;mult_maquina;2;5e6;;;horn
+upgrade;m_trator_150;Escapamento com Glitter;Solta fumaça brilhante. Ecologicamente duvidoso, esteticamente impecável.;trator;qtd;150;mult_maquina;2;5e8;;;horn
+upgrade;m_trator_200;Trator Sertanejo Universitário;Agro é pop, agro é arroz, agro é shiba de chapéu.;trator;qtd;200;mult_maquina;2;5e10;;;horn
+upgrade;m_trator_250;Trator com Teto Solar;O shiba pega um bronze. Bronze de shiba é laranja igual.;trator;qtd;250;mult_maquina;2;5e12;;;horn
+upgrade;m_trator_300;Trator Autônomo Nível 5;Dirige sozinho, faz curva sozinho, reclama do trânsito sozinho.;trator;qtd;300;mult_maquina;2;5e14;;;horn
+upgrade;m_trator_350;Trator Transformer;Vira robô. Não faz nada como robô. Vira trator de novo e cava.;trator;qtd;350;mult_maquina;2;5e16;;;horn
+upgrade;m_trator_400;Trator Puxando Trator;São tratores até o fim. Ninguém lembra qual é o primeiro.;trator;qtd;400;mult_maquina;2;5e18;;;horn
+upgrade;m_trator_450;Trator com Motor de Dobra;Chega no campo antes de sair da garagem. Paradoxo resolvido com arroz.;trator;qtd;450;mult_maquina;2;5e20;;;horn
+upgrade;m_trator_500;O Trator da Criação;No sétimo dia, descansou. O trator não. O trator nunca descansa.;trator;qtd;500;mult_maquina;2;5e22;;;horn
+upgrade;m_empilhadeira_1;Garfos Encerados;Desliza por baixo do palete feito manteiga.;empilhadeira;qtd;1;mult_maquina;2;10;;;chest
+upgrade;m_empilhadeira_5;Bip de Ré Afinado;Agora o bip é em Dó maior. Todo mundo sai da frente cantando.;empilhadeira;qtd;5;mult_maquina;2;50;;;chest
+upgrade;m_empilhadeira_25;Empilhadeira Tetris;Encaixa tudo sem buraco. Some uma linha de paletes. Pontos.;empilhadeira;qtd;25;mult_maquina;2;500;;;chest
+upgrade;m_empilhadeira_50;Palete Padrão Internacional;Uma reunião de 14 horas definiu o tamanho. Valeu a pena.;empilhadeira;qtd;50;mult_maquina;2;5e4;;;chest
+upgrade;m_empilhadeira_100;Empilhadeira Jenga;Tira o palete de baixo e nada cai. Habilidade ou sorte, ninguém sabe.;empilhadeira;qtd;100;mult_maquina;2;5e6;;;chest
+upgrade;m_empilhadeira_150;Empilhadeira de Patinete;Garfos com rodinha. O galpão virou pista de skate.;empilhadeira;qtd;150;mult_maquina;2;5e8;;;chest
+upgrade;m_empilhadeira_200;Empilhadeira ISO 9001;Agora cada palete tem um formulário. E cada formulário tem um palete.;empilhadeira;qtd;200;mult_maquina;2;5e10;;;chest
+upgrade;m_empilhadeira_250;Pas de Deux com Caminhão;A crítica de dança aplaudiu de pé.;empilhadeira;qtd;250;mult_maquina;2;5e12;;;chest
+upgrade;m_empilhadeira_300;Torre de Paletes até as Nuvens;Os aviões desviam. A torre de controle mandou um joinha.;empilhadeira;qtd;300;mult_maquina;2;5e14;;;chest
+upgrade;m_empilhadeira_350;Empilhadeira Antigravidade;Levanta o palete e o palete continua subindo. Ninguém sabe parar.;empilhadeira;qtd;350;mult_maquina;2;5e16;;;chest
+upgrade;m_empilhadeira_400;Empilhadeira Marie Kondo;Pergunta se cada saco traz alegria. Todos trazem. É arroz.;empilhadeira;qtd;400;mult_maquina;2;5e18;;;chest
+upgrade;m_empilhadeira_450;Empilhadeira que Empilha Empilhadeiras;Recursão industrial. O estoque entrou em loop.;empilhadeira;qtd;450;mult_maquina;2;5e20;;;chest
+upgrade;m_empilhadeira_500;A Empilhadeira de Atlas;Segura o céu com dois garfos e ainda bate o ponto no horário.;empilhadeira;qtd;500;mult_maquina;2;5e22;;;chest
+upgrade;m_colheita_1;Lâmina Afiada;Corta reto. O arroz agradece em fila.;colheita;qtd;1;mult_maquina;2;10;;;tree
+upgrade;m_colheita_5;Rádio Rural das 5h;Toca moda de viola de madrugada. O arroz acorda mais disposto.;colheita;qtd;5;mult_maquina;2;50;;;tree
+upgrade;m_colheita_25;Colheitadeira com GPS;Recalculando rota... recalculando... achou o arroz.;colheita;qtd;25;mult_maquina;2;500;;;tree
+upgrade;m_colheita_50;Círculo na Plantação;Os ETs vieram ver. Ficaram pra ajudar.;colheita;qtd;50;mult_maquina;2;5e4;;;tree
+upgrade;m_colheita_100;Cafeteira Embutida;Espresso duplo a cada 10 hectares. O shiba vibra.;colheita;qtd;100;mult_maquina;2;5e6;;;tree
+upgrade;m_colheita_150;Colheitadeira de Duas Bocas;Come pela frente e pelo lado. Feio à mesa, ótimo no campo.;colheita;qtd;150;mult_maquina;2;5e8;;;tree
+upgrade;m_colheita_200;Colheitadeira em Live;Transmite ao vivo. 40 mil pessoas assistindo arroz. Normal.;colheita;qtd;200;mult_maquina;2;5e10;;;tree
+upgrade;m_colheita_250;Colheitadeira Planta e Colhe;Faz tudo na mesma passada. O agrônomo pediu férias.;colheita;qtd;250;mult_maquina;2;5e12;;;tree
+upgrade;m_colheita_300;Colheitadeira Chefe Final;Tem três barras de vida e trilha sonora própria.;colheita;qtd;300;mult_maquina;2;5e14;;;tree
+upgrade;m_colheita_350;Colheitadeira com CEP;Do tamanho de um bairro. Recebe encomenda. O carteiro reclama.;colheita;qtd;350;mult_maquina;2;5e16;;;tree
+upgrade;m_colheita_400;Colheitadeira Hiperespacial;Faz barulho de nave de filme e colhe na velocidade da luz.;colheita;qtd;400;mult_maquina;2;5e18;;;tree
+upgrade;m_colheita_450;Colheitadeira das Safras Futuras;Já colheu a safra de 2093. O arroz de 2093 é ótimo.;colheita;qtd;450;mult_maquina;2;5e20;;;tree
+upgrade;m_colheita_500;A Grande Ceifadora de Arroz;A morte tem foice. O arroz tem esta. É mais fofa.;colheita;qtd;500;mult_maquina;2;5e22;;;tree
+upgrade;m_escav_1;Óleo Hidráulico Novo;O braço range menos e o shiba dorme melhor.;escav;qtd;1;mult_maquina;2;10;;;gear
+upgrade;m_escav_5;Concha com Dentinhos;Os dentes dão sorriso e mordida. Mais mordida que sorriso.;escav;qtd;5;mult_maquina;2;50;;;gear
+upgrade;m_escav_25;Escavadeira Faz Carinho no Cachorro;Tem vídeo viral. A produção subiu de pura fofura.;escav;qtd;25;mult_maquina;2;500;;;gear
+upgrade;m_escav_50;Cabine com Porta-Bento;Almoço do lado da alavanca. Não errar a alavanca.;escav;qtd;50;mult_maquina;2;5e4;;;gear
+upgrade;m_escav_100;Aula de Dança Hidráulica;Parece balé. É balé. Com 30 toneladas.;escav;qtd;100;mult_maquina;2;5e6;;;gear
+upgrade;m_escav_150;Braço com Cotovelo Extra;Ninguém sabe onde ele dobra. Nem ele.;escav;qtd;150;mult_maquina;2;5e8;;;gear
+upgrade;m_escav_200;Toca Aqui de Concha;Bateu na mão do shiba. Ele voou longe, mas feliz.;escav;qtd;200;mult_maquina;2;5e10;;;gear
+upgrade;m_escav_250;Escavadeira Mestre de Origami;Dobra a montanha em forma de tsuru. Depois cava o tsuru.;escav;qtd;250;mult_maquina;2;5e12;;;gear
+upgrade;m_escav_300;Esteira Forrada de Pelúcia;Passa por cima do arroz sem amassar um grão.;escav;qtd;300;mult_maquina;2;5e14;;;gear
+upgrade;m_escav_350;Garra de Fliperama Honesta;Agora ela SEMPRE pega o bichinho. A física dos fliperamas está em choque.;escav;qtd;350;mult_maquina;2;5e16;;;gear
+upgrade;m_escav_400;Escavadeira Kaiju;Saiu do mar. Os jornais gritaram. Ela só queria cavar arroz.;escav;qtd;400;mult_maquina;2;5e18;;;gear
+upgrade;m_escav_450;Buraco de Minhoca Particular;Cavou até o outro lado do mundo. O Brasil recebe arroz grátis.;escav;qtd;450;mult_maquina;2;5e20;;;gear
+upgrade;m_escav_500;A Concha que Moldou os Continentes;A Pangeia se separou porque ela cavou um pouquinho fundo demais.;escav;qtd;500;mult_maquina;2;5e22;;;gear
+upgrade;m_caminhao_1;Para-Choque com Frase;Deus é fiel e o arroz também. Funciona por fé.;caminhao;qtd;1;mult_maquina;2;10;;;drill
+upgrade;m_caminhao_5;Cama na Cabine;Sono reparador, entrega no prazo. O sindicato aplaude.;caminhao;qtd;5;mult_maquina;2;50;;;drill
+upgrade;m_caminhao_25;Pisca-Pisca de Natal;Pisca em março também. Ninguém tem coragem de tirar.;caminhao;qtd;25;mult_maquina;2;500;;;drill
+upgrade;m_caminhao_50;Caminhão no Grupo do Frete;Pega carga até no almoço. Responde em 3 segundos.;caminhao;qtd;50;mult_maquina;2;5e4;;;drill
+upgrade;m_caminhao_100;Pneu do Tamanho de Prédio;Cada pneu tem síndico e reunião de condomínio.;caminhao;qtd;100;mult_maquina;2;5e6;;;drill
+upgrade;m_caminhao_150;Alto-Falante do Carro do Ovo;Olha o arroz, olha o arroz! A vizinhança sai correndo com balde.;caminhao;qtd;150;mult_maquina;2;5e8;;;drill
+upgrade;m_caminhao_200;Escada de Seis Andares;O shiba leva 10 minutos pra subir na cabine. Vale a vista.;caminhao;qtd;200;mult_maquina;2;5e10;;;drill
+upgrade;m_caminhao_250;Bitrem Tritrem Tetratrem;A primeira caçamba chega um dia antes da última.;caminhao;qtd;250;mult_maquina;2;5e12;;;drill
+upgrade;m_caminhao_300;Caminhão Reboca Ilha;Atracou numa ilha e trouxe ela junto. A ilha gostou.;caminhao;qtd;300;mult_maquina;2;5e14;;;drill
+upgrade;m_caminhao_350;Frete Grátis Acima de 1 Tonelada;Todo pedido passa de 1 tonelada. Então é sempre grátis.;caminhao;qtd;350;mult_maquina;2;5e16;;;drill
+upgrade;m_caminhao_400;Optimus Kome ao Volante;Tem uma frase épica pra cada entrega. Todas sobre arroz.;caminhao;qtd;400;mult_maquina;2;5e18;;;drill
+upgrade;m_caminhao_450;Caminhão Interestelar;Leva arroz pra Marte. Marte pediu mais. Marte é guloso.;caminhao;qtd;450;mult_maquina;2;5e20;;;drill
+upgrade;m_caminhao_500;O Caminhão que Carrega o Mundo;Sobe a serra com o planeta na caçamba. Sem freio motor, só fé.;caminhao;qtd;500;mult_maquina;2;5e22;;;drill
+upgrade;m_pacabo_1;Cabo Engraxado;Desce macio, sobe rápido, ninguém leva choque.;pacabo;qtd;1;mult_maquina;2;10;;;factory
+upgrade;m_pacabo_5;Chaveiro de Shiba de Pelúcia;Pendurado na cabine. O shiba de verdade sente orgulho.;pacabo;qtd;5;mult_maquina;2;50;;;factory
+upgrade;m_pacabo_25;Tomada de Três Pinos Aceita;Finalmente o adaptador certo. A pá gargalhou de alegria.;pacabo;qtd;25;mult_maquina;2;500;;;factory
+upgrade;m_pacabo_50;Bandeira Tarifária Vermelha;A energia ficou mais cara. O arroz veio dobrado mesmo assim.;pacabo;qtd;50;mult_maquina;2;5e4;;;factory
+upgrade;m_pacabo_100;Cabo de Fibra Óptica;Leva arroz e internet de 1 giga. O pátio virou provedor.;pacabo;qtd;100;mult_maquina;2;5e6;;;factory
+upgrade;m_pacabo_150;Pá de Cabo em Dia de Jogo;Cava pintada de verde e amarelo. Grita gol a cada caçamba.;pacabo;qtd;150;mult_maquina;2;5e8;;;factory
+upgrade;m_pacabo_200;Pá de Cabo Movida a Raio;Esperou uma tempestade. Ganhou dela. Energia pra três vidas.;pacabo;qtd;200;mult_maquina;2;5e10;;;factory
+upgrade;m_pacabo_250;Tirolesa no Cabo;Os shibas descem gritando. Turismo de aventura com arroz.;pacabo;qtd;250;mult_maquina;2;5e12;;;factory
+upgrade;m_pacabo_300;Pá de Cabo Steampunk;Engrenagem dourada, vapor e cartola. Cava em estilo vitoriano.;pacabo;qtd;300;mult_maquina;2;5e14;;;factory
+upgrade;m_pacabo_350;Varal da Vila;A vila inteira pendura roupa no cabo. Ela cava com cheirinho de amaciante.;pacabo;qtd;350;mult_maquina;2;5e16;;;factory
+upgrade;m_pacabo_400;Pá de Cabo Puxa Lua;Puxou a Lua um pouquinho. As marés estão confusas, o arroz está ótimo.;pacabo;qtd;400;mult_maquina;2;5e18;;;factory
+upgrade;m_pacabo_450;Movida a Comentário de Internet;Lê indignação online e transforma em energia. Fonte infinita.;pacabo;qtd;450;mult_maquina;2;5e20;;;factory
+upgrade;m_pacabo_500;O Cabo que Amarra o Céu à Terra;Disseram que era o fio do universo. Era só a pá de cabo carregando.;pacabo;qtd;500;mult_maquina;2;5e22;;;factory
+upgrade;m_bagger_1;Bagger com Porta-Copos;14.200 toneladas e finalmente um lugar pro chá.;bagger;qtd;1;mult_maquina;2;10;;;horn
+upgrade;m_bagger_5;Adesivo Como Estou Dirigindo;Ninguém ligou. Ela segue dirigindo maravilhosamente.;bagger;qtd;5;mult_maquina;2;50;;;horn
+upgrade;m_bagger_25;Cortina de Franjinha na Cabine;Decoração de caminhoneiro, escala de catedral.;bagger;qtd;25;mult_maquina;2;500;;;horn
+upgrade;m_bagger_50;Playlist Colaborativa;Cada shiba pôs uma música. É caótico. Rende.;bagger;qtd;50;mult_maquina;2;5e4;;;horn
+upgrade;m_bagger_100;Bagger Ganhou Nome de Gente;Agora ela se chama Cláudia. A Cláudia cava muito.;bagger;qtd;100;mult_maquina;2;5e6;;;horn
+upgrade;m_bagger_150;Operador Concursado;Estabilidade total. Cava sem medo do futuro.;bagger;qtd;150;mult_maquina;2;5e8;;;horn
+upgrade;m_bagger_200;Selfie com o Monte Fuji;O Fuji saiu de olho fechado. Ela cavou de raiva.;bagger;qtd;200;mult_maquina;2;5e10;;;horn
+upgrade;m_bagger_250;Bagger com Horta no Teto;Sai arroz do chão e alface do céu.;bagger;qtd;250;mult_maquina;2;5e12;;;horn
+upgrade;m_bagger_300;Bagger Cidade-Estado;Declarou independência. Moeda: arroz. Hino: barulho de motor.;bagger;qtd;300;mult_maquina;2;5e14;;;horn
+upgrade;m_bagger_350;Bagger com Alma de Gato;Derruba tudo da mesa da montanha. Olha pra você. Derruba mais.;bagger;qtd;350;mult_maquina;2;5e16;;;horn
+upgrade;m_bagger_400;Bagger Vista do Espaço;Os astronautas confirmaram: a Muralha da China e a Bagger. A Bagger acenou.;bagger;qtd;400;mult_maquina;2;5e18;;;horn
+upgrade;m_bagger_450;Bagger Lê os Patch Notes;Leu buff na Bagger e decidiu se aplicar sozinha.;bagger;qtd;450;mult_maquina;2;5e20;;;horn
+upgrade;m_bagger_500;A Bagger Ômega;Depois dela não tem mais máquina. Só arroz e um shiba sorrindo no topo.;bagger;qtd;500;mult_maquina;2;5e22;;;horn
+upgrade;s_pata_hashi;Patada com Precisão;A Pata espalha, o Hashi cata. Nada sobra no prato. As duas turmas ×1,5.;pata+hashi;par;15;mult_par;1.5;30;;;swap
+upgrade;s_hashi_tigela;Combo Almoço Executivo;Hashi e tigela juntos como manda o manual. Ambos ×1,5, sobremesa não inclusa.;hashi+tigela;par;15;mult_par;1.5;30;;;swap
+upgrade;s_tigela_pa;Pá que Enche Tigela;A pá joga, a tigela pega. Parceria de firma que funciona. Ambas ×1,5.;tigela+pa;par;15;mult_par;1.5;30;;;swap
+upgrade;s_pa_duaspas;Mentoria de Pás;A Pá ensina, as Duas Pás fingem que já sabiam. Todas ×1,5.;pa+duaspas;par;15;mult_par;1.5;30;;;swap
+upgrade;s_duaspas_carrinho;Logística de Última Pá;As pás enchem o carrinho sem abrir chamado. Ambos ×1,5.;duaspas+carrinho;par;15;mult_par;1.5;30;;;swap
+upgrade;s_carrinho_britadeira;Quebra e Leva;A britadeira quebra, o carrinho leva, ninguém pergunta. Ambos ×1,5.;carrinho+britadeira;par;15;mult_par;1.5;30;;;swap
+upgrade;s_britadeira_trator;Trilha Sonora de Obra;Tum-tum-tum e vrum-vrum. A obra virou banda. Ambos ×1,5.;britadeira+trator;par;15;mult_par;1.5;30;;;swap
+upgrade;s_trator_empilhadeira;Reunião que Podia Ser um Bip;O trator traz, a empilhadeira empilha, sem call de alinhamento. Ambos ×1,5.;trator+empilhadeira;par;15;mult_par;1.5;30;;;swap
+upgrade;s_empilhadeira_colheita;Paletes da Safra;Colheu, paletizou, foi. Supply chain de livro de MBA. Ambas ×1,5.;empilhadeira+colheita;par;15;mult_par;1.5;30;;;swap
+upgrade;s_colheita_escav;Ceifa e Concha;Uma tira por cima, a outra por baixo. Arroz sem escapatória. Ambas ×1,5.;colheita+escav;par;15;mult_par;1.5;30;;;swap
+upgrade;s_escav_caminhao;Caçamba Cheia Certinho;A escavadeira nunca erra a caçamba. O caminhão nunca reclama. Ambos ×1,5.;escav+caminhao;par;15;mult_par;1.5;30;;;swap
+upgrade;s_caminhao_pacabo;Fila do Drive-Thru;Caminhão encosta, pá de cabo serve, caminhão vai. Três segundos por pedido. Ambos ×1,5.;caminhao+pacabo;par;15;mult_par;1.5;30;;;swap
+upgrade;s_pacabo_bagger;Conselho dos Gigantes;Os dois maiores do pátio se cumprimentam com um apito grave. Ambos ×1,5.;pacabo+bagger;par;15;mult_par;1.5;30;;;swap
+upgrade;s_pata_trator;Carona no Trator;Cada Pata vai de carona e o trator fica 1% mais animado por Pata.;pata+trator;par;15;sinergia;0.01;30;;;swap
+upgrade;s_hashi_empilhadeira;Aula de Mira com Pauzinho;Os shibas do hashi ensinam a empilhadeira a mirar. Empilhadeiras +1% por Hashi.;hashi+empilhadeira;par;25;sinergia;0.01;30;;;swap
+upgrade;s_tigela_colheita;Tigela no Bico da Máquina;Cada tigela vira caçamba extra. Colheitadeiras +1% por Tigela.;tigela+colheita;par;25;sinergia;0.01;30;;;swap
+upgrade;s_pa_escav;Escola de Pá;A escavadeira estudou a Pá por anos. Escavadeiras +1% por Pá. Respeita os mais velhos.;pa+escav;par;25;sinergia;0.01;30;;;swap
+upgrade;s_carrinho_caminhao;Do Pequeno ao Gigante;O carrinho é o caminhão que ainda não cresceu. Caminhões +1% por Carrinho.;carrinho+caminhao;par;50;sinergia;0.01;30;;;swap
+upgrade;s_britadeira_pacabo;Empréstimo de Tomada;A britadeira emprestou a extensão e nunca pediu de volta. Pás de Cabo +1% por Britadeira.;britadeira+pacabo;par;50;sinergia;0.01;30;;;swap
+upgrade;s_duaspas_bagger;Plágio Inspirador;A Bagger tem várias pás e copiou a ideia das Duas Pás. Baggers +1% por Dupla.;duaspas+bagger;par;50;sinergia;0.01;30;;;swap
+upgrade;s_trator_colheita;Primos do Agro;Trator e colheitadeira, mesma família, mesmo churrasco. Colheitadeiras +1% por Trator.;trator+colheita;par;25;sinergia;0.01;30;;;swap
+upgrade;s_bagger_pata;Saudade das Origens;A Bagger lembra de quando tudo era uma pata. Patas +2% por Bagger.;bagger+pata;par;50;sinergia;0.02;30;;;swap
+upgrade;tigela_coracao_1;Tigela do Coração I: Tigelinha de Missô;Cada conquista passa a valer +1% a mais. O coração cresce.;;conquistas;25;coracao;0.01;600;;;star
+upgrade;tigela_coracao_2;Tigela do Coração II: Tigela de Lámen;Mais +1% por conquista. O coração já não cabe na camiseta.;;conquistas;50;coracao;0.01;6000;;;star
+upgrade;tigela_coracao_3;Tigela do Coração III: Cumbuca de Festa Junina;+1% por conquista. O cardiologista do Kome ficou impressionado.;;conquistas;100;coracao;0.01;6e4;;;star
+upgrade;tigela_coracao_4;Tigela do Coração IV: Açaí de 1 Litro;+1% por conquista. Coração grande igual fatura de cartão em dezembro.;;conquistas;150;coracao;0.01;6e5;;;star
+upgrade;tigela_coracao_5;Tigela do Coração V: Balde de Pipoca de Cinema;+1% por conquista. Agora o coração tem coração.;;conquistas;200;coracao;0.01;6e6;;;star
+upgrade;tigela_coracao_6;Tigela do Coração VI: Saladeira que Ninguém Usa;+1% por conquista. O coração pediu aumento e você deu.;;conquistas;250;coracao;0.01;6e7;;;star
+upgrade;tigela_coracao_7;Tigela do Coração VII: Ponche de Casamento;+1% por conquista. Bate tão forte que o pátio inteiro dança.;;conquistas;300;coracao;0.01;6e8;;;star
+upgrade;tigela_coracao_8;Tigela do Coração VIII: Tigela do Tamanho do Fuji;+1% por conquista. Coração 400 × 9%. Faz a conta e chora de alegria.;;conquistas;400;coracao;0.01;6e9;;;star
+conquista;c_cav_3;Montinho de Respeito;Cave 1.000 grãos no total. Dá pra fazer um onigiri. Pequeno. Pra viagem.;;cavado;1000;;;;;;rice
+conquista;c_cav_5;Saco de 5 Quilos;Cave 100.000 grãos no total. O mesmo que você carrega do mercado reclamando.;;cavado;1e5;;;;;;rice
+conquista;c_cav_7;Silo de Bairro;Cave 10 milhões de grãos no total. A vizinhança já pergunta se você vende.;;cavado;1e7;;;;;;rice
+conquista;c_cav_9;Bilhão de Bocados;Cave 1 bilhão de grãos no total. Cada grão tem nome. O Kome não lembra de nenhum.;;cavado;1e9;;;;;;rice
+conquista;c_cav_11;Alimentou o Japão no Almoço;Cave 100 bilhões de grãos no total. E sobrou pra janta.;;cavado;1e11;;;;;;rice
+conquista;c_cav_13;Arroz pra Toda a Copa;Cave 10 trilhões de grãos no total. Os estádios servem gohan no intervalo.;;cavado;1e13;;;;;;rice
+conquista;c_cav_15;Montanha Movida de Lugar;Cave 1 quatrilhão de grãos no total. O GPS ainda acha que ela está lá.;;cavado;1e15;;;;;;rice
+conquista;c_cav_17;Mapa Desatualizado;Cave 100 quatrilhões de grãos no total. O carro do mapa de rua passou só pra fotografar o buraco.;;cavado;1e17;;;;;;rice
+conquista;c_cav_19;Planetinha de Arroz;Cave 10 quintilhões de grãos no total. Já dá pra fazer um planeta pequeno. Com órbita e tudo.;;cavado;1e19;;;;;;rice
+conquista;c_cav_21;Lua de Arroz;Cave 1 sextilhão de grãos no total. Os astronautas confirmam: tem gosto de gohan.;;cavado;1e21;;;;;;rice
+conquista;c_cav_23;Arroz Visto de Marte;Cave 100 sextilhões de grãos no total. Os marcianos acham que é neve. Deixa eles.;;cavado;1e23;;;;;;rice
+conquista;c_cav_25;Sistema Solar Temperado;Cave 10 septilhões de grãos no total. Shoyu nos anéis de Saturno.;;cavado;1e25;;;;;;rice
+conquista;c_cav_27;Nebulosa Gohan;Cave 1 octilhão de grãos no total. Os astrônomos batizaram assim. O nome pegou.;;cavado;1e27;;;;;;rice
+conquista;c_cav_29;Constelação do Shiba;Cave 100 octilhões de grãos no total. Ligue os grãos no céu e aparece um shiba. Juro.;;cavado;1e29;;;;;;rice
+conquista;c_cav_31;Galáxia Arroz-Doce;Cave 10 nonilhões de grãos no total. A Via Láctea ficou com ciúme.;;cavado;1e31;;;;;;rice
+conquista;c_cav_33;Cava Cava Cava Cava;Cave 1 decilhão de grãos no total. Escrever cava esse tanto de vezes cansa. Cavar não.;;cavado;1e33;;;;;;rice
+conquista;c_cav_35;Buraco Negro de Arroz;Cave 100 decilhões de grãos no total. Tanto grão junto que nem a luz escapa. Só o cheiro.;;cavado;1e35;;;;;;rice
+conquista;c_cav_37;Arroz Intergaláctico;Cave 10 undecilhões de grãos no total. Outras civilizações mandaram pedido. Frete a combinar.;;cavado;1e37;;;;;;rice
+conquista;c_cav_39;Superaglomerado de Grãos;Cave 1 duodecilhão de grãos no total. Os cientistas desistiram de contar e foram almoçar. Arroz.;;cavado;1e39;;;;;;rice
+conquista;c_cav_41;Universo Observável Lotado;Cave 100 duodecilhões de grãos no total. O que dá pra ver é arroz. O que não dá, provavelmente também.;;cavado;1e41;;;;;;rice
+conquista;c_cav_43;Multiverso Temperado;Cave 10 tredecilhões de grãos no total. Em outra linha do tempo um shiba está cavando VOCÊ.;;cavado;1e43;;;;;;rice
+conquista;c_cav_45;Arroz de Teoria das Cordas;Cave 1 quatordecilhão de grãos no total. Onze dimensões e todas cheias de grão.;;cavado;1e45;;;;;;rice
+conquista;c_cav_47;Big Bang ao Contrário;Cave 100 quatordecilhões de grãos no total. O universo está encolhendo de tanto arroz que você tirou.;;cavado;1e47;;;;;;rice
+conquista;c_cav_49;Fim da Física;Cave 10 quindecilhões de grãos no total. As leis da natureza pediram demissão por e-mail.;;cavado;1e49;;;;;;rice
+conquista;c_cav_51;O Último Grão;Cave 1 sexdecilhão de grãos no total. Mentira, sempre tem mais um. Mas esse foi bonito.;;cavado;1e51;;;;;;rice
+conquista;c_ganho_12;Trilionário de Pijama;Ganhe ¥1 trilhão no total. Ainda vai trabalhar segunda. Por esporte.;;ganho;1e12;;;;;;yen
+conquista;c_ganho_15;Quatrilhão de Grãos e Zero Arrependimento;Ganhe ¥1 quatrilhão no total. Bom, talvez aquele trator rosa.;;ganho;1e15;;;;;;yen
+conquista;c_ganho_18;Quintilhão no Cofrinho;Ganhe ¥1 quintilhão no total. O porquinho pediu uma casa maior.;;ganho;1e18;;;;;;yen
+conquista;c_ganho_21;Sextou com Sextilhão;Ganhe ¥1 sextilhão no total. O happy hour é por sua conta. Pra sempre.;;ganho;1e21;;;;;;yen
+conquista;c_ganho_24;Portfólio de Petisco;Ganhe ¥1 septilhão no total. O Kome diversificou os investimentos. Tudo em petisco.;;ganho;1e24;;;;;;yen
+conquista;c_ganho_27;Octilhão e Nenhum Boleto;Ganhe ¥1 octilhão no total. Pagou tudo adiantado. O banco ligou pra saber se você está bem.;;ganho;1e27;;;;;;yen
+conquista;c_ganho_30;Ienes Suados;Ganhe ¥1 nonilhão no total. Suados pelos shibas. Você só clicou.;;ganho;1e30;;;;;;yen
+conquista;c_ganho_33;Decilhão Declarado;Ganhe ¥1 decilhão no total. O leão do imposto de renda virou um gatinho assustado.;;ganho;1e33;;;;;;yen
+conquista;c_ganho_36;Undecilhão e Uma Mesa com Janela;Ganhe ¥1 undecilhão no total. O sonho era uma mesa perto da janela. Comprou o prédio.;;ganho;1e36;;;;;;yen
+conquista;c_ganho_39;Conta Conjunta com o Kome;Ganhe ¥1 duodecilhão no total. Ele é quem gasta.;;ganho;1e39;;;;;;yen
+conquista;c_ganho_42;A Resposta É Arroz;Ganhe ¥1 tredecilhão no total. A pergunta continua um mistério.;;ganho;1e42;;;;;;yen
+conquista;c_ganho_45;Investidor-Anjo de Arroz;Ganhe ¥1 quatordecilhão no total. A rede social de trabalho te sugeriu esse título.;;ganho;1e45;;;;;;yen
+conquista;c_ganho_48;Emprestou pro Primo;Ganhe ¥1 quindecilhão no total. Ele vai devolver. Ele sempre diz que vai devolver.;;ganho;1e48;;;;;;yen
+conquista;c_ganho_51;Sexdecilhão (Pode Rir);Ganhe ¥1 sexdecilhão no total. O Kome riu. Você riu. O contador não riu.;;ganho;1e51;;;;;;yen
+conquista;c_ganho_54;Dinheiro no Bolso da Calça;Ganhe ¥1 septendecilhão no total. Achou lavando roupa. Melhor dia da vida.;;ganho;1e54;;;;;;yen
+conquista;c_ganho_57;Cofrinho Industrial;Ganhe ¥1 octodecilhão no total. O cofrinho virou galpão. O galpão virou bairro.;;ganho;1e57;;;;;;yen
+conquista;c_ganho_60;Mesada ao Contrário;Ganhe ¥1 novendecilhão no total. Agora é o Kome que te dá mesada.;;ganho;1e60;;;;;;yen
+conquista;c_ganho_63;Fim dos Nomes Sérios;Ganhe ¥1 vigintilhão no total. Daqui pra frente os números têm nome de comida. Você mereceu.;;ganho;1e63;;;;;;yen
+conquista;c_ganho_66;Arrozilhão;Ganhe ¥1 arrozilhão no total. O primeiro número com cheiro. Cheiro de panela de arroz.;;ganho;1e66;;;;;;yen
+conquista;c_ganho_69;Onigirilhão;Ganhe ¥1 onigirilhão no total. Nice.;;ganho;1e69;;;;;;yen
+conquista;c_ganho_72;Mochilhão Esticado;Ganhe ¥1 mochilhão no total. Estica, estica e ainda cabe mais.;;ganho;1e72;;;;;;yen
+conquista;c_ganho_75;Shibalhão;Ganhe ¥1 shibalhão no total. Much yen. Very rico. Wow.;;ganho;1e75;;;;;;yen
+conquista;c_ganho_78;Uma Bagger por Shiba;Ganhe ¥1 baggerlhão no total. Dá pra dar uma Bagger pra cada shiba. E sobra pro porta-copos.;;ganho;1e78;;;;;;yen
+conquista;c_ganho_81;Tesouro Enterrado;Ganhe ¥1 tatuzilhão no total. Escondeu no quintal. O Tatuzão achou e devolveu. Honesto.;;ganho;1e81;;;;;;yen
+conquista;c_ganho_84;Pilha Mais Alta que o Fuji;Ganhe ¥1 fujilhão no total. Empilhado, o dinheiro tem neve no topo.;;ganho;1e84;;;;;;yen
+conquista;c_ganho_87;Terreno na Lua;Ganhe ¥1 luazilhão no total. O corretor era um coelho. Fez preço bom.;;ganho;1e87;;;;;;yen
+conquista;c_ganho_90;Kome-Kome de Ienes;Ganhe ¥1 kome-kome no total. Quando um Kome não descreve a riqueza, você usa dois.;;ganho;1e90;;;;;;yen
+conquista;c_ganho_93;Kome-Kome-Kome;Ganhe ¥1 kome-kome-kome no total. É o máximo que o idioma aguenta sem tossir.;;ganho;1e93;;;;;;yen
+conquista;c_ganho_96;Riqueza em Compartimentos;Ganhe ¥1 bentozilhão no total. Nada se mistura. Paz de bentô.;;ganho;1e96;;;;;;yen
+conquista;c_ganho_99;Boletilhão Quitado;Ganhe ¥1 boletilhão no total. Pagou todos os boletos do mundo. O mundo agradece, o banco chora.;;ganho;1e99;;;;;;yen
+conquista;c_renda_6;Salário por Segundo;Chegue a ¥1 milhão por segundo. Um salário enquanto pisca. Pisque mais.;;renda;1e6;;;;;;clock
+conquista;c_renda_9;Mais Rápido que Notificação;Chegue a ¥1 bilhão por segundo. O dinheiro chega antes do grupo da família mandar bom dia.;;renda;1e9;;;;;;clock
+conquista;c_renda_12;Cofre Sem Tampa;Chegue a ¥1 trilhão por segundo. Não fecha mais. Deixa aberto, ninguém rouba arroz.;;renda;1e12;;;;;;clock
+conquista;c_renda_15;Fluxo de Caixa Cachoeira;Chegue a ¥1 quatrilhão por segundo. A planilha do financeiro virou uma cascata literal.;;renda;1e15;;;;;;clock
+conquista;c_renda_18;Dobra Financeira;Chegue a ¥1 quintilhão por segundo. Os ienes chegam antes de serem ganhos.;;renda;1e18;;;;;;clock
+conquista;c_renda_21;Previsão: Chuva de Iene;Chegue a ¥1 sextilhão por segundo. Leve guarda-chuva. De preferência um que seja cofre.;;renda;1e21;;;;;;clock
+conquista;c_renda_24;Banco Central do Kome;Chegue a ¥1 septilhão por segundo. Imprime arroz. A inflação é só de fofura.;;renda;1e24;;;;;;clock
+conquista;c_renda_27;Renda de Supernova;Chegue a ¥1 octilhão por segundo. Explode de dinheiro e brilha por semanas.;;renda;1e27;;;;;;clock
+conquista;c_renda_30;PIB por Segundo;Chegue a ¥1 nonilhão por segundo. Um país inteiro por segundo. Os economistas fizeram um podcast sobre você.;;renda;1e30;;;;;;clock
+conquista;c_renda_33;Empréstimo pro Cosmos;Chegue a ¥1 decilhão por segundo. O universo pega emprestado e paga em arroz.;;renda;1e33;;;;;;clock
+conquista;c_renda_36;Tunelamento de Iene;Chegue a ¥1 undecilhão por segundo. O dinheiro atravessa a parede do cofre por efeito quântico.;;renda;1e36;;;;;;clock
+conquista;c_renda_39;Torneira Esquecida Aberta;Chegue a ¥1 duodecilhão por segundo. Alguém esqueceu a torneira do dinheiro aberta. Foi você. Deixa.;;renda;1e39;;;;;;clock
+conquista;c_renda_42;Inflação de Shiba;Chegue a ¥1 tredecilhão por segundo. Cada shiba vale um carro. Cada carro vale um shiba.;;renda;1e42;;;;;;clock
+conquista;c_renda_45;O Contador Pediu Música;Chegue a ¥1 quatordecilhão por segundo. Não aguenta mais somar. Agora só dança.;;renda;1e45;;;;;;clock
+conquista;c_renda_48;A Célula Virou Cerquinha;Chegue a ¥1 quindecilhão por segundo. A planilha não consegue mostrar sua renda. Só aparece #####.;;renda;1e48;;;;;;clock
+conquista;c_renda_51;Lenda Urbana;Chegue a ¥1 sexdecilhão por segundo. Dizem que um shiba no Japão ganha isso por segundo. É o seu.;;renda;1e51;;;;;;clock
+conquista;c_renda_54;O Dinheiro Tem Dinheiro;Chegue a ¥1 septendecilhão por segundo. Seus ienes abriram uma empresa e estão rendendo sozinhos.;;renda;1e54;;;;;;clock
+conquista;c_renda_57;Chuva de Meteoros de Iene;Chegue a ¥1 octodecilhão por segundo. Faça um pedido. Ah, você já tem tudo.;;renda;1e57;;;;;;clock
+conquista;c_renda_60;A Matemática Tem Medo;Chegue a ¥1 novendecilhão por segundo. Os números pediram pra ser contados mais devagar.;;renda;1e60;;;;;;clock
+conquista;c_renda_63;Por Segundo, Leu Direito?;Chegue a ¥1 vigintilhão por segundo. Lê de novo. Por SEGUNDO.;;renda;1e63;;;;;;clock
+conquista;c_pata_10;Matilha;Tenha 10 Patas no pátio. Já dá pra fazer fila indiana.;pata;qtd;10;;;;;;paw
+conquista;c_pata_50;Patas Pra Que Te Quero;Tenha 50 Patas no pátio. Duzentos dedinhos e zero folga.;pata;qtd;50;;;;;;paw
+conquista;c_pata_100;Centopatas;Tenha 100 Patas no pátio. A centopeia original pediu os direitos autorais.;pata;qtd;100;;;;;;paw
+conquista;c_pata_150;Patada Coletiva;Tenha 150 Patas no pátio. Quando todas batem juntas, o sismógrafo de Tóquio manda um oi.;pata;qtd;150;;;;;;paw
+conquista;c_pata_200;Greve de Patas Cancelada;Tenha 200 Patas no pátio. Iam parar por mais petisco. Ganharam o petisco. Voltaram.;pata;qtd;200;;;;;;paw
+conquista;c_pata_300;Isto É Esparta de Patas;Tenha 300 Patas no pátio. THIS. IS. PATAAAA.;pata;qtd;300;;;;;;paw
+conquista;c_pata_400;Patas Erro 404;Tenha 400 Patas no pátio. Patas não encontradas. Estavam todas cavando.;pata;qtd;400;;;;;;paw
+conquista;c_pata_500;Quinhentas Patas e Nenhum Sapato;Tenha 500 Patas no pátio. O sapateiro da vila desmaiou de emoção.;pata;qtd;500;;;;;;paw
+conquista;c_hashi_10;Hashi Clube;Tenha 10 Hashis no pátio. Primeira regra do Hashi Clube: não se fala de garfo.;hashi;qtd;10;;;;;;check
+conquista;c_hashi_50;Esgrima de Hashi;Tenha 50 Hashis no pátio. Duelos ao meio-dia. Ninguém se fere, todo mundo almoça.;hashi;qtd;50;;;;;;check
+conquista;c_hashi_100;Cem Pares Sem Perder Nenhum;Tenha 100 Hashis no pátio. Recorde mundial. Ninguém nunca teve cem pares sem perder um.;hashi;qtd;100;;;;;;check
+conquista;c_hashi_150;Floresta de Bambu;Tenha 150 Hashis no pátio. Os pandas estão de olho. Disfarça.;hashi;qtd;150;;;;;;check
+conquista;c_hashi_200;Hashi de Plantão;Tenha 200 Hashis no pátio. Revezamento 24 horas. O sushi da madrugada agradece.;hashi;qtd;200;;;;;;check
+conquista;c_hashi_300;Exército de Pauzinhos;Tenha 300 Hashis no pátio. Disciplinados, finos e levemente ameaçadores.;hashi;qtd;300;;;;;;check
+conquista;c_hashi_400;Hashi Big Data;Tenha 400 Hashis no pátio. Cada grão é um dado e cada dado é pego com hashi. Lento? Não, paralelo.;hashi;qtd;400;;;;;;check
+conquista;c_hashi_500;Gaveta de Talheres Perfeita;Tenha 500 Hashis no pátio. Nenhum par trocado. A gaveta da sua casa jamais conseguiu isso.;hashi;qtd;500;;;;;;check
+conquista;c_tigela_10;Clube da Tigela;Tenha 10 Tigelas no pátio. Reunião toda sexta. Pauta: arroz.;tigela;qtd;10;;;;;;rice
+conquista;c_tigela_50;Coleção de Tigelas da Avó;Tenha 50 Tigelas no pátio. Cada uma de um jogo diferente. Todas indispensáveis.;tigela;qtd;50;;;;;;rice
+conquista;c_tigela_100;Cem Tigelas, Nenhuma Lavada;Tenha 100 Tigelas no pátio. Ninguém lava porque elas nunca param de encher.;tigela;qtd;100;;;;;;rice
+conquista;c_tigela_150;Rodízio de Tigelas;Tenha 150 Tigelas no pátio. Passa tigela, volta tigela. Tem até garçom shiba.;tigela;qtd;150;;;;;;rice
+conquista;c_tigela_200;Pirâmide de Tigelas;Tenha 200 Tigelas no pátio. Os egípcios usaram pedra. Fraco.;tigela;qtd;200;;;;;;rice
+conquista;c_tigela_300;Tigelas em Órbita;Tenha 300 Tigelas no pátio. Algumas foram jogadas com força demais. Viraram satélite.;tigela;qtd;300;;;;;;rice
+conquista;c_tigela_400;Tigelândia;Tenha 400 Tigelas no pátio. Um país inteiro de tigelas. A bandeira é um grão.;tigela;qtd;400;;;;;;rice
+conquista;c_tigela_500;A Colher Perdida;Tenha 500 Tigelas no pátio. Quinhentas tigelas e uma colher que ninguém sabe de quem é.;tigela;qtd;500;;;;;;rice
+conquista;c_pa_10;Sindicato da Pá;Tenha 10 Pás no pátio. Assembleia aprovou: mais arroz, mais petisco.;pa;qtd;10;;;;;;mount
+conquista;c_pa_50;Pá Tudo Isso;Tenha 50 Pás no pátio. Desculpa. Mas é verdade.;pa;qtd;50;;;;;;mount
+conquista;c_pa_100;Cem Pás num Domingo;Tenha 100 Pás no pátio. Nenhuma folga, toda alegria.;pa;qtd;100;;;;;;mount
+conquista;c_pa_150;Pá de Gente;Tenha 150 Pás no pátio. Pá de shiba, na verdade. Mas é muita pá.;pa;qtd;150;;;;;;mount
+conquista;c_pa_200;Blues da Pá;Tenha 200 Pás no pátio. Cavam cantando blues. A tristeza é estética, a produção é feliz.;pa;qtd;200;;;;;;mount
+conquista;c_pa_300;Pá-norama;Tenha 300 Pás no pátio. De cima parece um mar de pás. De baixo também.;pa;qtd;300;;;;;;mount
+conquista;c_pa_400;Tropa de Elite da Pá;Tenha 400 Pás no pátio. Pá é pá, o resto é resto.;pa;qtd;400;;;;;;mount
+conquista;c_pa_500;Quase Infinito de Pás;Tenha 500 Pás no pátio. Faltou pouco pro infinito. Mais ou menos.;pa;qtd;500;;;;;;mount
+conquista;c_duaspas_10;Dupla Dinâmica;Tenha 10 Duplas de Pás no pátio. Vinte pás. Uma vibe.;duaspas;qtd;10;;;;;;swap
+conquista;c_duaspas_50;Festival Sertanejo;Tenha 50 Duplas de Pás no pátio. Cinquenta duplas, a mesma música, todas cavando.;duaspas;qtd;50;;;;;;swap
+conquista;c_duaspas_100;Cem Duplas e Nenhuma Briga;Tenha 100 Duplas de Pás no pátio. Só uma discussão sobre quem faz a primeira voz.;duaspas;qtd;100;;;;;;swap
+conquista;c_duaspas_150;Baile das Pás;Tenha 150 Duplas de Pás no pátio. Dois pra lá, dois pra cá, um montinho pra trás.;duaspas;qtd;150;;;;;;swap
+conquista;c_duaspas_200;Torneio de Duplas;Tenha 200 Duplas de Pás no pátio. Final disputada. Todas ganharam arroz.;duaspas;qtd;200;;;;;;swap
+conquista;c_duaspas_300;Simetria Perfeita;Tenha 300 Duplas de Pás no pátio. Seiscentas pás e nenhuma fora do lugar. Seu lado organizado agradece.;duaspas;qtd;300;;;;;;swap
+conquista;c_duaspas_400;Pá-Pá-Pá-Pá;Tenha 400 Duplas de Pás no pátio. Parece rajada de pá. É mesmo.;duaspas;qtd;400;;;;;;swap
+conquista;c_duaspas_500;Mil Pás Exatas;Tenha 500 Duplas de Pás no pátio. Quinhentas duplas, mil pás. A conta fecha bonito.;duaspas;qtd;500;;;;;;swap
+conquista;c_carrinho_10;Esquadrilha do Carrinho;Tenha 10 Carrinhos de Mão no pátio. Rodinha no chão, coração no céu.;carrinho;qtd;10;;;;;;sack
+conquista;c_carrinho_50;Engarrafamento de Carrinhos;Tenha 50 Carrinhos de Mão no pátio. Buzinam com a boca: fom fom.;carrinho;qtd;50;;;;;;sack
+conquista;c_carrinho_100;Balé de Roda Única;Tenha 100 Carrinhos de Mão no pátio. Cem carrinhos cheios e nenhum tombo.;carrinho;qtd;100;;;;;;sack
+conquista;c_carrinho_150;Rali do Arroz;Tenha 150 Carrinhos de Mão no pátio. Prova de lama, prova de arroz, prova de fofura.;carrinho;qtd;150;;;;;;sack
+conquista;c_carrinho_200;Ciclovia de Carrinho;Tenha 200 Carrinhos de Mão no pátio. A prefeitura pintou faixa exclusiva. Finalmente uma obra útil.;carrinho;qtd;200;;;;;;sack
+conquista;c_carrinho_300;Corrida de Rua Logística;Tenha 300 Carrinhos de Mão no pátio. Parece maratona. É só entrega.;carrinho;qtd;300;;;;;;sack
+conquista;c_carrinho_400;Rodinha da Fortuna;Tenha 400 Carrinhos de Mão no pátio. Cada uma gira um destino. Todos levam arroz.;carrinho;qtd;400;;;;;;sack
+conquista;c_carrinho_500;Uma Roda, Quinhentas Vezes;Tenha 500 Carrinhos de Mão no pátio. O inventor da roda está orgulhoso. Ele também era um shiba.;carrinho;qtd;500;;;;;;sack
+conquista;c_britadeira_10;Banda da Britadeira;Tenha 10 Britadeiras no pátio. Rock de obra. Sem afinação, com muita alma.;britadeira;qtd;10;;;;;;bolt
+conquista;c_britadeira_50;Show de Bateria;Tenha 50 Britadeiras no pátio. Cinquenta britadeiras em uníssono. O chão pediu bis.;britadeira;qtd;50;;;;;;bolt
+conquista;c_britadeira_100;Cem Britadeiras e um Vizinho Calmo;Tenha 100 Britadeiras no pátio. O vizinho se mudou. Agora está calmo.;britadeira;qtd;100;;;;;;bolt
+conquista;c_britadeira_150;Sinfonia em Tum Maior;Tenha 150 Britadeiras no pátio. Beethoven não ouviu. Ninguém ouviu. Alto demais.;britadeira;qtd;150;;;;;;bolt
+conquista;c_britadeira_200;Terremotinho Agendado;Tenha 200 Britadeiras no pátio. Toda hora cheia o chão treme. As pessoas acertam o relógio.;britadeira;qtd;200;;;;;;bolt
+conquista;c_britadeira_300;Moshpit Industrial;Tenha 300 Britadeiras no pátio. As britadeiras pulam juntas. O arroz faz stage dive.;britadeira;qtd;300;;;;;;bolt
+conquista;c_britadeira_400;Pancadaria com Alvará;Tenha 400 Britadeiras no pátio. Tudo dentro da norma técnica.;britadeira;qtd;400;;;;;;bolt
+conquista;c_britadeira_500;Rave do Asfalto;Tenha 500 Britadeiras no pátio. Começou às 7h e nunca terminou. Nem precisa.;britadeira;qtd;500;;;;;;bolt
+conquista;c_trator_10;Comboio de Tratores;Tenha 10 Tratores no pátio. Dez tratores em fila e ninguém com pressa.;trator;qtd;10;;;;;;horn
+conquista;c_trator_50;Agro Show;Tenha 50 Tratores no pátio. O agro é pop e agora tem fã-clube.;trator;qtd;50;;;;;;horn
+conquista;c_trator_100;Cem Tratores e Um Sonho;Tenha 100 Tratores no pátio. O sonho é estacionar todos.;trator;qtd;100;;;;;;horn
+conquista;c_trator_150;Desfile Cívico de Trator;Tenha 150 Tratores no pátio. Os tratores marcham, os shibas acenam. Ninguém entende, todo mundo gosta.;trator;qtd;150;;;;;;horn
+conquista;c_trator_200;Tratoraço;Tenha 200 Tratores no pátio. Buzinaço com tração nas quatro.;trator;qtd;200;;;;;;horn
+conquista;c_trator_300;Boletim de Trânsito;Tenha 300 Tratores no pátio. Lentidão no km arroz. Siga pela marginal do gohan.;trator;qtd;300;;;;;;horn
+conquista;c_trator_400;Tratorama;Tenha 400 Tratores no pátio. O nome é horrível. O pátio é lindo.;trator;qtd;400;;;;;;horn
+conquista;c_trator_500;Monopólio de Trator;Tenha 500 Tratores no pátio. Todos os tratores do mundo são seus. As outras fazendas alugam.;trator;qtd;500;;;;;;horn
+conquista;c_empilhadeira_10;Balé das Empilhadeiras;Tenha 10 Empilhadeiras no pátio. Pas de deux com palete.;empilhadeira;qtd;10;;;;;;chest
+conquista;c_empilhadeira_50;Galpão Cheio;Tenha 50 Empilhadeiras no pátio. Empilhado até o teto. O teto pediu espaço.;empilhadeira;qtd;50;;;;;;chest
+conquista;c_empilhadeira_100;Sinfonia de Ré;Tenha 100 Empilhadeiras no pátio. Bip bip bip. Cem empilhadeiras afinadas.;empilhadeira;qtd;100;;;;;;chest
+conquista;c_empilhadeira_150;Sobe e Desce;Tenha 150 Empilhadeiras no pátio. Nunca param. O elevador do shopping fica com inveja.;empilhadeira;qtd;150;;;;;;chest
+conquista;c_empilhadeira_200;Paletelândia;Tenha 200 Empilhadeiras no pátio. Uma cidade de paletes, e as empilhadeiras são o metrô.;empilhadeira;qtd;200;;;;;;chest
+conquista;c_empilhadeira_300;Logística de Filme de Assalto;Tenha 300 Empilhadeiras no pátio. Montagem com música tensa. Só que pra guardar arroz.;empilhadeira;qtd;300;;;;;;chest
+conquista;c_empilhadeira_400;Babel de Paletes;Tenha 400 Empilhadeiras no pátio. Cada palete fala uma língua. Todos dizem arroz.;empilhadeira;qtd;400;;;;;;chest
+conquista;c_empilhadeira_500;Pirâmide de Máquinas;Tenha 500 Empilhadeiras no pátio. Empilharam as empilhadeiras. Era inevitável.;empilhadeira;qtd;500;;;;;;chest
+conquista;c_colheita_10;Fila de Colheitadeiras;Tenha 10 Colheitadeiras no pátio. Indo pro campo em ordem de altura.;colheita;qtd;10;;;;;;tree
+conquista;c_colheita_50;Mar Amarelo;Tenha 50 Colheitadeiras no pátio. Parece campo de girassol. São colheitadeiras felizes.;colheita;qtd;50;;;;;;tree
+conquista;c_colheita_100;Colheu a Grama do Vizinho;Tenha 100 Colheitadeiras no pátio. Cem colheitadeiras. Uma se empolgou.;colheita;qtd;100;;;;;;tree
+conquista;c_colheita_150;Ceifa Coletiva;Tenha 150 Colheitadeiras no pátio. Quem colhe junto colhe em dobro. Ditado shiba.;colheita;qtd;150;;;;;;tree
+conquista;c_colheita_200;Não Foram os ETs;Tenha 200 Colheitadeiras no pátio. Os círculos no campo foram as colheitadeiras. Os ETs agradecem a defesa.;colheita;qtd;200;;;;;;tree
+conquista;c_colheita_300;Safra Eterna;Tenha 300 Colheitadeiras no pátio. A colheita nunca acaba. Os calendários agrícolas surtaram.;colheita;qtd;300;;;;;;tree
+conquista;c_colheita_400;Colheitadeira Hidra;Tenha 400 Colheitadeiras no pátio. Corta uma, nascem duas. Isso é ótimo pro arroz.;colheita;qtd;400;;;;;;tree
+conquista;c_colheita_500;Até Onde a Vista Cansa;Tenha 500 Colheitadeiras no pátio. Do horizonte ao horizonte, colheitadeira.;colheita;qtd;500;;;;;;tree
+conquista;c_escav_10;Escavadeiras Coreografadas;Tenha 10 Escavadeiras no pátio. Dez braços, um coração.;escav;qtd;10;;;;;;gear
+conquista;c_escav_50;Clube do Braço Hidráulico;Tenha 50 Escavadeiras no pátio. Reunião às quintas, aperto de concha.;escav;qtd;50;;;;;;gear
+conquista;c_escav_100;Cem Conchas;Tenha 100 Escavadeiras no pátio. Cem bocas mordendo a montanha. Ela pediu um tempinho.;escav;qtd;100;;;;;;gear
+conquista;c_escav_150;Alongamento Antes do Turno;Tenha 150 Escavadeiras no pátio. Esticam o braço antes de cavar. Profissionais.;escav;qtd;150;;;;;;gear
+conquista;c_escav_200;Braço de Ferro Coletivo;Tenha 200 Escavadeiras no pátio. Nenhuma ganha. Todas cavam.;escav;qtd;200;;;;;;gear
+conquista;c_escav_300;Coral Hidráulico;Tenha 300 Escavadeiras no pátio. Afinadíssimas. O tenor é a amarela.;escav;qtd;300;;;;;;gear
+conquista;c_escav_400;A Montanha Pediu Arrego;Tenha 400 Escavadeiras no pátio. Mandou mensagem pedindo um tempo. Elas visualizaram e não responderam.;escav;qtd;400;;;;;;gear
+conquista;c_escav_500;Quinhentas Mãos de Ferro;Tenha 500 Escavadeiras no pátio. O pátio parece um mar de braços acenando. Tchau, montanha.;escav;qtd;500;;;;;;gear
+conquista;c_caminhao_10;Caravana de Caminhões;Tenha 10 Caminhões de Mineração no pátio. Todos piscando o farol pra todos.;caminhao;qtd;10;;;;;;drill
+conquista;c_caminhao_50;Pátio de Pneus Gigantes;Tenha 50 Caminhões de Mineração no pátio. Cada pneu do tamanho de uma casa. Que vista.;caminhao;qtd;50;;;;;;drill
+conquista;c_caminhao_100;Basculada Sincronizada;Tenha 100 Caminhões de Mineração no pátio. Cem caçambas de uma vez. O arroz voa em ondas.;caminhao;qtd;100;;;;;;drill
+conquista;c_caminhao_150;Parada pra Foto;Tenha 150 Caminhões de Mineração no pátio. Pararam cinco minutos pra foto de grupo. Voltaram.;caminhao;qtd;150;;;;;;drill
+conquista;c_caminhao_200;Rodovia Própria;Tenha 200 Caminhões de Mineração no pátio. Cansaram do trânsito e fizeram uma estrada só deles.;caminhao;qtd;200;;;;;;drill
+conquista;c_caminhao_300;Engarrafamento de Gigantes;Tenha 300 Caminhões de Mineração no pátio. Ninguém passa. Mas todo mundo está levando arroz, então tudo bem.;caminhao;qtd;300;;;;;;drill
+conquista;c_caminhao_400;Kome Log;Tenha 400 Caminhões de Mineração no pátio. Já dá pra abrir uma transportadora. O nome já está escolhido.;caminhao;qtd;400;;;;;;drill
+conquista;c_caminhao_500;Planeta Caminhão;Tenha 500 Caminhões de Mineração no pátio. Do espaço só se vê a fila de caminhões. E um shiba acenando.;caminhao;qtd;500;;;;;;drill
+conquista;c_pacabo_10;Pás de Cabo no Horizonte;Tenha 10 Pás de Cabo no pátio. Silhuetas gigantes ao pôr do sol. Poesia elétrica.;pacabo;qtd;10;;;;;;factory
+conquista;c_pacabo_50;Rede Elétrica Própria;Tenha 50 Pás de Cabo no pátio. O pátio agora vende energia pra cidade.;pacabo;qtd;50;;;;;;factory
+conquista;c_pacabo_100;Harpa de Aço;Tenha 100 Pás de Cabo no pátio. Cem cabos esticados tocam um acorde de arroz.;pacabo;qtd;100;;;;;;factory
+conquista;c_pacabo_150;Floresta de Aço;Tenha 150 Pás de Cabo no pátio. Os passarinhos fazem ninho na concha. Ninguém se importa.;pacabo;qtd;150;;;;;;factory
+conquista;c_pacabo_200;Respiração de Aço;Tenha 200 Pás de Cabo no pátio. Sobem juntas, descem juntas, como um pulmão gigante.;pacabo;qtd;200;;;;;;factory
+conquista;c_pacabo_300;Céu Riscado de Cabos;Tenha 300 Pás de Cabo no pátio. Já não se vê o céu. Mas o pôr do sol entre os cabos é lindo.;pacabo;qtd;300;;;;;;factory
+conquista;c_pacabo_400;Cabo de Guerra com a Montanha;Tenha 400 Pás de Cabo no pátio. Quatrocentos cabos puxando. A montanha está perdendo.;pacabo;qtd;400;;;;;;factory
+conquista;c_pacabo_500;Usina de Pás;Tenha 500 Pás de Cabo no pátio. Gasta a energia de um país pequeno e produz o arroz de um país grande.;pacabo;qtd;500;;;;;;factory
+conquista;c_bagger_10;Frota Bagger;Tenha 10 Baggers no pátio. O chão pediu desculpas por existir.;bagger;qtd;10;;;;;;horn
+conquista;c_bagger_50;Cinquenta Monstros de Aço;Tenha 50 Baggers no pátio. Cada uma tem nome, aniversário e playlist.;bagger;qtd;50;;;;;;horn
+conquista;c_bagger_100;Cem Baggers e Uma Cerca;Tenha 100 Baggers no pátio. A cerca é decorativa. Nada segura cem Baggers.;bagger;qtd;100;;;;;;horn
+conquista;c_bagger_150;Rebanho de Baggers;Tenha 150 Baggers no pátio. Pastam montanhas e mugem a diesel.;bagger;qtd;150;;;;;;horn
+conquista;c_bagger_200;Engarrafamento de Catedrais;Tenha 200 Baggers no pátio. Duzentas catedrais de aço disputando a mesma vaga.;bagger;qtd;200;;;;;;horn
+conquista;c_bagger_300;Continente Bagger;Tenha 300 Baggers no pátio. Os geógrafos registraram um continente novo. É o seu pátio.;bagger;qtd;300;;;;;;horn
+conquista;c_bagger_400;Tchauzinho pra Estação Espacial;Tenha 400 Baggers no pátio. Pediram pra elas acenarem. Elas acenaram.;bagger;qtd;400;;;;;;horn
+conquista;c_bagger_500;O Fim das Montanhas;Tenha 500 Baggers no pátio. Nenhuma montanha resiste. Só sobra arroz e Bagger feliz.;bagger;qtd;500;;;;;;horn
+conquista;c_marcos_pata_5;Patinha Turbinada;Compre 5 marcos da Pata. A pata já tem mais upgrade que o seu celular.;pata;marcos;5;;;;;;paw
+conquista;c_marcos_pata_10;Pata de Grife;Compre 10 marcos da Pata. Cada patada vem com etiqueta.;pata;marcos;10;;;;;;paw
+conquista;c_marcos_pata_13;Pata Lendária;Compre os 13 marcos da Pata. Um museu já pediu a pata emprestada.;pata;marcos;13;;;;;;paw
+conquista;c_marcos_hashi_5;Hashi Afiado;Compre 5 marcos do Hashi. Cuidado com o olho. Do arroz.;hashi;marcos;5;;;;;;check
+conquista;c_marcos_hashi_10;Hashi Mestre;Compre 10 marcos do Hashi. Ninguém pega grão como ele. Nem o mestre dele.;hashi;marcos;10;;;;;;check
+conquista;c_marcos_hashi_13;Hashi Ancestral;Compre os 13 marcos do Hashi. A espada do arroz. Os marcos brilham na ponta.;hashi;marcos;13;;;;;;check
+conquista;c_marcos_tigela_5;Tigela Reforçada;Compre 5 marcos da Tigela. Aguenta chute, queda e lava-louças.;tigela;marcos;5;;;;;;rice
+conquista;c_marcos_tigela_10;Tigela de Grife;Compre 10 marcos da Tigela. Tem um logo pequenininho na borda. Custa caro, rende muito.;tigela;marcos;10;;;;;;rice
+conquista;c_marcos_tigela_13;Tigela Imperial;Compre os 13 marcos da Tigela. Digna da mesa do imperador. E do Kome.;tigela;marcos;13;;;;;;rice
+conquista;c_marcos_pa_5;Pá com DLC;Compre 5 marcos da Pá. Conteúdo extra baixado direto no cabo.;pa;marcos;5;;;;;;mount
+conquista;c_marcos_pa_10;Pá Premium Sem Anúncio;Compre 10 marcos da Pá. Assinou o plano e a pá parou de mostrar propaganda.;pa;marcos;10;;;;;;mount
+conquista;c_marcos_pa_13;Pá Edição de Colecionador;Compre os 13 marcos da Pá. Vem numa caixa de metal com miniatura e pôster.;pa;marcos;13;;;;;;mount
+conquista;c_marcos_duaspas_5;Dupla Afinada;Compre 5 marcos das Duas Pás. Agora cantam em terças.;duaspas;marcos;5;;;;;;swap
+conquista;c_marcos_duaspas_10;Dupla Platina;Compre 10 marcos das Duas Pás. Disco de platina em arroz cavado.;duaspas;marcos;10;;;;;;swap
+conquista;c_marcos_duaspas_13;Dupla Imortal;Compre os 13 marcos das Duas Pás. Entraram pro Hall da Fama das Pás.;duaspas;marcos;13;;;;;;swap
+conquista;c_marcos_carrinho_5;Carrinho Envenenado;Compre 5 marcos do Carrinho de Mão. Um pouco de nitro, muito de fofura.;carrinho;marcos;5;;;;;;sack
+conquista;c_marcos_carrinho_10;Carrinho Customizado;Compre 10 marcos do Carrinho de Mão. Pintura de chamas e calota cromada.;carrinho;marcos;10;;;;;;sack
+conquista;c_marcos_carrinho_13;Carrinho Lendário;Compre os 13 marcos do Carrinho de Mão. Uma roda, treze lendas.;carrinho;marcos;13;;;;;;sack
+conquista;c_marcos_britadeira_5;Britadeira Afinada;Compre 5 marcos da Britadeira. Agora erra menos a nota.;britadeira;marcos;5;;;;;;bolt
+conquista;c_marcos_britadeira_10;Britadeira Headliner;Compre 10 marcos da Britadeira. Fecha o festival no palco principal.;britadeira;marcos;10;;;;;;bolt
+conquista;c_marcos_britadeira_13;Britadeira Imortal;Compre os 13 marcos da Britadeira. Vai tocar até depois do fim do mundo.;britadeira;marcos;13;;;;;;bolt
+conquista;c_marcos_trator_5;Trator Equipado;Compre 5 marcos do Trator. Ar, rádio, porta-copo e paciência.;trator;marcos;5;;;;;;horn
+conquista;c_marcos_trator_10;Trator Tunado;Compre 10 marcos do Trator. Já apareceu em programa de carro na TV.;trator;marcos;10;;;;;;horn
+conquista;c_marcos_trator_13;Trator Lendário;Compre os 13 marcos do Trator. Fazendeiros do mundo todo fazem peregrinação.;trator;marcos;13;;;;;;horn
+conquista;c_marcos_empilhadeira_5;Empilhadeira Ajustada;Compre 5 marcos da Empilhadeira. Garfos alinhados como dentes de comercial de pasta.;empilhadeira;marcos;5;;;;;;chest
+conquista;c_marcos_empilhadeira_10;Empilhadeira Elite;Compre 10 marcos da Empilhadeira. Faz curva de ré sem olhar. Com estilo.;empilhadeira;marcos;10;;;;;;chest
+conquista;c_marcos_empilhadeira_13;Empilhadeira Absoluta;Compre os 13 marcos da Empilhadeira. Empilha até as próprias conquistas.;empilhadeira;marcos;13;;;;;;chest
+conquista;c_marcos_colheita_5;Colheitadeira Afiada;Compre 5 marcos da Colheitadeira. Corta até argumento ruim.;colheita;marcos;5;;;;;;tree
+conquista;c_marcos_colheita_10;Colheitadeira Erudita;Compre 10 marcos da Colheitadeira. Colhe ouvindo música clássica.;colheita;marcos;10;;;;;;tree
+conquista;c_marcos_colheita_13;Colheitadeira Mítica;Compre os 13 marcos da Colheitadeira. Os agricultores contam lendas sobre ela à noite.;colheita;marcos;13;;;;;;tree
+conquista;c_marcos_escav_5;Concha Reforçada;Compre 5 marcos da Escavadeira. Morde mais forte, sorri mais largo.;escav;marcos;5;;;;;;gear
+conquista;c_marcos_escav_10;Braço Tatuado;Compre 10 marcos da Escavadeira. A escavadeira fez uma tatuagem de shiba no braço.;escav;marcos;10;;;;;;gear
+conquista;c_marcos_escav_13;Escavadeira Lendária;Compre os 13 marcos da Escavadeira. Se aposentou e continuou cavando por hobby.;escav;marcos;13;;;;;;gear
+conquista;c_marcos_caminhao_5;Caminhão Equipado;Compre 5 marcos do Caminhão de Mineração. Tem geladeira, TV e um shiba de pelúcia no painel.;caminhao;marcos;5;;;;;;drill
+conquista;c_marcos_caminhao_10;Buzina de Abertura de Anime;Compre 10 marcos do Caminhão de Mineração. Toca a música inteira. Ninguém pula.;caminhao;marcos;10;;;;;;drill
+conquista;c_marcos_caminhao_13;Caminhão Lendário;Compre os 13 marcos do Caminhão de Mineração. Tem fã-clube em todo posto de beira de estrada.;caminhao;marcos;13;;;;;;drill
+conquista;c_marcos_pacabo_5;Cabo Turbinado;Compre 5 marcos da Pá de Cabo. Mais voltagem, mais arroz, o mesmo shiba feliz.;pacabo;marcos;5;;;;;;factory
+conquista;c_marcos_pacabo_10;Brilha no Escuro;Compre 10 marcos da Pá de Cabo. Tanta energia que serve de farol pros navios.;pacabo;marcos;10;;;;;;factory
+conquista;c_marcos_pacabo_13;Pá de Cabo Mítica;Compre os 13 marcos da Pá de Cabo. Os raios caem nela por admiração.;pacabo;marcos;13;;;;;;factory
+conquista;c_marcos_bagger_5;Bagger com Aerofólio;Compre 5 marcos da Bagger. O mesmo monstro, agora com spoiler traseiro.;bagger;marcos;5;;;;;;horn
+conquista;c_marcos_bagger_10;Bagger Assinada;Compre 10 marcos da Bagger. Tem o autógrafo do designer na roda.;bagger;marcos;10;;;;;;horn
+conquista;c_marcos_bagger_13;Bagger Completa;Compre os 13 marcos da Bagger. Nada no universo é maior. Por enquanto.;bagger;marcos;13;;;;;;horn
+conquista;c_todas_1;Álbum Completo;Tenha pelo menos 1 de cada uma das 14 turmas. Uma de cada. Agora começa a fase das repetidas.;todas;qtd;1;;;;;;trophy
+conquista;c_todas_10;Escalação Completa;Tenha 10 de cada uma das 14 turmas. Time titular em todas as posições.;todas;qtd;10;;;;;;trophy
+conquista;c_todas_25;Feira de Máquinas;Tenha 25 de cada uma das 14 turmas. Já dá pra cobrar ingresso.;todas;qtd;25;;;;;;trophy
+conquista;c_todas_50;Já Dá pra Abrir uma Concessionária;Tenha 50 de cada uma das 14 turmas. Com estacionamento e cafezinho pro cliente.;todas;qtd;50;;;;;;trophy
+conquista;c_todas_100;Cem de Tudo;Tenha 100 de cada uma das 14 turmas. O inventário está gritando.;todas;qtd;100;;;;;;trophy
+conquista;c_todas_200;Minimalismo Que Nada;Tenha 200 de cada uma das 14 turmas. Duzentos de cada. A Marie Kondo chorou num canto.;todas;qtd;200;;;;;;trophy
+conquista;c_marcos_10;Colecionador de Marcos;Compre 10 marcos no total. Dez cartões e todos dobram alguma coisa. Bom negócio.;todas;marcos;10;;;;;;trophy
+conquista;c_marcos_25;Marca-Texto Gasto;Compre 25 marcos no total. Você grifou tudo. Tudo era importante.;todas;marcos;25;;;;;;trophy
+conquista;c_marcos_50;Planilha de Upgrades;Compre 50 marcos no total. Já tem aba, filtro e gráfico de pizza.;todas;marcos;50;;;;;;trophy
+conquista;c_marcos_100;Cem Dobradinhas;Compre 100 marcos no total. Dobrou tanta coisa que virou origami.;todas;marcos;100;;;;;;trophy
+conquista;c_marcos_150;Maratonista de Marcos;Compre 150 marcos no total. Faltam poucos. Respira.;todas;marcos;150;;;;;;trophy
+conquista;c_marcos_182;Todos os Marcos da Galáxia;Compre todos os 182 marcos. O último cartão veio com confete.;todas;marcos;182;;;;;;trophy
+conquista;c_sin_1;Trabalho em Equipe;Abra 1 sinergia. Duas turmas descobriram que juntas rendem mais. Coaching de graça.;;sinergias;1;;;;;;swap
+conquista;c_sin_5;Networking de Máquinas;Abra 5 sinergias. Elas trocam cartão de visita no intervalo.;;sinergias;5;;;;;;swap
+conquista;c_sin_10;Sinergia Sem Ironia;Abra 10 sinergias. Você disse sinergia numa frase e ninguém riu. O pátio inteiro te olhou.;;sinergias;10;;;;;;swap
+conquista;c_sin_22;Ecossistema Integrado;Abra todas as 22 sinergias. Tudo conversa com tudo e nenhum e-mail foi enviado.;;sinergias;22;;;;;;swap
+conquista;c_compras_100;Carrinho de Compras;Compre 100 unidades no Pátio, somando todas as viagens. Cem itens. O caixa rápido não aceita.;;compras;100;;;;;;check
+conquista;c_compras_1000;Cliente Fiel;Compre 1.000 unidades no Pátio, somando todas as viagens. O pátio te deu um cartão fidelidade.;;compras;1000;;;;;;check
+conquista;c_compras_10000;Black Friday Eterna;Compre 10.000 unidades no Pátio, somando todas as viagens. Você compra como se tivesse desconto. Não tem.;;compras;1e4;;;;;;check
+conquista;c_compras_100000;Comprador Compulsivo de Shibas;Compre 100.000 unidades no Pátio, somando todas as viagens. Ninguém julga. Os shibas adoram.;;compras;1e5;;;;;;check
+conquista;c_compras_1000000;Dedo no Botão Máx;Compre 1 milhão de unidades no Pátio, somando todas as viagens. O botão ×máx tem a marca do seu dedo pra sempre.;;compras;1e6;;;;;;check
+conquista;c_ev_1;Brilhou, Peguei;Pegue 1 evento dourado. O Kome fez a dancinha.;;eventos;1;;;;;;sack
+conquista;c_ev_7;Sete Sortes;Pegue 7 eventos dourados. Sem pressa.;;eventos;7;;;;;;sack
+conquista;c_ev_25;Caçador de Brilho;Pegue 25 eventos dourados. Os olhos já acham o dourado no canto da tela sozinhos.;;eventos;25;;;;;;sack
+conquista;c_ev_50;Reflexo de Gato;Pegue 50 eventos dourados. Pega antes de terminar de aparecer.;;eventos;50;;;;;;sack
+conquista;c_ev_100;Cem Douradinhos;Pegue 100 eventos dourados. Os eventos já aparecem com um pouco de medo.;;eventos;100;;;;;;sack
+conquista;c_ev_250;Mão Dourada;Pegue 250 eventos dourados. Tudo que você toca brilha. Inclusive o mouse.;;eventos;250;;;;;;sack
+conquista;c_ev_500;Ímã de Sorte;Pegue 500 eventos dourados. Os eventos nascem perto do cursor só por educação.;;eventos;500;;;;;;sack
+conquista;c_ev_1000;Mil Brilhos;Pegue 1.000 eventos dourados. Você viu mais dourado que um joalheiro.;;eventos;1000;;;;;;sack
+conquista;c_ev_2500;Dourado Vitalício;Pegue 2.500 eventos dourados. Os eventos te mandam cartão de fim de ano.;;eventos;2500;;;;;;sack
+conquista;c_livro_3;Leitor de Primeira Viagem;Veja 3 tipos de evento dourado no Livro dos Eventos. Metade do livro. O marcador ainda brilha.;;livro;3;;;;;;book
+conquista;c_livro_6;Livro dos Eventos Completo;Veja os 6 tipos de evento dourado no Livro dos Eventos. Leu tudo. Até as notas de rodapé.;;livro;6;;;;;;book
+conquista;c_frenesi_1;Primeiro Frenesi;Pegue o Frenesi do Shiba pela primeira vez. Todo mundo correu. Até quem não precisava.;;evento_frenesi;1;;;;;;bolt
+conquista;c_frenesi_10;Tremedeira de Café;Pegue o Frenesi do Shiba 10 vezes. A frota inteira agora treme um pouquinho.;;evento_frenesi;10;;;;;;bolt
+conquista;c_frenesi_50;Correria Profissional;Pegue o Frenesi do Shiba 50 vezes. Você já sabe a coreografia da pressa.;;evento_frenesi;50;;;;;;bolt
+conquista;c_frenesi_100;Frenesi Crônico;Pegue o Frenesi do Shiba 100 vezes. O médico disse pra descansar. A frota não ouviu.;;evento_frenesi;100;;;;;;bolt
+conquista;c_chuva_1;Primeira Chuva de Arroz;Pegue a Chuva de Arroz pela primeira vez. Abriu a boca e pegou um grão. Clássico.;;evento_chuva;1;;;;;;rice
+conquista;c_chuva_10;Guarda-Chuva ao Contrário;Pegue a Chuva de Arroz 10 vezes. Agora você usa ele pra pegar arroz.;;evento_chuva;10;;;;;;rice
+conquista;c_chuva_50;Meteorologista do Arroz;Pegue a Chuva de Arroz 50 vezes. Previsão: 100% de chance de gohan.;;evento_chuva;50;;;;;;rice
+conquista;c_chuva_100;Monção de Grãos;Pegue a Chuva de Arroz 100 vezes. Já choveu tanto arroz que tem rio de arroz.;;evento_chuva;100;;;;;;rice
+conquista;c_gigante_1;Kome Gigante!;Pegue o Kome Gigante pela primeira vez. Ele cresceu. Você não estava preparado.;;evento_gigante;1;;;;;;paw
+conquista;c_gigante_10;Kaiju de Estimação;Pegue o Kome Gigante 10 vezes. Os prédios já reconhecem ele e abaixam a cabeça.;;evento_gigante;10;;;;;;paw
+conquista;c_gigante_50;Godzilla Fofinho;Pegue o Kome Gigante 50 vezes. Tóquio decretou feriado em homenagem.;;evento_gigante;50;;;;;;paw
+conquista;c_desfile_1;Primeiro Desfile;Pegue o Desfile da Frota pela primeira vez. Teve confete. O trator chorou.;;evento_desfile;1;;;;;;trophy
+conquista;c_desfile_10;Escola de Samba da Frota;Pegue o Desfile da Frota 10 vezes. Comissão de frente: dez Patas de meias.;;evento_desfile;10;;;;;;trophy
+conquista;c_desfile_25;Campeã do Carnaval;Pegue o Desfile da Frota 25 vezes. Nota 10 em evolução, harmonia e arroz.;;evento_desfile;25;;;;;;trophy
+conquista;c_tempestade_1;Tempestade Dourada;Pegue a Tempestade de Sacos Dourados pela primeira vez. Choveram sacos. Ninguém se machucou, todo mundo ficou rico.;;evento_tempestade;1;;;;;;sack
+conquista;c_tempestade_10;Caçador de Tempestades;Pegue a Tempestade de Sacos Dourados 10 vezes. Você corre na direção da tempestade. Literalmente.;;evento_tempestade;10;;;;;;sack
+conquista;c_tempestade_25;Senhor dos Sacos;Pegue a Tempestade de Sacos Dourados 25 vezes. Os sacos dourados te chamam pelo nome.;;evento_tempestade;25;;;;;;sack
+conquista;c_festival_1;Lanternas Acesas;Pegue o Festival das Lanternas pela primeira vez. O festival raro chegou e o taiko bateu forte.;;evento_festival;1;;;;;;star
+conquista;c_festival_5;Frequentador do Festival;Pegue o Festival das Lanternas 5 vezes. Já tem barraca favorita e sabe onde fica o banheiro.;;evento_festival;5;;;;;;star
+conquista;c_festival_10;Dono da Festa;Pegue o Festival das Lanternas 10 vezes. As lanternas acendem quando você chega.;;evento_festival;10;;;;;;star
+conquista;c_chuva_graos_50;Pega-Pega de Arroz;Toque em 50 grãos numa só Chuva de Arroz. Os dedos ficaram com cheiro de gohan.;;chuva_graos;50;;;;;;rice
+conquista;c_chuva_graos_150;Nenhum Grão no Chão;Toque em 150 grãos numa só Chuva de Arroz. Quase. O coletor ficou com saudade.;;chuva_graos;150;;;;;;rice
+conquista;c_gigante_patadas_30;Patada de Titã;Dê 30 patadas num só Kome Gigante. A montanha sentiu cada uma.;;gigante_patadas;30;;;;;;paw
+conquista;c_gigante_patadas_100;Cem Patadas Gigantes;Dê 100 patadas num só Kome Gigante. O Japão subiu 2 cm no mapa.;;gigante_patadas;100;;;;;;paw
+conquista;c_desfile_n_100;Desfile de Gala;Faça um Desfile com uma turma de 100 ou mais. O carro alegórico é um trator.;;desfile_n;100;;;;;;trophy
+conquista;c_desfile_n_300;Parada Interminável;Faça um Desfile com uma turma de 300 ou mais. Ainda não acabou. Ainda está passando.;;desfile_n;300;;;;;;trophy
+conquista;c_tempestade_sacos_10;Ensacado;Pegue 10 sacos numa só Tempestade. Dez sacos, dez sorrisos, zero sacola plástica.;;tempestade_sacos;10;;;;;;sack
+conquista;c_tempestade_sacos_20;Olho do Furacão Dourado;Pegue 20 sacos numa só Tempestade. Você é a tempestade agora.;;tempestade_sacos;20;;;;;;sack
+conquista;c_mochila_1;Evento de Bolso;Solte 1 evento guardado na Mochila do Tatuzão. Guardou pra depois e o depois chegou.;;mochila;1;;;;;;chest
+conquista;c_mochila_10;Hora Certa É a Minha;Solte 10 eventos guardados na Mochila do Tatuzão. Dez eventos na hora que você quis. Autonomia é tudo.;;mochila;10;;;;;;chest
+conquista;c_mochila_50;Mestre do Timing;Solte 50 eventos guardados na Mochila do Tatuzão. Cinquenta eventos soltos no momento perfeito. Ou na hora do café.;;mochila;50;;;;;;chest
+conquista;c_frenesi_compras_100;Black Friday de Um Minuto;Compre 100 unidades durante um único Frenesi. Você foi o cliente mais rápido da história.;;frenesi_compras;100;;;;;;bolt
+conquista;c_viagem_1;Mala Pronta;Viaje 1 vez. O Kome levou 14 petiscos e nenhuma roupa.;;viagens;1;;;;;;boat
+conquista;c_viagem_3;Milhas Acumuladas;Viaje 3 vezes. Já dá pra trocar por um travesseiro de pescoço.;;viagens;3;;;;;;boat
+conquista;c_viagem_5;Turista Profissional;Viaje 5 vezes. Passa no raio-x sem tirar o cinto.;;viagens;5;;;;;;boat
+conquista;c_viagem_10;Passaporte Carimbado;Viaje 10 vezes. Acabaram as páginas. Carimbaram na capa.;;viagens;10;;;;;;boat
+conquista;c_viagem_25;Nômade Digital do Arroz;Viaje 25 vezes. Trabalha de qualquer ilha. Com Wi-Fi ruim em todas.;;viagens;25;;;;;;boat
+conquista;c_viagem_50;Cinquenta Recomeços;Viaje 50 vezes. E nenhum tédio. O Kome jura.;;viagens;50;;;;;;boat
+conquista;c_viagem_100;Cem Viagens;Viaje 100 vezes. O barco já te chama pelo apelido.;;viagens;100;;;;;;boat
+conquista;c_ilha_honshu;Pátio de Casa;Abra o Pátio da Frota em Honshu. Honshu primeiro. Sempre Honshu primeiro.;;ilha;honshu;;;;;;boat
+conquista;c_ilha_hokkaido;Pátio com Neve;Abra o Pátio da Frota em Hokkaido. As máquinas usam cachecol.;;ilha;hokkaido;;;;;;boat
+conquista;c_ilha_kyushu;Pátio com Vulcão;Abra o Pátio da Frota em Kyushu. O arroz já sai quentinho.;;ilha;kyushu;;;;;;boat
+conquista;c_ilha_okinawa;Pátio de Praia;Abra o Pátio da Frota em Okinawa. Shibas de chinelo pilotando trator.;;ilha;okinawa;;;;;;boat
+conquista;c_ilha_mochijima;Pátio Flutuante;Abra o Pátio da Frota na Ilha Flutuante de Mochi. As máquinas quicam.;;ilha;mochijima;;;;;;boat
+conquista;c_volta_1;Volta ao Japão;Complete 1 volta pelo Japão. Todas as ilhas e de volta pra casa. O Kome quer de novo.;;voltas;1;;;;;;boat
+conquista;c_volta_2;Bis!;Complete 2 voltas pelo Japão. O público pediu mais uma.;;voltas;2;;;;;;boat
+conquista;c_volta_3;Trilogia Completa;Complete 3 voltas pelo Japão. Agora só falta o spin-off.;;voltas;3;;;;;;boat
+conquista;c_volta_5;Volta Olímpica;Complete 5 voltas pelo Japão. Os shibas fazem aviãozinho na chegada.;;voltas;5;;;;;;boat
+conquista;c_volta_8;Oito Deitado;Complete 8 voltas pelo Japão. Oito deitado é infinito. Coincidência? Sim.;;voltas;8;;;;;;boat
+conquista;c_volta_12;Mapa com Dobra Gasta;Complete 12 voltas pelo Japão. O mapa do Japão já rasgou no meio de tanto abrir.;;voltas;12;;;;;;boat
+conquista;c_fab_10;Primeira Linha de Produção;Produza 10 itens na Fábrica. Dez itens e um pouco de vapor.;;fabrica;10;;;;;;factory
+conquista;c_fab_100;Turno Completo;Produza 100 itens na Fábrica. Bateram o ponto juntos.;;fabrica;100;;;;;;factory
+conquista;c_fab_1000;Chão de Fábrica;Produza 1.000 itens na Fábrica. O supervisor é um shiba de capacete.;;fabrica;1000;;;;;;factory
+conquista;c_fab_10000;Hora Extra Remunerada;Produza 10.000 itens na Fábrica. Paga em dobro, em petisco.;;fabrica;1e4;;;;;;factory
+conquista;c_fab_100000;Indústria Pesada de Fofura;Produza 100.000 itens na Fábrica. Coisas fofinhas saindo da esteira sem parar.;;fabrica;1e5;;;;;;factory
+conquista;c_fab_1000000;O Inspetor Desmaiou;Produza 1 milhão de itens na Fábrica. De orgulho. Já acordou. Está bem.;;fabrica;1e6;;;;;;factory
+conquista;c_cardapio_2;Cardápio Variado;Faça 2 produtos diferentes da Fábrica na mesma corrida. Arroz e mais alguma coisa. Já é restaurante.;;cardapio;2;;;;;;factory
+conquista;c_cardapio_4;Menu Degustação;Faça os 4 produtos da Fábrica na mesma corrida. Cozido, onigiri, mochi e mochi dourado. Estrela de guia gastronômico.;;cardapio;4;;;;;;factory
+conquista;c_ofi_pata_15;Pata Revisada;Leve a Pata ao nível 15 na Oficina. Trocou o óleo da pata. Não pergunte como.;pata;oficina;15;;;;;;gear
+conquista;c_ofi_pata_30;Pata de Corrida;Leve a Pata ao nível 30 na Oficina. A Oficina nunca viu pata tão bem regulada.;pata;oficina;30;;;;;;gear
+conquista;c_ofi_hashi_15;Hashi Calibrado;Leve o Hashi ao nível 15 na Oficina. Alinhamento e balanceamento de pauzinho.;hashi;oficina;15;;;;;;gear
+conquista;c_ofi_hashi_30;Hashi de Laboratório;Leve o Hashi ao nível 30 na Oficina. Precisão de microscópio, carinho de vó.;hashi;oficina;30;;;;;;gear
+conquista;c_ofi_tigela_15;Tigela Polida;Leve a Tigela ao nível 15 na Oficina. Reflete o futuro. O futuro tem arroz.;tigela;oficina;15;;;;;;gear
+conquista;c_ofi_tigela_30;Kintsugi do Pátio;Leve a Tigela ao nível 30 na Oficina. Restaurada com ouro. Ficou mais bonita que nova.;tigela;oficina;30;;;;;;gear
+conquista;c_ofi_pa_15;Pá Amolada;Leve a Pá ao nível 15 na Oficina. Corta o arroz e a conversa fiada.;pa;oficina;15;;;;;;gear
+conquista;c_ofi_pa_30;Pá Retificada;Leve a Pá ao nível 30 na Oficina. O mecânico assinou a pá. Ninguém pediu, ficou bonito.;pa;oficina;30;;;;;;gear
+conquista;c_ofi_duaspas_15;Pás Balanceadas;Leve as Duas Pás ao nível 15 na Oficina. Pesam exatamente igual. A briga acabou.;duaspas;oficina;15;;;;;;gear
+conquista;c_ofi_duaspas_30;Pás de Corrida;Leve as Duas Pás ao nível 30 na Oficina. Uma pá sai, a outra já chegou.;duaspas;oficina;30;;;;;;gear
+conquista;c_ofi_carrinho_15;Rolamento Novo;Leve o Carrinho de Mão ao nível 15 na Oficina. E um laço de fita no guidão.;carrinho;oficina;15;;;;;;gear
+conquista;c_ofi_carrinho_30;Nitro na Rodinha;Leve o Carrinho de Mão ao nível 30 na Oficina. Proibido em quatro prefeituras.;carrinho;oficina;30;;;;;;gear
+conquista;c_ofi_britadeira_15;Britadeira Regulada;Leve a Britadeira ao nível 15 na Oficina. Bate no tempo certo. O metrônomo pediu licença.;britadeira;oficina;15;;;;;;gear
+conquista;c_ofi_britadeira_30;Afinada por Luthier;Leve a Britadeira ao nível 30 na Oficina. Agora é instrumento musical registrado.;britadeira;oficina;30;;;;;;gear
+conquista;c_ofi_trator_15;Revisão dos 10 Mil;Leve o Trator ao nível 15 na Oficina. Ganhou um chaveiro de brinde.;trator;oficina;15;;;;;;gear
+conquista;c_ofi_trator_30;Trator Preparado;Leve o Trator ao nível 30 na Oficina. Mais cavalo no motor que num haras.;trator;oficina;30;;;;;;gear
+conquista;c_ofi_empilhadeira_15;Garfos Paralelos de Verdade;Leve a Empilhadeira ao nível 15 na Oficina. O engenheiro chorou de alegria.;empilhadeira;oficina;15;;;;;;gear
+conquista;c_ofi_empilhadeira_30;Copa do Mundo de Empilhamento;Leve a Empilhadeira ao nível 30 na Oficina. Ganhou. Existe, sim.;empilhadeira;oficina;30;;;;;;gear
+conquista;c_ofi_colheita_15;Colheitadeira Lubrificada;Leve a Colheitadeira ao nível 15 na Oficina. Faz menos barulho e colhe mais. Mistério resolvido.;colheita;oficina;15;;;;;;gear
+conquista;c_ofi_colheita_30;Tapete Vermelho da Feira Agro;Leve a Colheitadeira ao nível 30 na Oficina. Tão bonita que vai pra exposição.;colheita;oficina;30;;;;;;gear
+conquista;c_ofi_escav_15;Pressão de Massagem;Leve a Escavadeira ao nível 15 na Oficina. Hidráulica regulada como massagem japonesa.;escav;oficina;15;;;;;;gear
+conquista;c_ofi_escav_30;Braço de Calígrafo;Leve a Escavadeira ao nível 30 na Oficina. Move a concha como um pincel.;escav;oficina;30;;;;;;gear
+conquista;c_ofi_caminhao_15;Seis Pneus Novos;Leve o Caminhão de Mineração ao nível 15 na Oficina. Levou uma semana e um guindaste.;caminhao;oficina;15;;;;;;gear
+conquista;c_ofi_caminhao_30;Caminhão Turbo;Leve o Caminhão de Mineração ao nível 30 na Oficina. Faz a curva sem a caçamba ficar pra trás.;caminhao;oficina;30;;;;;;gear
+conquista;c_ofi_pacabo_15;Eletricista Feliz;Leve a Pá de Cabo ao nível 15 na Oficina. Saiu da Oficina rindo à toa.;pacabo;oficina;15;;;;;;gear
+conquista;c_ofi_pacabo_30;Supercondutora;Leve a Pá de Cabo ao nível 30 na Oficina. Zero resistência. A pá nem sua.;pacabo;oficina;30;;;;;;gear
+conquista;c_ofi_bagger_15;Quarenta Mecânicos e um Drone;Leve a Bagger ao nível 15 na Oficina. Foi o que precisou pra revisar.;bagger;oficina;15;;;;;;gear
+conquista;c_ofi_bagger_30;Ronrono de Catorze Mil Toneladas;Leve a Bagger ao nível 30 na Oficina. Ronca como um gato. Um gato enorme.;bagger;oficina;30;;;;;;gear
+conquista;c_ofisoma_50;Mecânico de Fim de Semana;Some 50 níveis de Oficina entre todas as máquinas. Graxa no rosto e orgulho no peito.;;oficina_soma;50;;;;;;gear
+conquista;c_ofisoma_100;Chave Inglesa de Ouro;Some 100 níveis de Oficina entre todas as máquinas. A caixa de ferramentas tem um brilho suspeito.;;oficina_soma;100;;;;;;gear
+conquista;c_ofisoma_250;Oficina Cinco Estrelas;Some 250 níveis de Oficina entre todas as máquinas. Avaliação máxima no aplicativo. Até o cafezinho.;;oficina_soma;250;;;;;;gear
+conquista;c_ofisoma_500;Mecânico Sênior Pleno Master;Some 500 níveis de Oficina entre todas as máquinas. A rede social de trabalho não tem mais título pra você.;;oficina_soma;500;;;;;;gear
+conquista;c_tatu_1;Achado do Tatu;Ache 1 bolsão ou fóssil com o Tatuzão. O Tatuzão fez a dancinha.;;tatuzao;1;;;;;;drill
+conquista;c_tatu_10;Arqueólogo de Arroz;Ache 10 bolsões ou fósseis com o Tatuzão. Já dá pra montar um museuzinho.;;tatuzao;10;;;;;;drill
+conquista;c_tatu_25;Caça-Fósseis;Ache 25 bolsões ou fósseis com o Tatuzão. Achou uma costela de dinossauro de arroz. Ainda crocante.;;tatuzao;25;;;;;;drill
+conquista;c_tatu_50;Indiana Shiba;Ache 50 bolsões ou fósseis com o Tatuzão. Fugiu de uma bola de arroz gigante rolando. Salvou o chapéu.;;tatuzao;50;;;;;;drill
+conquista;c_tatu_100;Museu do Tatuzão;Ache 100 bolsões ou fósseis com o Tatuzão. Entrada grátis pra quem tem quatro patas.;;tatuzao;100;;;;;;drill
+conquista;c_tatu_250;Tatu Lendário;Ache 250 bolsões ou fósseis com o Tatuzão. Os fósseis se escondem dele. Não adianta.;;tatuzao;250;;;;;;drill
+conquista;c_col_5;Colecionador Iniciante;Tenha 5 itens na coleção. Cinco coisinhas na prateleira e já sente orgulho.;;colecao;5;;;;;;hat
+conquista;c_col_10;Estante Cheia;Tenha 10 itens na coleção. A estante pediu reforço.;;colecao;10;;;;;;hat
+conquista;c_col_20;Acumulador Feliz;Tenha 20 itens na coleção. Não é bagunça, é acervo.;;colecao;20;;;;;;hat
+conquista;c_col_40;Curador do Acervo Kome;Tenha 40 itens na coleção. Um museu famoso ligou pedindo dicas.;;colecao;40;;;;;;hat
+conquista;c_tempo_1;Só Mais Uma Horinha;Jogue 1 hora no total. Clássico. Ninguém acredita, nem você.;;tempo;3600;;;;;;clock
+conquista;c_tempo_5;Meio Período;Jogue 5 horas no total. Sem chefe, sem ponto, com shiba.;;tempo;1.8e4;;;;;;clock
+conquista;c_tempo_10;Turno Dobrado;Jogue 10 horas no total. O café acabou, a vontade não.;;tempo;3.6e4;;;;;;clock
+conquista;c_tempo_25;Maratona de Série;Jogue 25 horas no total. Dava pra ver uma temporada inteira. Você preferiu ver arroz subir.;;tempo;9e4;;;;;;clock
+conquista;c_tempo_50;Funcionário do Mês;Jogue 50 horas no total. Tem foto sua na parede da Oficina.;;tempo;1.8e5;;;;;;clock
+conquista;c_tempo_100;Cem Horas de Arroz;Jogue 100 horas no total. Obrigado de verdade. Agora vai beber água.;;tempo;3.6e5;;;;;;clock
+conquista;c_offline_1;Bem-Vindo de Volta;Volte e aperte Pegar! pela primeira vez. A frota trabalhou enquanto você vivia. Como deve ser.;;offline;1;;;;;;house
+conquista;c_offline_10;Vida Equilibrada;Volte e aperte Pegar! 10 vezes. Você sai, vive, volta, pega. O pátio aprova.;;offline;10;;;;;;house
+conquista;c_offline_50;Pausa Saudável;Volte e aperte Pegar! 50 vezes. Os shibas guardaram tudo direitinho.;;offline;50;;;;;;house
+conquista;c_offline_100;Mestre do Pegar!;Volte e aperte Pegar! 100 vezes. O botão te reconhece pelo toque.;;offline;100;;;;;;house
+conquista;c_offmax_1;Fui Ali Comprar Pão;Fique fora pelo menos 1 hora seguidas e volte. A frota nem notou, só cavou.;;offline_max;3600;;;;;;house
+conquista;c_offmax_8;Dormiu Bem;Fique fora pelo menos 8 horas seguidas e volte. Sono em dia é o melhor bônus que existe.;;offline_max;2.88e4;;;;;;house
+conquista;c_nomes_1;O Número Ganhou Nome;Veja 1 nome de número novo (depois do deci). O Kome fez um bolo.;;nomes;1;;;;;;star
+conquista;c_nomes_5;Dicionário de Zeros;Veja 5 nomes de número novos (depois do deci). Já dá pra impressionar na festa.;;nomes;5;;;;;;star
+conquista;c_nomes_10;Cartório dos Números;Veja 10 nomes de número novos (depois do deci). O cartório pediu calma.;;nomes;10;;;;;;star
+conquista;c_nomes_20;Poeta dos Números;Veja 20 nomes de número novos (depois do deci). Cada nome mais faminto que o outro.;;nomes;20;;;;;;star
+conquista;c_conq_50;Coração Morninho;Tenha 50 conquistas. O Arroz do Coração já aquece a tigela.;;conquistas;50;;;;;;trophy
+conquista;c_conq_100;Coração Cheio;Tenha 100 conquistas. O coração está fazendo hora extra.;;conquistas;100;;;;;;trophy
+conquista;c_conq_200;Coração de Mãe;Tenha 200 conquistas. Sempre cabe mais uma.;;conquistas;200;;;;;;trophy
+conquista;c_conq_300;Coração de Estádio;Tenha 300 conquistas. Cabe a torcida inteira.;;conquistas;300;;;;;;trophy
+conquista;c_conq_400;Coração do Tamanho do Japão;Tenha 400 conquistas. O mapa agora tem formato de coração. Mais ou menos.;;conquistas;400;;;;;;trophy
+conquista;c_tigelas_1;Louça Nova;Compre 1 Tigela do Coração. O coração ganhou a primeira tigela.;;tigelas;1;;;;;;star
+conquista;c_tigelas_8;Jogo de Jantar Completo;Compre as 8 Tigelas do Coração. O conjunto de tigelas mais fofo do Japão.;;tigelas;8;;;;;;star
+conquista;c_seg_saudade;Saudade do Começo;O Kome nunca esquece as origens. Nem os talheres.;hashi;segredo;hashi_com_100_bagger;;;;;;check
+conquista;c_seg_carinho;Carinho Não Se Nega;Ele está ali parado, tão fofo. Já tentou?;;segredo;tocar_kome_100;;;;;;paw
+conquista;c_seg_zen;Contemplação Zen;Às vezes a melhor jogada é só olhar.;;segredo;parado_10min;;;;;;clock
+conquista;c_seg_hold;Investidor de Longo Prazo;Hold. Só hold.;;segredo;sem_compra_1h;;;;;;yen
+conquista;c_seg_1111;Faz um Pedido;Tem um horário que dá sorte. Diz a internet.;;segredo;compra_11h11;;;;;;star
+conquista;c_seg_meianoite;Gremlin do Arroz;Não alimente os shibas depois da meia-noite. Mentira, alimenta.;;segredo;meia_noite;;;;;;clock
+conquista;c_seg_sextou;Sextou;Tem um dia e uma hora que o mundo inteiro comemora.;;segredo;sexta_18h;;;;;;music
+conquista;c_seg_segunda;Reunião de Alinhamento;Começo de semana, café na mão, aba aberta no jogo errado.;;segredo;segunda_9h;;;;;;book
+conquista;c_seg_notacao;Engenheiro de Planilha;Tem gente que prefere os números pelados.;;segredo;notacao_ligada;;;;;;gear
+conquista;c_seg_mudo;Modo Reunião;Ninguém pode saber que você está jogando.;;segredo;mudo_10min;;;;;;mute
+conquista;c_seg_nice;Nice Tratores;Um número bem específico de tratores. Nice.;trator;segredo;trator_69;;;;;;horn
+conquista;c_seg_42;A Resposta;Uma quantidade que responde sobre a vida, o universo e as pás.;todas;segredo;alguma_42;;;;;;trophy
+conquista;c_seg_404;Pata Não Encontrada;Um código de erro famoso, em patas.;pata;segredo;pata_404;;;;;;paw
+conquista;c_seg_1337;L33t Sh1b4;Some tudo do pátio. Em leetspeak.;todas;segredo;soma_1337;;;;;;trophy
+conquista;c_seg_tutorial;Pulou o Tutorial;Começar pelo fim também é um caminho.;bagger;segredo;bagger_sem_pata;;;;;;horn
+conquista;c_seg_festa2;Festa Dentro da Festa;Dois eventos de mãos dadas, um deles raríssimo.;;segredo;festival_e_frenesi;;;;;;star
+conquista;c_seg_deixachover;Deixa Chover;O coletor também merece carinho.;;segredo;chuva_sem_toque;;;;;;rice
+conquista;c_seg_gentil;Gigante Gentil;Às vezes ser grande é só ficar parado sendo lindo.;;segredo;gigante_sem_patada;;;;;;paw
+conquista;c_seg_gagueira;Gaguejou;Um número que se repete no nome.;;segredo;nome_kome_kome;;;;;;star
+conquista;c_seg_trinca;Trinca da Sorte;Três números iguais e da sorte, sem máquina caça-níquel nenhuma.;;segredo;dinheiro_777;;;;;;yen
+conquista;c_seg_mochilao;Viagem de Mochilão;Viajou com pouca coisa na mala. Às vezes é isso.;;segredo;viagem_1_semente;;;;;;boat
+conquista;c_seg_leitor;Leitor Assíduo;Tem um livro que você não larga.;;segredo;livro_aberto_20;;;;;;book
+conquista;c_seg_creditos;Fã do Elenco;Quem fez esse jogo? Tem uma tela que conta.;;segredo;creditos;;;;;;star
+conquista;c_seg_cochilo;Cochilo Aprovado;Quando o Kome boceja, ele está tentando te dizer algo.;;segredo;cochilo_aceito;;;;;;clock
+conquista;c_seg_workaholic;Workaholic Assumido;Tem um bocejo que dá pra desligar. Você desligou, né?;;segredo;cochilo_desligado;;;;;;clock
+conquista;c_seg_toc;Tudo Igualzinho;Nenhuma turma acima da outra. Nenhuma.;todas;segredo;todas_iguais_10;;;;;;trophy
+conquista;c_seg_artesanal;Artesanal;Sem ×máx, sem ×10. Na raça.;;segredo;cem_compras_x1;;;;;;check
+conquista;c_seg_pegou;Pegou!;Tem um botão grande que merece ser apertado rápido.;;segredo;pegar_rapido;;;;;;house
+conquista;c_seg_kaiju;Kaiju Cafeinado;Um Kome enorme e acelerado ao mesmo tempo.;;segredo;gigante_no_frenesi;;;;;;bolt
+conquista;c_seg_catedrais;Desfile de Catedrais;A turma mais pesada também gosta de confete.;bagger;segredo;desfile_bagger;;;;;;horn
+conquista;c_seg_meias;Marcha das Meias;A turma mais humilde, em massa, na avenida.;pata;segredo;desfile_pata_300;;;;;;paw
+conquista;c_seg_tigela2;Tigela ao Quadrado;Tigelas de dois tipos, mesma quantidade.;tigela;segredo;tigela_8_8;;;;;;rice
+conquista;c_seg_semtatu;Sem Tatu, Sem Problema;Os minijogos são opcionais. Prove.;;segredo;ilha_sem_tatuzao;;;;;;drill
+conquista;c_seg_zerou;Zerou a Conta;Cada iene gasto. Até o último.;;segredo;dinheiro_zero;;;;;;yen
+nome;;undeci;Undecilhão. Ninguém fala isso em voz alta sem errar na primeira vez.;;;;;;;;;
+nome;;duodeci;Duodecilhão. Parece nome de dupla de mágicos de festa infantil.;;;;;;;;;
+nome;;tredeci;Tredecilhão. 42 zeros. A resposta pra tudo, em arroz.;;;;;;;;;
+nome;;quatordeci;Quatordecilhão. O corretor ortográfico desistiu aqui.;;;;;;;;;
+nome;;quindeci;Quindecilhão. Dá pra pagar o condomínio. Quase.;;;;;;;;;
+nome;;sexdeci;Sexdecilhão. Sim, é o nome oficial. Pode rir, o Kome riu.;;;;;;;;;
+nome;;septendeci;Septendecilhão. Soa como feitiço de escola de magia pra contadores.;;;;;;;;;
+nome;;octodeci;Octodecilhão. Oito o quê? Ninguém sabe. Só cresce.;;;;;;;;;
+nome;;novendeci;Novendecilhão. O último antes do grande número redondo.;;;;;;;;;
+nome;;viginti;Vigintilhão. Fim dos nomes sérios. Daqui pra frente é com a gente.;;;;;;;;;
+nome;;arrozilhão;O primeiro número com nome de comida. Nasceu numa panela elétrica.;;;;;;;;;
+nome;;onigirilhão;Triangular por definição. Nice.;;;;;;;;;
+nome;;mochilhão;Elástico. Estica até 1e72 e volta.;;;;;;;;;
+nome;;shibalhão;Much número. Very zeros. Wow.;;;;;;;;;
+nome;;baggerlhão;Pesa 14.200 toneladas de zeros.;;;;;;;;;
+nome;;tatuzilhão;Cava os próprios zeros. Achou um fóssil no 47º.;;;;;;;;;
+nome;;fujilhão;Tão alto que tem neve nos últimos zeros.;;;;;;;;;
+nome;;luazilhão;Não cabe mais na Terra. Mudou pra Lua com os zeros todos.;;;;;;;;;
+nome;;kome-kome;Quando um Kome só não basta pra dizer o número.;;;;;;;;;
+nome;;kome-kome-kome;Três Komes. Gaguejar virou unidade de medida.;;;;;;;;;
+nome;;bentozilhão;Vem dividido em compartimentos. Os zeros não se misturam.;;;;;;;;;
+nome;;boletilhão;O valor do boleto depois de esquecer de pagar por três meses.;;;;;;;;;
+nome;;cafezilhão;A quantidade de café pra chegar até aqui sem dormir.;;;;;;;;;
+nome;;reunilhão;Quantas reuniões podiam ter sido um e-mail.;;;;;;;;;
+nome;;wasabilhão;Arde só de ler. Os zeros lacrimejam.;;;;;;;;;
+nome;;ramenzilhão;Três minutos de espera e ele fica pronto. Os zeros também.;;;;;;;;;
+nome;;sakurilhão;Floresce uma vez por ano e cai em pétalas de zeros.;;;;;;;;;
+nome;;tanukilhão;O tanuki rival jura que esse número é dele. Não é.;;;;;;;;;
+nome;;memezilhão;Tem zeros que viraram meme antes de você chegar.;;;;;;;;;
+nome;;dinozilhão;O dinossauro de arroz tinha esse tanto de grãos. Dizem.;;;;;;;;;
+nome;;karaokilhão;Desafina em todos os zeros e ninguém liga.;;;;;;;;;
+nome;;sushizilhão;Gira na esteira. Os zeros passam e você pega o que quiser.;;;;;;;;;
+nome;;pixelhão;Cada zero é um pixel. Esse número é um papel de parede.;;;;;;;;;
+nome;;abobrilhão;Tem zeros que só fazem volume, igual abobrinha no rodízio.;;;;;;;;;
+nome;;galaxilhão;Precisa de telescópio pra ver o último zero.;;;;;;;;;
+nome;;multiversilhão;Existe em todas as linhas do tempo. Em todas você é rico.;;;;;;;;;
+nome;;chega-lhão;O último nome. Depois daqui é notação científica e respeito.;;;;;;;;;
+evento;frenesi;Frenesi do Shiba;Café triplo pra frota inteira. Todo mundo corre! Renda ×7.;;sorteio;;frenesi;7;;40;60;bolt
 evento;chuva;Chuva de Arroz;Tá chovendo arroz! Toque nos grãos. O que cair no chão vai pro coletor pela metade.;;sorteio;;chuva;10;;30;12;rice
-evento;gigante;Kome Gigante;O Kome cresceu! Cada patada vale ×50.;;sorteio;;gigante;50;;12;20;paw
-evento;festival;Festival das Lanternas;Lanternas e taiko. Tudo ×2 por um tempinho.;;sorteio;;festival;2;;2;77;star
-nome;;arrozilhão;;;;;;;;;;
-nome;;onigirilhão;;;;;;;;;;
-nome;;mochilhão;;;;;;;;;;
-nome;;shibalhão;;;;;;;;;;
-nome;;baggerlhão;;;;;;;;;;
-nome;;tatuzilhão;;;;;;;;;;
-nome;;fujilhão;;;;;;;;;;
-nome;;luazilhão;;;;;;;;;;
-nome;;kome-kome;;;;;;;;;;
-nome;;kome-kome-kome;;;;;;;;;;
+evento;gigante;Kome Gigante;O Kome cresceu! Cada patada vale ×50. Cuidado com o teto.;;sorteio;;gigante;50;;12;20;paw
+evento;desfile;Desfile da Frota;Uma turma com 10 ou mais vai pra avenida: +10% por unidade dela. Tem confete.;;sorteio;;desfile;0.1;;8;30;trophy
+evento;tempestade;Tempestade de Sacos Dourados;Chovem sacos. Cada um vale de 1 a 7 min de renda, sorteado quando nasce.;;sorteio;;tempestade;7;;8;20;sack
+evento;festival;Festival das Lanternas;Lanternas e taiko. Tudo ×2 por um tempinho. Raro e lindo.;;sorteio;;festival;2;;2;77;star
