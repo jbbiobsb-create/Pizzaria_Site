@@ -157,6 +157,8 @@
   }
   // ícone de roupa: rosto do Kome com a cor (ou com o acessório); bloqueada vira silhueta
   const iconCache = {};
+  // achados primeiro (na ordem da lista), depois os que faltam: o que você achou sempre aparece sem rolar
+  function foundFirst(list, have) { const a = [], b = []; for (const c of list) (have.indexOf(c.id) >= 0 ? a : b).push(c); return a.concat(b); }
   function clothIcon(it, ok) {
     const k = it.id + (ok ? '1' : '0'); if (iconCache[k]) return iconCache[k];
     const c = document.createElement('canvas'); c.width = c.height = 44; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
@@ -199,7 +201,7 @@
     list(T.pane('bichos'), D.DECOR.filter(x => x.kind === 'pet'), pick, st);
     // roupas: os achados enterrados (mesma lista do guarda-roupa)
     const have = S.closet || [], look = S.look || {};
-    const clothes = [{ id: 'kome', kind: 'pal', n: 'Kome clássico', d: 'chapéu de palha' }].concat(D.CLOSET);
+    const clothes = [{ id: 'kome', kind: 'pal', n: 'Kome clássico', d: 'chapéu de palha' }].concat(foundFirst(D.CLOSET, have));
     list(T.pane('roupa'), clothes, it => { if (it.id !== 'kome' && have.indexOf(it.id) < 0) return; api.wear(it.kind, it.id); if (G.HUD.refreshCloset) G.HUD.refreshCloset(); },
       it => { const ok = it.id === 'kome' || have.indexOf(it.id) >= 0, on = ok && (it.kind === 'pal' ? (look.pal || 'kome') === it.id : look.acc === it.id);
         return { on, dim: !ok, sub: ok ? (on ? 'vestindo' : 'toque pra vestir') : 'ache cavando bolsões de ouro' }; },
@@ -527,7 +529,7 @@
     }
     if (id === 'roupa') {
       const have = S.closet || [], look = S.look || {};
-      const clothes = [{ id: 'kome', kind: 'pal', n: 'Kome clássico', d: 'chapéu de palha' }].concat(D.CLOSET);
+      const clothes = [{ id: 'kome', kind: 'pal', n: 'Kome clássico', d: 'chapéu de palha' }].concat(foundFirst(D.CLOSET, have));
       el('div', 'kh-hint', body, have.length + '/' + D.CLOSET.length + ' achados · toque pra vestir');
       const grid = el('div', 'kh-grid', body);
       const okOf = it => it.id === 'kome' || have.indexOf(it.id) >= 0;

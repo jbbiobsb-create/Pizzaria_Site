@@ -292,6 +292,9 @@
     const foot = el('div', 'k-cui-foot', c);
     button(foot, 'Arroz do Coração', '', () => openHeart());
     button(foot, 'Sementes', '', () => openSeeds());
+    // Livro dos Eventos (eventos-arte.js): abre por cima do painel (z 57 > 56) e, ao fechar, volta pro Pátio
+    const bk = button(foot, 'Eventos', 'k-cui-book', () => { sfx('click'); const EA = G.EventArt; if (!(EA && EA.openBook && EA.openBook())) { sfx('error'); pop(bk, 'k-cui-shake'); } });
+    bk.title = 'Livro dos Eventos'; bk.setAttribute('aria-label', 'Livro dos Eventos'); bk.insertBefore(iconCv('book', 22), bk.firstChild);
   }
   const qty = id => { const m = P.mult; if (m === 'max') return Math.max(1, A().maxBuy(id) | 0); return m; };
   function buildRows() {

@@ -379,10 +379,10 @@
   /* ---- horizonte do Pátio: a escavadeira gigante (silhueta de verdade, animada) cavando atrás dos morros ----
      horizon(g, {x0,x1,y,k=.12,t,n,tint,haze,night}); n>=10 ganha uma 2ª (mais longe); ocupa o meio-fim da faixa. */
   /* Cache: a silhueta custava ~10 ms/quadro (rig inteiro redesenhado). Agora cada lado (i) é gravado UMA vez como
-     HZ_F quadros de um ciclo de cavada (sem tinta) e reaproveitado; a tinta/névoa vai por cima num canvas de trabalho
-     (1 drawImage + 1 fillRect). Noite = só a luzinha da cabine, desenhada por cima (não entra no cache). */
+     HZ_F quadros de um ciclo de cavada (sem tinta) e reaproveitado; os quadros tingidos (tinta+névoa) também ficam guardados
+     até a tinta mudar, então o quadro normal é só 1 drawImage. Noite = só a luzinha da cabine, desenhada por cima (não entra no cache). */
   const HZ_W = 460, HZ_H = 300, HZ_F = 12;
-  const HZ = { side: [], cv: null, c: null };
+  const HZ = { side: [] };
   const HINP = { x: 0, y: 0, face: 1, floor: () => 0, digging: true, speedMul: 0.6, power: 1, tx: 220, ty: -40, parts: null };
   function hzSide(i) {
     if (HZ.side[i]) return HZ.side[i];
@@ -395,19 +395,34 @@
       const cv = document.createElement('canvas'); cv.width = HZ_W; cv.height = HZ_H;
       const c = cv.getContext('2d'); c.translate(230, 270); E0.draw(c, ex); fr.push(cv);
     }
-    return (HZ.side[i] = { fr, per, seat: { x: ex.seatO.x, y: ex.seatO.y } });
+    // recorta pro retângulo que algum quadro usa (menos pixel pra compor a cada quadro)
+    let x0 = HZ_W, y0 = HZ_H, x1 = 0, y1 = 0;
+    try {
+      for (const cv of fr) { const d = cv.getContext('2d').getImageData(0, 0, HZ_W, HZ_H).data;
+        for (let yy = 0; yy < HZ_H; yy++) for (let xx = 0; xx < HZ_W; xx++) if (d[(yy * HZ_W + xx) * 4 + 3]) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; } }
+    } catch (e) { x0 = 0; y0 = 0; x1 = HZ_W - 1; y1 = HZ_H - 1; }
+    if (x1 < x0) { x0 = 0; y0 = 0; x1 = HZ_W - 1; y1 = HZ_H - 1; }
+    const bx = x0, by = y0, bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+    const crop = fr.map(cv => { const o = document.createElement('canvas'); o.width = bw; o.height = bh; o.getContext('2d').drawImage(cv, -bx, -by); return o; });
+    return (HZ.side[i] = { fr: crop, per, bx, by, bw, bh, tf: [], ok: [], tk: '', seat: { x: ex.seatO.x, y: ex.seatO.y } });
   }
   function horizon(g, o) {
     if (!esc()) return;
     const k = o.k || 0.12, t = o.t || 0, n = Math.max(1, o.n | 0), tint = o.tint || '#93A3B4', haze = o.haze === undefined ? 0.6 : o.haze, night = o.night || 0;
     const count = n >= 10 ? 2 : 1;
-    if (!HZ.cv) { HZ.cv = document.createElement('canvas'); HZ.cv.width = HZ_W; HZ.cv.height = HZ_H; HZ.c = HZ.cv.getContext('2d'); }
     for (let i = count - 1; i >= 0; i--) {
-      const sd = hzSide(i), ph = ((t + i * 1.3) / sd.per) % 1, img = sd.fr[Math.floor((ph < 0 ? ph + 1 : ph) * HZ_F) % HZ_F];
-      const c = HZ.c; c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, HZ_W, HZ_H); c.drawImage(img, 0, 0);
-      c.globalCompositeOperation = 'source-atop'; c.globalAlpha = Math.min(0.95, haze + 0.2 + i * 0.1); c.fillStyle = tint; c.fillRect(0, 0, HZ_W, HZ_H); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+      const sd = hzSide(i), ph = ((t + i * 1.3) / sd.per) % 1;
+      const fi = Math.floor((ph < 0 ? ph + 1 : ph) * HZ_F) % HZ_F, al = Math.min(0.95, haze + 0.2 + i * 0.1), key = tint + '|' + al;
+      if (sd.tk !== key) { sd.tk = key; sd.ok = []; }   // tinta mudou (céu/estação): retinge os quadros sob demanda
+      if (!sd.tf[fi]) { sd.tf[fi] = document.createElement('canvas'); sd.tf[fi].width = sd.bw; sd.tf[fi].height = sd.bh; }
+      const out = sd.tf[fi];
+      if (!sd.ok[fi]) {
+        const c = out.getContext('2d'); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, sd.bw, sd.bh); c.drawImage(sd.fr[fi], 0, 0);
+        c.globalCompositeOperation = 'source-atop'; c.globalAlpha = al; c.fillStyle = tint; c.fillRect(0, 0, sd.bw, sd.bh); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        sd.ok[fi] = true;
+      }
       const sc = k * S * 0.9 * (1 - i * 0.3), x = lerp(o.x0, o.x1, i ? 0.42 : 0.62), y = o.y - i * 8;
-      g.drawImage(HZ.cv, x - 230 * sc, y - 270 * sc, HZ_W * sc, HZ_H * sc);
+      g.drawImage(out, x + (sd.bx - 230) * sc, y + (sd.by - 270) * sc, sd.bw * sc, sd.bh * sc);
       if (night > 0.2) { g.fillStyle = '#FFE3A0'; g.globalAlpha = night; const s = sd.seat; g.fillRect(x + s.x * sc - 2, y + s.y * sc - 2, 4, 3); g.globalAlpha = 1; }
     }
     // nuvenzinha passando na frente

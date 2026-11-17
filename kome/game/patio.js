@@ -36,13 +36,13 @@
   const CK = D.COOKIE || { up: [], ach: [], ev: [], nomes: [] };
   if (CK.nomes && CK.nomes.length && U.addUnits) U.addUnits(CK.nomes);   // arrozilhão, onigirilhão…
   const UPM = {}; CK.up.filter(u => u.ef === 'mult_maquina').forEach(u => { UPM[u.maq + '@' + u.alvo] = u; });
-  const SYN = CK.up.filter(u => u.ef === 'sinergia'), TIG = CK.up.filter(u => u.ef === 'coracao');
+  const SYN = CK.up.filter(u => u.ef === 'sinergia' || u.ef === 'mult_par'), TIG = CK.up.filter(u => u.ef === 'coracao');
   const H0 = () => { const s = S().stats; return s.heart || (s.heart = { ach: {}, tig: {} }); };   // fica entre viagens
   const synOn = id => !!(st().syn && st().syn[id]);
   const synOpen = u => { const [a, b] = u.maq.split('+'); return !synOn(u.id) && cnt(a) >= u.alvo && cnt(b) >= u.alvo; };
   const synCost = u => { const [a, b] = u.maq.split('+'), big = Math.max(byId[a].c, byId[b].c); return (u.preco || 30) * big * R0(); };
   function buySyn(u) { const c = synCost(u); if (!synOpen(u) || S().money < c) return false; S().money -= c; (st().syn || (st().syn = {}))[u.id] = 1; st().lastNew = S().time; if (api && api.sfx) api.sfx('fanfare'); return true; }
-  const synMult = id => { let m = 1; for (const u of SYN) if (synOn(u.id)) { const [a, b] = u.maq.split('+'); if (b === id) m *= 1 + (u.v || 0) * cnt(a); } return m; };
+  const synMult = id => { let m = 1; for (const u of SYN) if (synOn(u.id)) { const [a, b] = u.maq.split('+'); if (u.ef === 'mult_par') { if (a === id || b === id) m *= u.v || 1; } else if (b === id) m *= 1 + (u.v || 0) * cnt(a); } return m; };   // mult_par: ×v nas duas
   const achN = () => Object.keys(H0().ach).length;
   const tigOpen = u => !H0().tig[u.id] && achN() >= u.alvo;
   const tigCost = u => (u.preco || 600) * R0();
@@ -180,7 +180,7 @@
         return { at: P.at[i], name: r ? r.n : 'Marco ' + P.at[i], desc: r ? r.d : byId[id].n + ' rende o dobro', mult: sl('marco_turbo') && i < 2 ? 3 : 2, price: marcoCost(id), ready: cnt(id) >= P.at[i], prev: i ? { at: P.at[i - 1] } : null }; },
       buyMarco: id => buyMarco(id),
       sinergias: id => SYN.filter(u => u.maq.split('+').indexOf(id) >= 0).map(u => { const [a, b] = u.maq.split('+'), other = a === id ? b : a;
-        return { id: u.id, other, otherName: byId[other].n, name: u.n, desc: u.d, mult: 1 + (u.v || 0), state: synOn(u.id) ? 'on' : synOpen(u) ? 'ready' : 'need', need: u.alvo, have: Math.min(cnt(a), cnt(b)), price: synCost(u) }; }),
+        return { id: u.id, other, otherName: byId[other].n, name: u.n, desc: u.d, mult: u.ef === 'mult_par' ? u.v || 1 : 1 + (u.v || 0), state: synOn(u.id) ? 'on' : synOpen(u) ? 'ready' : 'need', need: u.alvo, have: Math.min(cnt(a), cnt(b)), price: synCost(u) }; }),
       buySinergia: sid => { const u = SYN.find(x => x.id === sid); return u ? buySyn(u) : false; },
       coracao: () => { const nx = TIG.find(u => !H0().tig[u.id]); return { n: achN(), total: CK.ach.length, per: perAch(), bonus: achN() * perAch(), next: nx ? { need: nx.alvo, name: nx.n } : null, recent: [] }; },
       conquistas: () => CK.ach.map(a => ({ id: a.id, name: a.n, desc: a.d, fam: fam(a), icon: a.icon, secret: a.cond === 'segredo', got: !!H0().ach[a.id], hint: null })),

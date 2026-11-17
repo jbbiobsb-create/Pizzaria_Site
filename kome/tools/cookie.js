@@ -9,7 +9,7 @@ const ROOT = path.resolve(__dirname, '..'), DIR = path.join(ROOT, 'conteudo');
 const files = fs.readdirSync(DIR).filter(f => /^cookie.*\.csv$/i.test(f)).sort();
 if (!files.length) { console.log('nenhum conteudo/cookie*.csv'); process.exit(0); }
 const MAQ = ['pata', 'hashi', 'tigela', 'pa', 'duaspas', 'carrinho', 'britadeira', 'trator', 'empilhadeira', 'colheita', 'escav', 'caminhao', 'pacabo', 'bagger'];
-const EF = ['mult_maquina', 'sinergia', 'coracao', 'frenesi', 'chuva', 'gigante', 'desfile', 'tempestade', 'festival', ''];
+const EF = ['mult_maquina', 'sinergia', 'mult_par', 'coracao', 'frenesi', 'chuva', 'gigante', 'desfile', 'tempestade', 'festival', ''];
 const num = v => (v === '' || v === undefined ? undefined : isNaN(+v) ? v : +v);
 const out = { up: [], ach: [], ev: [], nomes: [], noticias: [] }, ids = {}, warn = [];
 for (const f of files) {

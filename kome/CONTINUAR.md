@@ -564,3 +564,4 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
   silhueta da Fuji em cache (~4 ms/quadro); conferir nomes das roupinhas; absurdas 15–20 compráveis no Pátio; árvore de
   sementes com posições bonitas (hoje colunas por galho); medir 100 h de novo e comparar com docs/medicoes/longo100-base.txt.
 - Esperando aprovação do dono: spec da Cidade (docs/design/cidade.md), sementes.md, fim de jogo da fábrica, jogo infinito.
+- Fable (pendências 1–3 + mult_par): botão "Eventos" (Livro) no rodapé do Pátio (cookie-ui.js); horizon() da Fuji em cache (12 quadros recortados + tingidos guardados: 2,05 → 0,84 ms/chamada em canvas de CPU, n=12); roupinhas: ids batiam, o problema era a ordem (achados agora primeiro na Casa e nos Ajustes) + fixCloset() no load do game.js (acento/maiúscula/alias/duplicado/desconhecido); efeito mult_par (×valor nas duas) em tools/cookie.js e patio.js (synMult/sinergias).

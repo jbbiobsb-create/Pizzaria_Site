@@ -72,11 +72,29 @@
     d.found = heap.pockets.map(p => (p.found ? 1 : 0)).join('');
     save.save();
   }
+
+  /* roupinhas do save: ids antigos/com acento/maiúscula/duplicados → id de D.CLOSET (senão o achado some do guarda-roupa).
+     Id que não existe mais em D.CLOSET sai (senão conta no "x/21 achados" e na conquista de guarda-roupa cheio). */
+  const CLOSET_ALIAS = { kome_dourado: 'kin', dourado: 'kin', neve: 'yuki', carvao: 'sumi', ruivo: 'aka', chocolate: 'cha', oculos_escuros: 'oculos',
+    cachecol_vermelho: 'cachecol', coroa_de_ouro: 'coroa', flor_de_sakura: 'flor', bandana_azul: 'bandana', gorro_de_la: 'gorro',
+    laco_vermelho: 'laco', capa_de_heroi: 'capa', hinomaru: 'nihon', bone_azul: 'bone' };
+  function fixCloset(list) {
+    if (!Array.isArray(list)) return [];
+    const known = {}; for (const c of D.CLOSET) known[c.id] = 1;
+    const out = [];
+    for (const raw of list) {
+      if (typeof raw !== 'string' || !raw) continue;
+      let id = raw;
+      if (!known[id]) { const n = raw.normalize ? raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : raw; id = n.toLowerCase().trim().replace(/[\s-]+/g, '_'); id = known[id] ? id : CLOSET_ALIAS[id] || id; }
+      if (known[id] && out.indexOf(id) < 0) out.push(id);
+    }
+    return out;
+  }
   function loadState() {
     const d = save.load();
     if (!d || !d.v) return false;
     S.money = +d.money || 0; S.earned = +d.earned || 0; S.tool = U.clamp((d.tool | 0) + (!d.tv && (d.tool | 0) >= 8 ? 1 : 0), 0, NT - 1); if ((d.tv | 0) < 3) S.tool = ({ 8: 9, 9: 8, 11: 12, 12: 11 })[S.tool] || S.tool;   // 16/11: empilhadeira antes da colheitadeira, caminhão antes da pá de cabo S.house = d.house | 0; S.time = +d.time || 0; S.dug = +d.dug || 0;
-    S.closet = Array.isArray(d.closet) ? d.closet : []; S.look = d.look && typeof d.look === 'object' ? { pal: d.look.pal || 'kome', acc: d.look.acc || '' } : { pal: 'kome', acc: '' };
+    S.closet = fixCloset(d.closet); S.look = d.look && typeof d.look === 'object' ? { pal: d.look.pal || 'kome', acc: d.look.acc || '' } : { pal: 'kome', acc: '' };
     S.island = d.island | 0; S.shape = d.shape || ''; S.mountT = +d.mountT || 0;
     S.homeData = d.home && typeof d.home === 'object' ? d.home : { own: {}, hide: {}, theme: 'verao' }; S.homeData.own = S.homeData.own || {}; S.homeData.hide = S.homeData.hide || {};
     S.day = d.day | 0 || 1; S.dayT = +d.dayT || 0; S.dayEarn = +d.dayEarn || 0;

@@ -245,7 +245,8 @@
       if (!api.closet) return; wr.innerHTML = '';
       const have = api.closet(), look = api.look();
       UI.button(wr, { title: (look.pal === 'kome' ? '✓ ' : '') + 'Kome clássico', size: 'sm', onClick: () => { api.wear('pal', 'kome'); HUD.refreshCloset(); } });
-      for (const c of D.CLOSET) {
+      const order = D.CLOSET.filter(c => have.indexOf(c.id) >= 0).concat(D.CLOSET.filter(c => have.indexOf(c.id) < 0));   // achados primeiro
+      for (const c of order) {
         const ok = have.indexOf(c.id) >= 0, on = ok && (c.kind === 'pal' ? look.pal === c.id : look.acc === c.id);
         const b = UI.button(wr, { title: ok ? (on ? '✓ ' : '') + c.n : '???', size: 'sm', onClick: () => { if (!ok) return; api.wear(c.kind, c.id); HUD.refreshCloset(); } });
         if (!ok && b && b.el) { b.el.style.opacity = '0.5'; } if (UI.tooltip && b) UI.tooltip(b.el || b, () => ok ? c.d : 'ache cavando bolsões de ouro');
