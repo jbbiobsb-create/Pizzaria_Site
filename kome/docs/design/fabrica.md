@@ -179,6 +179,26 @@ O protótipo jogável (`demos/fabrica.html`) mostrou 7 problemas; a spec acima j
 7. Dinheiro inicial comprava tudo no 1º quadro: sem dinheiro extra.
 Também ficou como regra (era improviso do protótipo): máquina recebe por trás e pelos lados, e item sem uso passa reto.
 
+## Fim de jogo da fábrica (resposta do designer, 18/11) — status: rascunho
+Problema medido: depois do minuto ~100 acabam os níveis baratos e a espera passa de 3 min; em 5 de 12 partidas o grid não
+lota. Resposta: **conteúdo no fim**, em três degraus que também gastam espaço.
+
+1. **Embaladora de Bentô** (máquina nova, 2×1). Abre com **300 mochis**. Receita: 1 onigiri + 1 mochi → 1 **Bentô**, 3,0 s,
+   vale **30×** (contra 4× + 12× vendidos soltos = quase o dobro). Preço 600 s. Ela obriga a JUNTAR as duas linhas, que é o
+   primeiro quebra-cabeça de layout de verdade, e ocupa espaço: é o que faz o grid lotar.
+   Visual: esteira dupla entrando, um shiba de avental arrumando a caixinha laqueada, tampa fechando com um "tac", laço.
+   Item novo `bento` ("almoço completo, feito com carinho e muita esteira").
+2. **Selo de Qualidade** (por máquina). No nível máximo (10) aparece "Tirar o Selo": o nível volta pra 1 e a máquina ganha
+   1 estrela permanente: **+50% no valor do que ela produz** por estrela, até 3 estrelas. Visual: placa dourada com estrelas
+   na máquina, operador ganha lenço dourado. Dá uma segunda e terceira volta de níveis baratos pra cada máquina: é o que
+   mata a espera longa.
+3. **Meta final da fábrica: 100 bentôs** → conquista "Chef do Kome", a cortina KOME PACK fica dourada e o kei-truck vira um
+   caminhãozinho maior. Depois disso a próxima coisa é a Cidade (camada 4).
+
+Metas pro simulador: Bentô abre entre 60 e 80 min; espera máxima ≤ 180 s até 150 min em pelo menos 10 de 12 partidas; grid
+lota entre 80 e 120 min em pelo menos 10 de 12.
+
+
 ## Perguntas do programador
 (o programador escreve aqui; o designer responde embaixo de cada uma)
 
