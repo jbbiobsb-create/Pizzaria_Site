@@ -588,6 +588,7 @@
   /* RUA DO COMÉRCIO (fim da rua da vila): as lojas do modo infinito (D.SHOPS + fichas 'loja') viram prédio quando têm nível.
      Freguesia (shibas na porta) cresce com o nível; a loja CLIENTE ganha bandeira vermelha, lanterna acesa e a plaquinha. */
   const SHOP_ART = { konbini: 'loja_konbini', sushi: 'loja_sushi', mochiya: 'loja_mochiya', sake: 'loja_sake', export: 'loja_export', ramen: 'loja_ramen' };
+  const SHOP_NAME = { konbini: 'KONBINI', sushi: 'SUSHI', mochiya: 'MOCHI', sake: 'SAKE', export: 'EXPORTA', ramen: 'RAMEN' };
   const SHOP_ALT = ['cid_loja', 'cid_loja_azul', 'cid_machiya', 'lojinha_onigiri'];
   const shopRun = S => (S.ended && S.stats && S.stats.run && S.stats.run.shops) || null;
   function drawShops(g, v, t, S) {
@@ -607,6 +608,11 @@
     for (let i = 0; i < list.length; i++) {
       const o = list[i], Lv = sh[o.id] | 0, x = X.lojas0 + i * X.lojaStep; if (x + 170 < v.x0 || x - 170 > v.x1) continue;
       if (!Lv) { Draw.box(g, x - 3, -50, 6, 50, PAL.wood, { ol: 1 }); Draw.sign(g, x - 62, -92, 124, 44, 'EM BREVE', { col: PAL.cream, ink: PAL.red }); continue; }   // terreno vago
+      { // placa com o nome, pendurada no varal de lanterninhas (legível de longe)
+        const nm = SHOP_NAME[o.id] || String(o.n || o.id).split(' ')[0].toUpperCase().slice(0, 9), w = 36 + nm.length * 23, sgi = Math.min(list.length - 1, Math.floor((x - x0) / seg)), u = (x - x0 - sgi * seg) / seg, cy = -246 + 88 * u * (1 - u) + 4, sy = o.id === client ? -184 : -200;
+        g.fillStyle = LINE; g.fillRect(x - w / 2 + 8, cy, 1.5, sy - cy); g.fillRect(x + w / 2 - 9, cy, 1.5, sy - cy);
+        Draw.sign(g, x - w / 2, sy, w, 40, nm, { col: '#3B2818', ink: '#FFFAEE' });
+      }
       const id = SHOP_ART[o.id] || SHOP_ALT[i % SHOP_ALT.length];
       if (!art(g, id, x, 3)) art(g, SHOP_ALT[i % SHOP_ALT.length], x, 3);
       const nq = Math.min(4, 1 + Math.floor(Lv / 4));   // freguesia na porta
@@ -703,9 +709,9 @@
     g.restore();
     for (const [dx, id, sign] of VBACK) {   // placas sem névoa (precisam ser lidas) e lanterna da porta acesa no fim da tarde
       const x = VB + dx; if (!sign || x + 80 < v.x0 || x - 80 > v.x1) continue;
-      const h = (VART_H[id] || 64) * VB_K, w = 20 + sign.length * 13;
+      const h = (VART_H[id] || 64) * VB_K, w = 32 + sign.length * 20;
       Draw.box(g, x - 1.5, VB_Y - h + 2, 3, 12, YC.woodD, { ol: 0 });
-      Draw.sign(g, x - w / 2, VB_Y - h - 22, w, 26, sign, { col: '#3B2818', ink: '#FFFAEE' });
+      Draw.sign(g, x - w / 2, VB_Y - h - 30, w, 34, sign, { col: '#3B2818', ink: '#FFFAEE' });
       if (lit > 0.05) glow(g, x, VB_Y - h * 0.32, 34, lit);
     }
   }
@@ -754,7 +760,8 @@
         const x = VB + dx; if (!vis(x, 60)) continue;
         art(g, 'vila_poste', x, 2, R.walk0 + 6, lit > 0.4 ? 'noite' : 'dia');
         g.fillStyle = LINE; g.fillRect(x, 4, 12, 2); if (N && N.chochin) N.chochin(g, x + 11, 5, { t, lit, seed: dx, s: 1.6 });
-        glow(g, x + 11, 24, 40, lit); glow(g, x + 14, R.walk0 - 108, 30, lit * 0.8);
+        glow(g, x + 11, 24, 26, lit); glow(g, x + 14, R.walk0 - 112, 18, lit * 0.8);
+        if (lit > 0.05) { g.globalAlpha = lit * 0.3; g.fillStyle = '#FFE2A0'; g.beginPath(); g.ellipse(x + 6, R.walk0 + 8, 46, 7, 0, 0, 6.3); g.fill(); g.globalAlpha = 1; }   // poça de luz na calçada
       }
       const xc = VB + 905; if (vis(xc, 30)) art(g, 'vila_correio', xc, 2, R.walk0 + 6);
       const xv = VB + 2690; if (vis(xv, 120)) {   // duas máquinas de venda: um shiba compra, a latinha cai e ele comemora
@@ -804,7 +811,7 @@
     if (vv) drawVilaBack(g, v, t, S);
     if (N && v.x1 > X.casa - 320 && v.x0 < X.casa + 320) {
       if (S.house > 0) N.house(g, X.casa, 0, { stage: S.house - 1, s: 1.5, t });
-      else { Draw.box(g, X.casa - 2, -40, 4, 40, PAL.wood, { ol: 1 }); Draw.sign(g, X.casa - 34, -66, 68, 26, 'À VENDA', { col: PAL.cream, ink: PAL.red }); }
+      else { drawPlot(g, X.casa, 2, 2); Draw.box(g, X.casa - 2, -40, 4, 40, PAL.wood, { ol: 1 }); Draw.sign(g, X.casa - 34, -66, 68, 26, 'À VENDA', { col: PAL.cream, ink: PAL.red }); }   // terreno marcado com bandeirinhas
     }
     drawLot(g, v, S);
     if (X.beco && X.beco > v.x0 - 40 && X.beco - ALLEY < v.x1 + 40) drawAlley(g, t, S);
