@@ -210,7 +210,7 @@
         onClick: () => { if (api.playAs(i)) swapPanel.close(); } });
       (bt.el || bt).style.width = '100%';
     }
-    // Gêmea pronta: dá pra pilotar ela (a 293 vai pro outro lado com o Goma)
+    // Gêmea pronta: dá pra pilotar ela (a 293 fica na vaga ao lado com o Goma)
     if (api.twinReady && api.twinReady()) {
       const on = api.twinPlaying && api.twinPlaying();
       const bt = UI.button(col, { title: (on ? '✓ ' : '') + 'Bagger Gêmea', sub: on ? 'pilotando agora' : '50% maior, duas rodas, cava 2x', icon: icon('bagger'), size: 'sm', tone: on ? '' : 'red',

@@ -68,7 +68,7 @@
       const r = run(), gp = Math.min(D.GIANT.length, r.giant | 0), part = D.GIANT[gp]; if (!part) return false;   // nunca passa de 4 (save mexido não quebra a tela)
       return pay(cost.giant(), part.n, () => {
         r.giant = gp + 1; if (q) return;
-        if (api.visit) setTimeout(() => api.visit(lastRX - 300, 0.24, -420, 3.8), 300);
+        if (api.visit) setTimeout(() => api.visit(twinX() + 200, 0.24, -420, 3.8), 300);
         if (r.giant === 4) { UI.banner('BAGGER GIGANTE!', 'duas rodas, 50% maior que a 293', { icon: 'horn', tone: 'gold', dur: 3.5 }); api.sfx('fanfare'); }
         else UI.banner(part.n + '!', 'peça ' + r.giant + ' de 4', { icon: 'gear', dur: 2 });
       }, q);
@@ -76,7 +76,7 @@
     fab(q) { const r = run(); return pay(cost.fab(), 'Fábrica', () => { r.fab = (r.fab | 0) + 1; }, q); },
     shop(id, q) { const r = run(), sh = D.SHOPS.find(x => x.id === id); if (!sh) return false; return pay(cost.shop(id), sh.n, () => { r.shops[id] = (r.shops[id] | 0) + 1; if (!r.client) r.client = id; }, q); },
     client(id) { const r = run(); if (!r.shops[id]) return false; r.client = id; api.recompute(); api.save(); return true; },
-    paint(id, q) { const r = run(); r.paint = id; api.save(); if (!q && api.visit) api.visit(lastRX - 300, 0.24, -420, 2.5); return true; },
+    paint(id, q) { const r = run(); r.paint = id; api.save(); if (!q && api.visit) api.visit(twinX() + 200, 0.24, -420, 2.5); return true; },
   };
   // seções no painel da Oficina (lista antiga, de reserva)
   function fillPanel(col, refresh) {
@@ -86,7 +86,7 @@
     UI.el('div', 'k-homehint', col, 'Bagger Gigante: ' + gp + '/4 peças' + (gp ? ' · renda ×' + String(D.GIANT[gp - 1].mult).replace('.', ',') : ''));
     if (part) row({ title: 'Peça ' + (gp + 1) + ': ' + part.n, sub: '¥ ' + U.fmt(cost.giant()) + ' · ' + part.d, icon: 'horn', onClick: () => buy.giant() && refresh() });
     else {
-      UI.el('div', 'k-homehint', col, '✓ Bagger Gêmea completa, cavando do outro lado da montanha');
+      UI.el('div', 'k-homehint', col, '✓ Bagger Gêmea completa, comendo o monte de estoque ao lado da 293');
       const line = UI.el('div', 'k-row', col); line.style.flexWrap = 'wrap'; line.style.gap = '4px';
       for (const [id, n] of PAINTS) {
         UI.button(line, { title: ((r.paint || 'kawaii') === id ? '✓ ' : '') + n, size: 'sm', onClick: () => { buy.paint(id); refresh(); } });
@@ -111,37 +111,63 @@
   const nextFab = L => L < 1 ? 'esteira' : L < 3 ? 'Komes empacotando' : L < 5 ? 'braço robô' : L < 7 ? 'robozinhos' : 'mais de tudo';
 
   /* ---- mundo ---- */
-  let twin = null, belt = null, bt = 0, lastRX = 8420;
-  const TI = { x: 0, y: 0, digging: true, zoom: 1, floor: null };
+  let twin = null;
+  const TI = { x: 0, y: 0, digging: true, zoom: 1, floor: null, face: 1, tx: null, ty: -150 };
+  const flat = () => 0;
+  const twinX = () => (G.World && G.World.X.gemea) || 0;
   function tick(dt, ctx) {
     S = S || G.S; if (!S.ended) return;
     const r = run();
     const gp = r.giant | 0;
-    if (gp) {   // a gêmea trabalha do OUTRO lado da montanha, virada pra cá (a nossa continua sozinha na tela)
+    if (gp) {   // a Gêmea trabalha do lado da cava, na vaga dela logo atrás da 293: a roda come o monte de estoque que a 293 despeja
       if (!twin) twin = { m: G.Tools.bagger.create({ stage: 1 }) };
       const o = twin;
       o.m.stage = Math.min(3, gp); o.m.wheels = gp >= 4 ? 2 : 1;
-      lastRX = ctx.rightX; TI.x = ctx.rightX; TI.y = 0; TI.floor = ctx.floor; TI.zoom = ctx.zoom; TI.digging = gp >= 3; TI.face = -1;
-      if (o.m.x === undefined || Math.abs(o.m.x - TI.x) > 3000) o.m.x = TI.x;
+      o.m.boom2 = 0.21;                              // as duas rodas mordem o mesmo monte
+      TI.x = twinX(); TI.y = 0; TI.floor = flat; TI.zoom = ctx.zoom; TI.digging = gp >= 3; TI.face = 1;
+      TI.ty = -150 + 46 * Math.sin(S.time * 0.35);   // a lança sobe e desce devagar no monte
+      o.m.x = TI.x;
       G.Tools.bagger.update(o.m, dt, TI);
     }
   }
-  // gêmea: lado a lado com a primeira, um pouco atrás (menor, mais escura e mais alta = profundidade)
-  // atrás: a cópia escura lá no fundo (maior ainda e mais alta), depois a Gigante (1,5×) logo atrás da 293
   // pintura da gêmea (filtro de cor por cima do desenho: rápido e sem redesenhar a máquina)
   const TWIN_PAINT = { kawaii: 'hue-rotate(300deg) saturate(1.5) brightness(1.08)', dino: 'hue-rotate(75deg) saturate(1.35) brightness(0.95)', normal: 'none' };
-  // a gêmea (1,5×, duas rodas) do outro lado da montanha; sem cópia escura
+  // monte de estoque: a 293 despeja aqui (esteira inclinada do belts.js) e a roda da Gêmea come pelo lado de fora
+  const PILE_G = Array.from({ length: 70 }, (_, i) => { const r = E.RNG(900 + i); return [r(), r(), r()]; });
+  function drawPile(g, x, t, gp) {
+    const H = (G.Belts && G.Belts.PILE_H) || 300, hw = H / 0.86, k = gp >= 3 ? 1 : 0.45 + 0.18 * gp;   // cresce com as peças
+    const h = H * k, w = hw * k, top = 22 * k;
+    g.fillStyle = 'rgba(70,50,30,.18)'; g.beginPath(); g.ellipse(x, 3, w + 30, 8, 0, 0, 6.3); g.fill();
+    // muro de arrimo de concreto do lado da 293 (pra ler como estoque do pátio, e não como outra montanha)
+    Draw.box(g, x + w - 20, -64, 16, 66, '#B9BEC6', { ol: 1.4 }); g.fillStyle = PAL.yel; g.fillRect(x + w - 19, -63, 14, 6);
+    Draw.poly(g, [[x - w, 0], [x - top, -h], [x + top, -h], [x + w - 12, 0]], PAL.rice, { ol: 1.8 });
+    g.fillStyle = 'rgba(120,90,50,.13)'; g.beginPath(); g.moveTo(x + w - 14, -1); g.lineTo(x + top, -h + 2); g.lineTo(x + top * 0.1, -h + 2); g.lineTo(x + w * 0.36, -1); g.closePath(); g.fill();   // lado da sombra
+    g.strokeStyle = PAL.line; g.lineWidth = 0.8;
+    for (const [a, b, c] of PILE_G) {   // grãos soltos na superfície
+      const yy = b * b * h * 0.9, half = (w - top) * (1 - yy / h) + top - 12, px = x + (a * 2 - 1) * half;
+      g.fillStyle = c > 0.6 ? '#E9DFC9' : '#FFFDF6'; g.beginPath(); g.ellipse(px, -yy - 3, 5, 2.2, c * 3, 0, 6.3); g.fill(); g.stroke();
+    }
+    if (gp >= 1) for (let i = 0; i < 5; i++) {   // arroz caindo da ponta da esteira no topo do monte
+      const q = (t * 1.3 + i / 5) % 1; g.fillStyle = PAL.rice; g.beginPath(); g.ellipse(x + 22 - q * 18, -H - 26 + q * q * (H - h + 30), 4, 2, q * 5, 0, 6.3); g.fill(); g.stroke();
+    }
+  }
+  // a Gêmea (1,5×, duas rodas) na vaga dela do lado da cava; com o Kome pilotando a Gêmea, quem fica na vaga é a 293 com o Goma
   function drawBack(g, t) {
     if (!(twin && (run().giant | 0) && S.ended)) return;
-    const m = twin.m, swapped = !!S.twinPlay;
-    m.wheels = swapped ? 1 : 2; m.pilot = 'goma';
-    const kk = swapped ? 1 : 1.5;
+    const m = twin.m, swapped = !!S.twinPlay, X = G.World.X, gp = run().giant | 0;
+    if (!X.gemea) return;
+    m.wheels = swapped ? 1 : gp >= 4 ? 2 : 1; m.pilot = 'goma';
+    const kk = X.gemeaK || 1.5;
+    if (!G.cam || G.cam.visible(X.pilha, -150, 700)) drawPile(g, X.pilha, t, gp);
+    if (G.cam && !G.cam.visible(m.x, -500, 1900)) return;
     g.save(); g.translate(m.x, 0); g.scale(kk, kk); g.translate(-m.x, 0);
     try { g.filter = swapped ? 'none' : TWIN_PAINT[G.twinPaint || run().paint || 'kawaii']; } catch (e) { /* navegador sem filter: cor normal */ }
-    G.Tools.bagger.draw(g, m);
+    // desenhada numa imagem (cache do game.js) e carimbada UMA vez: o filtro de cor por cima de cada peça deixava o jogo a 3 quadros/s
+    TWC.res = kk; if (G.drawMach) G.drawMach(g, 'bagger', m, TWC); else G.Tools.bagger.draw(g, m);
     try { g.filter = 'none'; } catch (e) { /* */ }
     g.restore();
   }
+  const TWC = { always: true, every: 2, res: 1.5 };
 
   /* ---- fábrica KOME PACK em pixel art (mesmo jeito das coisas do jardim: E.sprite + contorno + bevel) ----
      Coordenadas em "pixels de arte": chão em y=0, ancorada em AX no mundo, cada pixel vale K unidades de mundo. */
@@ -226,24 +252,40 @@
       const q = (t * 0.32 + i / 4) % 1; if (!loading && q > 0.72) continue;      // sem caminhão as caixas esperam na ponta
       blitAt(g, caixa(), -213 - q * 52, -11 + (q < 0.1 ? (0.1 - q) * 30 : 0));
     }
-    // kei-truck (o mesmo sprite da tela da fábrica), de frente pra esquerda
+    // kei-truck (o mesmo sprite da tela da fábrica), de frente pra esquerda. Carregado, anda até a boca do beco, VIRA (o desenho
+    // fecha de lado e abre de traseira) e some pro fundo passando a cancela; volta de ré pelo mesmo caminho.
     const tr = G.FabArt && G.FabArt.spr && G.FabArt.spr.truck; if (!tr) return;
-    let dx = 0, al = 1, boxes = 0, moving = false, dp = 0;   // dp 0..1 = entrando no beco (some pro fundo, entre o galpão e a Oficina)
-    const lane = k => { dx = -U.ease.in(Math.min(1, k / 0.6)) * 84; dp = U.clamp((k - 0.5) / 0.5, 0, 1); al = 1 - dp * dp; };
+    let k = -1, boxes = 0;   // k 0..1 = caminho do beco (0 na doca, 0,45 na boca do beco virando, 1 sumindo no fundo); -1 = parado na doca
     if (u < 8) boxes = Math.min(6, Math.floor(u / 8 * 7));
-    else if (u < 10.5) { lane((u - 8) / 2.5); boxes = 6; moving = true; }
-    else if (u < 13) al = 0;
-    else { lane(1 - U.ease.out((u - 13) / 3)); moving = true; }
-    if (al <= 0) return;
-    const tx = -292 + dx, bob = moving ? Math.abs(Math.sin(t * 20)) * 0.6 : 0, ts = 0.75 - 0.3 * dp, ty = -dp * 11;
+    else if (u < 11) { k = (u - 8) / 3; boxes = 6; }
+    else if (u < 13) return;
+    else k = 1 - (u - 13) / 3;
+    const moving = k >= 0, kk = Math.max(0, k);
+    const run = U.ease.inOut(Math.min(1, kk / 0.45)), deep = U.clamp((kk - 0.45) / 0.55, 0, 1), dz = U.ease.in(deep);
+    const tx = -292 - run * 76, ty = -dz * 15, sc = 0.75 * (1 - 0.5 * dz), turn = U.clamp((kk - 0.36) / 0.18, 0, 1);   // turn 0 = de lado, 1 = de traseira
+    const bob = moving ? Math.abs(Math.sin(t * 20)) * 0.6 : 0, al = 1 - U.clamp((deep - 0.8) / 0.2, 0, 1);
     g.globalAlpha = al;
-    if (moving && dp < 0.3) for (let i = 0; i < 3; i++) { const q = (t * 2.2 + i / 3) % 1; g.fillStyle = 'rgba(214,196,160,' + (0.6 * (1 - q)).toFixed(2) + ')'; g.beginPath(); g.arc(tx + 24 + q * 14, -3 - q * 5, 2 + q * 3, 0, 6.3); g.fill(); }
-    if (dp < 0.25) for (let i = 0; i < boxes; i++) blitAt(g, caixa(), tx + 2 + (i % 3) * 7, -13 - Math.floor(i / 3) * 7 - bob);
+    if (moving && turn < 0.5) for (let i = 0; i < 3; i++) { const q = (t * 2.2 + i / 3) % 1; g.fillStyle = 'rgba(214,196,160,' + (0.6 * (1 - q)).toFixed(2) + ')'; g.beginPath(); g.arc(tx + 24 + q * 14, -3 - q * 5, 2 + q * 3, 0, 6.3); g.fill(); }
     if (loading && boxes < 6) { const hq = (u / 8 * 7) % 1; if (hq < 0.5) blitAt(g, caixa(), -268 - hq * 2 * 14, -12 - Math.sin(hq * 2 * Math.PI) * 10); }   // caixa pulando da esteira pra carroceria
-    g.save(); g.translate(Math.round(tx), ty - bob); g.scale(-ts, ts); g.drawImage(tr, -28, -31); g.restore();
-    if (night && moving && dp < 0.3) { g.globalAlpha = al * 0.3; g.fillStyle = '#FFE9A8'; g.beginPath(); g.moveTo(tx - 20, -9); g.lineTo(tx - 60, -18); g.lineTo(tx - 60, 0); g.closePath(); g.fill(); }
+    if (turn < 0.5) {   // de lado (some achatando = virando pro fundo)
+      const w = 1 - turn * 2 * 0.75;
+      for (let i = 0; i < boxes; i++) blitAt(g, caixa(), tx + (2 + (i % 3) * 7) * w, -13 - Math.floor(i / 3) * 7 - bob);
+      g.save(); g.translate(Math.round(tx), ty - bob); g.scale(-sc * w, sc); g.drawImage(tr, -28, -31); g.restore();
+      if (night && moving) { g.globalAlpha = al * 0.3; g.fillStyle = '#FFE9A8'; g.beginPath(); g.moveTo(tx - 20, -9); g.lineTo(tx - 60, -18); g.lineTo(tx - 60, 0); g.closePath(); g.fill(); }
+    } else {            // de traseira, subindo o beco
+      const w = 0.25 + (turn - 0.5) * 2 * 0.75, bk = keiBack(boxes > 0);
+      g.save(); g.translate(Math.round(tx), ty - bob); g.scale(sc * w * 1.25, sc * 1.25); g.drawImage(bk, -bk.width / 2, -bk.height); g.restore();
+    }
     g.globalAlpha = 1;
   }
+  // kei-truck visto de trás (só pra virada do beco): cabine branca, carroceria com as caixas, lanternas vermelhas
+  const keiBack = full => SP('fab/keiback' + (full ? 'F' : ''), 22, 24, P => {
+    P.rect(3, 4, 16, 9, '#F4F6F8'); P.rect(5, 6, 12, 5, '#8FB6D3'); P.rect(3, 4, 16, 1, '#D8DCE2');
+    P.rect(1, 12, 20, 8, '#E4E8EE'); P.rect(1, 12, 20, 2, '#C9CED6'); P.rect(2, 18, 3, 2, PC.red); P.rect(17, 18, 3, 2, PC.red); P.rect(8, 17, 6, 2, '#F3C94A');
+    if (full) { P.rect(3, 7, 7, 6, '#D9A066'); P.rect(11, 7, 7, 6, '#D9A066'); P.rect(6, 2, 8, 6, '#EBBE86'); P.rect(6, 9, 1, 3, PC.red); P.rect(14, 9, 1, 3, PC.red); }
+    P.rect(2, 20, 4, 4, '#2A2A2E'); P.rect(16, 20, 4, 4, '#2A2A2E'); P.rect(6, 20, 10, 2, '#5E6A77');
+    P.bevel(0.25, 0.2);
+  });
   // nível visual do galpão do pátio: nó "Fábrica de Onigiri" (m5) já levanta o galpão quieto; Fábrica aberta ou níveis do infinito animam
   function level() { S = S || G.S; if (!S) return 0; const fabOn = !!(G.Fab && G.Fab.on && G.Fab.on()); return Math.max(S.ended ? run().fab | 0 : 0, fabOn ? 1 : 0, S.own && S.own.m5 ? 1 : 0); }
   function drawFront(g, t, ctx) {
@@ -280,14 +322,15 @@
     g.imageSmoothingEnabled = sm; g.restore();
   }
 
-  const zoomK = () => 1;   // a gêmea fica do outro lado: a câmera daqui não precisa abrir
+  // com a Gêmea na vaga ao lado, a câmera da 293 abre um pouco pra as duas rodas caberem na tela
+  const zoomK = () => (S && S.ended && (run().giant | 0) > 0 && !S.twinPlay ? 0.82 : 1);
 
   G.Ind = {
     init(a) { api = a; S = G.S; },
     sim: { cost, pay, run },   // tools/longo.js
     paintFilter: () => TWIN_PAINT[G.twinPaint || run().paint || 'kawaii'],
-    showTwin: () => api.visit && api.visit(lastRX - 300, 0.24, -420, 3.8),   // câmera vai até a gêmea (compra de peça e testes)
+    showTwin: () => api.visit && api.visit(twinX() + 200, 0.24, -420, 3.8),   // câmera vai até a gêmea (compra de peça e testes)
     applyStats, fillPanel, tick, drawBack, drawFront, drawFactory, level, zoomK, specChoice, spec, speedK, run,
-    buy, cost, nextFab, PAINTS, shopSum,
+    buy, cost, nextFab, PAINTS, shopSum, twin: () => twin,
   };
 })();

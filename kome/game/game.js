@@ -712,7 +712,7 @@
     for (; hx < WL.MX1; hx += 8) if (heap.height(hx) > 70) break;
     const mk = m.k || 1, maxX = hx - 340 * mk + (b0.x - m.x);
     inp.x = P.x; inp.y = 0; inp.face = 1; inp.floor = baggerFloor; inp.t = S.time; inp.zoom = cam.z;
-    inp.tx = hold ? Math.min(ptr.wx, maxX) : b0.x; inp.ty = ptr.wy;
+    inp.tx = hold ? Math.min(maxX, Math.max(ptr.wx, Wd.X.front - Wd.X.lane + 70 + 900 * mk + (b0.x - m.x))) : b0.x; inp.ty = ptr.wy;   // de ré, para antes do pátio
     inp.digging = hold || S.cele.spin; inp.speedMul = animSpeed() * (S.own.b1 ? 1.2 : 1); inp.boost = S.estreia > 0 ? 1 : 0;
     inp.horn = S.hornT > 0; if (S.hornT > 0) S.hornT -= dt;
     const bt = heap.bite(b0.x, b0.y, b0.r, 1, 12);
@@ -760,68 +760,48 @@
       return old || { id, x: PARK(id), y: LANE_Y, m: G.Tools[id].create({ pilot: PILOT_PAL[id], scale: 1 }), warm: false };
     });
   }
-  // máquinas antigas com piloto trabalham de verdade: saem do pátio, cavam alguns ciclos no pé da montanha e voltam.
-  // (o rendimento continua o do autoTick, só que cavado onde a máquina está)
+  /* máquinas antigas com piloto trabalham de verdade (o rendimento é sempre o do autoTick; aqui só muda ONDE elas aparecem):
+     - Kome a pé (pá, carrinho, britadeira) e nenhuma gigante na frente: saem do pátio pela faixa da frente, cavam alguns ciclos
+       no pé da montanha (f.biteX = onde a renda cava) e voltam.
+     - Kome numa máquina de cabine, caminhão ou Bagger na frente de lavra: o barranco fica todo da máquina grande (ele é íngreme,
+       60 a 74 graus: não tem como subir nem onde apoiar bancada sem ficar em cima da gigante). As pequenas trabalham NA VAGA,
+       cada uma na sua BANCADA DE RECHEGO (montinho de arroz na frente da vaga, desenhado pelo game-world.js): não atravessam
+       ninguém, não sobem encosta e a renda cava espalhado no pé da montanha (autoTick), sem abrir entalhe. */
   const WORKERS = { trator: 1, colheita: 1, empilhadeira: 1, escav: 1 };
   const iW = { x: 0, y: 0, face: 1, tx: null, ty: null, digging: false, power: 1, speedMul: 1, vx: 0, floor: null, t: 0, parts: null, boost: 0, night: 0, zoom: 1 };
-  let benchY = 0; const benchFn = () => benchY;
-  // frente da máquina gigante (caminhão + escavadeira do Tetsu, ou a Bagger): as pequenas só trabalham DEPOIS desse x
-  function giantFront() {
-    let fr = P.x + (T.w || 100) / 2;
-    if (cur.kind === 'bagger') { const b = T.bite(S.m); fr = Math.max(fr, b && b.x ? b.x + (b.r || 0) : P.x + 620); }
-    else if (cur.kind === 'haul') fr = Math.max(fr, LX.x + 340);
-    if (S.bag && S.bag.m !== S.m && S.tool === NT - 1) fr = Math.max(fr, S.bagX + 700);
-    return Math.max(S.footX, fr);
-  }
-  // solo = gigante na frente de lavra: as pequenas sobem a encosta e trabalham numa BANCADA (plataforma) mais acima, cada uma
-  // no seu x (fila pela largura real, 160 depois da frente da gigante). Sem gigante: fila no pé da montanha, como antes.
-  function fleetWork(f, i, dt, solo) {
+  function fleetWork(f, i, dt, atFace) {
     const t = TOOLS[D.toolIndex[f.id]], spd = Math.min(220, t.spd * 0.6), TW = G.Tools[f.id].w;
     if (!f.st) { f.st = 'park'; f.wt = 1.5 + i * 2.2; f.vx = 0; }
-    // cada uma tem o seu lugar na frente de lavra: fila pela largura real, atrás da máquina do Kome (nada encavalado)
-    let slot = 0; for (let j = 0; j < i; j++) { const o = S.fleet[j]; if (WORKERS[o.id] && st.pilots[o.id]) slot += G.Tools[o.id].w + (solo ? 70 : 40); }
     const home = PARK(f.id);
-    let face, digX, ok = true;
-    if (solo) {
-      digX = giantFront() + 160 + slot + TW / 2;
-      ok = digX < WL.MX1 - 300 && heap.height(digX + TW / 2) > 40;   // montanha acabando: sem encosta pra bancada, fica na vaga
-      face = faceAhead(f.x + TW / 2 - 8, 16, 300);
-    } else {
+    let face = home + t.park, digX = home, tx = home;
+    if (atFace) {
+      // cada uma tem o seu lugar na frente de lavra: fila pela largura real, atrás do Kome (nada encavalado)
+      let slot = 0; for (let j = 0; j < i; j++) { const o = S.fleet[j]; if (WORKERS[o.id] && st.pilots[o.id]) slot += G.Tools[o.id].w + 40; }
       face = faceAhead(Math.min(Math.max(f.x, WL.MX0 - 400), S.footX - 40), 16, 1400);
       digX = Math.min(face - t.park, P.x - (T.w || 100) / 2 - TW / 2 - 40) - slot;
     }
-    if (f.st === 'park') f.x = home;
-    let tx = f.x;
-    if (f.st === 'park') { f.wt -= dt; if (f.wt <= 0 && ok) f.st = 'go'; }
-    else if (f.st === 'go') { tx = digX; if (!ok) f.st = 'back'; else if (Math.abs(f.x - digX) < 6) { f.st = 'dig'; f.wt = 26 + i * 4; } }
-    else if (f.st === 'dig') { tx = digX; f.wt -= dt; if (f.wt <= 0 || !ok) { f.st = 'back'; } }
-    else if (f.st === 'back') { tx = home; if (Math.abs(f.x - home) < 8) { f.st = 'park'; f.wt = 1.5 + i * 0.4; } }
+    const far = Math.abs(f.x - home) > 10;
+    if (f.st === 'park') { f.x = home; f.wt -= dt; if (f.wt <= 0) { f.st = atFace ? 'go' : 'dig'; f.wt = atFace ? 0 : 16 + (i * 5) % 9; } }
+    else if (f.st === 'go') { tx = digX; if (!atFace) f.st = 'back'; else if (Math.abs(f.x - digX) < 6) { f.st = 'dig'; f.wt = 26 + i * 4; } }
+    else if (f.st === 'dig') { tx = atFace ? digX : home; f.wt -= dt; if (f.wt <= 0 || (!atFace && far)) { f.st = far ? 'back' : 'park'; f.wt = 3 + (i * 3) % 4; } }
+    else if (f.st === 'back') { tx = home; if (!far) { f.st = 'park'; f.wt = 1.5 + i * 0.4; } }
     const want = U.clamp((tx - f.x) * 2, -spd, spd);
-    f.vx = U.damp(f.vx || 0, want, 4, dt); f.x += f.vx * dt;
-    // chão: faixa da frente do pátio; na encosta, a altura do barranco na ponta da frente da máquina (a bancada nivela o resto)
-    const hy = solo && f.st !== 'park' && heap.height(f.x + TW / 2) > 12 ? heap.surf(f.x + TW / 2) : LANE_Y;
-    f.y = f.st === 'park' ? LANE_Y : U.damp(f.y, hy, 7, dt);
-    f.bench = solo && f.st === 'dig' && f.y < -6;
-    benchY = f.y;
+    f.vx = U.damp(f.vx || 0, want, 4, dt); f.x += f.vx * dt; f.y = LANE_Y;
+    f.bay = !atFace && f.st === 'dig' && !far;         // trabalhando na bancada de rechego da vaga
+    f.bayOn = !atFace;
+    const digNow = f.st === 'dig' && (f.bay || Math.abs(f.x - digX) < 12);
     iW.x = f.x; iW.y = f.y; iW.face = f.st === 'back' ? -1 : 1; iW.vx = f.vx; iW.t = S.time; iW.parts = FAST ? null : parts;
-    iW.floor = f.y < 0 ? benchFn : flatFn; iW.digging = f.st === 'dig'; iW.tx = face + 10; iW.ty = heap.surf(face + 10);
+    iW.floor = flatFn; iW.digging = digNow; iW.tx = face + 10; iW.ty = f.bay ? LANE_Y - 16 : heap.surf(face + 10);
     G.Tools[f.id].update(f.m, dt, iW); f.warm = true;
-    if (f.st === 'dig' && (solo || digX > face - t.park - 30)) { const b = G.Tools[f.id].bite(f.m); if (b && b.active) f.biteX = b.x; } else f.biteX = 0;   // longe do barranco: rende pelo autoTick (pé da montanha)
-  }
-  // bancada: tablado de madeira nivelado na encosta, com pernas até o barranco (desenhado logo antes da máquina que está em cima)
-  function drawBench(g, f) {
-    const w = G.Tools[f.id].w, L = f.x - w / 2 - 16, R = f.x + w / 2 + 6, y = f.y;
-    for (let x = L + 8; x < R - 4; x += 46) { const sy = heap.surf(x); if (sy > y + 9) Draw.box(g, x - 3, y + 6, 6, sy - y - 4, PAL.wood, { ol: 1 }); }
-    Draw.box(g, L, y, R - L, 8, PAL.woodL, { ol: 1 }); g.fillStyle = PAL.wood; g.fillRect(L + 1, y + 5, R - L - 2, 2);
-    g.fillStyle = PAL.yel; for (let x = L + 4; x < L + 28; x += 12) g.fillRect(x, y + 1, 6, 3);   // faixa de segurança na ponta de fora
+    if (atFace && f.st === 'dig' && digX > face - t.park - 30) { const b = G.Tools[f.id].bite(f.m); if (b && b.active) f.biteX = b.x; } else f.biteX = 0;   // longe do barranco / na vaga: rende pelo autoTick (pé da montanha)
   }
   function fleetTick(dt) {
-    // com caminhão/Bagger na frente de lavra as pequenas trabalham na bancada, mais acima na encosta (a renda delas não muda)
-    const solo = cur.kind === 'bagger' || cur.kind === 'haul' || !!(S.bag && S.tool === NT - 1);
+    // só com o Kome a pé e sem gigante na frente as pequenas vão até o barranco; senão trabalham na vaga (bancada de rechego)
+    const k = cur.kind, atFace = (k === 'hand' || k === 'push' || k === 'jack') && !(S.bag && S.tool === NT - 1);
     for (let i = 0; i < S.fleet.length; i++) {
       const f = S.fleet[i];
-      if (st.pilots[f.id] && WORKERS[f.id]) { if (!FAST || !f.warm) fleetWork(f, i, dt, solo); else { f.x = PARK(f.id); f.y = LANE_Y; f.st = 'park'; f.bench = false; f.biteX = 0; } continue; }
-      f.st = null; f.biteX = 0; f.bench = false; f.x = PARK(f.id); f.y = LANE_Y;
+      if (st.pilots[f.id] && WORKERS[f.id]) { if (!FAST || !f.warm) fleetWork(f, i, dt, atFace); else { f.x = PARK(f.id); f.y = LANE_Y; f.st = 'park'; f.bay = false; f.biteX = 0; } continue; }
+      f.st = null; f.biteX = 0; f.bay = f.bayOn = false; f.x = PARK(f.id); f.y = LANE_Y;
       if (FAST && f.warm) continue;
       if (!f.warm || cam.visible(f.x, -100, 700)) { iF.x = f.x; iF.y = f.y; iF.t = S.time; iF.parts = null; G.Tools[f.id].update(f.m, dt, iF); f.warm = true; }
     }
@@ -860,7 +840,7 @@
     if (cur.seat === 'cab' && cur.kind !== 'bagger' && cur.kind !== 'haul') { P.x = Math.max(WL.MX0 - 300, faceAhead(Math.min(P.x, S.footX) - 400, 16, 2000) - cur.park); }
     P.y = heap.surf(P.x); P.face = 1;
     S.col.kind = D.COLLECTOR[di]; S.col.x = P.x - 80;   // coletor da ferramenta NA MÃO (antes a moega da Bagger seguia o Kome com o carrinho) S.col.y = heap.surf(S.col.x);
-    rebuildFleet(); ensureBag();
+    ensureBag(); yardSnap(); rebuildFleet();
     if (loopH) { try { loopH.stop(0.3); } catch (e) { /* */ } loopH = null; }
     if (!FAST && audioOn && Loops && cur.loop && !S.opts.mute) { try { loopH = Loops.start(cur.loop, { vol: 0.35, rate: 0.1 }); } catch (e) { loopH = null; } }
     if (!FAST && Sfx && Sfx.setTool) { try { Sfx.setTool(Math.min(di, 11)); } catch (e) { /* */ } }
@@ -925,11 +905,11 @@
   let visit = null;
   /* VILA DO KOME: a câmera voa por cima da montanha até o outro bairro e volta (botão "Vila" no topo, compra de casa/adereço).
      vila.k 0..1 = progresso do voo; o jogo continua rodando, só o dedo/mouse não cava enquanto olha a vila. */
-  const vila = { on: false, k: 0, x: 0, y: 0, z: 0.5, auto: 0, hx: 0, hy: 0, hz: 1 };
+  const vila = { on: false, k: 0, x: 0, y: 0, z: 0.5, auto: 0, hx: 0, hy: 0, hz: 1, fly: 0, dir: 1 };
   function vilaGo(on, x, z, sec) {
     if (cs || S.endOpen || (FAST && on)) return false;   // modo acelerado (testes): o voo só anda nos quadros de tela, não voa
     if (on) { if (vila.k <= 0) { vila.hx = cam.x; vila.hy = cam.y; vila.hz = cam.z; } vila.x = x || Wd.X.vilaCx; vila.z = z || 0.56; vila.auto = sec || 0; }
-    vila.on = !!on; if (!FAST) sfx('whoosh', { vol: 0.4 });
+    vila.on = !!on; vila.grab = false; if (!FAST) sfx('whoosh', { vol: 0.4 });
     return true;
   }
   const locked = () => (S.cele.t >= 0 && S.cele.t < S.cele.dur) || !!visit || S.dayEnd > 0;
@@ -1023,10 +1003,32 @@
   /* =====================================================================
      7. Atualização, câmera e desenho
      ===================================================================== */
+  /* PÁTIO ACOMPANHA A FRENTE DE LAVRA: Wd.X.shift persegue o recuo do pé da montanha devagar e sem pulo (2 a 40 u/s: na tela dá
+     poucos px por segundo, ninguém vê prédio andando, mas a frota e o coletor nunca ficam pra trás). Troca de ferramenta, montanha
+     nova, save carregado e modo FAST encaixam na hora (yardSnap). A Bagger em montagem anda junto com o pátio; a Bagger com o
+     Goma (Kome em outra máquina) acompanha o pé da montanha. Nada disso entra no save (é tudo derivado de S.footX). */
+  const yardTarget = () => U.clamp(S.footX - WL.MX0, 0, WL.MX1 - WL.MX0 - 600);
+  // espaço que a máquina na mão precisa entre o pé da montanha e o pátio (canteiro): distância de trabalho + ela + o coletor atrás
+  const yardNeed = () => (cur && cur.seat === 'cab' && T ? (cur.park || 0) + (T.w || 150) / 2 + 300 : 0);
+  function yardSnap() { const X = Wd.X; X.mk = cur && cur.kind === 'bagger' && S.m ? (S.m.k || 1) : 1; X.need = yardNeed(); X.shift = yardTarget(); Wd.layout(S); bagFollow(0, true); }
+  function bagFollow(dt, snap) {
+    if (!S.bag) return;
+    if (S.bag.m === S.m) { if (isFinite(S.m.x) && S.m.init) S.bagX = S.m.x; return; }                                   // o Kome pilotando: guarda onde ela está
+    if (S.tool < NT - 1) { S.bagX = Wd.X.front - 610; return; }                          // em montagem: vaga fixa no distrito
+    const tx = S.footX - 380;                                                            // pronta, com o Goma: fica no pé da montanha
+    S.bagX = snap || FAST ? Math.max(S.bagX, tx) : S.bagX < tx ? Math.min(tx, S.bagX + 40 * dt) : S.bagX;
+  }
+  function yardTick(dt) {
+    const X = Wd.X, tg = yardTarget(), mk = cur.kind === 'bagger' && S.m ? (S.m.k || 1) : 1;
+    if (FAST || mk !== X.mk || tg < X.shift - 200) { X.mk = mk; X.shift = tg; }          // montanha nova / troca de máquina gigante
+    else if (tg > X.shift) X.shift = Math.min(tg, X.shift + U.clamp(2 + (tg - X.shift) * 0.15, 2, 40) * dt);
+    Wd.layout(S); bagFollow(dt, false);
+  }
+
   // update(dt): um passo da simulação (seguro pra passo fixo; não desenha)
   const INDC = { mainX: 0, floor: null, zoom: 1, col: null };
   const SILO_P = () => (Wd.props || []).find(p => p.node === 'a7');
-  const IND_CTX = () => { INDC.footX = S.footX; INDC.siloX = (SILO_P() || {}).x || 0; INDC.fabX = Wd.X ? Wd.X.fabPorta : 0; INDC.noA = cur.kind === 'bagger'; INDC.rightX = WL.MX1 + 420; INDC.mainX = S.bag && S.bag.m ? S.bag.m.x : S.footX - 700; INDC.floor = baggerFloor; INDC.zoom = cam.z; INDC.col = S.col; return INDC; };
+  const IND_CTX = () => { INDC.footX = S.footX; INDC.siloX = (SILO_P() || {}).x || 0; INDC.fabX = Wd.X ? Wd.X.fabPorta : 0; INDC.noA = cur.kind === 'bagger'; INDC.mainX = S.bag && S.bag.m ? S.bag.m.x : S.footX - 700; INDC.floor = baggerFloor; INDC.zoom = cam.z; INDC.col = S.col; return INDC; };
   const PORTRAIT = () => MOBILE && innerHeight > innerWidth * 1.1;   // celular em pé: aviso de virar cobre tudo e o jogo pausa
   let rotDrawn = false;
   function update(dt) {
@@ -1045,7 +1047,7 @@
     if (G.Belts && !FAST) G.Belts.tick(dt, IND_CTX());
     { const L = E.Nature && E.Nature.light ? E.Nature.light(S.tod) : null; const nt = L ? L.night * 0.6 + L.dusk * 0.4 : 0; inp.night = iL.night = iT.night = iF.night = iW.night = nt; }
     if (visit && (visit.t += dt) >= visit.dur) visit = null;
-    Wd.layout(S);
+    yardTick(dt);
     S.bury = 0;   // soterramento removido (o dono não curtiu); variável fica pra saves antigos
     if (cur.kind === 'jack' && !FAST) crackTick(dt);
     const lock = locked();
@@ -1300,7 +1302,7 @@
     S.bagX = Math.max(1000, S.footX - 760);
     if (cur.kind === 'bagger' && S.m) { S.m.x = S.footX - 700; S.m.vx = 0; P.x = S.m.x; }
     else { P.x = Math.min(P.x, S.footX - 60); }
-    S.lastDigX = S.footX; S.camX = P.x;
+    S.lastDigX = S.footX; S.camX = P.x; yardSnap();
     if (!FAST) {
       fx.flash(PAL.cream, 0.4, 0.8); sfx('pling');
       ui(() => UI.banner('Montanha ' + S.mount + '!', shapeOf(shapeId()).n + ' · chegou arroz novo', { icon: 'rice', tone: 'gold', dur: 3 }));
@@ -1480,7 +1482,7 @@
     else if (k === 'saco') { if (Math.abs(P.x - c.x) > 170) c.x = P.x - P.face * 80; c.y = heap.surf(c.x); }
     else if (k === 'barraca') { c.x = X.barraca + 6; c.y = -40; }
     else if (k === 'kei') { const tx = Math.max(X.keiMin, P.x - 190 - (cur.park || 0)); if (Math.abs(tx - c.x) > 120) c.x = U.damp(c.x, tx, 2, dt); c.y = heap.surf(c.x); }
-    else if (k === 'silo') { c.x = X.silo; c.y = -150; }
+    else if (k === 'silo') { const tx = Math.max(X.keiMin + 40, P.x - (T.w || 200) / 2 - 96); if (Math.abs(tx - c.x) > 60) c.x = U.damp(c.x, tx, 2, dt); c.y = heap.surf(c.x); }   // moega pequena logo atrás da máquina (o silo fica depois do estacionamento: a esteira leva)
     else if (cur.kind === 'haul') { c.x = iT.x - (T.meta.haul + 215); c.y = heap.surf(c.x); }
     else if (cur.kind === 'bagger') { const d = T.dump(S.m); c.x = d ? d.x : P.x - 700; c.y = 0; }
     else { const tx = P.x - 430; if (Math.abs(tx - c.x) > 160) c.x = U.damp(c.x, tx, 1.5, dt); c.y = heap.surf(c.x); }
@@ -1518,15 +1520,19 @@
     if (S.camLock) { cam.zoomTo(S.camLock.z, 9); cam.follow(S.camLock.x, S.camLock.y !== undefined ? S.camLock.y : -120, dt, 9); cam.update(dt); return; }   // só pra testes/prints
     if (vila.on || vila.k > 0) {
       if (vila.on && vila.auto > 0 && vila.k >= 1 && (vila.auto -= dt) <= 0) vila.on = false;
-      vila.k = U.clamp(vila.k + (vila.on ? dt : -dt) / 1.5, 0, 1);
+      if (vila.hold === undefined) vila.k = U.clamp(vila.k + (vila.on ? dt : -dt) / 1.5, 0, 1); else vila.k = vila.hold;   // hold: só pros prints (voo congelado)
       if (vila.k > 0) {
-        // voo POR CIMA do pico atual: e = vai-e-vem suave (smootherstep); up sobe rápido e fica chato no alto; no ápice o zoom abre
-        // e o centro da câmera passa ACIMA do pico (pico + 8% da tela de folga): a encosta nunca raspa na câmera
+        // voo POR CIMA do pico atual: e = vai-e-vem suave (smootherstep); up sobe rápido e fica chato no alto. No ápice o centro da
+        // câmera passa ACIMA do pico (pico + 8% da tela de folga): a encosta nunca raspa na câmera. O zoom NÃO abre mais que 60%
+        // do zoom de quem está mais aberto (pátio ou vila): em vez de afastar (no celular virava formiga), o caminho sobe.
+        // Montanha quase toda cavada = pico baixo = voo baixo. vila.fly (0..1) = velocidade do voo, pras nuvens e riscos (drawFlight).
         const k = vila.k, e = k * k * k * (k * (6 * k - 15) + 10), a = Math.sin(Math.PI * e), up = 1 - (1 - a) * (1 - a), vy = -0.2 * H / vila.z;
         const pk = heap.peak ? heap.peak().h : heap.maxH, zb = Math.exp(U.lerp(Math.log(vila.hz), Math.log(vila.z), e));
-        const zA = Math.min(zb, H / (pk * 1.5 + 500)), yb = U.lerp(vila.hy, vy, e), yA = Math.min(yb - 160, -pk - 0.08 * H / zA);
+        const zA = Math.min(zb, Math.max(H / (pk * 1.5 + 500), 0.6 * Math.min(vila.hz, vila.z))), yb = U.lerp(vila.hy, vy, e), yA = Math.min(yb - 160, -pk - 0.08 * H / zA);
+        vila.fly = a; vila.dir = vila.on ? 1 : -1;
         cam.snapTo(U.lerp(vila.hx, vila.x, e), U.lerp(yb, yA, up), Math.exp(U.lerp(Math.log(zb), Math.log(zA), up))); cam.maxShake = 0; cam.update(dt); return;
       }
+      vila.fly = 0;
       cam.snapTo(vila.hx, vila.hy, vila.hz);
     }
     if (visit) { const hw0 = W / 2 / cam.z; cam.follow(U.clamp(visit.x, hw0 + Wd.X.minX, WL.WW - hw0 + (visit.far ? 1400 : 40)), visit.y !== undefined ? visit.y : -60 + 0.16 * H / cam.z, dt, 3.2); cam.maxShake = S.opts.shake ? 12 : 0; cam.update(dt); return; }
@@ -1536,8 +1542,8 @@
       if (P.x > S.camX + dz) S.camX = P.x - dz; else if (P.x < S.camX - dz) S.camX = P.x + dz;
       fxx = S.camX;
     }
-    else if (k === 'bagger') { fxx = c.t >= 0 && c.t < 1.6 ? S.m.x - 100 : S.m.x - 130; fyy = 0; }
-    else if (k === 'haul') fxx = P.x + 40;
+    else if (k === 'bagger') { fxx = (c.t >= 0 && c.t < 1.6 ? S.m.x - 100 : S.m.x - 130) - (Wd.X.gemeaK ? 300 : 0); fyy = 0; }   // com a Gêmea ao lado, o quadro puxa pra ela
+    else if (k === 'haul') fxx = P.x - 90;   // um pouco pra trás: o pátio (que acompanha a frente) fica na tela
     else fxx = P.x + cur.park * 0.7;
     const gf = k === 'hand' || k === 'push' || k === 'jack' ? 0.66 : WL.GROUND_FRAC;
     const hw = W / 2 / cam.z;
@@ -1580,17 +1586,22 @@
   let machFrame = 0; const BAGC = {};
   function drawMach(g, id, m, f) {
     const T0 = G.Tools[id], z = cam.z;
-    if (z > 0.55 || !T0.w) { T0.draw(g, m); return; }
-    const k = z * stage.dpr, mk = m.k || 1, W0 = (T0.w || 300) * 1.6 * mk, H0 = (T0.h || 200) * 1.7 * mk, x0 = m.x - W0 / 2, y0 = m.y - H0, bw = Math.ceil(W0 * k), bh = Math.ceil((H0 + 40) * k);
-    const c = f._cv || (f._cv = document.createElement('canvas'));
-    if (c.width !== bw || c.height !== bh || !f._ok || (machFrame - (f._fr || 0)) > (f.every || (z < 0.3 ? 6 : 3)) || Math.abs(m.x - f._mx) > 60) {
+    if ((z > 0.55 && !f.always) || !T0.w) { T0.draw(g, m); return; }
+    const k = Math.min(1.5, z * (f.res || 1)) * stage.dpr, mk = m.k || 1, W0 = (T0.w || 300) * 1.6 * mk, H0 = (T0.h || 200) * 1.7 * mk, x0 = m.x - W0 / 2, y0 = m.y - H0, bw = Math.ceil(W0 * k), bh = Math.ceil((H0 + 40) * k);
+    const c = f._cv || (f._cv = document.createElement('canvas')), mir = cam.mx < 0;
+    if (c.width !== bw || c.height !== bh || !f._ok || f._mir !== mir || (machFrame - (f._fr || 0)) > (f.every || (z < 0.3 ? 6 : 3)) || Math.abs(m.x - f._mx) > 60) {
       if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
       const cg = c.getContext('2d'); cg.setTransform(1, 0, 0, 1, 0, 0); cg.clearRect(0, 0, bw, bh);
-      cg.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); T0.draw(cg, m);
-      f._ok = true; f._fr = machFrame; f._mx = m.x; f._x0 = x0; f._y0 = y0;
+      // ilha espelhada: a imagem já é desenhada espelhada (assim placas e textos da máquina saem legíveis) e carimbada sem espelhar
+      if (mir) cg.setTransform(-k, 0, 0, k, (x0 + W0) * k, -y0 * k); else cg.setTransform(k, 0, 0, k, -x0 * k, -y0 * k);
+      T0.draw(cg, m);
+      f._ok = true; f._fr = machFrame; f._mx = m.x; f._x0 = x0; f._y0 = y0; f._mir = mir;
     }
-    g.drawImage(c, f._x0 + (m.x - f._mx), f._y0, W0, H0 + 40);
+    const bx = f._x0 + (m.x - f._mx);
+    if (mir) { g.save(); g.translate(bx + W0 / 2, 0); g.scale(-1, 1); g.drawImage(c, -W0 / 2, f._y0, W0, H0 + 40); g.restore(); }
+    else g.drawImage(c, bx, f._y0, W0, H0 + 40);
   }
+  G.drawMach = (g, id, m, f) => drawMach(g, id, m, f);   // industry.js: a Gêmea usa o mesmo cache (uma imagem só passa pelo filtro de cor)
   function render() {
     machFrame++;
     stage.begin();
@@ -1637,14 +1648,14 @@
     if (G.Belts) G.Belts.draw(g, t);               // esteiras: pé da montanha -> coletor -> silo
     // 3. frota estacionada (faixa da frente)
     for (let i = 0; i < S.fleet.length; i++) {
-      const f = S.fleet[i]; if (!f.warm || !cam.visible(f.x, -150, 800) || (f.st && f.st !== 'park')) continue;
+      const f = S.fleet[i]; if (!f.warm || !cam.visible(f.x, -150, 800) || (f.st && f.st !== 'park' && !f.bay)) continue;
       drawMach(g, f.id, f.m, f);
       if (!st.pilots[f.id]) { const w = 86, hh = 22; Draw.sign(g, f.x - w / 2, f.y - G.Tools[f.id].h - 44, w, hh, 'PRECISA-SE PILOTO', { col: PAL.cream, ink: PAL.red }); Draw.text(g, 'z z z', f.x + 30, f.y - G.Tools[f.id].h - 54 - 6 * Math.sin(t * 2), { size: 13, col: PAL.cream, sw: 3 }); }
     }
     // 4. coletor, sacos, ajudantes
     const c = S.col;
     if (c.kind === 'cesto') { /* desenhado depois do Kome (mochila nas costas) */ }
-    else if (c.kind !== 'barraca' && !(c.kind === 'silo' && S.own.a7)) Wd.drawCollector(g, c, t, S);
+    else if (c.kind !== 'barraca') Wd.drawCollector(g, c, t, S);
     if (S.own.m7a && c.kind !== 'cesto') drawSeal(g, c.x + 14, c.y - 22, t);
     const nh = Math.min(S.helpers.length, st.help), hb0 = helpBase();
     for (let i = 0; i < nh; i++) {
@@ -1670,7 +1681,7 @@
     if (twinPaint) { try { g.filter = 'none'; } catch (e) { /* */ } }   // zoom bem aberto: Bagger em cache (redesenha 1 quadro sim, 1 não)
     if (c.kind === 'cesto' && cur.kind === 'hand') drawBackpack(g, c, t);
     p2Draw(g, t);
-    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && f.warm && cam.visible(f.x, f.y - 150, 800)) { if (f.bench) drawBench(g, f); drawMach(g, f.id, f.m, f); } }   // frota trabalhando, na frente (na bancada quando tem gigante)
+    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && !f.bay && f.warm && cam.visible(f.x, f.y - 150, 800)) drawMach(g, f.id, f.m, f); }   // frota indo cavar no barranco (Kome a pé), na faixa da frente
     if (crack.k > 0.05 && cur.kind === 'jack') drawCrack(g);
     if (S.own.c6 && S.autoMode && cur.kind === 'hand') { drawSweat(g, t); if (S.own.c6b) drawSweat(g, t + 0.45); }
     if (cur.kind === 'hand' || cur.kind === 'push' || cur.kind === 'jack') { drawAcc(g, t); drawDizzy(g, t); }   // acessório também com carrinho e britadeira
@@ -1689,6 +1700,7 @@
       g.restore();
     }
     Draw.lod(1);
+    drawFlight(g, t);
     floaters.draw(g, cam);
     // 6. tela: onigiri, indicador do coletor na borda, carimbo da Bagger, efeitos
     if (G.Home && !cs) { const dtw = Math.min(0.1, Math.max(0, t - (render.lt || t))); render.lt = t; g.save(); g.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0); G.Home.worldFX(g, dtw, W, H); g.restore(); }
@@ -1709,6 +1721,51 @@
       g.restore();
     }
     fx.draw(g);
+  }
+  /* voo pra Vila (e a volta): nuvens fofas e riscos de vento passando na tela, pro voo "ler" como voo (pedido do dono).
+     Tudo em coordenada de tela; a força vem de vila.fly (0 parado .. 1 no meio do voo) e o lado de vila.dir. Sem estado. */
+  const FLY_R = E.RNG(8128), FLY_S = Array.from({ length: 16 }, () => ({ y: FLY_R(), s: 0.7 + FLY_R() * 0.9, l: 50 + FLY_R() * 130, p: FLY_R() })),
+    FLY_C = Array.from({ length: 6 }, () => ({ y: 0.08 + FLY_R() * 0.7, s: 0.9 + FLY_R() * 1.3, p: FLY_R(), v: 0.6 + FLY_R() * 0.5 }));
+  let flyCv = null;
+  // na vila: setinhas nas bordas quando tem mais rua pra ver (arrastar passeia), e a dica escrita até o jogador arrastar a 1ª vez
+  function drawVilaHint(g, t) {
+    if (!(vila.on && vila.k >= 1)) return;
+    const hw = W / 2 / vila.z, more = [vila.x - hw > Wd.X.vilaX0 - 200, vila.x + hw < Wd.X.vilaX1 + 60];
+    if (cam.mx < 0) more.reverse();
+    g.save(); g.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0);
+    const y = H * 0.56, b = Math.sin(t * 4) * 4;
+    for (let s = 0; s < 2; s++) if (more[s]) {
+      const d = s ? 1 : -1, x = s ? W - 30 + b : 30 - b;
+      g.globalAlpha = 0.9; Draw.circle(g, x, y, 19, PAL.cream, { ol: 2.5 });
+      g.fillStyle = PAL.line; g.beginPath(); g.moveTo(x + d * 8, y); g.lineTo(x - d * 5, y - 9); g.lineTo(x - d * 5, y + 9); g.closePath(); g.fill();
+    }
+    g.globalAlpha = 1;
+    if (!vila.panned && (more[0] || more[1])) Draw.text(g, 'arraste pra passear pela vila · toque pra voltar', W / 2, H * 0.475, { size: 18, col: PAL.cream, sw: 5 });
+    g.restore();
+  }
+  function drawFlight(g, t) {
+    drawVilaHint(g, t);
+    const f = vila.fly || 0; if (f <= 0.02) return;
+    const dir = -(vila.dir || 1) * (cam.mx < 0 ? -1 : 1);                 // as coisas passam no sentido contrário ao do voo
+    g.save(); g.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0);
+    if (!flyCv) {                                                         // nuvem em pixel (mesmo traço das nuvens do fundo): desenhada 1 vez, ampliada sem suavizar
+      flyCv = document.createElement('canvas'); flyCv.width = 64; flyCv.height = 26; const c = flyCv.getContext('2d');
+      const blob = (col, dy) => { c.fillStyle = col; c.beginPath(); c.ellipse(17, 15 + dy, 12, 8, 0, 0, 6.3); c.ellipse(32, 10 + dy, 15, 10, 0, 0, 6.3); c.ellipse(47, 15 + dy, 12, 7, 0, 0, 6.3); c.rect(6, 15 + dy, 52, 6); c.fill(); };
+      blob('#DCE8F4', 2); blob('#FFFFFF', 0);
+      const d = c.getImageData(0, 0, 64, 26), a = d.data; for (let i = 3; i < a.length; i += 4) a[i] = a[i] > 110 ? 255 : 0; c.putImageData(d, 0, 0);   // borda dura
+    }
+    g.imageSmoothingEnabled = false;
+    for (const c of FLY_C) {
+      const k = Math.round(2 + c.s * 1.5), cw = 64 * k, span = W + cw * 2, u = ((c.p + t * c.v * 1.5 * dir) % 1 + 1) % 1;
+      g.globalAlpha = Math.min(1, f * 1.3) * 0.86;
+      g.drawImage(flyCv, Math.round(u * span - cw), Math.round(c.y * H), cw, 26 * k);
+    }
+    for (const q of FLY_S) {                                              // riscos de vento
+      const span = W + q.l * 2, u = ((q.p + t * q.s * 2.6 * dir) % 1 + 1) % 1, x = u * span - q.l, y = (0.06 + q.y * 0.86) * H;
+      g.globalAlpha = f * f * (0.3 + 0.35 * q.y); g.fillStyle = '#FFFFFF';
+      g.fillRect(Math.round(x), Math.round(y), Math.round(q.l * (0.5 + 0.5 * f)), q.s > 1.1 ? 3 : 2);
+    }
+    g.restore();
   }
   function drawSack(k, t) {
     if (!cam.visible(k.x, k.y, 80)) return;
@@ -1766,11 +1823,25 @@
     if (G.Home && G.Home.isOpen()) { ptr.down = false; return; }
     if (input.pressed) {
       initAudio(); tapEat = false;
-      if (vila.on && vila.k > 0.3) { vilaGo(false); tapEat = true; }   // olhando a vila: tocar em qualquer lugar volta pra montanha
+      // olhando a vila: ARRASTAR passeia pela rua (dá pra ir até a rua do comércio); toque simples volta pra montanha
+      if (vila.on && vila.k >= 1) { vila.dragX = input.x; vila.drag0 = vila.x; vila.moved = false; vila.grab = true; tapEat = true; }
+      else if (vila.on && vila.k > 0.3) { vilaGo(false); tapEat = true; }
       // toque em saco ou onigiri não vira cavada
       for (const k of S.sacks) { cam.toScreen(k.x, k.y - 12, sp); if (!k.state && U.dist(sp.x, sp.y, input.x, input.y) < 44) { tapSack(k); tapEat = true; break; } }
       if (!tapEat && S.oni.on) for (let i = 0; i < S.oni.n; i++) if (U.dist(S.oni.x - i * 46, S.oni.y, input.x, input.y) < 52) { tapOnigiri(); tapEat = true; break; }
       hook.use = false;
+    }
+    if (vila.grab) {
+      const hw = W / 2 / vila.z, lo = Wd.X.vilaX0 - 260 + hw, hi = Math.max(lo, Wd.X.vilaX1 + 120 - hw);
+      if (input.down) {
+        const dx = (input.x - vila.dragX) * (cam.mx < 0 ? -1 : 1);
+        if (Math.abs(dx) > 10) vila.moved = true;
+        if (vila.moved) { vila.x = U.clamp(vila.drag0 - dx / vila.z, lo, hi); vila.auto = 0; vila.panned = true; }
+      } else { vila.grab = false; if (!vila.moved && vila.on) vilaGo(false); }
+    }
+    if (vila.on && vila.k >= 1 && !vila.grab) {   // teclado também passeia
+      const K1 = input.keys || {}, d = ((K1.KeyD || K1.ArrowRight) ? 1 : 0) - ((K1.KeyA || K1.ArrowLeft) ? 1 : 0);
+      if (d) { const hw = W / 2 / vila.z, lo = Wd.X.vilaX0 - 260 + hw; vila.x = U.clamp(vila.x + d * (cam.mx < 0 ? -1 : 1) * 14, lo, Math.max(lo, Wd.X.vilaX1 + 120 - hw)); vila.auto = 0; vila.panned = true; }
     }
     padRead();
     if (hook.use) { ptr.down = hook.on; ptr.wx = hook.wx; ptr.wy = hook.wy; ptr.has = true; return; }
@@ -1972,7 +2043,7 @@
       setInterval(tick, 300); tick();
     }
     if (G.Ind) G.Ind.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
-      visit: (x, z, y, dur) => { visit = { x, t: 0, dur: dur || 3.5, z, y, far: true }; } });   // câmera vai mostrar a Bagger gêmea do outro lado
+      visit: (x, z, y, dur) => { visit = { x, t: 0, dur: dur || 3.5, z, y, far: true }; } });   // câmera vai mostrar a Bagger Gêmea na vaga dela
     if (G.Topo) G.Topo.init({ sfx });
     if (G.Tatu) G.Tatu.init({ heap: () => heap, parts: () => parts, pay: (v, x, y) => pay(v, x, y, 1),
       bought: x => { sfx('fanfare'); ui(() => UI.banner('TATUZÃO!', 'ele vai furar a montanha e cada anel paga', { icon: 'star', tone: 'gold', dur: 3.5 })); visit = { x: x - 300, t: 0, dur: 3.5 }; } });
@@ -2017,7 +2088,7 @@
     playAs(i, twin) { S.cele.t = -1; const ok = playAs(i, twin); cam.snapTo(P.x, P.y - 60, cur.zoom); return ok && cur.id; },
     paused: () => !!cs || !!S.endOpen || !!(G.Home && G.Home.isOpen()) || !!(G.IslandsUI && (G.IslandsUI.isOpen() || G.IslandsUI.coaching())) || PORTRAIT(),   // robô: pausa de propósito não é travamento
     addMoney(v) { S.money += v; return S.money; },
-    vila(on, x, z) { const ok = vilaGo(on !== false, x, z); return ok; }, vilaK: () => vila.k,
+    vila(on, x, z) { const ok = vilaGo(on !== false, x, z); return ok; }, vilaK: () => vila.k, vilaHold(k) { vila.hold = k === null ? undefined : k; },
     // step(seg, dt=1/30): avança a simulação sem desenhar (determinístico o bastante pro autoplayer)
     step(sec, h) { h = h || 1 / 30; FAST = true; const n = Math.round(sec / h); try { for (let i = 0; i < n; i++) update(h); } finally { FAST = false; } return S.time; },
     play(id) { csPlay(id); },

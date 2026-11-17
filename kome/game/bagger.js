@@ -530,7 +530,7 @@
     let wxm = 0, wym = 0;
     if (st >= 3 && m.wheels === 2) {
       // Bagger Gigante (modo infinito, peça 4): segunda lança mais baixa, atrás da primeira, roda girando em outra fase
-      g.save(); g.translate(PX - 30, PY - 40); g.rotate(-(m.luff + 0.3));
+      g.save(); g.translate(PX - 30, PY - 40); g.rotate(-(m.luff + (m.boom2 === undefined ? 0.3 : m.boom2)));   // m.boom2: abertura entre as duas lanças (a Gêmea no monte de estoque fecha mais)
       blit(g, sprite('boom', rs, BOX_BOOM, drawBoom));
       g.save(); g.translate(BL * 0.96 + m.wobY, m.wobX);
       g.save(); g.rotate(m.rot + STEP * 0.5); blit(g, sprite('wheel', rs, BOX_WHEEL, drawWheel)); g.restore();

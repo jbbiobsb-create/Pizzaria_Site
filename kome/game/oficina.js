@@ -293,7 +293,7 @@
       txt('renda', x + 14, y + 152, T(17, '#6B4A2E', 'left')); txt('×' + String(m0).replace('.', ',') + '  ▸  ×' + String(part.mult).replace('.', ','), x + w - 14, y + 152, T(17, C.grassD, 'right'));
       button(x + 14, y + 168, w - 28, 52, 'Comprar a peça', buyGiant, { fill: '#DDF0C2', off: !can, size: 19, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
     } else {
-      txt('completa! cavando do outro lado', x + w / 2, y + 106, T(17, C.grassD));
+      txt('completa! ao lado da 293', x + w / 2, y + 106, T(17, C.grassD));
       txt('renda ×' + String(DATA.GIANT[3].mult).replace('.', ',') + ' · escolha a pintura:', x + w / 2, y + 130, T(17, '#6B4A2E'));
       const cur = r.paint || 'kawaii', cols = { kawaii: '#F4B8C5', dino: '#9BC47A', normal: '#EDB93A' }, names = { kawaii: 'Kawaii', dino: 'Dino', normal: 'Fábrica' };
       I.PAINTS.forEach(([id], i) => {
