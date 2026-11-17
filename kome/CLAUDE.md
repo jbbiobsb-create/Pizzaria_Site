@@ -45,7 +45,8 @@ Máquinas GRANDES do jogo continuam vetoriais (bagger.js etc.).
 - Não mudar o desenho das 27 poses antigas do Kome (poses novas pode).
 - Balanço só em `game/data.js`. Metas do `--auto`: final 60–90 min, espera máx ≤ 180 s, ≤ 50% cavado na Bagger.
 - Toda ferramenta segue `G.Tools[id]` (`docs/NOTAS-FERRAMENTAS.md`).
-- Proibido: dinheiro real, loot box paga, push, culpa, quase-acerto fabricado, punição por parar. Criança joga.
+- PÚBLICO: jovem adulto (20–35 anos) que gosta de idle/incremental (NÃO é jogo de criança). Humor pode ser mais adulto/nerd.
+- Proibido mesmo assim (gosto do dono, jogo honesto): dinheiro real, loot box paga, push, culpa, quase-acerto fabricado, punição por parar.
 
 ## Gosto do dono
 Shiba fofo × maquinário absurdo; toda ferramenta nova MAIOR na tela (upgrade só-número é bug); máquinas articuladas com

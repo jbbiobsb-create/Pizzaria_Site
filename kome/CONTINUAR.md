@@ -470,3 +470,20 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - Fila 4 FEITA (mundo-dois-lados.md): estacionamento virou a 1ª vaga do pátio; voo da Vila passa acima do pico; kei-truck do galpão entra num beco; pequenas trabalham em bancadas na encosta com Caminhão/Bagger. Gêmea continua do outro lado.
 - RODADA "SEM PONTOS FRACOS" FEITA (docs/design/mundo-dois-lados.md): pátio acompanha o pé da montanha e varre o tapete; frota trabalha na vaga (sem bancada na encosta); Gêmea do lado da cava comendo o monte de estoque; esteira subterrânea; horizonte industrial; rua do comércio com as lojas do infinito (arrastar passeia na vila); voo com zoom mínimo e nuvens; beco virou ruazinha. Oficina: marco pode ficar pendente, "Usar esta máquina", cartões na coluna da direita, G.News (avisos dentro da Oficina/Fábrica). Fábrica: etiqueta na cabeça da máquina, máquina sólida + balãozinho do item escondido, sombra do lado certo. Falta o dono JOGAR (suítes de jogo não rodaram no fim; só check --fast e alicerce).
 - HUD SEM PILHA (game-ui.js `G.HUD.chip({id,icon,label,order,tone,onClick})` → `.set({hot,hint,prio,show})`): Vila/Fábrica/Tatuzão/Ilhas numa fileira só embaixo da barra da montanha; só o chip de maior prio abre o texto e pulsa (viagem 3 > Tatuzão 2,2 > Fábrica nova 2 > evento 1,5), os outros ganham bolinha. Vila esconde o HUD de cavar (`body.k-vila`), dica 3 s por sessão. "+¥" grande sobe ao lado do iene (`HUD.lane` + floaters `ui:true`, soma em vez de empilhar). Oficina: lojas uma por linha com nome. Celular deitado: zoom/tela cheia foram pro canto esquerdo embaixo do combo (`body.k-zbl`). `tools/shot.js --mob` emula celular; `__kome.pop(v,crit)` estoura um pagamento. Falta o dono jogar: chips no celular em pé, tour das ilhas apontando o chip novo.
+
+## 17/11 noite — rodada 3b do Fable JUNTADA (commit), testes PARCIAIS (dono pausou)
+- Passou: playtest campanha 64,8 min (todas as metas), 14 ferramentas, alicerce, robô PC e celular.
+- FALHA no check: celular pequeno EM PÉ, sobreposição k-tipcontrols × k-chips (dica de controles × fileira de chips nova).
+- FALTA testar (pedido do Fable): compra da Bagger + 4 peças da Gêmea e desempenho com as duas na tela; save antigo com
+  Gêmea + viagem de ilha; voo pra vila no celular; sweep.js (olhar as 3 folhas); fabrica-sim; tutorial das ilhas no chip.
+- Decisões do dono pendentes: máquinas pequenas na encosta (montanha em degraus?) e fim do dia usando a câmera da vila.
+- HTMLs da área de trabalho AINDA NÃO regerados com a 3b.
+
+## 18/11 — rodada 3b testada + decisões do dono
+- Testado: campanha ok, 14 ferramentas, robô PC/celular, alicerce, sweep (3 folhas ok), Gêmea 4 peças + save recarregado,
+  viagem de ilha (Gêmea zera na viagem: stats.run = {} é o prestígio; fábrica fica), ~34 fps cavando com as duas Baggers.
+- Celular pequeno em pé: a dica de controles some quando não cabe entre os chips e a barra (sobreposição corrigida).
+- DECISÃO DO DONO 1 (máquinas pequenas): com máquina de cabine/caminhão/Bagger na frente, a frota trabalha NO CHÃO, atrás
+  da máquina grande, perto do pé da montanha, 80% e escurecida (game.js · drawFleetBg). Degraus na encosta: o dono ODIOU,
+  não fazer. Renda igual (autoTick); só visual.
+- DECISÃO DO DONO 2 (fim do dia): "a cena da casa é meio feia, o que for melhor" → pro Fable: usar a câmera da Vila.

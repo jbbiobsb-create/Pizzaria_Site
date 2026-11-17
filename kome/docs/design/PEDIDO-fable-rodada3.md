@@ -48,3 +48,12 @@ Oi! Tua rodada do mundo em dois lados e da Oficina nova entrou no jogo. Base des
 - Se tiver `node`: `node tools/check.js --fast`, `node tools/alicerce.js` e `node tools/playtest.js --auto` antes de mandar.
   Atenção: o playtest roda em **modo acelerado** (FAST). Qualquer coisa que só ande em quadro de tela (câmera, cutscene)
   não pode travar o cavar nesse modo.
+
+## ADENDO (18/11) — decisões do dono sobre as tuas 2 perguntas
+1. **Máquinas pequenas:** o dono quis "em segundo plano, meio escurecidas". **Já fiz** (game.js · `drawFleetBg`): com cabine,
+   caminhão ou Bagger na frente, elas ficam NO CHÃO atrás da gigante, menores e escurecidas (degrau na encosta: o dono odiou). Se quiser
+   caprichar no visual dos degraus, fique à vontade.
+2. **Fim do dia:** "a cena da casa é meio feia, o que for melhor". Pode passar a usar a **câmera da Vila** (noite na vila,
+   salário do dia, casa acesa). É tua.
+- Os 5 miúdos que você listou continuam teus (o +¥ estreito no celular, os chips em 2 linhas, o preço do Tatuzão só no
+  hover, o cartão das lojas tapando a placa e os botões sumindo no voo automático).

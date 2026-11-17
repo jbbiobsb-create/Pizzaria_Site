@@ -782,7 +782,7 @@
        ninguém, não sobem encosta e a renda cava espalhado no pé da montanha (autoTick), sem abrir entalhe. */
   const WORKERS = { trator: 1, colheita: 1, empilhadeira: 1, escav: 1 };
   const iW = { x: 0, y: 0, face: 1, tx: null, ty: null, digging: false, power: 1, speedMul: 1, vx: 0, floor: null, t: 0, parts: null, boost: 0, night: 0, zoom: 1 };
-  function fleetWork(f, i, dt, atFace) {
+  function fleetWork(f, i, dt, atFace, bg) {
     const t = TOOLS[D.toolIndex[f.id]], spd = Math.min(220, t.spd * 0.6), TW = G.Tools[f.id].w;
     if (!f.st || !(f.wt === f.wt)) { f.st = 'park'; f.wt = 1.5 + i * 2.2; f.vx = 0; }   // (wt sem número = veio do modo acelerado)
     const home = PARK(f.id);
@@ -791,8 +791,11 @@
       // cada uma tem o seu lugar na frente de lavra: fila pela largura real, atrás do Kome (nada encavalado)
       let slot = 0; for (let j = 0; j < i; j++) { const o = S.fleet[j]; if (WORKERS[o.id] && st.pilots[o.id]) slot += G.Tools[o.id].w + 40; }
       face = faceAhead(Math.min(Math.max(f.x, WL.MX0 - 400), S.footX - 40), 16, 1400);
-      digX = Math.min(face - t.park, P.x - (T.w || 100) / 2 - TW / 2 - 40) - slot;
-      if (digX - TW / 2 < Wd.X.x0 + 16) { atFace = false; face = home + t.park; digX = home; }   // não cabe entre o pátio e o Kome: trabalha na vaga
+      // segundo plano (decisão do dono): com máquina grande na frente, as pequenas trabalham no pé da montanha ATRÁS dela,
+      // menores e escurecidas (desenho em drawFleetBg); não precisam caber na frente da gigante
+      let nb = 0; if (bg) for (let j = 0; j < i; j++) { const o = S.fleet[j]; if (WORKERS[o.id] && st.pilots[o.id]) nb++; }
+      digX = bg ? face - t.park - slot * 0.55 : Math.min(face - t.park, P.x - (T.w || 100) / 2 - TW / 2 - 40) - slot;
+      if (!bg && digX - TW / 2 < Wd.X.x0 + 16) { atFace = false; face = home + t.park; digX = home; }   // não cabe entre o pátio e o Kome: trabalha na vaga
     }
     const far = Math.abs(f.x - home) > 10;
     if (f.st === 'park') { f.x = home; f.wt -= dt; if (f.wt <= 0) { f.st = atFace ? 'go' : 'dig'; f.wt = atFace ? 0 : 16 + (i * 5) % 9; } }
@@ -807,14 +810,31 @@
     iW.x = f.x; iW.y = f.y; iW.face = f.st === 'back' ? -1 : 1; iW.vx = f.vx; iW.t = S.time; iW.parts = FAST ? null : parts;
     iW.floor = flatFn; iW.digging = digNow; iW.tx = face + 10; iW.ty = f.bay ? LANE_Y - 16 : heap.surf(face + 10);
     G.Tools[f.id].update(f.m, dt, iW); f.warm = true;
-    if (atFace && f.st === 'dig' && digX > face - t.park - 30) { const b = G.Tools[f.id].bite(f.m); if (b && b.active) f.biteX = b.x; } else f.biteX = 0;   // longe do barranco / na vaga: rende pelo autoTick (pé da montanha)
+    f.bg = !!(bg && atFace); f.dX = digX;
+    if (f.bg) { iW.tx = f.x + 60; iW.ty = LANE_Y - 4; G.Tools[f.id].update(f.m, 0, iW); }   // na bancada: cava o próprio degrau
+    if (atFace && !bg && f.st === 'dig' && digX > face - t.park - 30) { const b = G.Tools[f.id].bite(f.m); if (b && b.active) f.biteX = b.x; } else f.biteX = 0;   // longe do barranco / na vaga: rende pelo autoTick (pé da montanha)
+  }
+  // frota no segundo plano: menor, um pouco mais alta e escurecida, atrás da máquina grande do Kome
+  const BG_K = 0.8, BG_UP = 26;
+  function drawFleetBg(g) {
+    const L = [];
+    for (let i = 0; i < S.fleet.length; i++) {
+      const f = S.fleet[i]; if (!f.bg || !f.st || f.st === 'park' || !f.warm || !cam.visible(f.x, f.y - 150, 800)) continue;
+      // sobe pra encosta conforme chega no lugar dela; lá tem uma bancada (degrau de arroz) embaixo
+      const e = 0, rise = 0;   // sem degrau (o dono não gostou): no chão, atrás da máquina grande. Visual de verdade: com o Fable
+      L.push([f, rise, e, (G.Tools[f.id].w || 120) * BG_K]);
+    }
+    if (!L.length) return;
+    g.save(); try { g.filter = 'brightness(0.72) saturate(0.7)'; } catch (err) { /* */ }
+    for (const [f, rise, e] of L) { g.save(); g.translate(f.x, f.y - rise - BG_UP * (1 - e)); g.scale(BG_K, BG_K); g.translate(-f.x, -f.y); drawMach(g, f.id, f.m, f); g.restore(); }
+    try { g.filter = 'none'; } catch (err) { /* */ } g.restore();
   }
   function fleetTick(dt) {
     // só com o Kome a pé e sem gigante na frente as pequenas vão até o barranco; senão trabalham na vaga (bancada de rechego)
     const k = cur.kind, atFace = (k === 'hand' || k === 'push' || k === 'jack') && !S.bag;   // Bagger na frente (montando ou pronta): ninguém passa por cima dela
     for (let i = 0; i < S.fleet.length; i++) {
       const f = S.fleet[i];
-      if (st.pilots[f.id] && WORKERS[f.id]) { if (!FAST || !f.warm) fleetWork(f, i, dt, atFace); else { f.x = PARK(f.id); f.y = LANE_Y; f.st = 'park'; f.bay = false; f.biteX = 0; } continue; }
+      if (st.pilots[f.id] && WORKERS[f.id]) { if (!FAST || !f.warm) fleetWork(f, i, dt, true, !atFace); else { f.x = PARK(f.id); f.y = LANE_Y; f.st = 'park'; f.bay = false; f.biteX = 0; } continue; }
       f.st = null; f.biteX = 0; f.bay = f.bayOn = false; f.x = PARK(f.id); f.y = LANE_Y;
       if (FAST && f.warm) continue;
       if (!f.warm || cam.visible(f.x, -100, 700)) { iF.x = f.x; iF.y = f.y; iF.t = S.time; iF.parts = null; G.Tools[f.id].update(f.m, dt, iF); f.warm = true; }
@@ -1702,6 +1722,7 @@
       if (S.own.e4 && G.Props.hardhat) { const hh = G.Props.hardhat(); g.imageSmoothingEnabled = false; g.drawImage(hh.cv, hp.x + hsO.face * 6 - hh.ax, hp.y - 30 - hh.ay); }
     }
     for (let i = 0; i < S.sacks.length; i++) drawSack(S.sacks[i], t);
+    drawFleetBg(g);
     // 5. ferramenta atual
     if (S.loader) G.Tools.escav.draw(g, S.loader);
     const twinPaint = S.twinPlay && cur.kind === 'bagger' && G.Ind && G.Ind.paintFilter ? G.Ind.paintFilter() : '';
@@ -1710,7 +1731,7 @@
     if (twinPaint) { try { g.filter = 'none'; } catch (e) { /* */ } }   // zoom bem aberto: Bagger em cache (redesenha 1 quadro sim, 1 não)
     if (c.kind === 'cesto' && cur.kind === 'hand') drawBackpack(g, c, t);
     p2Draw(g, t);
-    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && !f.bay && f.warm && cam.visible(f.x, f.y - 150, 800)) drawMach(g, f.id, f.m, f); }   // frota indo cavar no barranco (Kome a pé), na faixa da frente
+    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && !f.bay && !f.bg && f.warm && cam.visible(f.x, f.y - 150, 800)) drawMach(g, f.id, f.m, f); }   // frota indo cavar no barranco (Kome a pé), na faixa da frente
     if (crack.k > 0.05 && cur.kind === 'jack') drawCrack(g);
     if (S.own.c6 && S.autoMode && cur.kind === 'hand') { drawSweat(g, t); if (S.own.c6b) drawSweat(g, t + 0.45); }
     if (cur.kind === 'hand' || cur.kind === 'push' || cur.kind === 'jack') { drawAcc(g, t); drawDizzy(g, t); }   // acessório também com carrinho e britadeira
@@ -1970,6 +1991,7 @@
         const dockT = kids('.k-zone-dock > :not(.k-spacer)').reduce((m, r) => Math.min(m, r.top), vh);
         const want = sideB + 10 + tcH + 50, fit = dockT - tipH - 10;
         document.body.style.setProperty('--k-tip-top', px(Math.min(want, fit)));
+        { const tip = document.querySelector('.k-tipcontrols'); if (tip) tip.style.visibility = fit < want - 40 ? 'hidden' : ''; }   // não cabe entre os chips e a barra: a dica some (era só dica)
         // tela baixinha: enquanto a plaquinha existe, o botão de tela cheia some pra não ficar embaixo dela
         full.style.visibility = document.querySelector('.k-tipcontrols') && fit < want ? 'hidden' : '';
         return;

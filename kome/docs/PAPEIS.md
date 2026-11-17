@@ -27,7 +27,7 @@ O dono (Elias) aprova o design antes de virar código e faz a ponte entre os doi
 ## Regras que valem pros dois (resumo do CLAUDE.md)
 - Fofo × absurdo; toda máquina nova MAIOR na tela; nada parado; o arroz vai pra algum lugar e é vendido.
 - Construções e coisas pequenas em pixel art Pixxel; máquinas grandes vetoriais.
-- Celular deitado é o padrão. Criança joga: sem dinheiro real, sem culpa, sem punição por parar, sem push.
+- Celular deitado é o padrão. Público: jovem adulto (20–35) fã de idle/incremental. Jogo honesto: sem dinheiro real, sem culpa, sem punição por parar, sem push.
 - Nada é publicado (itch.io etc.) sem o Elias pedir.
 - Ideias já descartadas pelo dono: túneis na montanha, montanha em pixel/creme-lavanda ("parece areia"), soterramento do
   carrinho, máquinas em pixel.

@@ -1,5 +1,5 @@
 # Camada Cookie: o Pátio da Frota
-status: rascunho
+status: aprovado
 camada: 2+ · modo infinito de cada ilha   ·   depende de: ilhas (viagem), sementes.md, jogo-infinito.md, E.Sim, Oficina,
 tools/planilha.js · pesquisa: `pesquisa-incrementais.md` (princípios P1–P12)
 
