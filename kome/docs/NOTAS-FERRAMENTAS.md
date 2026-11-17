@@ -88,3 +88,44 @@ Interface comum: `G.Tools[id] = {id,name,kind,w,h,meta:{zoom,shake,cycle},create
   plataforma pré-renderizados em 4 níveis; `prebake()` evita o engasgo do 1º quadro (≈20 canvases por nível).
 - Pontos fracos: é vista lateral pura (calhas "atravessam" o fio da catenária); a mordida baixa o topo das colunas, não o pé
   literal; chapéus/shibas da plataforma viram pontinhos em 0.2; sem som (só eventos); escala fixa 1 (sem opts.scale).
+
+## foguete.js — foguete (Foguete de Mochi, máquina absurda nº 18)
+- `G.Tools.foguete`: interface comum + `bites(m)`, `dig(m, heap, area)`, `horizon(g, o)`, `prebake(nível)`.
+  meta `{zoom:.24, shake:.7, cycle:25, height:1600, chegadaT:11, reach:[1150,1400,1650,1900], times}`.
+  Demo: `demos/foguete.html?mode=normal|chegada&z=&face=-1&night=1&t=&spd=&dig=0&debug=1&horizon=1&n=30`.
+- Foguete de dango (bolas verde/branca/rosa num espeto) numa base no pé da montanha; torre com braço telescópico faz 4 conchadas
+  na encosta (dx 1.150–1.900) e despeja no tanque; contagem 3-2-1, decola com chama e fumaça, some; caixote de ienes desce de
+  paraquedas atrás da base enquanto o próximo foguete sobe do silo. Kome na escotilha da bola branca.
+- Modelo: origem no chão no centro da base, +x = montanha (`inp.face`); `m.x` pega `inp.x` só no 1º update. `inp.floor(x)` = y da
+  superfície (sem floor, encosta suposta em −600; conchada sem montanha não morde).
+- Ciclo (25 s): 'bite' ×4 (pegar com `dig(m, heap, area)`, r 120) e 'load' ×4 · 12 'full' · 13/14/15 'count' (`m.count`) ·
+  16 'launch' (`m.payload`, `m.flash`, `m.shakeK`) · 18.5 'gone' · 20.5 'rise' · 23 'land' = PAGAR AQUI. `digging === false` pausa
+  só a carga. Chegada (11 s): laje cai 'build', torre cresce, 'rise', título, contagem, 'launch' 9.6, 'ready' 11 → normal no voo.
+- Âncoras: `bite/bites` (conchada atual), `dump` = escotilha do tanque, `seat` = escotilha do Kome. Horizonte: base(s) no 1º quinto
+  da faixa, foguete sobe com rastro e paraquedas desce (n≥10: 2 bases, n≥25: 3).
+- data.js (série da camada-cookie.md, ×6,5 custo / ×4,3 renda por degrau): custo base 6,6e14, rende 2,9e10/s; nó Absurdo 500 sementes.
+
+## fuji.js — fuji (Escavadeira do Monte Fuji, máquina absurda nº 19)
+- `G.Tools.fuji`: interface comum + `bites`, `dig`, `horizon`, `prebake`. PRECISA de `game/machines-mid.js` antes (cria uma
+  `G.Tools.escav` interna, `m.ex`, e desenha com escala 9). meta `{zoom:.13, shake:.8, cycle:5, scale:9, reach:[864,2700], chegadaT:9}`.
+  Demo: `demos/fuji.html?mode=normal|chegada&...` (mesmos parâmetros).
+- Por cima da escav: neve na lança e no teto, nuvens passando na altura da cabine, passarinhos, plaquinha "KOME" piscando.
+  A escav interna recebe alvo na encosta à frente (dx ≈ 2.100, y = floor clampado) e roda a 0,4× (≈5 s por caçamba).
+- Eventos: 'bite' (caçamba bate: PEGAR, r ≈ 306, `m.shakeK`), 'scoop', 'swing', 'dump' (despeja ATRÁS, `dump(m)` ≈ dx −1.500;
+  pagar aqui se o jogo paga por caçamba). Chegada (9 s): sobe de baixo do horizonte ('rise'), nuvens se abrem 'part' 2.4, 'roar' 4.4,
+  título, cava a partir de 6, 'ready' 9. `m.x` segue `inp.x` todo quadro.
+- Horizonte: silhueta animada de 1–2 escavs (instâncias próprias num canvas 460×300 tingido) no meio da faixa + nuvenzinha.
+- data.js: custo base 4,3e15, rende 1,3e11/s; nó Absurdo 1.200 sementes.
+
+## portal.js — portal (Portal Onigiri, máquina absurda nº 20)
+- `G.Tools.portal`: interface comum + `bites`, `dig`, `horizon`, `prebake`. meta `{zoom:.2, shake:.5, cycle:12, chegadaT:8, twinDx:-1500,
+  bites:[1300,1600,1900], times}`. Demo: `demos/portal.html?...`.
+- Anel-onigiri (~1.300 px, borda de arroz, nori embaixo) com vórtice girando; chupa 3 rios de grãos da encosta (3 bites ativos ao
+  mesmo tempo, `dig` reparte a área) e o portal gêmeo em dx −1.500 cospe onigiris dourados (`dump`). Kome sentado no topo (44 px).
+- Ciclo (12 s): 0 'open' · 0.8 'suck' (bites até 8) · 8 'full' (fica dourado) · 9 'spit' = PAGAR AQUI (`m.payload`) · cospe até 11.
+  `digging === false` deixa o vórtice em marcha lenta. Chegada (8 s): 24 onigiris voam e montam o anel ('clink'), 'ignite' 3.5,
+  título, 'twin' 5, 'ready' 8.
+- Horizonte: 1–3 aneizinhos no fim da faixa com vórtice e fio de grãos.
+- data.js: custo base 2,8e16, rende 5,4e11/s; nó Absurdo 3.000 sementes.
+- As três: ids `foguete`/`fuji`/`portal` já estão em `PA.ABSURD` (patio-arte.js chama `horizon` quando `S.patio[id].n > 0`; cada
+  uma se põe num pedaço diferente da faixa). Teste: `?dev&patio=trembala:30,foguete:12,fuji:3,portal:30`.
