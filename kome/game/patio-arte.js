@@ -593,7 +593,7 @@
     }
     // frente: estátua dourada (250+), telão (200+)
     if (tier >= T250) blitText(g, statueImg(id), Lg.sx - 22, -88 - 2);
-    if (tier >= T200) { const o = screenImg(id, n); blitText(g, o, x0 + 140, -150 - (tier >= T150 ? 46 : 0)); }
+    if (tier >= T200) { const o = screenImg(id, n); blitText(g, o, x0 + HPW / 2 - o.w / 2, -256); }   // telão na fachada do 4º andar do QG
     if (gold && !useGroup) sparkle(g, x0 + 20, -30, HPW - 40, 60, t, 6, PA.HAND.indexOf(id) * 31 + 5);
     if (n === 0) { g.globalAlpha = 0.5; mound(g, x0 + MOUND_X, 20, t, false, 0); g.globalAlpha = 1; }
   }
@@ -838,6 +838,12 @@
       if (carry && G.Props && G.Props.sack) { const sk = G.Props.sack('plain').cv; g.imageSmoothingEnabled = false; g.drawImage(sk, x - 6, yS + (j % 2) * 6 - 44, 12, 13); }
     }
     g.restore();
+    // pontas: muro de arrimo de pedra (fecha a faixa em vez de cortar seco no barro)
+    for (const ex of [L.L - 20, L.R + 10]) if (ex > v.x0 - 30 && ex < v.x1 + 30) {
+      Draw.box(g, ex - 12, FG_Y - 4, 24, FG_H + 6, '#B7AFA2', { ol: 1.4 });
+      g.fillStyle = '#9E978A'; for (let y = FG_Y + 18, r = 0; y < FG_Y + FG_H; y += 22, r++) { g.fillRect(ex - 10, y, 20, 1.8); g.fillRect(ex + (r % 2 ? -3 : 3), y - 20, 1.8, 20); }
+      Draw.box(g, ex - 15, FG_Y - 10, 30, 9, '#D3CCC0', { ol: 1.4 });
+    }
   }
 
   /* ---------- quadro ---------- */
@@ -883,7 +889,7 @@
     // céu: dirigível (300+) e fogos (400+) — por turma
     for (const id of PA.HAND.concat(PA.MID)) {
       const n = st(id).n | 0, tr = tierOf(n); if (tr < T300) continue;
-      const gx = isHand[id] ? L.hand[id].px0 + HPW / 2 : (L.mid[id].bx0 + L.mid[id].bx1) / 2, gy = isHand[id] ? -300 : -(Math.min(6, 2 + Math.floor((n - 100) / 50)) * Math.max(64, MH[id] * 0.62) + 26) - 110;
+      const gx = isHand[id] ? L.hand[id].px0 + HPW / 2 : (L.mid[id].bx0 + L.mid[id].bx1) / 2, gy = isHand[id] ? -4 - (Math.min(6, 2 + Math.floor((n - 100) / 50)) * PG_FH + 92) - 70 : -(Math.min(6, 2 + Math.floor((n - 100) / 50)) * Math.max(64, MH[id] * 0.62) + 26) - 110;
       if (gx + 200 < v.x0 || gx - 200 > v.x1) continue;
       const o = blimpImg(id), bs = isHand[id] ? 1 : 2; blitText(g, o, gx - 60 * bs + Math.sin(t * 0.3 + gx) * 30, gy + Math.sin(t * 0.8 + gx) * 5, bs);
       if (tr >= T400) for (let k = 0; k < 2; k++) {
