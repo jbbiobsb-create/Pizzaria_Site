@@ -452,18 +452,19 @@
      Quadro
      ====================================================================== */
   let lastT = 0, raf = 0;
-  function tick(dt, t) {
+  function tick(dt, rdt) {                                   // dt = passo da animação (limitado); rdt = tempo de verdade (segurar o botão)
     V.t += dt; ps.update(dt); fl.update(dt);
     yenBump = Math.max(0, yenBump - dt * 3);
     if (V.enter < 1) { const e0 = V.enter; V.enter = Math.min(1, V.enter + dt / 0.32); if (e0 < 0.7 && V.enter >= 0.7) { V.sqV = 4.2; sfx('ofi-pouso'); const lp = A.liftPos(V.tool); ps.puff(LIFT.x - lp.w * 0.3, LIFT.y + 6, 5, 9, { c: C.sand }); ps.puff(LIFT.x + lp.w * 0.3, LIFT.y + 6, 5, 9, { c: C.sand }); } }
     // mola do amassa-e-estica da máquina
-    V.sqV += (-260 * V.sq - 15 * V.sqV) * dt; V.sq += V.sqV * dt; V.sq = U.clamp(V.sq, -0.2, 0.2);
+    for (let left = dt; left > 1e-6; left -= 1 / 120) { const h = Math.min(1 / 120, left); V.sqV += (-260 * V.sq - 15 * V.sqV) * h; V.sq += V.sqV * h; }
+    V.sq = U.clamp(V.sq, -0.2, 0.2);
     V.burst = Math.max(0, V.burst - dt); V.kick = Math.max(0, V.kick - dt * 2.2); V.flash = Math.max(0, V.flash - dt * 1.6);
     V.liftH += ((V.burst > 0 ? 12 : 0) - V.liftH) * Math.min(1, dt * 12);
     if (V.stamp) { V.stamp.t += dt / (V.stamp.big ? 1.5 : 0.75); if (V.stamp.t >= 1) V.stamp = null; }
     if (V.boardFx) { V.boardFx.t += dt * 1.6; if (V.boardFx.t >= 1) V.boardFx = null; }
     // segurar o botão: repete cada vez mais rápido
-    if (V.hold && input.down && !V.mile) { V.hold.t -= dt; if (V.hold.t <= 0) { V.hold.n++; V.hold.t = Math.max(0.09, 0.26 - V.hold.n * 0.02); if (!upgrade()) V.hold = null; } }
+    if (V.hold && input.down && !V.mile) { V.hold.t -= (rdt || dt); if (V.hold.t <= 0) { V.hold.n++; V.hold.t = Math.max(0.09, 0.26 - V.hold.n * 0.02); if (!upgrade()) V.hold = null; } }
     else if (V.hold && !input.down) V.hold = null;
     if (V.live) A.liveTick(V.live, dt);
     // equipe: corre pro ponto de trabalho durante a melhoria, volta pro cantinho depois
@@ -579,8 +580,8 @@
   }
   function frame() {
     if (!isOpen()) { raf = 0; return; }
-    const now = performance.now() / 1000, dt = Math.min(0.05, lastT ? now - lastT : 0.016); lastT = now;
-    try { tick(dt, now); render(dt); }
+    const now = performance.now() / 1000, rdt = Math.min(0.3, lastT ? now - lastT : 0.016), dt = Math.min(0.1, rdt); lastT = now;
+    try { tick(dt, rdt); render(dt); }
     catch (err) { if (window.console) console.warn('[kome] oficina: erro no quadro, voltando pra lista', err); close(); if (G.Inf) { G.Inf.classic = true; G.Inf.openList(); } return; }
     raf = requestAnimationFrame(frame);
   }
