@@ -1,0 +1,75 @@
+# Mundo em dois lados (Zona Industrial × Vila do Kome)
+status: no jogo (núcleo; ver "Ficou de fora")
+camada: mundo/cenário   ·   depende de: game-world.js, scenery.js, industry.js, belts.js, game.js (câmera, frota)
+
+## Em uma frase
+A montanha divide o mundo: do lado da cava só tem coisa de trabalho, em vagas que não se encavalam; do outro lado fica a
+Vila do Kome, toda fofa, que o jogador visita com o botão "Vila".
+
+## Como funciona (regras)
+- Lado da cava (x < 1800) = ZONA INDUSTRIAL. Lado de lá (x > 8000) = VILA DO KOME, começando em `VB = 10150`
+  (entre a montanha e a vila fica a pista da Bagger Gêmea, que continua do outro lado).
+- Começo do jogo (até a Britadeira): o lado da cava é só o gramado com a casinha de cachorro (x 1716) e a barraquinha
+  (x 1560). Com o Trator a casinha e a barraquinha mudam pra vila (junto com a compra do terreno).
+- O pátio industrial tem duas eras, trocadas numa compra grande:
+  - "canteiro" (Trator até Escavadeira): o pátio começa em `x0 = 1380`.
+  - "distrito" (Caminhão em diante, ou peças da Bagger compradas): começa em `x0 = 100`, porque a frente de lavra precisa
+    de ~1700 de pista livre (a Bagger ocupa de `bagX-770` a `bagX+620`).
+- Botão "Vila" ⇄ "Montanha" no topo (aparece depois da dica de controles): a câmera voa por cima da montanha em 1,5 s e
+  volta. O jogo continua rodando (modo automático, frota, ajudantes); o dedo/mouse não cava olhando a vila; tocar em
+  qualquer lugar volta. Comprar etapa da casa ou adereço que mora na vila leva a câmera até lá e ela volta sozinha.
+- Ilha espelhada (scene.mirror): nada muda no código, os bairros trocam de lado junto com a montanha.
+
+## Números: tabela de vagas da zona industrial (da montanha pra fora)
+`x0` = 1380 (canteiro) ou 100 (distrito). Só ocupa espaço o que existe; quem entra depois empurra o resto na compra.
+
+| Vaga | Posição | Largura | Aparece com |
+|---|---|---|---|
+| Frente de lavra (só a máquina ativa, coletor móvel, esteira 1) | x0 .. pé da montanha | livre | sempre |
+| Kei-truck (coletor) | nunca à esquerda de x0+60 | 82 | Britadeira |
+| Silo | x0-60 | 80 | nó Silo (a7) |
+| Capataz / antena | x0-118 / x0-150 | 30 | e3 / e5 |
+| Galpão KOME PACK (escala 3) | x0-210 até x0-1170 | 960 | nó Fábrica de Onigiri (m5), Fábrica aberta ou nível do infinito |
+| Oficina (escala 3) | 20 de folga depois do galpão | 330 | nó Oficina (e2a) |
+| Estacionamento (placa PÁTIO, piso, cerca, vagas pintadas) | 40 depois da Oficina | soma das vagas | Empilhadeira |
+| Vagas, da menor pra maior, folga 64 | trator 152, empilhadeira 150, colheitadeira 170, escavadeira 330, caminhão 352, pá de cabo 700 | | cada máquina comprada |
+| Holofotes (e2b) | nas duas pontas do estacionamento | | e2b |
+| Caixotes de exportação (m_f) | 150 depois da última vaga | 148 | m_f |
+| Torre de energia (referência de escala) | 430 depois da última vaga | 228 | sempre |
+| Estátua KOME-OH | 900 depois da última vaga | 340 | Grande Final |
+
+Vila (fixo, `VB + ...`): placa -120 · sakura 60 · torii 260 · barris de sake 400 · vaga de ilha v4 500 · barraquinha 740 ·
+mural 845 · casinha 925 · mesinha 995 · CASA 1200 · kakashi 1490 · v3 1620 · sobrado 1840 · poste 1980 · v2 2080 ·
+ekiben 2230 · prédio onigiri 2560 · v1 2880 · outdoor 3140. Bandeiras (m_c) espalhadas. Fim da rua VB+3370.
+Enfeites de ilha (boneco de neve, onsen, shisas, palmeira, mochi, dango, pinheiro) usam v1..v4 e o torii.
+
+## Tela e controles
+Chip rosa no topo, junto dos chips de Ilhas/Fábrica. Câmera da vila: centro `VB+1040`, zoom 0,56.
+
+## Funções mexidas fora do game-world.js (pro programador revisar)
+- `game/game.js`
+  - `PARK` virou função (`Wd.layout(S).park[id]`); `rebuildFleet`, `fleetWork`, `fleetTick` usam ela.
+  - `fleetWork`: fila na frente de lavra pela largura real e atrás da máquina do Kome; se a máquina não alcança o
+    barranco, `biteX = 0` (a renda cai no caminho padrão do `autoTick`, igual ao modo FAST).
+  - `fleetTick`: com Caminhão ou Bagger na frente as pequenas ficam na vaga (uma máquina só no barranco); a renda delas
+    não muda (autoTick).
+  - `collectorTick`: usa `X.keiMin`; coletor "barraca" vira "kei" quando a barraquinha já está na vila.
+  - `vila`/`vilaGo` (novos) + bloco no `camTick`; limite esquerdo da câmera = `Wd.X.minX` (-5000); `update` não cava com
+    `vila.k > 0`; `readPointer` volta da vila no toque; `buyNode`/`buyHouse` chamam `vilaGo`; `credit` sobe o "+¥" de
+    borda quando se olha a vila; `IND_CTX` passa `fabX = X.fabPorta` e `noA`; chip criado no `boot`; ganchos
+    `__kome.vila(on, x, z)`, `__kome.vilaK()`, `G.Game.vila`.
+- `game/industry.js`: `level()` (novo, exportado) decide se o galpão existe; `drawFront` desenha na vaga `X.fab` em
+  escala 3 (antes AX=-520, escala 4).
+- `game/belts.js`: esteira 1 some com a Bagger (`ctx.noA`); esteira 2 termina na ponta do galpão (curta, reta).
+- `game/scenery.js`: `YARD` usa as vagas `X.v1..v4` da vila; `legendStatue` usa `X.estatua`.
+- Save e colunas da montanha: intocados. Balanço: intocado.
+
+## Ficou de fora (corte de escopo)
+- Fundo industrial do lado da cava (chaminés, guindastes, tanques): o fundo ainda é a cidadezinha fofa nos dois lados.
+- Bagger Gêmea continua do outro lado da montanha (entre a montanha e a vila, sem encostar na vila).
+- Cena de fim de dia: continua a tela própria com a casa (não usa a câmera da vila).
+- Lojas do modo infinito (D.SHOPS) ainda não viram prédios na rua da vila.
+- Kei-truck do galpão sai andando ~690 pra esquerda e passa na frente da Oficina enquanto some.
+- Vila aparecendo por cima da montanha cavada: não tratado.
+
+## Perguntas do programador

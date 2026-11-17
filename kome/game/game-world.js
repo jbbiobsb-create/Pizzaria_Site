@@ -14,8 +14,53 @@
   const mix = (a, b, t) => mixc[a + b + t] || (mixc[a + b + t] = U.mixCss(a, b, t));
   const SOIL = '#C7A26A', SOIL_D = '#A8834F';
 
-  /* posições fixas (x de mundo) dos objetos de referência: crescem da montanha pra esquerda */
-  const X = { casinha: 1560, barraca: 1440, sakura: 1320, torii: 1180, poste: 1060, vila: 930, torre: 760, fabrica: 480, casa: 170, silo: 1650 };
+  /* MUNDO EM DOIS LADOS (docs/design/mundo-dois-lados.md): a MONTANHA separa dois bairros.
+     - lado da cava (x < MX0) = ZONA INDUSTRIAL: vagas fixas calculadas pela largura real de cada coisa (layout(S)).
+     - lado de lá (x > MX1)   = VILA DO KOME: casa em estágios, torii, sakura, barraca, sobrado... (posições fixas a partir de VB).
+     X guarda o x de mundo de tudo; as chaves da zona industrial mudam com a era (layout). */
+  const WLD = (G.Data && G.Data.WORLD) || { MX0: 1800, MX1: 8000 };
+  const VB = WLD.MX1 + 2150;                        // início da vila (a Bagger Gêmea trabalha entre a montanha e a vila)
+  const X = {
+    // vila (fixo)
+    sakura: VB + 60, torii: VB + 260, sake: VB + 400, v4: VB + 500, barracaVila: VB + 740, mural: VB + 845, casinhaVila: VB + 925, mesinha: VB + 995,
+    casa: VB + 1200, kakashi: VB + 1490, v3: VB + 1620, vila: VB + 1840, poste: VB + 1980, v2: VB + 2080, ekiben: VB + 2230,
+    fabrica: VB + 2560, v1: VB + 2880, outdoor: VB + 3140,
+    vilaX0: VB, vilaX1: VB + 3370, vilaCx: VB + 1040,
+    // lado da cava (layout(S) recalcula)
+    casinha: 1716, barraca: 1560, silo: 1320, capataz: 1262, antena: 1230, fab: 0, fabPorta: 0, oficina: 0, lotR: 0, lotL: 0, lotFull: 0,
+    caixotes: 0, torre: 0, estatua: 0, keiMin: 1440, x0: 1380, park: {},
+    minX: -5000, maxX: VB + 3600,                   // limites da câmera (o jogador continua preso ao lado da cava)
+  };
+  // vagas do estacionamento, da menor pra maior: [id, largura real da máquina]
+  const BAYS = [['trator', 152], ['empilhadeira', 150], ['colheita', 170], ['escav', 330], ['caminhao', 352], ['pacabo', 700]];
+  const FAB_K = 3, FAB_W = 960, OFI_K = 3, OFI_W = 330, BAY_GAP = 64;
+  let laySig = -1;
+  // tem galpão no pátio? (nó Fábrica de Onigiri, Fábrica aberta ou nível de fábrica do modo infinito)
+  const hasFab = S => !!(S.own.m5 || (G.Ind && G.Ind.level && G.Ind.level() > 0));
+  /* layout(S): vagas da zona industrial, da montanha pra fora, sem nada em cima de nada:
+     frente de lavra (só a máquina ativa) -> silo/coletor -> galpão KOME PACK -> Oficina -> estacionamento da frota -> ramal.
+     Era "canteiro" (até a Escavadeira): o pátio começa em 1380. Era "distrito" (Caminhão em diante, ou peças da Bagger):
+     começa em 100, porque a frente de lavra precisa de ~1700 de pista pra Bagger/caminhão manobrarem sem tapar prédio. */
+  function layout(S) {
+    const TI = (G.Data && G.Data.toolIndex) || {}, big = S.tool >= (TI.caminhao || 11) || !!S.bag || !!S.own.bg1;
+    const fab = hasFab(S), ofi = !!S.own.e2a, stall = S.tool < (TI.trator || 7);
+    const sig = (big ? 8 : 0) + (fab ? 4 : 0) + (ofi ? 2 : 0) + (stall ? 1 : 0);
+    if (sig === laySig) return X;
+    laySig = sig;
+    const x0 = big ? 100 : 1380;
+    X.x0 = x0; X.keiMin = x0 + 60; X.silo = x0 - 60; X.capataz = x0 - 118; X.antena = x0 - 150;
+    X.barraca = stall ? 1560 : X.barracaVila;
+    X.casinha = stall ? 1716 : X.casinhaVila;        // com o Trator o Kome compra o terreno: a casinha de cachorro muda pra vila junto
+    let c = x0 - 190;
+    if (fab) { X.fab = c - 20; X.fabPorta = X.fab; c = X.fab - FAB_W; } else { X.fab = 0; X.fabPorta = 0; }
+    if (ofi) { X.oficina = c - 20 - OFI_W / 2; c = X.oficina - OFI_W / 2 - 20; } else X.oficina = c - 20 - OFI_W / 2;
+    X.lotR = c - 40; let b = X.lotR - 30;
+    for (const [id, w] of BAYS) { X.park[id] = b - w / 2; X.park[id + '_L'] = b - w - BAY_GAP / 2; b -= w + BAY_GAP; }
+    X.lotFull = b; X.caixotes = b - 150; X.torre = b - 430; X.estatua = b - 900;
+    for (const p of props) if (p.k) p.x = X[p.k];
+    for (const o of RULER) if (o.k) o.x = X[o.k];
+    return X;
+  }
 
   const clouds = N && N.clouds ? N.clouds(7, { n: 7 }) : null;
   const birds = N && N.birds ? N.birds(3, { n: 5 }) : null;
@@ -252,8 +297,7 @@
   function casinha(g, x) { pblit(g, sCasinha(), x + 6, SPK); }
   function poste(g, x, t) {
     pblit(g, sPoste(), x + 4, SPK);
-    Draw.cable(g, [x - 26, -200], [X.torre + 60, -400], { sag: 46, lw: 1.5 });
-    Draw.cable(g, [x + 26, -200], [X.vila - 40, -196], { sag: 12, lw: 1.5 });
+    Draw.cable(g, [x - 26, -200], [X.vila + 60, -150], { sag: 10, lw: 1.5 });
     const lit = N && N.light ? N.light(G.S && G.S.tod || 0.4).night : 0;
     if (lit > 0.2) { g.globalAlpha = lit * 0.5; Draw.circle(g, x + 28, -170, 16, '#FFE7A0', { ol: 0 }); g.globalAlpha = 1; }
   }
@@ -261,6 +305,7 @@
   function torre(g, x) {
     pblit(g, sTorre(), x, SPK);
     Draw.cable(g, [x - 108, -496], [x - 700, -420], { sag: 60, lw: 1.5 });
+    Draw.cable(g, [x + 108, -496], [x + 520, -150], { sag: 50, lw: 1.5 });
   }
   function fabrica(g, x, t, S) {
     const on = !!S.own.m5;
@@ -285,40 +330,42 @@
   }
   function popDraw(g, x, k, fn) { if (k <= 0) return; if (k === 1) { fn(); return; } g.save(); g.translate(x, 0); g.scale(k, k); g.translate(-x, 0); fn(); g.restore(); }
   /* ---------- a régua do mundo ---------- */
+  // k = chave em X (layout(S) atualiza o x). Vila: prédio onigiri, sobrado, poste, torii, sakura. Cava: torre e casinha.
   const RULER = [
-    { x: X.fabrica, r: 200, draw: fabrica }, { x: X.torre, r: 160, draw: torre }, { x: X.vila, r: 110, draw: vila },
-    { x: X.poste, r: 300, draw: poste },
-    { x: X.torii, r: 90, draw: (g, x, t) => { if (N) N.torii(g, x, 0, 2.2, { t }); if (G.Scenery) G.Scenery.toriiSnow(g, x, 2.2); } },
-    { x: X.sakura, r: 80, draw: (g, x, t) => { if (G.Scenery) G.Scenery.rulerTree(g, x, t); else if (N) N.tree(g, x, 0, { kind: 'sakura', s: 1.5, seed: 4, t }); } },
-    { x: X.barraca, r: 70, draw: (g, x, t, S) => {
+    { k: 'fabrica', x: X.fabrica, r: 260, draw: fabrica }, { k: 'torre', x: X.torre, r: 800, draw: torre }, { k: 'vila', x: X.vila, r: 110, draw: vila },
+    { k: 'poste', x: X.poste, r: 300, draw: poste },
+    { k: 'torii', x: X.torii, r: 120, draw: (g, x, t) => { if (N) N.torii(g, x, 0, 2.2, { t }); if (G.Scenery) G.Scenery.toriiSnow(g, x, 2.2); } },
+    { k: 'sakura', x: X.sakura, r: 100, draw: (g, x, t) => { if (G.Scenery) G.Scenery.rulerTree(g, x, t); else if (N) N.tree(g, x, 0, { kind: 'sakura', s: 1.5, seed: 4, t }); } },
+    { k: 'barraca', x: X.barraca, r: 90, draw: (g, x, t, S) => {
       if (!N) return;
       if (!S.own.m1) { Draw.box(g, x - 2, -36, 4, 36, PAL.wood, { ol: 1 }); Draw.sign(g, x - 30, -60, 60, 24, 'ALUGA-SE', { col: PAL.cream, ink: PAL.red }); return; }   // ponto vazio até comprar a Barraquinha
       popDraw(g, x, popK(S, 'm1'), () => N.stall(g, x, 0, { t, s: 1.15, col: S.own.m_b ? '#2F4670' : undefined }));
     } },
-    { x: X.casinha, r: 50, draw: casinha },
+    { k: 'casinha', x: X.casinha, r: 50, draw: casinha },
   ];
 
   /* ---------- adereços que os nós da árvore acrescentam (regra do feedback visual) ---------- */
   const shO = { face: 1, scale: 1, pal: 'goma', shadow: true };
   function sh(g, x, y, pose, t, pal, face, scale) { shO.pal = pal; shO.face = face || 1; shO.scale = scale || 1; E.drawShiba(g, x, y, pose, t, shO); }
+  const NOBORI = [VB + 150, VB + 600, VB + 1440, VB + 1700, VB + 2370];
   const props = [
     // fila de clientes na barraquinha (m1: 3, m_b: 5) + balança (m_a)
-    { node: 'm1', x: X.barraca, draw(g, x, t, S) { const n = S.own.m_b ? 5 : 3; for (let i = 0; i < n; i++) sh(g, x - 60 - i * 26, 6, i % 2 ? 'sit' : 'wag', t + i, ['shiro', 'kuro', 'goma', 'cha', 'aka'][i], 1); } },
-    { node: 'm_a', x: X.barraca, draw(g, x, t) { pblit(g, sBalanca(Math.sin(t * 3) > 0 ? 1 : 0), x + 46, SPK); } },
-    { node: 'm_c', x: 1250, draw(g, x, t) { if (N && N.nobori) for (let i = 0; i < 5; i++) N.nobori(g, 1000 + i * 150, 0, { t: t + i, col: i % 2 ? PAL.red : '#2F4670' }); } },
-    { node: 'm_e', x: 640, draw(g, x) { if (!art(g, 'ekiben', x, 2)) pblit(g, sEkiben(), x, SPK); Draw.text(g, 'EKIBEN', x, -73, { size: 11, col: PAL.cream, sw: 0, weight: 900 }); } },
-    { node: 'm_f', x: 330, draw(g, x) { pblit(g, sCaixotes(), x, SPK); } },
-    { node: 'm9', x: 1010, draw(g, x) { pblit(g, sSake(), x - 8, SPK); } },
-    { node: 'm10', x: 620, draw(g, x, t) { pblit(g, sOutdoor(), x, SPK + 1); sh(g, x - 70, -326, 'proud', t, 'kome', 1, 2); Draw.text(g, 'KOME', x + 40, -390, { size: 30, col: PAL.red, sw: 5 }); Draw.text(g, 'no Japão', x + 40, -358, { size: 15, col: PAL.red, sw: 0 }); } },
-    { node: 'a3', x: 1500, draw(g, x, t) { pblit(g, sKakashi(), x, SPK); } },
-    { node: 'a7', x: X.silo, draw: silo },
-    { node: 'a9', x: 1700, draw() { /* a esteira agora é desenhada pelo belts.js (E.Conveyor de verdade) */ } },
-    { node: 'e3', x: 1610, draw(g, x, t) { sh(g, x, 8, 'point', t, 'cha', 1); } },
-    { node: 'e5', x: 1380, draw(g, x, t) { pblit(g, sAntena(Math.sin(t * 4) > 0 ? 1 : 0), x, SPK); } },
-    { node: 'e2a', x: 860, draw(g, x) { if (!art(g, 'oficina', x, 2)) pblit(g, sOficina(), x, SPK); Draw.text(g, 'OFICINA', x, -91, { size: 13, col: PAL.ink, sw: 0, weight: 900 }); } },
-    { node: 'e2b', x: 1120, draw(g, x, t) { for (let i = 0; i < 2; i++) pblit(g, sLuz(), x + i * 420, SPK); } },
-    { node: 's6', x: 1270, draw(g, x) { pblit(g, sMural(), x, SPK); } },
-    { node: 's11', x: 1385, draw(g, x, t) { pblit(g, sMesinha(), x, SPK); } },
+    { node: 'm1', k: 'barraca', x: X.barraca, draw(g, x, t, S) { const n = S.own.m_b ? 5 : 3; for (let i = 0; i < n; i++) sh(g, x - 60 - i * 26, 6, i % 2 ? 'sit' : 'wag', t + i, ['shiro', 'kuro', 'goma', 'cha', 'aka'][i], 1); } },
+    { node: 'm_a', k: 'barraca', x: X.barraca, draw(g, x, t) { pblit(g, sBalanca(Math.sin(t * 3) > 0 ? 1 : 0), x + 46, SPK); } },
+    { node: 'm_c', x: VB + 1150, r: 1700, draw(g, x, t) { if (N && N.nobori) for (let i = 0; i < 5; i++) N.nobori(g, NOBORI[i], 0, { t: t + i, col: i % 2 ? PAL.red : '#2F4670' }); } },
+    { node: 'm_e', k: 'ekiben', x: X.ekiben, draw(g, x) { if (!art(g, 'ekiben', x, 2)) pblit(g, sEkiben(), x, SPK); Draw.text(g, 'EKIBEN', x, -73, { size: 11, col: PAL.cream, sw: 0, weight: 900 }); } },
+    { node: 'm_f', k: 'caixotes', x: 0, draw(g, x) { pblit(g, sCaixotes(), x, SPK); } },
+    { node: 'm9', k: 'sake', x: X.sake, draw(g, x) { pblit(g, sSake(), x, SPK); } },
+    { node: 'm10', k: 'outdoor', x: X.outdoor, draw(g, x, t) { pblit(g, sOutdoor(), x, SPK + 1); sh(g, x - 70, -326, 'proud', t, 'kome', 1, 2); Draw.text(g, 'KOME', x + 40, -390, { size: 30, col: PAL.red, sw: 5 }); Draw.text(g, 'no Japão', x + 40, -358, { size: 15, col: PAL.red, sw: 0 }); } },
+    { node: 'a3', k: 'kakashi', x: X.kakashi, draw(g, x, t) { pblit(g, sKakashi(), x, SPK); } },
+    { node: 'a7', k: 'silo', x: X.silo, draw: silo },
+    { node: 'a9', k: 'silo', x: X.silo, draw() { /* a esteira agora é desenhada pelo belts.js (E.Conveyor de verdade) */ } },
+    { node: 'e3', k: 'capataz', x: X.capataz, draw(g, x, t) { sh(g, x, 8, 'point', t, 'cha', 1); } },
+    { node: 'e5', k: 'antena', x: X.antena, draw(g, x, t) { pblit(g, sAntena(Math.sin(t * 4) > 0 ? 1 : 0), x, SPK); } },
+    { node: 'e2a', k: 'oficina', x: 0, draw(g, x) { if (!art(g, 'oficina', x, OFI_K)) pblit(g, sOficina(), x, OFI_K); Draw.text(g, 'OFICINA', x, -91 * OFI_K / 2, { size: 13 * OFI_K / 2, col: PAL.ink, sw: 0, weight: 900 }); } },
+    { node: 'e2b', k: 'lotR', x: 0, r: 2600, draw(g, x, t, S) { pblit(g, sLuz(), X.lotR + 6, SPK); pblit(g, sLuz(), lotLeft(S) - 6, SPK); } },
+    { node: 's6', k: 'mural', x: X.mural, draw(g, x) { pblit(g, sMural(), x, SPK); } },
+    { node: 's11', k: 'mesinha', x: X.mesinha, draw(g, x, t) { pblit(g, sMesinha(), x, SPK); } },
   ];
 
   // trem de arroz (m8): trilho no fundo, entre os morros e o pátio. Evolui com a frota: vapor → diesel → trem-bala.
@@ -364,20 +411,52 @@
 
   const layers = { back: [], front: [] };
 
-  // drawYard(g, v, t, S): casa, régua, adereços e trem (atrás das máquinas e do Kome)
+  /* estacionamento da frota: UM pátio marcado (piso, vagas pintadas, cerca atrás e placa). Cresce uma vaga por máquina comprada. */
+  function lotLeft(S) {
+    const TI = (G.Data && G.Data.toolIndex) || {}; let L = X.lotR - 30;
+    for (const [id] of BAYS) if ((TI[id] || 99) <= S.tool) L = X.park[id + '_L'];
+    return L - 10;
+  }
+  function drawLot(g, v, S) {
+    const TI = (G.Data && G.Data.toolIndex) || {}; if (S.tool < (TI.empilhadeira || 8)) return;
+    const R = X.lotR, L = lotLeft(S); if (R < v.x0 || L > v.x1) return;
+    g.fillStyle = 'rgba(70,50,30,.16)'; g.fillRect(L - 4, 0, R - L + 8, 3);
+    g.fillStyle = '#8B8F96'; g.fillRect(L, 1, R - L, 38); g.fillStyle = '#A3A7AD'; g.fillRect(L, 1, R - L, 3); g.fillStyle = '#6E737B'; g.fillRect(L, 36, R - L, 3);
+    // cerca de tela atrás (baixa e clara: não briga com as máquinas)
+    g.fillStyle = '#B9C0C8'; for (let x = L; x <= R; x += 46) g.fillRect(x - 1.5, -30, 3, 31);
+    g.fillRect(L, -30, R - L, 2.5); g.fillRect(L, -16, R - L, 1.5);
+    // vagas pintadas (linha amarela entre uma máquina e outra)
+    g.fillStyle = '#F3C94A'; g.fillRect(R - 6, 4, 4, 32);
+    for (const [id] of BAYS) if ((TI[id] || 99) <= S.tool) g.fillRect(X.park[id + '_L'] - 2, 4, 4, 32);
+    Draw.box(g, R + 12, -74, 4, 74, YC.steelD, { ol: 1 });
+    Draw.sign(g, R - 30, -98, 88, 30, 'PÁTIO', { col: '#2F4670', ink: PAL.cream });
+  }
+  // rua da vila: calçada clara de pedra + placa de entrada
+  function drawStreet(g, v) {
+    if (X.vilaX1 < v.x0 || X.vilaX0 - 200 > v.x1) return;
+    const a = Math.max(v.x0, X.vilaX0 - 40), b = Math.min(v.x1, X.vilaX1);
+    g.fillStyle = '#E4D8BF'; g.fillRect(a, 5, b - a, 13); g.fillStyle = '#CDBE9F'; g.fillRect(a, 16, b - a, 2);
+    g.fillStyle = '#F3EBDB'; for (let x = Math.ceil(a / 44) * 44; x < b; x += 44) g.fillRect(x, 7, 26, 3);
+    const sx = X.vilaX0 - 120;   // placa de entrada, antes da sakura
+    Draw.box(g, sx - 62, -52, 4, 52, PAL.wood, { ol: 1 }); Draw.box(g, sx + 58, -52, 4, 52, PAL.wood, { ol: 1 });
+    Draw.sign(g, sx - 72, -88, 144, 36, 'VILA DO KOME', { col: PAL.cream, ink: PAL.red });
+  }
+  // drawYard(g, v, t, S): os dois bairros (atrás das máquinas e do Kome). Vila: casa, régua fofa, adereços. Cava: pátio industrial.
   function drawYard(g, v, t, S) {
-    if (v.x0 > 1900) return;
-    if (N && v.x0 < X.casa + 200) {
+    layout(S);
+    drawStreet(g, v);
+    if (N && v.x1 > X.casa - 320 && v.x0 < X.casa + 320) {
       if (S.house > 0) N.house(g, X.casa, 0, { stage: S.house - 1, s: 1.5, t });
       else { Draw.box(g, X.casa - 2, -40, 4, 40, PAL.wood, { ol: 1 }); Draw.sign(g, X.casa - 34, -66, 68, 26, 'À VENDA', { col: PAL.cream, ink: PAL.red }); }
     }
+    drawLot(g, v, S);
     for (let i = 0; i < RULER.length; i++) { const o = RULER[i]; if (o.x + o.r > v.x0 && o.x - o.r < v.x1) o.draw(g, o.x, t, S); }
     for (let i = 0; i < props.length; i++) {
-      const p = props[i];
+      const p = props[i], r = p.r || 500;
       if (p.node ? !S.own[p.node] : !(p.when && p.when(S))) continue;
-      if (p.x + 500 > v.x0 && p.x - 500 < v.x1) { const k = p.node ? popK(S, p.node) : 1; if (k === 1) p.draw(g, p.x, t, S); else popDraw(g, p.x, k, () => p.draw(g, p.x, t, S)); }
+      if (p.x + r > v.x0 && p.x - r < v.x1) { const k = p.node ? popK(S, p.node) : 1; if (k === 1) p.draw(g, p.x, t, S); else popDraw(g, p.x, k, () => p.draw(g, p.x, t, S)); }
     }
-    if (G.Scenery) G.Scenery.yard(g, v, t, S, X);   // enfeites da ilha
+    if (G.Scenery) G.Scenery.yard(g, v, t, S, X);   // enfeites da ilha (na vila) e estátua
     for (let i = 0; i < layers.back.length; i++) layers.back[i](g, v, t, S);
   }
 
@@ -395,9 +474,5 @@
     g.restore();
   }
 
-  // pátio mais largo (15/11): estica tudo pra esquerda (a montanha começa em 1800), assim prédios e adereços não se encavalam
-  const SP = x => (x < 1700 ? 1800 - (1800 - x) * 1.6 : x);
-  RULER.forEach(o => { o.x = SP(o.x); }); props.forEach(p => { p.x = SP(p.x); });
-  Object.keys(X).forEach(k => { if (k !== 'silo') X[k] = SP(X[k]); });
-  G.World = { setSize(w, h) { W = w; H = h; }, drawPlot, X, RULER, props, layers, drawBack, updateBack, drawGround, drawYard, drawCollector, drawSilo: silo, sh };
+  G.World = { setSize(w, h) { W = w; H = h; }, drawPlot, X, layout, BAYS, FAB_K, RULER, props, layers, drawBack, updateBack, drawGround, drawYard, drawCollector, drawSilo: silo, sh };
 })();

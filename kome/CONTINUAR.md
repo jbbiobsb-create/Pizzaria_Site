@@ -423,3 +423,16 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
   (só as setas e a saída mudam); faixa preta dos lados no celular bem largo (o palco é 16:9); o caminhão é enfeite (o ¥ entra
   na hora da venda, como antes).
 
+
+## 18/11 — rodada do designer (Fable): fábrica retocada, Oficina nova, mundo em dois lados
+- Fábrica (fila item 1): máquinas giram o desenho (4 vistas), topo transparente quando passa item atrás, texto ≥ 17 px no palco,
+  selo verde só no upgrade mais barato. Arquivos: game/fabrica-arte.js, game/fabrica.js.
+- Oficina (fila item 2a): tela cheia "garagem do Kome" (game/oficina-arte.js, game/oficina.js). G.Inf.open() abre a nova; cai na
+  lista antiga se der erro, com ?oficina=lista ou G.Inf.classic = true. Mexido: infinite.js (up devolve {L,mile,cost}, info, open,
+  openList), industry.js (G.Ind.buy.*, spec, pay quiet), index.html, sw.js (kome-2.26).
+- Mundo em dois lados (pedido do dono): lado de cavar = zona industrial em vagas sem sobreposição + estacionamento da frota; outro
+  lado = Vila do Kome; chip "Vila ⇄ Montanha". Spec e lista de funções mexidas: docs/design/mundo-dois-lados.md
+  (game.js: PARK, rebuildFleet, fleetWork, fleetTick, collectorTick, camTick, update, readPointer, buyNode, buyHouse, credit, boot).
+  NÃO feito: fundo industrial, Gêmea no lado industrial, lojas como prédios na vila.
+- Design (rascunhos pro dono aprovar): docs/design/sementes.md; "Fim de jogo da fábrica" em docs/design/fabrica.md.
+- NADA desta rodada passou por check/playtest/monkey/sweep depois das últimas mudanças (o dono testa no PC).

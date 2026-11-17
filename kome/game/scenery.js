@@ -215,20 +215,20 @@
     g.strokeStyle = '#B98A5A'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, -96); g.stroke();
     ['#A9CB8A', '#FFF6F4', '#F6B6C8'].forEach((c, i) => Draw.circle(g, x, -40 - i * 20, 11, c, { ol: 2 }));
   }
-  // enfeites por ilha (x de mundo no pátio, longe dos prédios da régua). O pátio é esticado (game-world SP): o silo fica
-  // em ~1520-1600 e a casinha em ~1360-1410, então o vão livre da direita é 1420-1470
+  // enfeites por ilha: TODOS fofos, então moram na VILA (lado de lá da montanha), nas 4 vagas livres da rua (X.v1..v4 do
+  // game-world.js) e ao lado do torii. A zona industrial fica só com o fundo/chão/crista da ilha.
   const YARD = {
-    neve(g, v, t) { if (N) { N.tree(g, 720, 0, { kind: 'pine', s: 1.4, seed: 2, t }); N.tree(g, 1130, 0, { kind: 'pine', s: 1.2, seed: 5, t }); } snowman(g, 1442, t); snowman(g, 930, t + 1); },
-    vulcao(g, v, t) { steamRocks(g, 1442, t); lavaRock(g, 930, t); if (N) N.tree(g, 1130, 0, { kind: 'maple', s: 1.1, seed: 3, t }); },
-    praia(g, v, t, S, X) { shisas(g, X.torii, t); umbrella(g, 1425, t); palm(g, 1130, 0, 1.1, t); palm(g, 700, 0, 1.25, t + 2); },
-    mochi(g, v, t) { giantMochi(g, 690, t, '#FFF6F4', 0); giantMochi(g, 930, t, '#F6C6D2', 1); giantMochi(g, 1442, t, '#A9CB8A', 2); dango(g, 1130, t); },
+    neve(g, v, t, S, X) { if (N) { N.tree(g, X.v1, 0, { kind: 'pine', s: 1.4, seed: 2, t }); N.tree(g, X.v3, 0, { kind: 'pine', s: 1.2, seed: 5, t }); } snowman(g, X.v4, t); snowman(g, X.v2, t + 1); },
+    vulcao(g, v, t, S, X) { steamRocks(g, X.v4, t); lavaRock(g, X.v2, t); if (N) N.tree(g, X.v3, 0, { kind: 'maple', s: 1.1, seed: 3, t }); },
+    praia(g, v, t, S, X) { shisas(g, X.torii, t); umbrella(g, X.v4, t); palm(g, X.v3, 0, 1.1, t); palm(g, X.v1, 0, 1.25, t + 2); },
+    mochi(g, v, t, S, X) { giantMochi(g, X.v1, t, '#FFF6F4', 0); giantMochi(g, X.v2, t, '#F6C6D2', 1); giantMochi(g, X.v4, t, '#A9CB8A', 2); dango(g, X.v3, t); },
   };
 
   // estátua do KOME-OH no pátio depois do Grande Final (desenhada uma vez numa imagem e reaproveitada)
   let statue = null;
-  function legendStatue(g, v, t, S) {
+  function legendStatue(g, v, t, S, X) {
     if (!S.stats || !S.stats.legend) return;
-    const x = -560; if (x + 200 < v.x0 || x - 200 > v.x1) return;
+    const x = X && X.estatua ? X.estatua : -560;   // ponta de fora da zona industrial (depois do estacionamento) if (x + 200 < v.x0 || x - 200 > v.x1) return;
     const T = G.Tools && G.Tools.komeoh; if (!T) return;
     if (!statue) {
       try {
@@ -245,7 +245,7 @@
     for (let i = 0; i < 3; i++) { const a = t * 1.2 + i * 2.1; g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 4 + i); Draw.circle(g, x + Math.cos(a) * 170, -340 + Math.sin(a) * 90, 4, '#FFF3B0', { ol: 0 }); } g.globalAlpha = 1;
   }
   function yard(g, v, t, S, X) {
-    legendStatue(g, v, t, S); const sc = prof(); if (sc && YARD[sc.yard] && v.x0 < 1900) YARD[sc.yard](g, v, t, S, X); }
+    legendStatue(g, v, t, S, X); const sc = prof(); if (sc && YARD[sc.yard] && X && v.x1 > X.vilaX0 - 200) YARD[sc.yard](g, v, t, S, X); }
   // árvore da régua do pátio (no lugar da sakura)
   function rulerTree(g, x, t) {
     const sc = prof(), k = (sc && sc.tree) || 'sakura';

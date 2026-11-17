@@ -24,7 +24,7 @@
     const col = ctx.col, foot = ctx.footX;
     const rate = U.clamp(Math.log10(Math.max(10, S.ips || 0)) - 1, 0.4, 4);     // 1 a 4 conforme a renda
     // esteira 1: pé da montanha -> coletor
-    const showA = S.tool >= (TI.trator || 7) && foot - col.x > 140;
+    const showA = S.tool >= (TI.trator || 7) && foot - col.x > 140 && !ctx.noA;   // noA: a Bagger tem a esteira dela (a do chão passaria por dentro da máquina)
     if (showA) {
       const a = make('a', [[foot - 20, -34], [col.x + 34, -30]], 60 + 25 * rate);
       a.speed = 60 + 25 * rate; a.update(dt);
@@ -32,9 +32,10 @@
     } else belts.a = null;
     // esteira 2: coletor -> porta da fábrica de onigiri do pátio (esteira comprida atravessando o pátio, sobe um pouco no fim)
     const fab = ctx.fabX;
-    const showB = (S.own.a9 || S.tool >= (TI.escav || 10)) && fab && col.x - fab > 300;
+    // fab = ponta direita do galpão KOME PACK (vaga vizinha do silo): esteira curta e reta, sem atravessar prédio nenhum
+    const showB = (S.own.a9 || S.tool >= (TI.escav || 10)) && fab && col.x - fab > 150;
     if (showB) {
-      const b = make('b', [[col.x - 30, -30], [fab + 220, -30], [fab + 70, -56]], 55 + 20 * rate);
+      const b = make('b', [[col.x - 30, -30], [fab + 70, -30], [fab + 14, -44]], 55 + 20 * rate);
       b.speed = 55 + 20 * rate; b.update(dt);
       if ((putB -= dt) <= 0) { putB = 0.6 / rate; b.put(0.6 + Math.random() * 0.4, 0); }
     } else belts.b = null;

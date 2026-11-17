@@ -243,10 +243,14 @@
     if (night && moving) { g.globalAlpha = al * 0.3; g.fillStyle = '#FFE9A8'; g.beginPath(); g.moveTo(tx - 20, -9); g.lineTo(tx - 60, -18); g.lineTo(tx - 60, 0); g.closePath(); g.fill(); }
     g.globalAlpha = 1;
   }
+  // nível visual do galpão do pátio: nó "Fábrica de Onigiri" (m5) já levanta o galpão quieto; Fábrica aberta ou níveis do infinito animam
+  function level() { S = S || G.S; if (!S) return 0; const fabOn = !!(G.Fab && G.Fab.on && G.Fab.on()); return Math.max(S.ended ? run().fab | 0 : 0, fabOn ? 1 : 0, S.own && S.own.m5 ? 1 : 0); }
   function drawFront(g, t, ctx) {
     const fabOn = !!(G.Fab && G.Fab.on && G.Fab.on());   // a Fábrica (tela de cima) aberta já faz o galpão aparecer e trabalhar
-    const L = Math.max(S.ended ? run().fab | 0 : 0, fabOn ? 1 : 0); if (L < 1) return;
-    drawFactory(g, t, AX, 0, K, L, fabOn ? (G.Fab.activity ? G.Fab.activity() : 0.5) : -1);
+    const L = level(); if (L < 1) return;
+    // vaga do galpão na zona industrial (game-world.js layout): escala 3 pra caber entre o silo e a Oficina
+    const WX = G.World && G.World.X, ax = WX && WX.fab ? WX.fab : AX, kk = WX && WX.fab ? (G.World.FAB_K || K) : K;
+    drawFactory(g, t, ax, 0, kk, L, fabOn ? (G.Fab.activity ? G.Fab.activity() : 0.5) : -1);
   }
   // drawFactory(g, t, x, y, k, nível): desenha a fábrica em qualquer lugar (o jogo usa AX/K; demos e prints usam o que quiserem)
   function drawFactory(g, t, ax, ay, kk, L, act) {
@@ -282,7 +286,7 @@
     sim: { cost, pay, run },   // tools/longo.js
     paintFilter: () => TWIN_PAINT[G.twinPaint || run().paint || 'kawaii'],
     showTwin: () => api.visit && api.visit(lastRX - 300, 0.24, -420, 3.8),   // câmera vai até a gêmea (compra de peça e testes)
-    applyStats, fillPanel, tick, drawBack, drawFront, drawFactory, zoomK, specChoice, spec, speedK, run,
+    applyStats, fillPanel, tick, drawBack, drawFront, drawFactory, level, zoomK, specChoice, spec, speedK, run,
     buy, cost, nextFab, PAINTS, shopSum,
   };
 })();
