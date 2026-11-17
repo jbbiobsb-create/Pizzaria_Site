@@ -1292,7 +1292,7 @@
     if (!S.on) { hudBtn.set({ show: false }); return; }
     const rt = rates(), tot = rt.raw + rt.fac, sh = tot > 0 ? Math.round(rt.fac / tot * 100) : 0;
     hudBtn.el.title = 'Fábrica: ¥' + U.fmt(rt.fac) + '/s · ' + sh + '% da renda';
-    hudBtn.set({ show: true, prio: S.tutDone ? 0 : 2, hint: S.tutDone ? '' : 'nova! toque' });
+    hudBtn.set({ show: true, tip: S.tutDone ? '¥' + U.fmt(rt.fac) + '/s · ' + sh + '% da renda' : '', act: 'Abrir', prio: S.tutDone ? 0 : 2, hint: S.tutDone ? '' : 'nova! toque' });
   }
 
   /* ---- passo por tempo (G.Sim): roda com a tela aberta ou fechada ---- */

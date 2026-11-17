@@ -389,8 +389,8 @@
       const live = laneF && laneF.life > 0 && laneF.ui && S.time - laneT < 0.7;
       laneV = live ? laneV + v : v; laneC = live ? laneC || crit : !!crit; laneT = S.time;
       let t2 = '+¥' + U.fmt(laneV) + (laneC ? ' kin!' : ''), sz = (ln.x1 - ln.x0) / (t2.length * 0.6);
-      if (sz < 18 && laneC) { t2 = '+¥' + U.fmt(laneV); sz = (ln.x1 - ln.x0) / (t2.length * 0.6); }   // faixa estreita (celular): sem o "kin!", o dourado já diz
-      sz = U.clamp(sz, 15, 24);
+      if (sz < 17 && laneC) { t2 = '+¥' + U.fmt(laneV); sz = (ln.x1 - ln.x0) / (t2.length * 0.6); }   // faixa estreita: sem o "kin!", o dourado já diz
+      sz = U.clamp(sz, 17, 24);   // nunca abaixo de 17 no palco 960x540 (celular deitado: a faixa vai pra baixo dos chips, ver HUD.lane)
       if (live) { laneF.txt = t2; laneF.size = sz; laneF.life = laneF.life0; laneF.y = Math.max(laneF.y, ln.y - 14); laneF.vy = -18; laneF.c = laneC ? PAL.gold : col; }
       else laneF = floaters.add((ln.x0 + ln.x1) / 2, ln.y, t2, { c: col, size: sz, life: 1.25, vy: -34, rot: 0, pop: 1, ui: true });
     } else floaters.add(x + U.rnd(-4, 4) / cam.z, y, txt, { c: col, size: Math.min(24, (kind === 1 ? 10 : POP[i][1]) * (crit ? 1.25 : 1)), life: 0.9 + i * 0.15, shake: cur.kind === 'jack' ? 1.2 : 0, pop: 1 + Math.min(i, 2) * 0.25 });
@@ -1564,7 +1564,8 @@
     cam.zoomTo(z, zk);
     let fxx = P.x, fyy = P.y;
     if (S.camLock) { cam.zoomTo(S.camLock.z, 9); cam.follow(S.camLock.x, S.camLock.y !== undefined ? S.camLock.y : -120, dt, 9); cam.update(dt); return; }   // só pra testes/prints
-    if (vila.on !== vila.cls) { vila.cls = vila.on; document.body.classList.toggle('k-vila', vila.on); }   // some o HUD de cavar (game.css)
+    const vcl = vila.on ? (vila.auto > 0 ? 2 : 1) : 0;   // 1 = o jogador quis ver a vila: some o HUD de cavar; 2 = voo automático: a doca fica
+    if (vcl !== vila.cls) { vila.cls = vcl; document.body.classList.toggle('k-vila', vcl === 1); document.body.classList.toggle('k-vila-auto', vcl === 2); }   // game.css
     if (vila.on && vila.k >= 1 && !vila.auto && vila.hintT === undefined) vila.hintT = 3.6; if (vila.hintT > 0 && vila.k >= 1) vila.hintT -= dt;
     if (vila.on || vila.k > 0) {
       if (vila.on && vila.auto > 0 && vila.k >= 1 && (vila.auto -= dt) <= 0) vila.on = false;

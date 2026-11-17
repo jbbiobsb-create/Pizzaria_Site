@@ -362,8 +362,8 @@
   }
   function drawShopCard(t) {
     // uma loja por linha, com o NOME escrito (antes eram 2 colunas só com ícone e nível: ninguém sabia qual era qual)
-    const I = G.Ind, r = I.run(), list = DATA.SHOPS, n = list.length, x = RC.x + 12, w = RC.w - 24, rh = n > 8 ? 26 : n > 6 ? 29 : 32;
-    const gh = n * rh, y = boardCard(36 + gh + 162, GEO.cork, t);
+    const I = G.Ind, r = I.run(), list = DATA.SHOPS, n = list.length, x = RC.x + 12, w = RC.w - 24, rh = Math.max(22, Math.min(32, Math.floor((RC.bottom - 86 - 36 - 140) / n)));
+    const gh = n * rh, y = boardCard(36 + gh + 140, GEO.cork, t);   // topo do cartão abaixo da placa LOJAS (celular: ela sumia)
     txt('Cidade que compra', x, y + 22, T(19, INK, 'left'));
     list.forEach((sh, i) => {
       const cx = x, cy = y + 36 + i * rh, on = V.shop === sh.id, L = r.shops[sh.id] | 0, cl = r.client === sh.id, bh = rh - 6;
@@ -378,10 +378,9 @@
     });
     const sh = list.find(q => q.id === V.shop) || list[0], L = r.shops[sh.id] | 0, c = I.cost.shop(sh.id), can = money() >= c, cl = r.client === sh.id, by = y + 36 + gh + 6, ds = shopDesc(sh);
     fit(sh.n || sh.id, x, by + 12, w, 18, INK, 'left');
-    txt('se for a cliente:', x, by + 34, T(17, '#8A6A4A', 'left'));
-    txt(ds[0], x, by + 54, T(17, C.oraD, 'left')); if (ds[1]) fit(ds[1], x, by + 74, w, 17, C.oraD, 'left');
-    button(x, by + 90, 128, 50, L ? 'Subir nível' : 'Abrir loja', () => buyShop(sh.id), { fill: '#DDF0C2', off: !can, size: 17, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
-    button(x + 136, by + 90, w - 136, 50, 'Cliente', () => { if (!L) { toast('Abra a loja primeiro'); sfx('error'); return; } if (I.buy.client(sh.id)) { sfx('chirin'); boardFx('lojas', 'CLIENTE'); } }, { on: cl, off: !L, size: 17 });
+    fit('cliente: ' + ds[0], x, by + 34, w, 17, C.oraD, 'left'); if (ds[1]) fit(ds[1], x, by + 54, w, 17, C.oraD, 'left');
+    button(x, by + 68, 128, 50, L ? 'Subir nível' : 'Abrir loja', () => buyShop(sh.id), { fill: '#DDF0C2', off: !can, size: 17, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
+    button(x + 136, by + 68, w - 136, 50, 'Cliente', () => { if (!L) { toast('Abra a loja primeiro'); sfx('error'); return; } if (I.buy.client(sh.id)) { sfx('chirin'); boardFx('lojas', 'CLIENTE'); } }, { on: cl, off: !L, size: 17 });
   }
 
   /* ---- escolha do marco: dois cartões ilustrados ---- */

@@ -15,7 +15,8 @@
   /* ---- FILEIRA DE CHIPS (logo abaixo da barra da montanha): Vila, Fábrica, Tatuzão, Ilhas... tudo que é "atalho pra outro
      lugar" entra aqui por G.HUD.chip({id, icon, label, order, tone, onClick}) -> {el, set({label, hot, hint, prio, show, icon, tone})}.
      Chip = ícone + nome curto (44 px de toque). Só UM chip por vez (o de maior prio > 0 e com hint) abre o texto de detalhe e
-     pulsa; os outros com prio > 0 ganham só uma bolinha dourada. Quebra em até 2 linhas e nunca entra no iene nem na casa. */
+     pulsa; os outros com prio > 0 ganham só uma bolinha dourada. Quebra em até 2 linhas e nunca entra no iene nem na casa.
+     Celular: UMA linha só; o detalhe vira balão embaixo do chip quente; set({tip, act}) = cartão de toque (preço/detalhe + botão). */
   if (UI && UI.defineIcon) {
     UI.defineIcon('mount', (P, C) => { P.poly([[0, 14], [6, 3], [10, 9], [12, 6], [16, 14]], C.gold || '#E0B040').poly([[4, 7], [6, 3], [8, 6]], '#FFF8EC').rect(0, 14, 16, 2, '#7A5034'); });
     UI.defineIcon('factory', (P, C) => { P.rect(11, 1, 3, 7, '#8A5A44').rect(1, 8, 14, 7, C.red || '#C8423A').poly([[1, 8], [5, 5], [5, 8], [9, 5], [9, 8]], C.red || '#C8423A').rect(3, 10, 2, 2, '#FFF3B0').rect(7, 10, 2, 2, '#FFF3B0').rect(11, 10, 2, 5, '#5A3A28'); });
@@ -39,13 +40,32 @@
       e.style.display = c.on ? '' : 'none';
       e.classList.toggle('k-chip-hot', hot); e.classList.toggle('k-pulse', hot);
       e.classList.toggle('k-chip-dot', !hot && c.on && c.prio > 0);
-      const lb = hot && c.hot ? c.hot : c.label, hi = hot ? '· ' + c.hint : '';
+      // celular: a fileira fica em UMA linha; o detalhe do chip quente vira balãozinho embaixo dele (game.css .k-mob)
+      const mob = document.body.classList.contains('k-mob'), lb = hot && c.hot && !mob ? c.hot : c.label;
+      const hi = !hot ? '' : mob ? (c.hot ? c.hot + ' · ' : '') + c.hint : '· ' + c.hint;
       if (c.b.textContent !== lb) c.b.textContent = lb;
       if (c.sm.textContent !== hi) c.sm.textContent = hi;
       const tn = hot ? '' : (c.tone || ''); if (e.style.background !== tn) e.style.background = tn;
     }
     chipFit();
   }
+  // toque (celular): chip com tip (preço, detalhe que no PC fica no hover) abre um cartãozinho com o texto e o botão da ação
+  let chipPop = null;
+  function chipPopClose() { if (chipPop) { chipPop.el.remove(); clearTimeout(chipPop.t); chipPop = null; } }
+  function chipPopOpen(c, o) {
+    chipPopClose();
+    const p = document.createElement('div'); p.className = 'k-chip-pop';
+    const s = document.createElement('span'); s.textContent = c.tip; p.appendChild(s);
+    const a = document.createElement('button'); a.className = 'k-btn k-chip-go'; a.textContent = c.act || 'Abrir'; p.appendChild(a);
+    a.addEventListener('click', e => { e.stopPropagation(); chipPopClose(); if (o.onClick) o.onClick(e); });
+    p.addEventListener('pointerdown', e => e.stopPropagation());
+    chipRow.appendChild(p);
+    const cx = c.el.offsetLeft + c.el.offsetWidth / 2, half = p.offsetWidth / 2, rw = chipRow.offsetWidth;
+    p.style.left = Math.round(Math.max(half - 40, Math.min(rw - half + 40, cx)) - half) + 'px'; p.style.top = (c.el.offsetTop + c.el.offsetHeight + 8) + 'px';
+    p.style.setProperty('--k-tail', Math.round(cx - parseFloat(p.style.left)) + 'px');
+    chipPop = { el: p, c, t: setTimeout(chipPopClose, 6000) };
+  }
+  document.addEventListener('pointerdown', e => { if (chipPop && !chipPop.el.contains(e.target) && !chipPop.c.el.contains(e.target)) chipPopClose(); }, true);
   HUD.chip = function (o) {
     const Z = HUD.zones.tc; if (!Z || !UI) return null;
     if (!chipRow) { chipRow = document.createElement('div'); chipRow.className = 'k-chips'; Z.appendChild(chipRow); window.addEventListener('resize', () => setTimeout(chipFit, 60)); }
@@ -57,9 +77,17 @@
       if (p.label !== undefined) c.label = p.label; if (p.hot !== undefined) c.hot = p.hot;
       if (p.hint !== undefined) c.hint = p.hint || ''; if (p.prio !== undefined) c.prio = +p.prio || 0;
       if (p.show !== undefined) c.on = !!p.show; if (p.tone !== undefined) c.tone = p.tone;
+      if (p.tip !== undefined) { c.tip = p.tip || ''; if (chipPop && chipPop.c === c) chipPop.el.firstChild.textContent = c.tip; }
+      if (p.act !== undefined) c.act = p.act;
+      if (!c.on && chipPop && chipPop.c === c) chipPopClose();
       chipLayout(); return c;
     };
-    b.addEventListener('click', e => { e.stopPropagation(); if (o.onClick) o.onClick(e); b.blur(); });
+    b.addEventListener('click', e => {
+      e.stopPropagation(); b.blur();
+      const open = chipPop && chipPop.c === c; chipPopClose();
+      if (c.tip && !b.classList.contains('k-chip-hot') && document.body.classList.contains('k-mob')) { if (!open) chipPopOpen(c, o); return; }   // toque: 1º mostra, botão age
+      if (o.onClick) o.onClick(e);
+    });
     let at = null; for (const q of chips) if (q.order > c.order) { at = q; break; }
     chips.splice(at ? chips.indexOf(at) : chips.length, 0, c); chipRow.insertBefore(b, at ? at.el : null);
     return c.set({ icon: o.icon || 'star' });
@@ -109,6 +137,12 @@
     if (!y.width || !m.width) return null;
     const r = re && re.getBoundingClientRect ? re.getBoundingClientRect() : y;
     out.x0 = (Math.max(y.right, r.right) + 8 - c.left) * k; out.x1 = (m.left - 8 - c.left) * k; out.y = (y.bottom - 4 - c.top) * k;
+    if (out.x1 - out.x0 < 230) {   // celular: ao lado do iene não cabe (o "kin!" caía e a letra encolhia): faixa larga centrada embaixo dos chips
+      let bot = m.bottom;
+      if (chipRow && chipRow.offsetHeight) { bot = Math.max(bot, chipRow.getBoundingClientRect().bottom - 10); for (const q of chips) if (q.on && q.el.classList.contains('k-chip-hot') && q.sm.offsetWidth) bot = Math.max(bot, q.sm.getBoundingClientRect().bottom); }
+      const cx = (m.left + m.right) / 2;
+      out.x0 = (cx - c.left) * k - 200; out.x1 = (cx - c.left) * k + 200; out.y = (bot - c.top) * k + 52;
+    }
     return out.x1 - out.x0 > 110 ? out : null;
   };
   HUD.init = function (a) {

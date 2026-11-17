@@ -137,3 +137,14 @@ body.k-vila .k-zone-dock *,body.k-vila .k-vpad *{pointer-events:none !important}
 /* cartão da casa (canto de cima): nome comprido ("Jardim com Lago de Carpas", "Estrutura de Hinoki") vazava pros lados; agora quebra em 2 linhas dentro do cartão */
 .k-flyer .k-btn-t{align-items:stretch;text-align:center;width:calc(100% + 14px);margin:0 -7px;flex:0 0 auto}
 .k-flyer .k-btn-t > span,.k-flyer .k-btn-t small{white-space:normal;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+/* celular: chips em UMA linha; detalhe do chip quente = balão embaixo; cartão de toque (preço/detalhe que no PC é hover) */
+.k-mob .k-chips{flex-wrap:nowrap;overflow:visible;max-height:none;position:relative;padding-bottom:4px}
+.k-mob .k-chip{flex:0 1 auto;min-width:44px}
+.k-mob .k-chip b{overflow:hidden;text-overflow:ellipsis}
+.k-mob .k-chip.k-chip-hot small{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#FFF6DE;color:#3B2818;opacity:1;border:2px solid #3B2818;border-radius:10px;padding:3px 9px;white-space:nowrap;box-shadow:0 2px 0 rgba(59,40,24,.35);pointer-events:none;z-index:3}
+.k-mob .k-chip.k-chip-hot small::before{content:'';position:absolute;top:-7px;left:50%;margin-left:-6px;border:6px solid transparent;border-top:0;border-bottom:7px solid #3B2818}
+.k-chip-pop{position:absolute;z-index:6;display:flex;align-items:center;gap:8px;background:#FFF6DE;border:2px solid #3B2818;border-radius:12px;padding:5px 6px 5px 10px;white-space:nowrap;font-size:13px;font-weight:700;color:#3B2818;box-shadow:0 3px 0 rgba(59,40,24,.35)}
+.k-chip-pop::before{content:'';position:absolute;top:-8px;left:var(--k-tail,50%);margin-left:-7px;border:7px solid transparent;border-top:0;border-bottom:8px solid #3B2818}
+.k-chip-go{min-height:44px;padding:4px 12px;font-size:13px;background:#DDF0C2}
+body.k-vila-auto .k-vpad,body.k-vila-auto .k-digonly{opacity:.35 !important;pointer-events:none !important}
+body.k-vila-auto .k-vpad *{pointer-events:none !important}
