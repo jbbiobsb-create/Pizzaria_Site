@@ -378,24 +378,37 @@
 
   /* ---- horizonte do Pátio: a escavadeira gigante (silhueta de verdade, animada) cavando atrás dos morros ----
      horizon(g, {x0,x1,y,k=.12,t,n,tint,haze,night}); n>=10 ganha uma 2ª (mais longe); ocupa o meio-fim da faixa. */
-  const HZ = { inst: [], cv: null, c: null, lastT: [] };
+  /* Cache: a silhueta custava ~10 ms/quadro (rig inteiro redesenhado). Agora cada lado (i) é gravado UMA vez como
+     HZ_F quadros de um ciclo de cavada (sem tinta) e reaproveitado; a tinta/névoa vai por cima num canvas de trabalho
+     (1 drawImage + 1 fillRect). Noite = só a luzinha da cabine, desenhada por cima (não entra no cache). */
+  const HZ_W = 460, HZ_H = 300, HZ_F = 12;
+  const HZ = { side: [], cv: null, c: null };
   const HINP = { x: 0, y: 0, face: 1, floor: () => 0, digging: true, speedMul: 0.6, power: 1, tx: 220, ty: -40, parts: null };
+  function hzSide(i) {
+    if (HZ.side[i]) return HZ.side[i];
+    const E0 = esc(), ex = E0.create({}), dt = 1 / 60; HINP.face = i ? 1 : -1;
+    let w = 0; while (w++ < 600) { E0.update(ex, dt, HINP); if (ex.wrap && w > 60) break; }   // aquece e para no começo de um ciclo
+    let N = 0; while (N++ < 1200) { E0.update(ex, dt, HINP); if (ex.wrap) break; }            // mede o ciclo (em passos)
+    const per = Math.max(0.5, N * dt), fr = [];
+    for (let f = 0, step = 0; f < HZ_F; f++) {
+      const want = Math.round(f * N / HZ_F); while (step < want) { E0.update(ex, dt, HINP); step++; }
+      const cv = document.createElement('canvas'); cv.width = HZ_W; cv.height = HZ_H;
+      const c = cv.getContext('2d'); c.translate(230, 270); E0.draw(c, ex); fr.push(cv);
+    }
+    return (HZ.side[i] = { fr, per, seat: { x: ex.seatO.x, y: ex.seatO.y } });
+  }
   function horizon(g, o) {
     if (!esc()) return;
     const k = o.k || 0.12, t = o.t || 0, n = Math.max(1, o.n | 0), tint = o.tint || '#93A3B4', haze = o.haze === undefined ? 0.6 : o.haze, night = o.night || 0;
     const count = n >= 10 ? 2 : 1;
-    if (!HZ.cv) { HZ.cv = document.createElement('canvas'); HZ.cv.width = 460; HZ.cv.height = 300; HZ.c = HZ.cv.getContext('2d'); }
+    if (!HZ.cv) { HZ.cv = document.createElement('canvas'); HZ.cv.width = HZ_W; HZ.cv.height = HZ_H; HZ.c = HZ.cv.getContext('2d'); }
     for (let i = count - 1; i >= 0; i--) {
-      if (!HZ.inst[i]) { HZ.inst[i] = esc().create({}); HZ.lastT[i] = t; }
-      const ex = HZ.inst[i], dt = clamp(t - HZ.lastT[i], 0, 0.1); HZ.lastT[i] = t;
-      HINP.face = i ? 1 : -1; esc().update(ex, dt, HINP);
-      const c = HZ.c; c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, 460, 300);
-      c.translate(230, 270); esc().draw(c, ex);
-      c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-atop'; c.globalAlpha = Math.min(0.95, haze + 0.2 + i * 0.1); c.fillStyle = tint; c.fillRect(0, 0, 460, 300); c.globalAlpha = 1;
-      // neve nos picos da silhueta
+      const sd = hzSide(i), ph = ((t + i * 1.3) / sd.per) % 1, img = sd.fr[Math.floor((ph < 0 ? ph + 1 : ph) * HZ_F) % HZ_F];
+      const c = HZ.c; c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, HZ_W, HZ_H); c.drawImage(img, 0, 0);
+      c.globalCompositeOperation = 'source-atop'; c.globalAlpha = Math.min(0.95, haze + 0.2 + i * 0.1); c.fillStyle = tint; c.fillRect(0, 0, HZ_W, HZ_H); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       const sc = k * S * 0.9 * (1 - i * 0.3), x = lerp(o.x0, o.x1, i ? 0.42 : 0.62), y = o.y - i * 8;
-      g.drawImage(HZ.cv, x - 230 * sc, y - 270 * sc, 460 * sc, 300 * sc);
-      if (night > 0.2) { g.fillStyle = '#FFE3A0'; g.globalAlpha = night; const s = ex.seatO; g.fillRect(x + s.x * sc - 2, y + s.y * sc - 2, 4, 3); g.globalAlpha = 1; }
+      g.drawImage(HZ.cv, x - 230 * sc, y - 270 * sc, HZ_W * sc, HZ_H * sc);
+      if (night > 0.2) { g.fillStyle = '#FFE3A0'; g.globalAlpha = night; const s = sd.seat; g.fillRect(x + s.x * sc - 2, y + s.y * sc - 2, 4, 3); g.globalAlpha = 1; }
     }
     // nuvenzinha passando na frente
     const ci = cloudImg(), cx = lerp(o.x0, o.x1, 0.5 + 0.15 * Math.sin(t * 0.07)), cs = k * 1.2;
