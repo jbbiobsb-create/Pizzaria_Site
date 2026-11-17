@@ -105,7 +105,7 @@
     foco: 'equi', stock: { onigiri: 40, mochi: 14, bento: 4 }, made: { onigiri: 0, mochi: 0, bento: 0 },
     hearts: 0, fest: 0, festOn: 0, season: 0, festDone: 0,
     orders: [null, null, null], gap: [1.5, 3.5, 6], sel: -1,
-    choice: null, overAcc: 0, overT: 0, camX: 150, camT: null, hint: 1, delivered: 0, firstDeliver: -1,
+    choice: null, overAcc: 0, overT: 0, camX: 90, camT: null, hint: 1, delivered: 0, firstDeliver: -1,
     log: [],
   };
   const people = [];
@@ -574,7 +574,7 @@
     put(FRONT + 40, () => drawArt('cid_banco', 860, FRONT + 40, 1.5, t));
     put(FRONT + 70, () => drawArt('cid_banco', PRACA.x0 + 70, FRONT + 70, 1.5, t));
     const se = SEASONS[S.season];
-    put(FRONT + 64, () => N.tree(g, PRACA.x1 - 70, FRONT + 64, { kind: se.tree, s: 1.15, seed: 9, t }));
+    put(FRONT + 64, () => N.tree(g, PRACA.x1 + 70, FRONT + 64, { kind: se.tree, s: 1.15, seed: 9, t }));
     put(FRONT + 30, () => N.tree(g, 700, FRONT + 30, { kind: S.season === 3 ? 'pine' : 'round', s: 0.8, seed: 4, t }));
     put(FRONT + 80, () => N.tree(g, 1720, FRONT + 80, { kind: se.tree, s: 1.0, seed: 12, t }));
     put(FRONT + 60, () => N.lantern && N.lantern(g, PRACA.x0 + 20, FRONT + 60, 1, { t, lit }));
@@ -584,7 +584,7 @@
     const RR = E.RNG(21);
     for (let x = 380; x < WORLD; x += 46 + Math.floor(RR() * 40)) {
       const k = RR(), y = FRONT + 8 + RR() * 10, sd = Math.floor(RR() * 99);
-      if (x > PRACA.x0 - 20 && x < PRACA.x1 + 20) continue;
+      if (x > PRACA.x0 - 20 && x < PRACA.x1 + 130) continue;
       if (x < S.camX - 60 || x > S.camX + W + 60) continue;
       if (k < 0.35) put(y, () => N.bush(g, x, y, { kind: S.season === 0 && sd % 2 ? 'azalea' : 'bush', s: 0.7, seed: sd, t }));
       else if (k < 0.7) put(y, () => { const kinds = [['tulip', 'tanpopo'], ['ajisai', 'daisy'], ['higanbana', 'daisy'], ['daisy', 'daisy']][S.season]; for (let f = 0; f < 3; f++) N.flower(g, x + f * 9, y + (f % 2) * 4, { kind: kinds[f % 2], seed: sd + f, t, s: 0.9 }); });
@@ -597,21 +597,21 @@
     put(BASE - 2, () => {
       D.shadow(g, 190, BASE - 4, 170, 6, 0.2);
       A.draw(g, 'fabrica_kome_pack', artFrame('fabrica_kome_pack', 'dia', t), 190, BASE - 4, { scale: 1.5 });
-      txt('Fábrica', 190, 138, TS(14));
-      txt('toque pra mudar o foco', 190, 154, TS(12, C.goldL));
+      const lx = U.clamp(S.camX + 110, 250, 300); txt('Fábrica KOME PACK', lx, 138, TS(14));
+      txt('toque pra mudar o foco', lx, 154, TS(12, C.goldL));
     });
     // festival: barraquinhas, bandeiras, torre do taiko, lanternas na rua
     const fo = night();
     if (fo > 0) {
       const se2 = SEASONS[S.season];
-      put(FRONT + 48, () => N.stall(g, PRACA.x0 + 140, FRONT + 48, { t, lit: true, col: C.red }));
-      put(FRONT + 48, () => N.stall(g, PRACA.x0 + 260, FRONT + 46, { t, lit: true, col: C.bowl }));
-      put(FRONT + 88, () => N.stall(g, PRACA.x1 - 150, FRONT + 88, { t, lit: true, col: C.grassD }));
+      put(FRONT + 30, () => N.stall(g, PRACA.x0 + 70, FRONT + 30, { t, lit: true, col: C.red }));
+      put(FRONT + 30, () => N.stall(g, PRACA.x1 - 70, FRONT + 30, { t, lit: true, col: C.bowl }));
+      
       put(FRONT + 20, () => { N.nobori && N.nobori(g, PRACA.x0 + 40, FRONT + 20, { t, col: C.red }); N.nobori && N.nobori(g, PRACA.x1 - 30, FRONT + 20, { t, col: C.ora }); });
       put(FRONT + 56, () => yagura(PRACA.cx, FRONT + 56, t));
       // turistas tanuki
-      put(FRONT + 60, () => A.draw(g, 'tanuki', artFrame('tanuki', 'feliz', t), PRACA.x0 + 200, FRONT + 60, { scale: 1 }));
-      put(FRONT + 86, () => A.draw(g, 'tanuki', artFrame('tanuki', 'comer', t + 0.3), PRACA.x1 - 210, FRONT + 86, { scale: 1, flip: true }));
+      put(FRONT + 60, () => A.draw(g, 'tanuki', artFrame('tanuki', 'feliz', t), PRACA.x0 + 34, FRONT + 84, { scale: 1 }));
+      put(FRONT + 86, () => A.draw(g, 'tanuki', artFrame('tanuki', 'comer', t + 0.3), PRACA.x1 - 34, FRONT + 86, { scale: 1, flip: true }));
       void se2;
     }
   }
@@ -662,7 +662,7 @@
         if (p.glow > 0 && N.glow) N.glow(g, p.x, p.y - 20, 34, '#FFE68A', p.glow);
         const selP = S.sel >= 0 && S.orders[S.sel] && S.orders[S.sel].p === p;
         if (selP) { g.strokeStyle = C.gold; g.lineWidth = 3; g.beginPath(); g.ellipse(p.x, p.y + 1, 22, 7, 0, 0, Math.PI * 2); g.stroke(); }
-        E.drawShiba(g, p.x, p.y + jy, pose, t + p.lot, { pal: p.def.pal, hat: p.def.hat, scale: 1, face: p.face });
+        E.drawShiba(g, p.x, p.y + jy, pose, t + p.lot, { pal: p.def.pal, hat: p.def.hat, scale: 1.1, face: p.face });
       });
     }
     put(kome.y + 6, () => {
@@ -790,8 +790,8 @@
       txt(o.p.def.nome, x + 72, y + 16, T(14, INK, 'left'));
       blit(ICON[o.item], x + 82, y + 44, 3);
       txt('×' + o.qty, x + 96, y + 37, T(17, INK, 'left'));
-      for (let k = 0; k < o.hearts; k++) blit(ICON.heart, x + 80 + k * 16, y + 70 - (o.item === o.p.def.fav ? 0 : 4), 2);
-      if (o.item === o.p.def.fav) txt('favorito!', x + 72, y + 56, T(11, C.redD, 'left'));
+      for (let k = 0; k < o.hearts; k++) blit(ICON.heart, x + 80 + k * 16, y + 69, 2);
+      if (o.item === o.p.def.fav) txt('ama!', x + 80 + o.hearts * 16, y + 63, T(12, C.redD, 'left'));
       const have = Math.min(o.qty, Math.floor(S.stock[o.item]));
       if (ok) button(x + w - 82, y + 16, 74, 42, 'Entregar', () => deliver(i), { on: true, size: 14, sub: '+¥' + U.fmt(o.pay), subSize: 11 });
       else {

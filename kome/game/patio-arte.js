@@ -730,6 +730,28 @@
   // em cima de um platô de névoa contínuo; nada se sobrepõe. horizon(g, {x0,x1,…}) de cada uma desenha dentro do lote.
   const ABS_W = { tatus: 0.8, komeohs: 0.9, trembala: 1.5, foguete: 0.8, fuji: 1.2, portal: 0.8 };
   const absList = [];
+  // horizonte de uma absurda: se o desenho dela for caro (> 0,5 ms), vai pra uma imagem do lote refeita só de vez em quando
+  // (lá longe, na névoa, 4–12 quadros/s não se nota) — o pátio inteiro continua < 2 ms
+  const ABS_C = {}, ABS_UP = 520, ABS_DN = 40;
+  function absHorizon(g, id, x0, x1, y, t, n, tint, nightK) {
+    const T0 = G.Tools[id], A = ABS_C[id] || (ABS_C[id] = { cost: 0, t: -9, c: null, key: '' }), o = { x0, x1, y, k: 0.16, t, n, tint, haze: 0.45, night: nightK };
+    if (A.cost < 0.5) {
+      const t0 = performance.now();
+      try { T0.horizon(g, o); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
+      A.cost = A.cost * 0.8 + (performance.now() - t0) * 0.2; return;
+    }
+    const r = clamp(Math.round((Draw.zoom || 1) * dpr() * 8) / 8, 0.25, 0.75), pad = 120, W = (x1 - x0 + pad * 2) * r, H = (ABS_UP + ABS_DN) * r;
+    const key = Math.round(x0) + '|' + Math.round(x1) + '|' + r + '|' + tint;
+    if (!A.c || A.key !== key || t - A.t >= clamp(A.cost * 0.07, 0.08, 0.3) || t < A.t) {
+      if (!A.c || A.c.width !== Math.ceil(W) || A.c.height !== Math.ceil(H)) A.c = mkc(W, H);
+      const c = A.c.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, A.c.width, A.c.height);
+      c.setTransform(r, 0, 0, r, (pad - x0) * r, (ABS_UP - y) * r); c.lineJoin = 'round'; c.lineCap = 'round';
+      const t0 = performance.now();
+      try { T0.horizon(c, o); } catch (e) { /* idem */ }
+      A.cost = A.cost * 0.7 + (performance.now() - t0) * 0.3; A.t = t; A.key = key;
+    }
+    g.drawImage(A.c, x0 - pad, y - ABS_UP, A.c.width / r, A.c.height / r);
+  }
   function drawAbsurd(g, t, nightK, tint, base) {
     absList.length = 0; let tw = 0;
     for (const id of PA.ABSURD) {
@@ -746,7 +768,7 @@
     let x = X0;
     for (const id of absList) {
       const w = span * (ABS_W[id] || 1) / tw, n = PATIO[id].n | 0;
-      try { G.Tools[id].horizon(g, { x0: x, x1: x + w, y: py, k: 0.16, t, n, tint, haze: 0.45, night: nightK }); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
+      absHorizon(g, id, x, x + w, py, t, n, tint, nightK);
       const nm = (G.Tools[id].name || id).toUpperCase() + ' ×' + fmtN(n);   // plaquinha na névoa, igual às gigantes
       Draw.text(g, nm, x + w / 2, py + 9, { size: 9, col: mix(tint, '#FFFFFF', 0.55), sw: 2, stroke: mix(tint, '#3B2818', 0.4), alpha: 0.9 });
       x += w + gap;
