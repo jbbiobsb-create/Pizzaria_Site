@@ -29,6 +29,7 @@
   const V = {
     tool: null, board: null, live: null, enter: 1, sq: 0, sqV: 0, liftH: 0, burst: 0, burstN: 0, kick: 0,
     stamp: null, mile: null, banner: null, toast: null, help: false, shop: null, hover: -1, hold: null, t: 0, flash: 0, boardFx: null,
+    tinkT: 4, tinkWho: 0, tinkLeft: 0,
   };
   const ps = E.Particles(700), fl = E.Floaters(80);
   // a equipe do elevador: onde descansam e que ferramenta usam
@@ -128,7 +129,7 @@
     G.Ind.spec(m.tool, ch); G.Inf.recompute();
     V.mile = null; V.sqV = -3; V.flash = 0.6; sfx('ofi-peca'); sfx('chirin');
     ps.burst(LIFT.x, LIFT.y - 100, 34, { c: ch === 'd' ? [C.gold, C.goldL, C.cream] : [C.red, C.yel, C.cream], shape: 'star', speed: [120, 360], life: 1 });
-    banner(ch === 'd' ? 'Mais dourada!' : 'Mais rápida!', ch === 'd' ? '+10% em todos os bolsões dourados' : 'bônus da ' + m.tool.name + ' +50%', ch === 'd' ? K.gold : K.red);
+    banner(ch === 'd' ? 'Mais dourada!' : 'Mais rápida!', ch === 'd' ? '+10% em todos os bolsões dourados' : m.tool.name + ': bônus +50%', ch === 'd' ? K.gold : K.red);
     return true;
   }
   function boardFx(b, s) { const r = b === 'gemea' ? GEO.plan : b === 'fab' ? GEO.fab : GEO.cork; V.boardFx = { b, t: 0 }; ps.burst(r.x + r.w / 2, r.y + r.h / 2, 22, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [80, 260], life: 0.9 }); V.stamp = { t: 0, txt: s, x: r.x + r.w / 2, y: r.y + r.h / 2 + 8 }; sfx('ofi-peca'); sfx('ofi-carimbo', { delay: 0.08 }); }
@@ -315,9 +316,11 @@
   // lojas: funciona com qualquer número delas (as fichas de conteudo/ podem somar lojas novas, ex.: Barraca de Ramen)
   const shopName = sh => { const n = sh.n || sh.id; return n.indexOf(' de ') > 0 ? n.split(' de ').pop() : n; };
   function shopDesc(sh) {
-    const d = String(sh.d || '').replace(/^cliente:\s*/, '').replace(/\s*\(.*\)\s*$/, ''), words = d.split(' '), lines = ['', ''];
-    for (const wd of words) { const k = (lines[0] + ' ' + wd).trim().length <= 17 && !lines[1] ? 0 : 1; lines[k] = (lines[k] + ' ' + wd).trim(); }
-    return lines;
+    const d = String(sh.d || '').replace(/^cliente:\s*/, '').replace(/\s*\(.*\)\s*$/, ''), words = d.split(' ');
+    if (d.length <= 16) return [d, ''];
+    let best = 1, bl = 1e9;                                   // quebra em duas linhas o mais iguais possível
+    for (let k = 1; k < words.length; k++) { const a = words.slice(0, k).join(' ').length, b = words.slice(k).join(' ').length, m = Math.max(a, b); if (m < bl) { bl = m; best = k; } }
+    return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
   }
   function drawShopCard(t) {
     const I = G.Ind, r = I.run(), p = GEO.cork, list = DATA.SHOPS, n = list.length, two = n > 6, per = two ? Math.ceil(n / 2) : n;
@@ -337,7 +340,7 @@
     });
     const sh = list.find(q => q.id === V.shop) || list[0], L = r.shops[sh.id] | 0, c = I.cost.shop(sh.id), can = money() >= c, cl = r.client === sh.id, by = y + 62 + per * rh + 4, ds = shopDesc(sh);
     txt('se for a cliente:', x + 14, by + 12, T(17, '#8A6A4A', 'left'));
-    txt(ds[0], x + w - 14, by + 12, T(17, C.oraD, 'right')); txt(ds[1], x + w - 14, by + 34, T(17, C.oraD, 'right'));
+    fit(ds[0], x + w - 14, by + 12, 170, 17, C.oraD, 'right'); fit(ds[1], x + w - 14, by + 34, 300, 17, C.oraD, 'right');
     button(x + 14, by + 50, 176, 54, L ? 'Subir nível' : 'Abrir loja', () => buyShop(sh.id), { fill: '#DDF0C2', off: !can, size: 18, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
     button(x + 200, by + 50, w - 214, 54, cl ? 'Cliente ★' : 'Cliente', () => { if (!L) { toast('Abra a loja primeiro'); sfx('error'); return; } if (I.buy.client(sh.id)) { sfx('chirin'); boardFx('lojas', 'CLIENTE'); } }, { on: cl, off: !L, size: 18 });
   }
@@ -351,8 +354,8 @@
     const e = U.ease.out(k), cw = 268, ch = 286, gap = 28, x0 = W / 2 - cw - gap / 2, y0 = 150 + (1 - e) * 40;
     g.globalAlpha = k;
     pill(W / 2 - 300, 64 - (1 - e) * 20, 600, 66, '#FFF6DE', 14);
-    fit('Marco da ' + m.tool.name + ': nível ' + m.L + '!', W / 2, 86 - (1 - e) * 20, 570, 21, INK);
-    txt('o bônus dela DOBROU · agora escolha um caminho', W / 2, 112 - (1 - e) * 20, T(17, C.oraD));
+    fit('Marco! ' + m.tool.name + ' nível ' + m.L, W / 2, 86 - (1 - e) * 20, 570, 21, INK);
+    txt('o bônus desta máquina DOBROU · agora escolha um caminho', W / 2, 112 - (1 - e) * 20, T(17, C.oraD));
     const opts = [['r', 'Mais rápida', ['bônus desta', 'máquina +50%'], K.red, '#FBD9D2'], ['d', 'Mais dourada', ['+10% em todos os', 'bolsões dourados'], K.goldD, '#FFF0B8']];
     opts.forEach(([id, name, sub, col, bgc], i) => {
       const x = x0 + i * (cw + gap), pressed = pressBtn && pressBtn.x === x, y = y0 + (pressed ? 2 : 0) + Math.sin(t * 2.4 + i * 2) * 2;
@@ -393,7 +396,7 @@
     E.drawShibaHead(g, x + 52, y + 50, performance.now() / 1000, { scale: 1.1, expr: 'happy' });
     txt('Oficina do Kome', x + 100, y + 34, T(22, INK, 'left'));
     txt('cada máquina sua mora aqui e pode ficar mais forte', x + 100, y + 62, T(17, '#6B4A2E', 'left'));
-    const tips = ['Toque numa máquina (ou na régua de baixo): ela sobe no elevador', 'Melhorar: +5% de renda e mais força. Segure pra repetir', 'Nível 10, 25 e 50: o bônus DOBRA e você escolhe um caminho', 'O nível vale pra máquina que você está USANDO na montanha', 'Prancheta azul: Bagger Gêmea · Quadro: fábrica do pátio', 'Cortiça: as lojas da cidade e a cliente preferida'];
+    const tips = ['Toque numa máquina (ou na régua de baixo): ela sobe na plataforma', 'Melhorar: +5% de renda e mais força. Segure pra repetir', 'Nível 10, 25 e 50: o bônus DOBRA e você escolhe um caminho', 'O nível vale pra máquina que você está USANDO na montanha', 'Prancheta azul: Bagger Gêmea · Quadro: fábrica do pátio', 'Cortiça: as lojas da cidade e a cliente preferida'];
     tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 104 + i * 34, 5, 0, TAU); g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke(); txt(s, x + 50, y + 105 + i * 34, T(18, INK, 'left')); });
     hit(0, 0, W, H, () => { V.help = false; sfx('click'); });
   }
@@ -464,12 +467,16 @@
     else if (V.hold && !input.down) V.hold = null;
     if (V.live) A.liveTick(V.live, dt);
     // equipe: corre pro ponto de trabalho durante a melhoria, volta pro cantinho depois
-    const ws = V.tool ? workSpots() : null, busy = V.burst > 0 && ws;
+    const ws = V.tool ? workSpots() : null, all = V.burst > 0 && ws;
+    // de vez em quando um deles vai dar uma apertadinha sozinho (nada fica parado)
+    if (!all && !V.mile && ws) { V.tinkT -= dt; if (V.tinkT <= 0) { V.tinkT = 5 + Math.random() * 4; V.tinkWho = (V.tinkWho + 1) % CREW.length; V.tinkLeft = 1.7; } }
+    V.tinkLeft = Math.max(0, V.tinkLeft - dt);
     CREW.forEach((c, i) => {
+      const busy = all || (ws && V.tinkLeft > 0 && V.tinkWho === i), rate = all ? 22 : 5;
       const tx = busy ? ws[i][0] : c.hx, ty = busy ? ws[i][1] : c.hy, k = Math.min(1, dt * (busy ? 16 : 6));
       c.vx = (tx - c.x); c.x += (tx - c.x) * k; c.y += (ty - c.y) * k;
       c.work = busy && Math.abs(tx - c.x) < 14 ? Math.min(1, c.work + dt * 8) : Math.max(0, c.work - dt * 5);
-      if (busy && c.work > 0.5 && Math.random() < dt * 22) { const sx = c.x + ws[i][2] * 24, sy = c.y - 22 - Math.random() * 30; sparksAt(sx, sy, c.tool === 'torch' ? 4 : 2); }
+      if (busy && c.work > 0.5 && Math.random() < dt * rate) { const sx = c.x + ws[i][2] * 24, sy = c.y - 22 - Math.random() * 30; sparksAt(sx, sy, c.tool === 'torch' ? 4 : 2); }
     });
   }
   const sortY = (a, b) => a.y - b.y;
@@ -519,7 +526,7 @@
     if (own.trator && onLift !== 'trator') items.push({ y: 307, fn: () => A.mech(g, 96, 312, (t % 14) < 10 ? 'lie' : 'scratch', t, { pal: 'cha', face: -1 }) });
     items.push({ y: 229, fn: () => A.mech(g, 792, 230, ['sit', 'think', 'sniff', 'sit'][Math.floor(t / 4.5) % 4], t + 2, { pal: 'aka', face: 1, tool: Math.floor(t / 4.5) % 4 === 0 ? 'spanner' : null, rot: -0.6 + Math.sin(t * 5) * 0.4 }) });
     // o Kome assistindo (quando não é ele mesmo em cima do elevador)
-    if (onLift && !A.HAND[onLift]) items.push({ y: 467, fn: () => E.drawShiba(g, 362, 468, V.burst > 0 ? 'cheer' : ['sit', 'wag', 'proud', 'wag'][Math.floor(t / 3.7) % 4], t, { pal: pal(), face: 1 }) });
+    if (onLift && !A.HAND[onLift]) items.push({ y: 467, fn: () => E.drawShiba(g, 346, 466, V.burst > 0 ? 'cheer' : ['sit', 'wag', 'proud', 'wag'][Math.floor(t / 3.7) % 4], t, { pal: pal(), face: 1 }) });
     // elevador: colunas atrás, plataforma, máquina viva
     const ti = idxOf(onLift), heavy = ti >= 13 ? 1 : ti === 12 ? 0.7 : ti === 11 ? 0.35 : 0;
     items.push({ y: LIFT.y - 3, fn: () => A.lift(g, t, { back: true, h: V.liftH, heavy, load: (ti + 1) / TOOLS().length }) });
@@ -537,7 +544,7 @@
       A.medals(g, LIFT.x, LIFT.y + 31 - V.liftH, inf.miles, inf.spec, t, 3);
     } });
     CREW.forEach((c, i) => items.push({ y: c.y, fn: () => {
-      const moving = Math.abs(c.vx) > 10, working = c.work > 0.5, ws = V.tool && V.burst > 0 ? workSpots()[i] : null;
+      const moving = Math.abs(c.vx) > 10, working = c.work > 0.5, ws = V.tool && (V.burst > 0 || (V.tinkLeft > 0 && V.tinkWho === i)) ? workSpots()[i] : null;
       const face = ws ? (moving ? Math.sign(c.vx) || 1 : ws[2]) : (moving ? Math.sign(c.vx) || 1 : c.face);
       const pose = moving ? 'run' : working ? (i === 2 ? 'stand' : i ? 'push' : 'dig') : c.idle[Math.floor((t + i * 1.7) / 4.2) % c.idle.length];
       A.mech(g, c.x, c.y, pose, t + i, { pal: c.pal, face, hat: working && i === 2 ? 'mask' : 'cap', tool: working || pose === 'sit' ? c.tool : null, rot: working ? -0.5 + Math.sin(t * 26 + i) * 0.6 : -0.9 + Math.sin(t * 3 + i) * 0.15 });
@@ -546,6 +553,11 @@
     items.sort(sortY);
     for (const it of items) it.fn();
     ps.draw(g);
+    if (day > 0.2) {                                         // poeirinha no sol da porta
+      g.fillStyle = '#FFF6D0';
+      for (let i = 0; i < 16; i++) { const y = 206 + ((i * 97 + t * (5 + i % 4)) % 190), x = 40 + ((i * 53) % 190) + (y - 206) * 0.42 + Math.sin(t * 0.5 + i) * 6; g.globalAlpha = day * 0.5 * (0.5 + 0.5 * Math.sin(t * 1.3 + i * 2.1)); g.fillRect(Math.round(x), Math.round(y), 2, 2); }
+      g.globalAlpha = 1;
+    }
     // ---- luminárias, tinta da hora do dia e cones de luz
     A.lamps(g, t, { dusk, kick: V.kick });
     if (dusk > 0.03) { g.fillStyle = 'rgba(38,28,84,' + (dusk * 0.36).toFixed(3) + ')'; g.fillRect(0, 0, W, H); }
@@ -600,6 +612,7 @@
     // testes e prints
     select: id => select(id, true), board: b => { V.board = b || null; if (b === 'lojas' && !V.shop) V.shop = DATA.SHOPS[0].id; }, upgrade, pick: ch => { if (V.mile) V.mile.t = Math.max(V.mile.t, 2); return pick(ch); },
     help: on => { V.help = !!on; }, shop: id => { V.shop = id; },
+    step(sec) { let left = sec, n = 0; const t0 = performance.now(); while (left > 1e-6) { const d = Math.min(1 / 30, left); tick(d); render(d); left -= d; n++; } return +((performance.now() - t0) / n).toFixed(2); },   // avança sem esperar o relógio (prints); devolve ms por quadro
     get state() { return { open: isOpen(), tool: V.tool, board: V.board, mile: !!V.mile, lv: V.tool ? lvOf(V.tool) : 0, burst: V.burst }; },
   };
 })();

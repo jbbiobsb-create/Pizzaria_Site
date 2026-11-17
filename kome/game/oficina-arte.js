@@ -139,17 +139,25 @@
     mug: SP('mug', 8, 8, P => { P.rect(1, 1, 5, 6, K.cream); P.rect(1, 1, 5, 1, K.woodD); P.rect(6, 2, 1, 3, K.cream); P.rect(2, 3, 2, 2, K.red); P.rect(4, 2, 1, 5, K.riceS); }),
     oilcan: SP('oilcan', 10, 13, P => { P.rect(2, 4, 6, 8, K.yel); P.rect(2, 4, 2, 8, K.yelL); P.rect(7, 4, 1, 8, K.yelD); P.rect(4, 2, 2, 2, K.blk); P.line(6, 2, 9, 0, 1, K.blk); P.rect(3, 6, 4, 3, K.red); }),
     toolbox: SP('toolbox', 22, 13, P => { P.rect(8, 0, 6, 1, K.blk); P.rect(8, 1, 1, 2, K.blk); P.rect(13, 1, 1, 2, K.blk); P.rrect(1, 3, 20, 9, 1, K.red); P.rect(1, 3, 20, 1, K.redL); P.rect(1, 6, 20, 1, K.redD); P.rect(9, 5, 4, 3, K.goldL); P.rect(1, 10, 20, 2, K.redD); }),
-    tires: SP('tires', 32, 34, P => {            // pilha de 3 pneus (banda de rodagem com gomos, aro claro por cima)
+    tires: SP('tires', 32, 36, P => {            // pilha de 3 pneus (cada um com sua luz em cima e gomos; aro por cima)
       for (let i = 0; i < 3; i++) {
-        const y = 23 - i * 9, dx = i === 1 ? 2 : 0;
-        P.rrect(2 + dx, y, 26, 10, 4, '#4A4542'); P.rect(4 + dx, y + 1, 22, 2, '#716A65'); P.rect(3 + dx, y + 8, 24, 1, K.rubD);
-        for (let x = 5; x < 26; x += 3) { P.rect(x + dx, y + 4, 1, 4, K.rubD); P.set(x + dx + 1, y + 3, '#8A827C'); }
+        const y = 25 - i * 10, dx = i === 1 ? 2 : 0;
+        P.rrect(2 + dx, y, 26, 9, 4, '#544E4A'); P.rect(5 + dx, y + 1, 20, 2, '#8C847D'); P.rect(4 + dx, y + 7, 22, 1, '#3A3532');
+        for (let x = 5; x < 26; x += 3) P.rect(x + dx, y + 4, 1, 3, '#3A3532');
+        if (i < 2) P.rect(3 + dx, y + 9, 24, 1, K.dark);
       }
-      P.ell(15, 5.5, 11, 3, '#5E5853'); P.ell(15, 5.5, 6, 1.6, K.dark); P.rect(8, 4, 5, 1, '#8A827C');
+      P.ell(15, 5.5, 11, 3.2, '#6A635D'); P.ell(15, 5.5, 6, 1.7, K.dark); P.rect(7, 4, 4, 1, '#A39A92');
     }),
     drum: SP('drum', 16, 22, P => { P.rrect(1, 2, 14, 19, 2, K.blue); P.rect(2, 3, 3, 17, K.blueL); P.rect(12, 3, 2, 17, K.blueD); P.rect(1, 7, 14, 1, K.blueD); P.rect(1, 14, 14, 1, K.blueD); P.ell(8, 2.5, 6.5, 1.8, K.blueL); P.rect(5, 9, 6, 4, K.cream); P.ell(8, 11, 1.5, 1.5, K.red); }),
     broom: SP('broom', 9, 30, P => { P.line(4, 0, 4, 21, 2, K.woodL); P.rect(1, 20, 7, 3, K.red); P.poly([[1, 23], [8, 23], [9, 29], [0, 29]], K.sack); P.rect(3, 24, 1, 5, K.woodD); P.rect(6, 24, 1, 5, K.woodD); }),
     jack: SP('jack', 13, 11, P => { P.poly([[4, 0], [9, 0], [12, 10], [1, 10]], K.red); P.rect(5, 1, 2, 8, K.redL); P.rect(3, 0, 7, 1, K.steelD); P.rect(1, 9, 11, 1, K.redD); }),
+    cart: SP('cart', 24, 22, P => {              // carrinho de ferramentas vermelho com rodízios
+      P.rect(2, 2, 20, 2, K.steelD); P.rect(2, 2, 20, 1, K.steel); P.rect(4, 0, 3, 2, K.steel); P.rect(12, 0, 6, 2, K.yel);
+      P.rect(2, 4, 20, 14, K.red); P.rect(2, 4, 2, 14, K.redL); P.rect(19, 4, 3, 14, K.redD); for (let j = 0; j < 3; j++) { P.rect(4, 8 + j * 4, 15, 1, K.redD); P.rect(9, 6 + j * 4, 5, 1, K.steelL); }
+      P.rect(1, 3, 1, 8, K.blk); P.ell(5, 19.5, 2, 2, K.blk); P.ell(18, 19.5, 2, 2, K.blk);
+    }),
+    creeper: SP('creeper', 26, 8, P => { P.rrect(1, 1, 24, 4, 1, K.red); P.rect(2, 1, 22, 1, K.redL); P.rect(1, 1, 6, 4, K.blk); P.rect(2, 1, 4, 1, K.blkL); for (const x of [4, 12, 21]) P.ell(x, 6, 1.5, 1.5, K.blk); }),
+    oilpan: SP('oilpan', 16, 7, P => { P.poly([[1, 1], [14, 1], [12, 5], [3, 5]], K.steelD); P.rect(1, 1, 14, 1, K.steel); P.rect(3, 2, 10, 1, K.dark); }),
     cone: SP('cone', 11, 13, P => { P.poly([[5, 1], [6, 1], [9, 10], [2, 10]], K.ora); P.rect(4, 5, 4, 2, K.cream); P.rect(1, 10, 9, 2, K.ora); P.rect(1, 11, 9, 1, '#B0531C'); P.set(5, 2, K.oraL); }),
     cat0: ST('cat0', `
       ...........
@@ -369,6 +377,8 @@
     blit(g, spr.vise, 736, 184); blit(g, spr.oilcan, 866, 182); blit(g, spr.toolbox, 846, 222 + 2);
     shadow(g, 920, 224, 34, 6, 0.3); blit(g, spr.tires, 920, 226);
     shadow(g, 676, 252, 20, 5); blit(g, spr.drum, 676, 254); blit(g, spr.broom, 696, 238, 2, { rot: 0.12 });
+    shadow(g, 244, 378, 22, 5); blit(g, spr.cart, 244, 380); blit(g, spr.wrench, 250, 338, 2, { rot: 1.2 });
+    shadow(g, 132, 362, 26, 4, 0.2); blit(g, spr.creeper, 132, 364); shadow(g, 26, 368, 14, 4, 0.2); blit(g, spr.jack, 26, 370); blit(g, spr.oilpan, 172, 384);
     shadow(g, 318, 470, 13, 4); blit(g, spr.cone, 318, 472); shadow(g, 668, 468, 13, 4); blit(g, spr.cone, 670, 470);
     // sombra de contato: parede/piso, cantos, frente do palco e teto
     let gr = g.createLinearGradient(0, WALL, 0, WALL + 34); gr.addColorStop(0, 'rgba(58,30,10,.36)'); gr.addColorStop(1, 'rgba(58,30,10,0)'); g.fillStyle = gr; g.fillRect(0, WALL, W, 34);
@@ -578,8 +588,10 @@
       if (!o.owned[id]) continue;
       const p = geo.peg, x = p.x + dx, y = p.y + dy, cv = spr[id];
       g.fillStyle = INK; g.fillRect(x - 3, y - cv.height * 2 - 3, 6, 4); g.fillStyle = K.steel; g.fillRect(x - 2, y - cv.height * 2 - 2, 4, 2);
-      if (o.sel === id) blit(g, sil(cv, '#9A7240'), x, y, 2, { alpha: 0.75 });
-      else blit(g, cv, x, y + (o.hot === id ? -2 : 0), 2, { rot: Math.sin(t * 1.3 + dx) * 0.012 });
+      const wsil = sil(cv, '#FFF6DE');                       // marca branca pintada no painel (quadro de sombras de oficina)
+      for (const [ax, ay] of [[-3, 0], [3, 0], [0, -3], [0, 3], [-2, -2], [2, -2], [-2, 2], [2, 2]]) blit(g, wsil, x + ax, y + ay, 2, { alpha: 0.9 });
+      if (o.sel === id) blit(g, sil(cv, '#E9D6A8'), x, y, 2);
+      else blit(g, cv, x, y + (o.hot === id ? -2 : 0), 2);
     }
     // projeto da Gêmea: o desenho técnico em 4 peças que acendem
     {
@@ -605,14 +617,14 @@
     }
     // quadro de cortiça: um panfleto por loja; a cliente escolhida ganha estrela
     {
-      const p = geo.cork, ids = o.shopIds || [], pos = [[18, 44], [50, 40], [82, 46], [22, 86], [54, 84], [84, 88]];
+      const p = geo.cork, ids = o.shopIds || [], pos = [[20, 54], [52, 52], [86, 56], [24, 90], [58, 88], [92, 90]];
       ids.slice(0, 6).forEach((id, i) => {
         const L = o.shops[id] | 0, x = p.x + pos[i][0], y = p.y + pos[i][1], rot = [-0.06, 0.04, -0.03, 0.05, -0.04, 0.03][i] + Math.sin(t * 0.9 + i * 2) * 0.01;
         blit(g, flyerOf(id), x, y, 2, { rot, alpha: L ? 1 : 0.5 });
         blit(g, spr.pin, x, y - 27, 2);
         if (o.client === id) blit(g, spr.star, x + 12, y - 16 + Math.sin(t * 3) * 1.5, 2);
       });
-      plate(g, p.x + p.w / 2, p.y + p.h - 4, 'LOJAS', K.green, K.greenD, 66);
+      plate(g, p.x + p.w / 2, p.y - 4, 'LOJAS', K.green, K.greenD, 70);
       if (o.can.lojas) blit(g, spr.up, p.x + p.w - 6, p.y + 12 + Math.sin(t * 5 + 2) * 2.5, 2);
     }
     // bancada: rádio tocando (notinhas), chaleira com vapor, caneca
@@ -638,7 +650,7 @@
       if (o.add) {
         const spot = i === 1 || i === 2, tx = spot ? geo.lift.x : lx, ty = spot ? geo.lift.y + 10 : 430;
         if (spot) {                                          // feixe de palco: várias camadas pra borda ficar macia
-          const k = 0.022 + o.dusk * 0.05;
+          const k = 0.022 + o.dusk * 0.026;
           for (let j = 0; j < 5; j++) {
             const rw = 190 - j * 30, gr = g.createLinearGradient(bx, by + 20, tx, ty); gr.addColorStop(0, 'rgba(255,236,170,' + (k * 1.6).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(255,236,170,' + (k * 0.5).toFixed(3) + ')');
             g.fillStyle = gr; g.beginPath(); g.moveTo(bx - 8 + j, by + 20); g.lineTo(bx + 8 - j, by + 20); g.lineTo(tx + rw, ty); g.lineTo(tx - rw, ty); g.closePath(); g.fill();
@@ -646,7 +658,7 @@
         }
         if (i === 1 || !spot) {                              // poça de luz no chão
           g.save(); g.translate(tx, ty); g.scale(1, 0.26); const pr = spot ? 260 : 150, pg = g.createRadialGradient(0, 0, 10, 0, 0, pr);
-          pg.addColorStop(0, 'rgba(255,240,190,' + ((spot ? 0.24 : 0.1) + o.dusk * 0.2).toFixed(3) + ')'); pg.addColorStop(1, 'rgba(255,240,190,0)'); g.fillStyle = pg; g.fillRect(-pr, -pr, pr * 2, pr * 2); g.restore();
+          pg.addColorStop(0, 'rgba(255,240,190,' + ((spot ? 0.24 : 0.1) + o.dusk * 0.1).toFixed(3) + ')'); pg.addColorStop(1, 'rgba(255,240,190,0)'); g.fillStyle = pg; g.fillRect(-pr, -pr, pr * 2, pr * 2); g.restore();
         }
         const hg = g.createRadialGradient(bx, by + 20, 2, bx, by + 20, 34); hg.addColorStop(0, 'rgba(255,236,170,' + (0.3 + o.dusk * 0.3).toFixed(2) + ')'); hg.addColorStop(1, 'rgba(255,236,170,0)'); g.fillStyle = hg; g.fillRect(bx - 34, by - 14, 68, 68);
         continue;
