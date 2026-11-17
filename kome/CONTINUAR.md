@@ -493,3 +493,17 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - FEITO (rodada 2–4/6, "funcionar primeiro"): FOGUETE DE MOCHI (`game/foguete.js`, nº 18), ESCAVADEIRA DO MONTE FUJI (`game/fuji.js`, nº 19, é a `escav` de machines-mid.js em escala 9) e PORTAL ONIGIRI (`game/portal.js`, nº 20): interface comum + `horizon()` (já aparecem no Pátio via `PA.ABSURD` quando `S.patio.<id>.n > 0`), demos `demos/{foguete,fuji,portal}.html`, prints `docs/prints/{foguete,fuji,portal}.png`, notas em NOTAS-FERRAMENTAS.md. Falta o programador: data.js (6,6e14/2,9e10 · 4,3e15/1,3e11 · 2,8e16/5,4e11; nós 500/1.200/3.000) e ligar na cena; polir depois (sem som, Kome gigante na cabine da Fuji, contagem pálida).
 - Fila Fable item 6 (celular, 5 miúdos): +¥ grande em faixa larga sob os chips (HUD.lane, mín. 17 px), chips em 1 linha no celular com balão do chip quente, cartão de toque set({tip,act}) pro preço do Tatuzão/detalhe da Fábrica, cartão das lojas da Oficina abaixo da placa LOJAS, voo automático pra vila mantém a doca (k-vila-auto). Print: docs/prints/celular-miudos.png.
 - FEITO (Fable, fila cookie-pesado item 5): INTERFACES da camada Cookie em `game/cookie-ui.js` + `game/cookie-arte.js` contra um ADAPTADOR (`G.CookieUI.use({...})`, contrato no topo do arquivo; falsos em `?dev&cookie=demo`): Painel do Pátio (×1/×10/×máx, segurar repete, marcos com nome/piada, sinergias), cartão Pegar! com chuva de moedas, Arroz do Coração + 8 Tigelas + galeria por família (secretas ???+dica), Árvore de Sementes nova (E.UI.tree, 40 nós, "Subir nível" no cartão), chips Pátio/hora de partir, Cochilo do Kome (60 min de aba visível, toggle nos Ajustes sem editar game-ui.js). PENDENTE (programador): ligar o sistema de verdade no adaptador e apagar a seção 10 + cookie-demo-data.js. Prints: docs/prints/cookie-*.png
+
+## 18/11 noite — polimento geral (13 agentes em paralelo, Fable/Opus). Tudo commitado; game/content.js regerado no fim.
+- Celular (item 6): +¥ grande em faixa central, chips numa linha com balão, toque abre cartão (Tatuzão/Fábrica), cartão das lojas
+  da Oficina sem tapar a placa, voo automático pra Vila mantém o dock (classe k-vila-auto). game.js: credit(), bloco vila do camTick.
+- Interfaces da camada Cookie (item 5): game/cookie-ui.js + cookie-arte.js + cookie-demo-data.js. Adaptador G.CookieUI.use({...})
+  (contrato no topo do arquivo); hoje roda com dados falsos em ?dev&cookie=demo. Painel do Pátio, "Pegar!", Arroz do Coração,
+  árvore de sementes (40 nós), chip hora de partir, Cochilo do Kome (toggle nos ajustes).
+- Eventos dourados (eventos-arte.js), Pátio (patio-arte.js: faixa da frente, QG pagode, ouro, espelho), Trem-Bala, Fuji, Foguete,
+  Portal (som próprio em cada um; fuji/trembala/portal expõem sound()/audio()/silence() pra quando entrarem no jogo).
+- Poses novas do Kome (hold2, swing2, lean; o.arm/o.arm2/o.lean; âncora paw2) e tools-hand.js usando elas. 39 poses antigas idênticas.
+- Casa do Kome em cena (home.js, ?casa=lista = antigo). Ilhas (scenery.js). Vila (game-world.js, só funções da vila; 15 fichas vila_*).
+- Cidade: docs/design/cidade.md (rascunho) + demos/cidade.html (protótipo; 15 fichas cid_*).
+- Pendências pro programador: ligar G.CookieUI ao sistema real; botão pro Livro dos Eventos; toque do jogo chamar G.EventArt.hitTrigger/tap;
+  sons das absurdas quando entrarem no jogo; horizon() da Fuji é caro (cachear); ids de S.closet que não batem com D.CLOSET (achado da Casa).
