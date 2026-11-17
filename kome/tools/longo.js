@@ -17,12 +17,13 @@ const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
 const CHUNK = `((secs) => {
   const K = __kome, D = K.data, S = K.S, G = KomeGame, out = [], t0 = S.time;
   const note = (k, txt) => out.push({ t: S.time - t0, k, txt });
-  const achN = () => Object.keys(S.stats.ach || {}).length;
+  const achN = () => Object.keys(S.stats.ach || {}).length + Object.keys((S.stats.heart || {}).ach || {}).length;
   let ach0 = achN();
   for (let s = 0; s < secs && !(S.stats.simTravel); s++) {
     const ph = S.time % 20;
     if (ph < 17) { const p = K.aim(); K.hold(p.x, p.y, true); } else K.hold(0, 0, false);
     K.step(1); K.tapAll();
+    if (G.Events && G.Events.sim.pending()) { const id = G.Events.live(); G.Events.sim.tap(); note('dourado', 'evento ' + id); }
     if (s % 3) continue;
     for (let guard = 0; guard < 8; guard++) {
       // candidatos: [custo, rótulo, tipo, compra]
@@ -42,6 +43,14 @@ const CHUNK = `((secs) => {
           const sh = D.SHOPS[(S.time / 60 | 0) % D.SHOPS.length];
           C.push([R.cost.shop(sh.id), 'loja ' + sh.n + ' ' + (((r.shops || {})[sh.id] | 0) + 1), 'loja', () => R.pay(R.cost.shop(sh.id), sh.n, () => { r.shops[sh.id] = (r.shops[sh.id] | 0) + 1; if (!r.client) r.client = sh.id; })]);
         }
+        const PT = G.Patio && G.Patio.sim;
+        if (PT && G.Patio.on()) {   // Pátio da Frota: compra por melhor retorno (custo / rendimento) e os marcos ×2
+          let bestId = null, bestR = Infinity;
+          for (const id of PT.types()) { const c = PT.cost(id), r = (D.PATIO.turmas.find(t => t.id === id).r) * Math.pow(2, ((S.stats.patio.m || {})[id] | 0)); if (c / r < bestR) { bestR = c / r; bestId = id; } }
+          if (bestId) { const c = PT.cost(bestId); C.push([c, 'pátio: ' + bestId, PT.count(bestId) ? 'compra' : 'novo', () => PT.buy(bestId)]); }
+          for (const id of PT.types()) { const mc = PT.marco(id); if (mc < Infinity) C.push([mc, 'marco ' + id, 'marco', () => PT.buyMarco(id)]); }
+          if (PT.extras) for (const [c, n, f] of PT.extras()) C.push([c, n, 'upgrade', f]);
+        }
         if (H) { const own = (S.homeData || {}).own || {}; for (const it of D.DECOR) if (!own[it.id] && (!it.needs || own[it.needs])) C.push([H.cost(it), 'casa: ' + it.n, 'enfeite', () => { const m = S.money; H.buy(it); return S.money < m; }]); }
       }
       C.sort((x, y) => x[0] - y[0]);
@@ -54,11 +63,11 @@ const CHUNK = `((secs) => {
     if (S.ended && K.heap.area < K.heap.total * 0.12) { K.newMountain(); note('montanha', 'montanha nova ' + (S.mount | 0)); }
   }
   return { out, dt: S.time - t0, ended: !!S.ended, island: S.island | 0, ips: S.ips, tool: K.tool.id, house: S.house, money: S.money,
-    dug: 1 - K.heap.area / K.heap.total, seeds: S.stats.seeds | 0, islandsDone: S.stats.islandsDone | 0, earned: S.earned };
+    dug: 1 - K.heap.area / K.heap.total, partir: !!(G.Patio && G.Patio.partir && G.Patio.partir()), seeds: S.stats.seeds | 0, islandsDone: S.stats.islandsDone | 0, earned: S.earned };
 })`;
 // viagem: compra sementes (o mais barato primeiro) e vai pra próxima ilha (recarrega a página)
 const TRAVEL = `(() => { const K = __kome, S = K.S, G = KomeGame, I = G.Islands; if (!I || !I.sim) return -1;
-  const next = Math.min(4, (S.island | 0) + 1); if (next === (S.island | 0)) return -1;
+  const next = ((S.island | 0) + 1) % KomeGame.Data.ISLANDS.length;   // depois da última: Honshu de novo (Volta 2, 3…)
   I.go(next); return next; })()`;
 const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I || !I.sim) return 0; let n = 0;
   for (let g = 0; g < 40; g++) { const L = KomeGame.Data.SEEDS.filter(s => ((S.stats.sl || {})[s.id] | 0) < s.max).sort((a, b) => I.sim.seedCost(a) - I.sim.seedCost(b));
@@ -69,26 +78,31 @@ const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I 
   p.on('pageerror', e => errs.push(e.message.split('\n')[0]));
   p.on('dialog', d => d.accept());
   await p.goto(URL + '?fresh&nointro&nofont'); await p.waitForTimeout(800);
-  let T = 0, lastNew = 0, endedAt = null, islandStart = 0, phase = 'campanha';
+  let spins = 0, T = 0, lastNew = 0, endedAt = null, islandStart = 0, phase = 'campanha';
   const ev = [], gaps = [], fases = [], t0 = Date.now(), byKind = {};
   const fmt = s => (s >= 3600 ? Math.floor(s / 3600) + 'h' : '') + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + 'min';
   while (T < LIM) {
     const r = await p.evaluate(`(${CHUNK})(300)`).catch(e => ({ erro: e.message.split('\n')[0] }));
     if (r.erro) { console.log('ERRO na simulação: ' + r.erro); break; }
+    // proteções: bloco com eventos demais (laço de compra?) ou tempo parado; memória do node por bloco
+    if (r.out.length > 3000) console.log('AVISO: ' + r.out.length + ' eventos em 1 bloco (' + r.out.slice(-3).map(e => e.txt).join(' | ') + ')');
+    if (!(r.dt > 1)) { spins = (spins || 0) + 1; if (spins > 20) { console.log('PAROU: o tempo não anda (dt=' + r.dt + ')'); console.log('diag: ' + await p.evaluate(() => { const K = __kome, S = K.S, t0 = S.time; K.step(1); return JSON.stringify({ url: location.search, t0, t1: S.time, tool: S.tool, island: S.island, ended: S.ended, money: S.money, endOpen: S.endOpen, home: KomeGame.Home.isOpen(), map: KomeGame.IslandsUI && KomeGame.IslandsUI.isOpen(), last: r => 0 }); }).catch(e => e.message)); console.log('últimos: ' + r.out.slice(-4).map(e => e.k + ':' + e.txt).join(' | ')); break; } } else spins = 0;
+    if (has('--mem')) console.log('mem ' + Math.round(process.memoryUsage().heapUsed / 1048576) + ' MB · T ' + Math.round(T / 60) + ' min · ev ' + ev.length + ' · bloco ' + r.out.length + ' · dinheiro ' + r.money);
     for (const e of r.out) {
-      const at = T + e.t; if (at - lastNew > CHATO) gaps.push([lastNew, at, phase]); lastNew = at;
+      const at = T + e.t; if (e.k !== 'compra') { if (at - lastNew > CHATO) gaps.push([lastNew, at, phase]); lastNew = at; }   // comprinha repetida não conta como novidade
       ev.push([at, e.k, e.txt]); byKind[e.k] = (byKind[e.k] || 0) + 1;
       if (has('--verbose')) console.log(fmt(at) + '  ' + e.txt);
     }
     T += r.dt;
     if (r.ended && endedAt === null) { endedAt = T; fases.push([phase, T - islandStart]); phase = r.island === 0 && !r.islandsDone ? 'infinito (Honshu)' : 'infinito (ilha ' + r.island + ')'; console.log(fmt(T) + '  FINAL da ilha ' + r.island + ' (' + fmt(T - islandStart) + ')'); }
     // viaja: 30 min de modo infinito OU nada novo há 15 min (o jogador se cansaria), se ainda há ilha
-    if (endedAt !== null && r.island < 4 && (T - endedAt > 1800 || T - lastNew > 900)) {
+    // viaja como o chip "hora de partir": depois de 30 min de Pátio e 4 min sem novidade de verdade (ou 2 h no máximo)
+    if (endedAt !== null && (r.partir || T - endedAt > 7200)) {   // chip "hora de partir" (ou 2 h)
       fases.push([phase, T - endedAt]);
       await Promise.all([p.waitForNavigation({ timeout: 30000 }).catch(() => {}), p.evaluate(TRAVEL).catch(() => {})]);
       await p.waitForTimeout(1500);
       const sb = await p.evaluate(SEEDS).catch(() => 0);
-      const isl = await p.evaluate('__kome.S.island').catch(() => '?');
+      const isl = await p.evaluate('__kome.S.island + " (volta " + ((__kome.S.stats.lap | 0) + 1) + ")"').catch(() => '?');
       const sx = await p.evaluate('JSON.stringify({sementes: __kome.S.stats.seedsAll, sl: __kome.S.stats.sl, earned: Math.round(__kome.S.earned)})').catch(() => '');
       ev.push([T, 'ilha', 'viagem pra ilha ' + isl]); lastNew = T; islandStart = T; endedAt = null; phase = 'ilha ' + isl;
       console.log(fmt(T) + '  VIAGEM → ilha ' + isl + ' (' + sb + ' melhorias de semente compradas) ' + (has('--verbose') ? sx : ''));
@@ -98,7 +112,10 @@ const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I 
   await b.close();
   // ---- relatório ----
   console.log('\n== ' + fmt(T) + ' simuladas em ' + Math.round((Date.now() - t0) / 1000) + ' s reais' + (errs.length ? ' · ERROS DE PÁGINA: ' + errs.slice(0, 2).join(' | ') : ' · sem erro de página'));
-  console.log('fases:'); fases.forEach(([n, d]) => console.log('  ' + n.padEnd(26) + fmt(d)));
+  console.log('fases:'); (fases.length > 24 ? fases.slice(0, 12).concat([['…', 0]], fases.slice(-10)) : fases).forEach(([n, d]) => console.log('  ' + n.padEnd(26) + fmt(d)));
+  const isl = fases.filter(f => /^ilha/.test(f[0])), inf = fases.filter(f => /^infinito/.test(f[0]));
+  const avg = L => L.length ? fmt(L.reduce((a, f) => a + f[1], 0) / L.length) : '—';
+  console.log('média: ilha ' + avg(isl) + ' · Pátio ' + avg(inf) + ' · viagens ' + isl.length + ' · ilha mais curta ' + (isl.length ? fmt(Math.min(...isl.map(f => f[1]))) : '—') + ' · Pátio mais curto ' + (inf.length ? fmt(Math.min(...inf.map(f => f[1]))) : '—'));
   console.log('novidades por tipo: ' + Object.entries(byKind).map(([k, v]) => k + ' ' + v).join(' · '));
   const longGaps = gaps.sort((x, y) => (y[1] - y[0]) - (x[1] - x[0]));
   console.log('trechos CHATOS (mais de ' + CHATO / 60 + ' min sem novidade): ' + longGaps.length);

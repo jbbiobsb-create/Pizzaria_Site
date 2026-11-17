@@ -33,6 +33,7 @@ Máquinas GRANDES do jogo continuam vetoriais (bagger.js etc.).
 - `node tools/longo.js --horas 10` — SIMULADOR DE HORAS: campanha → infinito → ilhas com jogador guloso; mostra duração das
   fases e TRECHOS CHATOS (>10 min sem novidade). Rodar depois de mexer em balanço do pós-final/ilhas.
 - `node tools/planilha.js arq.csv [--substituir]` — planilha (tipo;nome;desc;preco;x;y;escala;receita) vira fichas + arte.
+- `node tools/cookie.js` — planilha da camada Cookie (`conteudo/cookie*.csv`: upgrade/conquista/evento/nome) → `game/cookie-data.js`. Rodar depois de editar o CSV.
 - `node tools/alicerce.js` — itens, save antigo migrando, E.Sim/offline. Rodar sempre que mexer em save ou em camada nova.
 - `node tools/shot.js index.html out.png --query "?fresh&nointro" --eval "js" --size 844x390`.
 - Ganchos no console: `__kome` (S, addMoney, buyTool, buyNode, buyHouse, setTool, step, hold, aim, play, newMountain, dbg).

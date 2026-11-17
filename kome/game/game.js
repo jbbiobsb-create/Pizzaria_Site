@@ -112,6 +112,7 @@
     // depois da Bagger, qualquer ferramenta (trocando de lugar) fura até o núcleo dourado: devagar, mas fura (a favorita não fica inútil)
     if (cur && S.tool === NT - 1 && cur.kind !== 'bagger') s.powMul = Math.max(s.powMul, 10.4 / (cur.pow || 1));
     if (G.Goals) s.sell *= G.Goals.mult();
+    if (G.Patio && G.Patio.heart) s.sell *= G.Patio.heart();   // Arroz do Coração: +1% por conquista da camada Cookie
     if (G.Islands) G.Islands.applyStats(s);   // árvore das sementes + bônus da ilha
     if (G.Ind) G.Ind.applyStats(s);           // fábrica, lojas e Bagger gêmea (modo infinito)   // selos das conquistas: +1% cada   // oficina do modo infinito
     st = s;
@@ -363,7 +364,8 @@
   }
   function credit(v, kind, crit) {
     if (!smallShow && G.Inf) v *= G.Inf.evMult();   // evento do modo infinito (rush, veio, festival)
-    if (!smallShow && G.Islands) v *= G.Islands.evMult();   // evento da ilha (nevasca, erupção, maré, gravidade fofa)
+    if (!smallShow && G.Islands) v *= G.Islands.evMult();
+    if (!smallShow && G.Events) v *= G.Events.mult(kind);   // eventos dourados da camada Cookie (frenesi, gigante, desfile…)   // evento da ilha (nevasca, erupção, maré, gravidade fofa)
     if (G.Fab && kind !== 2 && !smallShow) G.Fab.dig(v);   // fábrica: ritmo de cavar (a Doca puxa uma % disso)
     S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind !== 1) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma) S.col.pulse = 1; S.win.inc[kind] += v;
     if (nListen && !smallShow) em.emit('pay', v, kind);
@@ -993,7 +995,7 @@
   }
   const dugFrac = () => (S.heapTotal ? 1 - S.heapArea / S.heapTotal : 0);
   function ending() {
-    S.ended = true; S.endT = S.time; computeStats();
+    S.ended = true; S.endT = S.time; S.stats.earnedEnd = S.earned; computeStats();   // sementes da campanha = até aqui
     const res = G.Islands ? G.Islands.onEnding(S.time) : null;   // tempo e medalha da ilha (sementes extras)
     em.emit('ending');
     if (FAST) return;
@@ -1078,7 +1080,9 @@
   let rotDrawn = false;
   function update(dt) {
     if (G.Sim && !cs && !PORTRAIT()) G.Sim.tick(dt);
-    if (G.Tatu && !cs && !PORTRAIT()) G.Tatu.tick(dt);   // sistemas por tempo (E.Sim): rodam mesmo com a Casa ou o mapa abertos
+    if (G.Tatu && !cs && !PORTRAIT()) G.Tatu.tick(dt);
+    if (G.Patio && !cs && !PORTRAIT()) G.Patio.tick(dt);
+    if (G.Events && !cs && !PORTRAIT()) G.Events.tick(dt);   // sistemas por tempo (E.Sim): rodam mesmo com a Casa ou o mapa abertos
     if (PORTRAIT()) { if (!rotDrawn) { const c = document.getElementById('k-rot-cv'); if (c) { const cg = c.getContext('2d'); cg.imageSmoothingEnabled = false; E.drawShiba(cg, 48, 74, 'wag', 1, { scale: 2, pal: (S.look && S.look.pal) || 'kome' }); rotDrawn = true; } } return; }
     if (cs) { csTick(dt); return; }
     if (G.Home && G.Home.isOpen()) { G.Home.tick(dt); return; }
@@ -1296,8 +1300,9 @@
     cs.t = 0;
   }
   function csTick(dt) {
+    if (FAST) { csNext(true); return; }   // modo acelerado (testes): cena acaba na hora (compra feita fora do step travava o tempo)
     cs.t += dt; cs.clock += dt; const sh = cs.shots[cs.i];
-    if (cs.t >= sh.dur) csNext();
+    if (cs.t >= (sh && sh.dur > 0 ? sh.dur : 3)) csNext();   // parte sem duração não trava a cena
   }
   const SHOTS = G.makeShots(W, H, S);   // arte das cutscenes mora em game/cutscenes.js
   function drawCutscene(g, t) {
@@ -1878,6 +1883,7 @@
       if (vila.on && vila.k >= 1) { vila.dragX = input.x; vila.drag0 = vila.x; vila.moved = false; vila.grab = true; tapEat = true; }
       else if (vila.on && vila.k > 0.3) { vilaGo(false); tapEat = true; }
       // toque em saco ou onigiri não vira cavada
+      if (!tapEat && G.Events && G.Events.hit && G.Events.hit(input.x, input.y)) tapEat = true;   // evento dourado (arte no canvas)
       for (const k of S.sacks) { cam.toScreen(k.x, k.y - 12, sp); if (!k.state && U.dist(sp.x, sp.y, input.x, input.y) < 44) { tapSack(k); tapEat = true; break; } }
       if (!tapEat && S.oni.on) for (let i = 0; i < S.oni.n; i++) if (U.dist(S.oni.x - i * 46, S.oni.y, input.x, input.y) < 52) { tapOnigiri(); tapEat = true; break; }
       hook.use = false;
@@ -2096,6 +2102,12 @@
     if (G.Ind) G.Ind.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
       visit: (x, z, y, dur) => { visit = { x, t: 0, dur: dur || 3.5, z, y, far: true }; } });   // câmera vai mostrar a Bagger Gêmea na vaga dela
     if (G.Topo) G.Topo.init({ sfx });
+    if (G.Events) G.Events.init({ sfx, fast: () => FAST, ips: () => Math.max(1, S.ips || 0), pay: v => credit(v, 2, false),
+      banner: (e, txt) => { sfx('fanfare'); ui(() => UI.banner(e.n.toUpperCase() + '!', txt, { icon: e.icon || 'star', tone: 'gold', dur: 3 })); } });
+    if (G.Patio) G.Patio.init({ sfx, credit: v => credit(v, 1, false), recompute: () => computeStats(),
+      ach: a => { sfx('chirin'); ui(() => UI.achievement(a.n, { sub: a.d + ' · +1% no Arroz do Coração', icon: a.icon, kicker: 'Conquista' })); },
+      banner: () => { sfx('fanfare'); ui(() => UI.banner('PÁTIO DA FROTA ABRIU!', 'compre várias de cada máquina: toque em Pátio, no topo', { icon: 'star', tone: 'gold', dur: 4.5 })); },
+      away: (sec, v) => ui(() => UI.banner('Enquanto você estava fora', 'a frota cavou ¥' + U.fmt(v) + ' em ' + U.fmtTime(sec), { icon: 'yen', tone: 'gold', dur: 6 })) });
     if (G.Tatu) G.Tatu.init({ heap: () => heap, parts: () => parts, pay: (v, x, y) => pay(v, x, y, 1),
       bought: x => { sfx('fanfare'); ui(() => UI.banner('TATUZÃO!', 'ele vai furar a montanha e cada anel paga', { icon: 'star', tone: 'gold', dur: 3.5 })); visit = { x: x - 300, t: 0, dur: 3.5 }; } });
     if (G.Fab) G.Fab.init({ save: () => saveNow(),

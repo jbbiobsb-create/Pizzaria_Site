@@ -19,6 +19,25 @@
   /* ---------------- economia ---------------- */
   // FINAL: a casa pronta E a montanha cavada até END_DUG (antes acabava na compra do onsen, com ~80% cavado)
   D.END_DUG = 0.95;
+  /* PÁTIO DA FROTA (camada Cookie, docs/design/camada-cookie.md, APROVADA; game/patio.js). Abre no final de cada ilha.
+     Custos em segundos da renda do final da ilha (R0), rendimento em R0/s. Preço sobe ×grow por unidade. Marcos ×2 em `at`,
+     preço = custo-base × mk[i]. Zera na viagem (prestígio). Offline: off × renda, até offMax s. */
+  // EVENTOS DOURADOS (game/eventos.js; tipos e pesos vêm da planilha, tipo 'evento'): a cada every s de jogo, life s na tela
+  D.EVENTOS = { every: [180, 480], life: 15 };
+  D.PATIO = {
+    grow: 1.15, off: 0.5, offMax: 8 * 3600, plateau: 240, minRun: 1800,
+    at: [1, 5, 25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+    mk: [10, 50, 500, 5e4, 5e6, 5e8, 5e10, 5e12, 5e14, 5e16, 5e18, 5e20, 5e22],
+    turmas: [
+      { id: 'pata', n: 'Turma da Pata', c: 10, r: 0.5 }, { id: 'hashi', n: 'Brigada do Hashi', c: 65, r: 2.2 },
+      { id: 'tigela', n: 'Clube da Tigela', c: 420, r: 9.2 }, { id: 'pa', n: 'Sindicato da Pá', c: 2.8e3, r: 40 },
+      { id: 'duaspas', n: 'Dupla Dinâmica', c: 1.8e4, r: 170 }, { id: 'carrinho', n: 'Esquadrilha do Carrinho', c: 1.2e5, r: 735 },
+      { id: 'britadeira', n: 'Banda da Britadeira', c: 7.5e5, r: 3.2e3 }, { id: 'trator', n: 'Comboio de Tratores', c: 4.9e6, r: 1.4e4 },
+      { id: 'empilhadeira', n: 'Balé das Empilhadeiras', c: 3.2e7, r: 5.8e4 }, { id: 'colheita', n: 'Fila de Colheitadeiras', c: 2.1e8, r: 2.5e5 },
+      { id: 'escav', n: 'Escavadeiras Coreografadas', c: 1.3e9, r: 1.1e6 }, { id: 'caminhao', n: 'Caravana de Caminhões', c: 8.8e9, r: 4.7e6 },
+      { id: 'pacabo', n: 'Pás de Cabo no Horizonte', c: 5.7e10, r: 2.0e7 }, { id: 'bagger', n: 'Frota Bagger', c: 3.7e11, r: 8.6e7 },
+    ],
+  };
   // TATUZÃO (game/tatuzao.js): vende depois do final; price em segundos de renda; cada anel paga ringSec s da renda de agora
   D.TATU = { price: 900, ringSec: 1.2, minH: 330 };
   D.ECON = {
@@ -379,6 +398,7 @@
   // (Honshu é a campanha). Eventos de ilha: um por ilha, a cada `every` s depois da `minTool`. Volta 2+ (depois da Ilha de Mochi):
   // cada volta conta como `lapStep` ilhas a mais no preço. `legend` = renda extra pra sempre depois do Grande Final.
   D.ENDGAME = {
+    seedGrow: 1.45, patioExp: 0.15,   // camada Cookie: custo das sementes ×1,45/nível; Sementes do Pátio ^0,15
     medal: { ouro: [70, 34, 28, 28, 30], prata: [100, 50, 42, 42, 45], seeds: { bronze: 0, prata: 2, ouro: 5 } },
     ev: { every: [170, 240], first: 120, minTool: 3 },
     lapStep: 2.5, legend: 2,

@@ -72,12 +72,22 @@
   ];
   // árvore permanente das sementes douradas
   D.SEEDS = [
-    { id: 'renda', n: 'Arroz Abençoado', d: '+15% de renda por nível', max: 20, base: 2 },
+    { id: 'renda', n: 'Arroz Abençoado', d: '+15% de renda por nível', max: 100, base: 2 },
     { id: 'preco', n: 'Amigo do Corretor', d: '-6% em todos os preços por nível', max: 8, base: 3 },
     { id: 'ferr', n: 'Mala de Viagem', d: 'começa a ilha com Pá → Carrinho → Trator', max: 3, base: 6 },
     { id: 'grana', n: 'Poupança', d: 'começa a ilha com ¥1 mil, 10 mil, 100 mil…', max: 5, base: 1 },
     { id: 'ajud', n: 'Turma do Kome', d: '+1 shiba ajudante desde o minuto 1', max: 3, base: 4 },
     { id: 'ouro', n: 'Faro de Ouro', d: '+25% nos bolsões dourados por nível', max: 8, base: 2 },
+    // camada Cookie (docs/design/camada-cookie.md): galhos Pátio, Sorte, Coração e Poupança
+    { id: 'garagem', n: 'Garagem Abençoada', d: 'o Pátio começa com 5 de cada máquina de mão', max: 1, base: 4, g: 'Pátio' },
+    { id: 'desc_frota', n: 'Desconto de Frota', d: '-1% no preço do Pátio por nível', max: 30, base: 3, g: 'Pátio' },
+    { id: 'marco_turbo', n: 'Marco Turbinado', d: 'os marcos de 1 e 5 viram ×3', max: 1, base: 20, g: 'Pátio' },
+    { id: 'sindicato', n: 'Shiba Sindicalizado', d: '+0,5% na frota por 10 unidades no total, por nível', max: 10, base: 8, g: 'Pátio' },
+    { id: 'faro_ev', n: 'Faro Dourado', d: 'eventos dourados 10% mais frequentes por nível', max: 10, base: 3, g: 'Sorte' },
+    { id: 'livro', n: 'Livro de Receitas', d: 'abre a Tempestade de Sacos Dourados', max: 1, base: 6, g: 'Sorte' },
+    { id: 'pote', n: 'Pote Fundo', d: '+0,1% por conquista por nível', max: 20, base: 4, g: 'Coração' },
+    { id: 'cochilo', n: 'Cochilo Produtivo', d: 'offline rende +10% por nível (até 100%)', max: 5, base: 2, g: 'Poupança' },
+    { id: 'cama', n: 'Cama Grande', d: 'teto offline +4 h por nível (até 24 h)', max: 4, base: 3, g: 'Poupança' },
   ];
   const START_TOOL = [0, 3, 5, 7];
 
@@ -101,8 +111,12 @@
   const isl = () => D.ISLANDS[idx()];
   const lap = () => (S = S || G.S, S.stats.lap | 0);
   const nextIdx = () => (idx() + 1) % D.ISLANDS.length;
-  const gain = () => Math.floor(Math.sqrt(Math.max(0, S.earned) / 1e6));
-  const seedCost = s => s.base * (lvl(s.id) + 1);
+  // SEMENTES DA VIAGEM (camada Cookie): campanha da ilha (raiz do que ganhou ATÉ o final) + Sementes do Pátio
+  // = campanha × (ganho no Pátio / ganho da campanha)^0,15 (ficar ×100 mais no Pátio ≈ só ×2). Antes do final: o total.
+  const seedsBase = () => (S = S || G.S, Math.floor(Math.sqrt(Math.max(0, S.stats.earnedEnd || S.earned) / 1e6)));
+  const seedsPatio = () => { const e0 = S.stats.earnedEnd || 0, r = e0 > 0 ? Math.max(0, S.earned - e0) / e0 : 0; return r > 0 ? Math.floor(seedsBase() * Math.pow(r, EG.patioExp || 0.15)) : 0; };
+  const gain = () => (S = S || G.S, S.stats.earnedEnd ? seedsBase() + seedsPatio() : seedsBase());
+  const seedCost = s => Math.ceil(s.base * Math.pow(EG.seedGrow || 1.45, lvl(s.id)));
   const recs = () => (S.stats.isl || (S.stats.isl = {}));
   const rec = id => recs()[id] || null;
   const islandRun = () => (S = S || G.S, (S.island | 0) > 0 || lap() > 0);   // Honshu da primeira vez é a campanha: sem evento de ilha
@@ -151,7 +165,7 @@
     const stats = d.stats || {};
     if (next === 0 && (d.island | 0) === D.ISLANDS.length - 1) stats.lap = (stats.lap | 0) + 1;   // deu a volta: Honshu de novo, mais caro
     stats.seeds = (stats.seeds | 0) + g; stats.seedsAll = (stats.seedsAll | 0) + g;
-    stats.islandsDone = (stats.islandsDone | 0) + 1; stats.arrive = 1; stats.lv = {}; stats.run = {};
+    stats.islandsDone = (stats.islandsDone | 0) + 1; stats.arrive = 1; stats.lv = {}; stats.run = {}; stats.patio = {}; stats.earnedEnd = 0;   // Pátio da Frota zera (prestígio)
     stats.earnedAll = (stats.earnedAll || 0) + (d.earned || 0);
     for (const k in d) delete d[k];
     Object.assign(d, keep, { stats, island: next, mount: 1, tool: START_TOOL[U.clamp((stats.sl && stats.sl.ferr) | 0, 0, 3)],
@@ -252,6 +266,7 @@
     sim: { seedCost, buy, gain },   // tools/longo.js
     // chegada numa ilha nova: game.js chama depois do boot (cutscene se não for teste, senão só o aviso)
     arrival() { if (!S.stats.arrive) return null; S.stats.arrive = 0; return isl(); },
+    seedsBase, seedsPatio,
     applyStats, priceMul, matsFor, makeSave, fill, island: isl, index: idx, next: () => D.ISLANDS[nextIdx()], lap, gain, travel, buy, seedCost, lvl,
     scene, evTick, evMult, event: () => ev,
     forceEvent(on) { if (on === false) { ev = null; return; } ev = isl().ev; evT = ev.dur; if (ev.gift && api && api.gift) api.gift(ev.gift); },

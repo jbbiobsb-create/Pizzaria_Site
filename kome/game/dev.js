@@ -44,6 +44,7 @@
     (D.ISLANDS || []).forEach((I, i) => btn('ir pra ' + I.n.replace('Ilha Flutuante de ', ''), () => { K.setIsland(i); }));
     btn('evento da ilha', () => K.islandEvent && K.islandEvent(true));
     btn('RESETAR (apaga o save)', () => { if (confirm('Apagar o save do admin e começar do zero?')) G.Game.reset(); });
+    btn('EVENTO DOURADO', () => { S.ended = true; if (G.Events) G.Events.force(); });
     btn('TATUZÃO', () => { S.ended = true; if (G.Tatu) G.Tatu.own(); });
     btn('FÁBRICA', () => { S.ended = true; if (G.Fab) { G.Fab.unlock(); G.Fab.open(); } });
     btn('fábrica: tudo liberado', () => { S.ended = true; if (G.Fab) { G.Fab.unlock(); G.Fab.unlockAll(); G.Fab.skipTut(); K.addMoney(1e15); G.Fab.open(); } });

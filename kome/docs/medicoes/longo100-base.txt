@@ -1,0 +1,42 @@
+# Régua de 100 h — ANTES da planilha cheia do Fable (camada Cookie passos 1–4, conteudo/cookie.csv = exemplo)
+# 2026-11-17 · tools/longo.js --horas 100 --chato 5 + tools/dopamina.js
+
+== 100h04min simuladas em 2036 s reais · sem erro de página
+fases:
+  campanha                  1h09min
+  infinito (Honshu)         45min
+  ilha 1 (volta 1)          14min
+  infinito (ilha 1)         34min
+  ilha 2 (volta 1)          19min
+  infinito (ilha 2)         34min
+  ilha 3 (volta 1)          14min
+  infinito (ilha 3)         29min
+  ilha 4 (volta 1)          19min
+  infinito (ilha 4)         29min
+  ilha 0 (volta 2)          14min
+  infinito (ilha 0)         34min
+  …                         00min
+  infinito (ilha 4)         29min
+  ilha 0 (volta 17)         14min
+  infinito (ilha 0)         2h00min
+  ilha 1 (volta 17)         14min
+  infinito (ilha 1)         29min
+  ilha 2 (volta 17)         19min
+  infinito (ilha 2)         29min
+  ilha 3 (volta 17)         14min
+  infinito (ilha 3)         29min
+  ilha 4 (volta 17) (não terminou)20h00min
+média: ilha 31min · Pátio 39min · viagens 84 · ilha mais curta 14min · Pátio mais curto 29min
+novidades por tipo: conquista 28 · no 5987 · tool 628 · casa 506 · novo 527 · compra 91558 · montanha 295 · marco 4345 · dourado 1243 · upgrade 79
+trechos CHATOS (mais de 5 min sem novidade): 90
+  80h04min → 81h48min  (104 min, ilha 4 (volta 17))
+  83h54min → 85h15min  (80 min, ilha 4 (volta 17))
+  82h49min → 83h54min  (65 min, ilha 4 (volta 17))
+  85h15min → 86h06min  (51 min, ilha 4 (volta 17))
+  82h04min → 82h48min  (44 min, ilha 4 (volta 17))
+  8h50min → 9h07min  (17 min, ilha 4 (volta 2))
+  41h10min → 41h27min  (17 min, ilha 4 (volta 9))
+  17h30min → 17h47min  (17 min, ilha 4 (volta 4))
+== jogo de HOJE (eventos do longo.js, 100.1 h)
+  LARGA O JOGO em 80h36min · engajado 100% do tempo · 105256 novidades
+  dopamina a cada 15 min: ▃██▆████████▆█▆████████████▆██████▆▆██▆██████▆██▆███▆██▆███▆███▆██▆██▆█▆█▆▆██▆███▆███▆▆██▆█████████▆▆███▆██▆██████▆▆███▆▆██▆██▆▃██▆██▆▆███▆███▆██▆▆██▆▆███▆██▆███▆█████████████▆████████▆███████▆█████▆█▆█████▆██▆██▆██████▆███████▆█▆███▆██████████▆█▆██▆██▆██▆██▆██▆▃▆▃▆▆▆████▆█▆██▆▃▃▆▆▃▃██▆██▆▃▃▆▃▃▆██▆██████▆▆▆▃▆▃████▆█▆██▆▃·

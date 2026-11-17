@@ -1,0 +1,31 @@
+tipo;id;nome;desc;maquina;condicao;alvo;efeito;valor;preco;peso;duracao;icone
+upgrade;pata_meias;Meias Antiderrapantes;Pata que não escorrega cava o dobro. Ciência.;pata;qtd;1;mult_maquina;2;10;;;paw
+upgrade;pata_unha;Unha Cortada pela Vó;Ela insistiu. Funcionou.;pata;qtd;5;mult_maquina;2;50;;;paw
+upgrade;hashi_elastico;Hashi de Treino com Elástico;Até o vovô Tetsu acerta grão por grão agora.;hashi;qtd;1;mult_maquina;2;10;;;check
+upgrade;tigela_funda;Tigela Sem Fundo (Quase);Tem fundo sim. Só fica bem longe.;tigela;qtd;25;mult_maquina;2;500;;;rice
+upgrade;britadeira_samba;Britadeira no Ritmo;15 pancadas por segundo e agora todas no tempo da música.;britadeira;qtd;50;mult_maquina;2;5e4;;;bolt
+upgrade;trator_enka;Buzina que Toca Enka;Os grãos saem do caminho por respeito.;trator;qtd;100;mult_maquina;2;5e6;;;horn
+upgrade;escav_cotovelo;Braço com Cotovelo Extra;Ninguém sabe onde ele dobra. Nem ele.;escav;qtd;150;mult_maquina;2;5e8;;;gear
+upgrade;bagger_copo;Bagger com Porta-Copos;14.200 toneladas e finalmente um lugar pro chá.;bagger;qtd;1;mult_maquina;2;10;;;horn
+upgrade;carona_trator;Carona no Trator;Cada Pata vai de carona e o trator fica 1% mais animado por Pata.;pata+trator;par;15;sinergia;0.01;30;;;swap
+upgrade;tigela_coracao_1;Tigela do Coração I;Cada conquista passa a valer +1% a mais. O coração cresce.;;conquistas;25;coracao;0.01;600;;;star
+conquista;matilha;Matilha;Tenha 10 Patas no pátio. Já dá pra fazer fila indiana.;pata;qtd;10;;;;;;paw
+conquista;cem_tratores;Cem Tratores e Um Sonho;Tenha 100 tratores. O sonho é estacionar todos.;trator;qtd;100;;;;;;trophy
+conquista;concessionaria;Já Dá pra Abrir uma Concessionária;Tenha 50 de cada uma das 14 turmas.;todas;qtd;50;;;;;;trophy
+conquista;quatrilhao;Quatrilhão de Grãos e Zero Arrependimento;Ganhe ¥1 quatrilhão no total.;;ganho;1e15;;;;;;yen
+conquista;sete_sortes;Sete Sortes;Pegue 7 eventos dourados. Sem pressa.;;eventos;7;;;;;;sack
+conquista;saudade;Saudade do Começo;Compre 1 hashi tendo 100 Baggers. O Kome nunca esquece as origens.;hashi;segredo;hashi_com_100_bagger;;;;;;check
+evento;frenesi;Frenesi do Shiba;Todo mundo corre! Renda ×7.;;sorteio;;frenesi;7;;40;60;bolt
+evento;chuva;Chuva de Arroz;Tá chovendo arroz! Toque nos grãos. O que cair no chão vai pro coletor pela metade.;;sorteio;;chuva;10;;30;12;rice
+evento;gigante;Kome Gigante;O Kome cresceu! Cada patada vale ×50.;;sorteio;;gigante;50;;12;20;paw
+evento;festival;Festival das Lanternas;Lanternas e taiko. Tudo ×2 por um tempinho.;;sorteio;;festival;2;;2;77;star
+nome;;arrozilhão;;;;;;;;;;
+nome;;onigirilhão;;;;;;;;;;
+nome;;mochilhão;;;;;;;;;;
+nome;;shibalhão;;;;;;;;;;
+nome;;baggerlhão;;;;;;;;;;
+nome;;tatuzilhão;;;;;;;;;;
+nome;;fujilhão;;;;;;;;;;
+nome;;luazilhão;;;;;;;;;;
+nome;;kome-kome;;;;;;;;;;
+nome;;kome-kome-kome;;;;;;;;;;

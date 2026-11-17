@@ -487,6 +487,52 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
   da máquina grande, perto do pé da montanha, 80% e escurecida (game.js · drawFleetBg). Degraus na encosta: o dono ODIOU,
   não fazer. Renda igual (autoTick); só visual.
 - DECISÃO DO DONO 2 (fim do dia): "a cena da casa é meio feia, o que for melhor" → pro Fable: usar a câmera da Vila.
+
+## 18/11 — CAMADA COOKIE, passo 1 (sistema do Pátio) — programador
+- Público corrigido: jovem adulto 20–35 fã de idle (CLAUDE.md, PAPEIS.md, memória). Spec camada-cookie.md APROVADA
+  (Pátio só depois do final; Oficina zera na viagem; Cochilo do Kome entra, desligável).
+- game/patio.js (G.Patio) + D.PATIO (data.js, tabela da spec): 14 turmas, preço custo×R0×1,15^n, rende r×R0×2^marcos,
+  marcos comprados em D.PATIO.at (preço custo×R0×mk). R0 = S.stats.topIps no final da ilha. Renda por api.credit (kind 1).
+  Chip "Pátio" (G.HUD.chip, order 25) + painel provisório (UI.panel, ×1/×10/×máx). Save S.stats.patio; zera na viagem
+  (islands.js makeSave). Offline 50% até 8 h, faz a conta no init (banner). Visual dos patamares: Fable (G.PatioArt).
+- longo.js compra no Pátio (melhor retorno) e marcos; 'compra' não conta como novidade nos trechos chatos; viaja depois de
+  30 min de Pátio + 4 min sem novidade (ou 2 h). dopamina.js: peso de 'compra' 0,1.
+- Falta (passos 2–5): marcos/sinergias/conquistas por planilha, eventos dourados, Sementes do Pátio + chip "hora de partir",
+  números com nome, visual (Fable).
+- MEDIÇÃO com o Pátio (longo 8 h + dopamina): engajado 99% (antes 81%), 3.138 novidades, não larga; curva
+  ▃█████▆▆█▃███▆██▆▆▆▃██▆█▆█▆▁▆▆▃▃▁ (cai no fim do infinito da ilha 4, 2 h). Trechos >5 min sem novidade de verdade: 16;
+  os maiores (14–17 min) são NO COMEÇO DAS ILHAS 1–4 (campanha da ilha sem nada novo: sementes/Mala pulam as ferramentas?)
+  → pro Fable olhar. Honshu infinito ficou 1h25 (o robô só viaja com 4 min sem novidade; o Pátio sempre tem).
+- BUG achado e corrigido: compra da Bagger fora do step abria cutscene que nunca acabava no modo acelerado (tempo congelado,
+  robô comprando em laço, node estourava a memória). csTick: em FAST a cena acaba na hora; parte sem duração vale 3 s.
+- longo.js: proteções (aviso de bloco com eventos demais, para se o tempo não andar, --mem).
+- PASSO 2 (programador) FEITO: tools/cookie.js lê conteudo/cookie*.csv (formato do Fable) → game/cookie-data.js (G.Data.COOKIE).
+  Pátio usa: marcos com nome/preço da planilha (mult_maquina @ alvo), sinergias (a+b ≥ alvo; b ganha +v por unidade de a;
+  preço preco × custo da maior × R0), Tigelas do Coração (cada conquista +v; preço preco × R0), conquistas (qtd, todas,
+  ganho, eventos [S.stats.goldEv, passo 3], segredo) → S.stats.heart (FICA na viagem) → computeStats s.sell × heart.
+  Nomes de número: engine vai até vigint (1e63) + U.addUnits; planilha tipo 'nome' (arrozilhão… kome-kome-kome, 1e93).
+  conteudo/cookie.csv = exemplo do Fable + nomes; ele enche (~180 upgrades, ~420 conquistas). Medição 8 h: engajado 99%.
+- PASSO 3 (programador) FEITO: game/eventos.js (G.Events) + D.EVENTOS (every 180–480 s de jogo, life 15 s). Tipos/pesos/valores
+  da planilha (tipo 'evento'): frenesi/festival (×v tudo), gigante (×v na patada, kind 0), chuva/tempestade (paga v min de
+  renda em dur s), desfile (maior turma ≥10: +10%/unidade na frota). Prêmio sorteado ao nascer e escrito no botão; aba
+  escondida não conta; nunca offline. Livro dos Eventos no painel do Pátio (chance "1 em N"). Chip do evento ativo (G.HUD.chip
+  'evento'). credit × G.Events.mult(kind). S.stats.goldEv / evSeen. Admin: "EVENTO DOURADO". longo.js toca os eventos.
+  Medição 8 h: engajado 100%, 63 eventos, curva ▃█████████▆▆▆▆█▆█▆▆█████▆▆▆▆▃███▆. Visual: botão DOM provisório; arte do
+  Fable via G.Events.on(fn(evento, 'nasce'|'pega'|'fim', k)). Tempestade precisa S.stats.livro (passo 4).
+- PASSO 4 (programador) FEITO: sementes da viagem = campanha (sqrt(S.stats.earnedEnd/1e6), gravado no ending) + Sementes do
+  Pátio (campanha × (ganho no Pátio/ganho da campanha)^0,15; D.ENDGAME.patioExp). Isso também resolve o ACHADO-sementes.
+  seedCost = base × 1,45^nível (D.ENDGAME.seedGrow). D.SEEDS +9 nós (garagem, desc_frota, marco_turbo, sindicato, faro_ev,
+  livro, pote, cochilo, cama) com efeitos no patio.js/eventos.js. Chip "Hora de partir" (G.HUD.chip 'partir'): Pátio ≥ ilha,
+  4 min sem novidade de verdade e ≥ 30 min de Pátio (D.PATIO.plateau/minRun); abre o mapa. Painel do Pátio mostra a
+  previsão "viajar agora: +N sementes (M do Pátio)". Mapa: nós com máx > 12 mostram "Nv X/Y". longo.js viaja pelo chip.
+  Medição 8 h: 4 trechos chatos (eram 14), engajado 100%. Ilhas ainda 14–19 min (sementes fortes) e o infinito da ilha 4
+  sem 5ª ilha dura 3h24 (o robô não faz a Volta 2): próximos ajustes de número com o Fable. Máquinas absurdas = arte do Fable.
+- RÉGUA DE 100 h (docs/medicoes/longo100-base.txt), antes da planilha cheia: o robô aguentou até 80h36 (dopamina 100%
+  engajado até lá). 84 viagens em 100 h (17 voltas), ilha média 31 min (mín 14), Pátio médio 39 min (mín 29). PAREDE na
+  ilha 4 da volta 17: a campanha da ilha não termina em 20 h (priceMul cresce com lap² e a árvore de sementes já não compra
+  nada: "0 melhorias") → jogador larga ~80 h. Trechos >5 min: 90, quase todos no começo da ilha 4 de cada volta (~17 min).
+  longo.js agora faz as voltas (ilha 4 → Honshu) e mostra média/mínimo de ilha e Pátio. NÃO calibrado de propósito: esperar
+  a planilha e as máquinas absurdas do Fable e medir de novo.
 - FEITO (Fable, fila cookie-pesado item 1): visual em patamares do Pátio da Frota em `game/patio-arte.js` (`G.PatioArt.draw(g, view, t, patio)`, já pendurado em `G.World.layers.back`, lê `S.patio` `{id:{n,marcos}}` quando S.ended; teste `?dev&patio=demo|poucos|medio|cheio|absurdo|pata:12`, `G.PatioArt.fake("+trator")`). Fica depois da estátua (X.estatua-260 pra fora, ~5800 de largura): PROGRAMADOR precisa abrir `X.minX` até `G.PatioArt.slots().x0` (ou voo pro pátio com `slots().camHand/camMid`). Patamares 10/25/50/100/150/200/250/300/400/500; ~1,1–1,9 ms/quadro com tudo em 200–500. Números do visual no topo do arquivo ("mover pro data.js"). Prints: docs/prints/patio-*.png.
 - FEITO (Fable, fila cookie-pesado item 2): ARTE+SOM dos 6 eventos dourados + Livro dos Eventos em `game/eventos-arte.js` (`G.EventArt`, já pendurado em `G.World.layers.front`; o sistema chama `spawn/hitTrigger/take/start/on/tap/pop/end`, `openBook()`; demo `?dev&evento=frenesi|chuva|gigante|desfile|tempestade|festival|gatilho[&evt=seg]`, `?dev&livro=demo`, `__kome.evento(id)`; números do visual em EA "mover pro data.js"; prints `docs/prints/evento-*.png`). FALTA: sistema G.Events (programador) e decidir de onde o Livro abre.
 - FEITO (Fable, fila cookie-pesado item 4, rodada 1/6): TREM-BALA DE ARROZ em `game/trembala.js` (`G.Tools.trembala`, máquina absurda nº 17: encosta, 8 calhas enchem os vagões, BUUUM, volta pelo outro lado; modo `chegada` com trilho+fita; `horizon()` já ligado no `patio-arte.js` via `PA.ABSURD`), demo `demos/trembala.html`, prints `docs/prints/trembala*.png`, notas em NOTAS-FERRAMENTAS.md. Falta o programador: data.js (custo 1,0e14·R0, rende 6,8e9·R0/s, nó Absurdo 200 sementes) e ligar no Pátio/árvore.
@@ -507,3 +553,14 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - Cidade: docs/design/cidade.md (rascunho) + demos/cidade.html (protótipo; 15 fichas cid_*).
 - Pendências pro programador: ligar G.CookieUI ao sistema real; botão pro Livro dos Eventos; toque do jogo chamar G.EventArt.hitTrigger/tap;
   sons das absurdas quando entrarem no jogo; horizon() da Fuji é caro (cachear); ids de S.closet que não batem com D.CLOSET (achado da Casa).
+
+## 19/11 — polimento do Fable JUNTADO + adaptadores ligados (programador)
+- Merge do kome-polimento (base dd90e0b) com os passos 1–4: conflitos só em CONTINUAR e sw.js (lista refeita do index.html).
+- G.CookieUI.use(...) ligado ao sistema no patio.js (adapter()): Pátio, marcos, sinergias, Coração/tigelas, conquistas,
+  árvore de sementes (D.SEEDS por galho), carta "Pegar!" (offline vira pendAway), "hora de partir". Com a tela do Fable os
+  chips/painel provisórios do patio.js somem. Eventos: G.Events usa G.EventArt (spawn/take/start/on/end), toque no canvas
+  pelo game.js (G.Events.hit), G.Events.book() pro Livro. check/alicerce/robô OK.
+- FALTA (não feito, sem token): botão pro Livro dos Eventos na tela nova; sons das absurdas quando entrarem no jogo;
+  silhueta da Fuji em cache (~4 ms/quadro); conferir nomes das roupinhas; absurdas 15–20 compráveis no Pátio; árvore de
+  sementes com posições bonitas (hoje colunas por galho); medir 100 h de novo e comparar com docs/medicoes/longo100-base.txt.
+- Esperando aprovação do dono: spec da Cidade (docs/design/cidade.md), sementes.md, fim de jogo da fábrica, jogo infinito.

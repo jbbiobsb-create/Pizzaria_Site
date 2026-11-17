@@ -105,7 +105,7 @@
       const L = I().lvl(s.id), full = L >= s.max, c = I().seedCost(s), can = !full && (S.stats.seeds | 0) >= c;
       const b = el('button', 'k-btn k-isl-seed' + (can ? ' k-can' : '') + (full ? ' k-full' : ''), grid);
       b.innerHTML = '<b>' + s.n + '</b><small>' + s.d + '</small><span class="k-isl-pips"></span><span class="k-isl-cost">' + (full ? 'completo' : '★ ' + c) + '</span>';
-      const pp = b.querySelector('.k-isl-pips'); for (let k = 0; k < s.max; k++) el('i', k < L ? 'on' : '', pp);
+      const pp = b.querySelector('.k-isl-pips'); if (s.max > 12) pp.textContent = 'Nv ' + L + '/' + s.max; else for (let k = 0; k < s.max; k++) el('i', k < L ? 'on' : '', pp);   // muitos níveis: texto em vez de paredão de quadradinhos
       b.onclick = () => { if (!full) I().buy(s); };
     }
     const row = el('div', 'k-isl-row', side);
