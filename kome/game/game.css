@@ -126,3 +126,6 @@ body.k-night .k-zone-tl, body.k-night .k-zone-tc, body.k-night .k-vpad{opacity:0
 .k-coach-row{display:flex;align-items:center;gap:8px;margin-top:8px}
 .k-coach-row .k-btn{min-height:36px;font-size:13px;padding:4px 12px}
 .k-coach-next{background:#FFE9A8}.k-coach-n{margin-left:auto;font-size:12px;opacity:.6}
+/* cartão da casa (canto de cima): nome comprido ("Jardim com Lago de Carpas", "Estrutura de Hinoki") vazava pros lados; agora quebra em 2 linhas dentro do cartão */
+.k-flyer .k-btn-t{align-items:stretch;text-align:center;width:100%}
+.k-flyer .k-btn-t > span,.k-flyer .k-btn-t small{white-space:normal;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}

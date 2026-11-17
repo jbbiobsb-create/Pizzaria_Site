@@ -779,6 +779,7 @@
       let slot = 0; for (let j = 0; j < i; j++) { const o = S.fleet[j]; if (WORKERS[o.id] && st.pilots[o.id]) slot += G.Tools[o.id].w + 40; }
       face = faceAhead(Math.min(Math.max(f.x, WL.MX0 - 400), S.footX - 40), 16, 1400);
       digX = Math.min(face - t.park, P.x - (T.w || 100) / 2 - TW / 2 - 40) - slot;
+      if (digX - TW / 2 < Wd.X.x0 + 16) { atFace = false; face = home + t.park; digX = home; }   // não cabe entre o pátio e o Kome: trabalha na vaga
     }
     const far = Math.abs(f.x - home) > 10;
     if (f.st === 'park') { f.x = home; f.wt -= dt; if (f.wt <= 0) { f.st = atFace ? 'go' : 'dig'; f.wt = atFace ? 0 : 16 + (i * 5) % 9; } }
@@ -841,6 +842,7 @@
     P.y = heap.surf(P.x); P.face = 1;
     S.col.kind = D.COLLECTOR[di]; S.col.x = P.x - 80;   // coletor da ferramenta NA MÃO (antes a moega da Bagger seguia o Kome com o carrinho) S.col.y = heap.surf(S.col.x);
     ensureBag(); yardSnap(); rebuildFleet();
+    if (cur.seat === 'paw' && S.tool >= D.toolIndex.trator && P.x < Wd.X.x0 + 90) { P.x = Wd.X.x0 + 90; P.y = heap.surf(P.x); S.col.x = P.x - 80; S.camX = P.x + 30; }   // trocou pra ferramenta de mão: o Kome desce na frente de lavra, não no meio das vagas
     if (loopH) { try { loopH.stop(0.3); } catch (e) { /* */ } loopH = null; }
     if (!FAST && audioOn && Loops && cur.loop && !S.opts.mute) { try { loopH = Loops.start(cur.loop, { vol: 0.35, rate: 0.1 }); } catch (e) { loopH = null; } }
     if (!FAST && Sfx && Sfx.setTool) { try { Sfx.setTool(Math.min(di, 11)); } catch (e) { /* */ } }
@@ -1003,13 +1005,14 @@
   /* =====================================================================
      7. Atualização, câmera e desenho
      ===================================================================== */
-  /* PÁTIO ACOMPANHA A FRENTE DE LAVRA: Wd.X.shift persegue o recuo do pé da montanha devagar e sem pulo (2 a 40 u/s: na tela dá
-     poucos px por segundo, ninguém vê prédio andando, mas a frota e o coletor nunca ficam pra trás). Troca de ferramenta, montanha
+  /* PÁTIO ACOMPANHA A FRENTE DE LAVRA: Wd.X.shift persegue o recuo do pé da montanha devagar e sem pulo (20% da distância por
+     segundo, no máximo 40 u/s: a câmera anda junto com a máquina, então o pátio parece parado na tela; a frota e o coletor nunca
+     ficam pra trás). Troca de ferramenta, montanha
      nova, save carregado e modo FAST encaixam na hora (yardSnap). A Bagger em montagem anda junto com o pátio; a Bagger com o
      Goma (Kome em outra máquina) acompanha o pé da montanha. Nada disso entra no save (é tudo derivado de S.footX). */
   const yardTarget = () => U.clamp(S.footX - WL.MX0, 0, WL.MX1 - WL.MX0 - 600);
   // espaço que a máquina na mão precisa entre o pé da montanha e o pátio (canteiro): distância de trabalho + ela + o coletor atrás
-  const yardNeed = () => (cur && cur.seat === 'cab' && T ? (cur.park || 0) + (T.w || 150) / 2 + 300 : 0);
+  const yardNeed = () => (!cur || !T ? 0 : cur.kind === 'bagger' ? Math.round(1240 * ((S.m && S.m.k) || 1) + 260) : cur.kind === 'haul' ? 1500 : cur.seat === 'cab' ? (cur.park || 0) + (T.w || 150) / 2 + 300 : 0);
   function yardSnap() { const X = Wd.X; X.mk = cur && cur.kind === 'bagger' && S.m ? (S.m.k || 1) : 1; X.need = yardNeed(); X.shift = yardTarget(); Wd.layout(S); bagFollow(0, true); }
   function bagFollow(dt, snap) {
     if (!S.bag) return;
@@ -1020,10 +1023,19 @@
   }
   function yardTick(dt) {
     const X = Wd.X, tg = yardTarget(), mk = cur.kind === 'bagger' && S.m ? (S.m.k || 1) : 1;
+    X.need = yardNeed();
     if (FAST || mk !== X.mk || tg < X.shift - 200) { X.mk = mk; X.shift = tg; }          // montanha nova / troca de máquina gigante
-    else if (tg > X.shift) X.shift = Math.min(tg, X.shift + U.clamp(2 + (tg - X.shift) * 0.15, 2, 40) * dt);
+    else if (tg > X.shift) X.shift = Math.min(tg, X.shift + U.clamp((tg - X.shift) * 0.2, 0.4, 40) * dt);   // aproximação suave: sem tranco, nunca dá pra ver prédio andando
     Wd.layout(S); bagFollow(dt, false);
+    // o pátio VARRE o chão onde pisa: o tapetinho de arroz que as máquinas deixam pra trás (menos de 20 de altura) é recolhido
+    // e pago como qualquer arroz (mesma conta das esteiras da Bagger). Sem isso o estacionamento ficava em cima de arroz solto
+    // e o Kome a pé ia cavar no meio das vagas.
+    if ((sweepT -= dt) <= 0) {
+      sweepT = 0.5; const xb = X.front - X.lane - 8;
+      if (xb > WL.MX0) { digO.pow = 99; const fl = heap.digRect(WL.MX0 - 60, xb, 24, digO); if (fl.got > 0) { S.dug += fl.got; S.pend += fl.val * yenK(); if (G.Items) G.Items.add(fl.byMat); } }
+    }
   }
+  let sweepT = 0;
 
   // update(dt): um passo da simulação (seguro pra passo fixo; não desenha)
   const INDC = { mainX: 0, floor: null, zoom: 1, col: null };
@@ -1481,7 +1493,8 @@
     if (k === 'cesto') { if (T.back && S.m) { T.back(S.m, c); } else { c.x = P.x - P.face * 10; c.y = P.y - 18; c.a = 0; c.f = P.face; c.sc = 1; } }
     else if (k === 'saco') { if (Math.abs(P.x - c.x) > 170) c.x = P.x - P.face * 80; c.y = heap.surf(c.x); }
     else if (k === 'barraca') { c.x = X.barraca + 6; c.y = -40; }
-    else if (k === 'kei') { const tx = Math.max(X.keiMin, P.x - 190 - (cur.park || 0)); if (Math.abs(tx - c.x) > 120) c.x = U.damp(c.x, tx, 2, dt); c.y = heap.surf(c.x); }
+    else if (k === 'kei') { let tx = Math.max(X.keiMin, P.x - 190 - (cur.park || 0)); if (X.barraca < WL.MX1 && Math.abs(tx - X.barraca) < 120) tx = X.barraca + 120;   // barraquinha ainda do lado da cava: o kei-truck não estaciona em cima dela
+      if (Math.abs(tx - c.x) > 120) c.x = U.damp(c.x, tx, 2, dt); c.y = heap.surf(c.x); }
     else if (k === 'silo') { const tx = Math.max(X.keiMin + 40, P.x - (T.w || 200) / 2 - 96); if (Math.abs(tx - c.x) > 60) c.x = U.damp(c.x, tx, 2, dt); c.y = heap.surf(c.x); }   // moega pequena logo atrás da máquina (o silo fica depois do estacionamento: a esteira leva)
     else if (cur.kind === 'haul') { c.x = iT.x - (T.meta.haul + 215); c.y = heap.surf(c.x); }
     else if (cur.kind === 'bagger') { const d = T.dump(S.m); c.x = d ? d.x : P.x - 700; c.y = 0; }
@@ -1544,6 +1557,7 @@
     }
     else if (k === 'bagger') { fxx = (c.t >= 0 && c.t < 1.6 ? S.m.x - 100 : S.m.x - 130) - (Wd.X.gemeaK ? 300 : 0); fyy = 0; }   // com a Gêmea ao lado, o quadro puxa pra ela
     else if (k === 'haul') fxx = P.x - 90;   // um pouco pra trás: o pátio (que acompanha a frente) fica na tela
+    else if (k === 'rope') fxx = P.x - 40;   // pá de cabo: quadro um pouco pra trás, o pátio aparece
     else fxx = P.x + cur.park * 0.7;
     const gf = k === 'hand' || k === 'push' || k === 'jack' ? 0.66 : WL.GROUND_FRAC;
     const hw = W / 2 / cam.z;

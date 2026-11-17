@@ -42,25 +42,27 @@
      frente de lavra (só a máquina ativa + coletor) -> [Bagger Gêmea com o monte de estoque, no modo infinito] -> ESTACIONAMENTO DA
      FROTA -> silo -> galpão KOME PACK -> beco do kei-truck -> Oficina -> ramal.
      TUDO é medido a partir do PÉ DA MONTANHA de agora (X.front = MX0 + X.shift): o pátio anda atrás da frente de lavra (yardTick).
-     Largura da frente de lavra (X.lane): "canteiro" (até a Escavadeira) = 420; "distrito" (Caminhão em diante, ou peças da
-     Bagger) = 1380, que é o que o caminhão + moega e a Bagger 293 ocupam; pilotando a Gêmea (1,5x) = 2000. */
+     Largura da frente de lavra (X.lane) = o que a máquina NA MÃO precisa (X.need, game.js yardNeed): a pé 420; cabine =
+     distância de trabalho + ela + coletor (trator ~480, escavadeira ~660, pá de cabo ~910); caminhão ou Bagger 293 = 1500
+     (também com a Bagger em montagem ou com o Goma); pilotando a Gêmea (1,5x) = 2120. */
   function layout(S) {
-    const TI = (G.Data && G.Data.toolIndex) || {}, big = S.tool >= (TI.caminhao || 11) || !!S.bag || !!S.own.bg1;
+    const TI = (G.Data && G.Data.toolIndex) || {};
     const fab = hasFab(S), ofi = !!S.own.e2a, stall = S.tool < (TI.trator || 7);
     let nb = 0; for (const [id] of BAYS) if ((TI[id] || 99) <= S.tool) nb++;
     const gp = S.ended && G.Ind && G.Ind.run ? Math.min(4, G.Ind.run().giant | 0) : 0, mk = X.mk || 1, gk = gp ? (mk > 1 ? 1 : 1.5) : 0;
-    const sig = nb + '|' + (big ? 1 : 0) + (fab ? 1 : 0) + (ofi ? 1 : 0) + (stall ? 1 : 0) + '|' + gk + '|' + mk + '|' + (X.need | 0) + '|' + Math.round(X.shift * 8);
+    const bagHere = !!S.bag || !!S.own.bg1;          // Bagger em montagem ou com o Goma: precisa da frente de lavra inteira
+    const sig = nb + '|' + (bagHere ? 1 : 0) + (fab ? 1 : 0) + (ofi ? 1 : 0) + (stall ? 1 : 0) + '|' + gk + '|' + mk + '|' + (X.need | 0) + '|' + Math.round(X.shift * 8);
     if (sig === laySig) return X;
     laySig = sig;
     const F = WLD.MX0 + X.shift;                      // pé da montanha que o pátio está acompanhando
-    X.front = F; X.lane = big ? Math.round(1240 * mk + 260) : Math.max(420, X.need | 0);
+    X.front = F; X.lane = Math.max(420, X.need | 0, bagHere ? 1500 : 0);
     let x0 = F - X.lane;
     // Bagger Gêmea (modo infinito): vaga própria logo atrás da 293, com a roda num monte de estoque que a 293 alimenta
     X.gemeaK = gk;
     if (gk) { X.pilha = x0 - 420; X.gemea = X.pilha - 170 - 590 * gk; x0 = X.gemea - 900 * gk - 90; } else { X.pilha = 0; X.gemea = 0; }
-    X.x0 = x0; X.keiMin = F - X.lane + 60;
-    X.barraca = stall ? 1560 + X.shift : X.barracaVila;
-    X.casinha = stall ? 1716 + X.shift : X.casinhaVila;   // com o Trator o Kome compra o terreno: a casinha de cachorro muda pra vila junto
+    X.x0 = x0; X.keiMin = stall ? 1440 : F - X.lane + 60;
+    X.barraca = stall ? 1560 : X.barracaVila;        // começo do jogo: barraquinha e casinha ficam no gramado de sempre (não andam)
+    X.casinha = stall ? 1716 : X.casinhaVila;        // com o Trator o Kome compra o terreno: a casinha de cachorro muda pra vila junto
     // 1) estacionamento: colado na frente de lavra, da menor pra maior (vaga de máquina ainda não comprada não ocupa espaço)
     X.lotR = x0 - 40; let b = X.lotR - 70;
     for (const [id, w] of BAYS) { X.park[id] = b - w / 2; X.park[id + '_L'] = b - w - BAY_GAP / 2; if ((TI[id] || 99) <= S.tool) b -= w + BAY_GAP; }
