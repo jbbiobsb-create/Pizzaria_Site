@@ -472,6 +472,7 @@
   const txt = (s, x, y, o) => D.text(g, s, x, y, o);
   const T = (size, col, align, extra) => Object.assign({ size, col: col || INK, sw: 0, align: align || 'center', weight: 900 }, extra || {});
   const fmt1 = v => (Math.round(v * 10) / 10).toLocaleString('pt-BR');
+  const fmtK = n => (n < 10000 ? String(Math.floor(n)) : n < 1e6 ? fmt1(n / 1000) + 'k' : fmt1(n / 1e6) + 'M');   // contador curtinho do HUD
   const BAY_IN = { x: 4, y: 40, w: 150, h: 430 }, BAY_OUT = { x: 806, y: 40, w: 150, h: 430 }, YEN = { x: 152, y: 25 };
   const PHRASE = { cozido: 'fofinho, ainda soltando vapor', onigiri: 'o triângulo que move o Japão', mochi: "batido no pilão com muito esforço e um 'yoisho!'", mochid: 'dizem que dá sorte. dizem que dá MUITA sorte' };
 
@@ -740,8 +741,8 @@
     g.fillStyle = 'rgba(59,40,24,.18)'; g.fillRect(478, 11, 2, 28);
     ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => {
       const x = 486 + i * 58, locked = (k === 'mochi' && !S.unlocked.pilao) || (k === 'mochid' && !S.unlocked.mochid);
-      blit(ICON[k], x + 14, 37, 2, { alpha: locked ? 0.3 : 1 });
-      txt(locked ? '?' : U.fmt(S.made[k]), x + 30, 26, T(14, locked ? '#9a8a76' : INK, 'left'));
+      blit(ICON[k], x + 13, 37, 2, { alpha: locked ? 0.3 : 1 });
+      txt(locked ? '?' : fmtK(S.made[k]), x + 30, 26, T(13, locked ? '#9a8a76' : INK, 'left'));
     });
     goalChip(0, 722, 'Pilão', S.made.onigiri, UNLOCK.pilao, S.unlocked.pilao, ICON.mochi);
     goalChip(1, 840, 'Dourado', S.made.mochi, UNLOCK.dourado, S.unlocked.mochid, ICON.mochid);
@@ -1254,6 +1255,8 @@
     dig(v) { if (S.on) S.digAcc += v; },                       // só conta com a fábrica aberta (senão a campanha inteira entrava na 1ª média)
     sacks(id, n) { if (!S.on) return; S.sackAcc += n; if (id === 'koshi') S.goldAcc += n; },
     open, close, isOpen, unlock: () => unlock(true), on: () => S.on, persist,
+    // 0..1: o quanto a fábrica está rendendo agora (o galpão do pátio solta mais vapor; industry.js)
+    activity() { if (!S.on) return 0; const rt = rates(), tot = rt.raw + rt.fac; return tot > 0 ? Math.min(1, rt.fac / tot * 2.2) : 0; },
     // testes e simulador
     step(sec) { const f = S.fast; S.fast = true; let left = sec; while (left > 1e-6) { const st = Math.min(left, 1 / 30); sim(st, false); left -= st; } S.fast = f; return G.Fab.state; },
     place(type, x, y, rot, free) { const m = free ? makeMachine(type, x, y, rot || 0, { paid: 0 }) : buyMachine(type, x, y, rot || 0); return m ? m.id : null; },

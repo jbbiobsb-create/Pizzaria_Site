@@ -178,12 +178,63 @@
     P.bevel(0.3, 0.22);
   });
   const blitAt = (g, cv, x, y) => g.drawImage(cv, Math.round(x), Math.round(y) - cv.height);
+  /* ---- o galpão TRABALHANDO (quando a Fábrica está aberta): porta aberta com luz, caixas saindo numa esteirinha,
+     kei-truck que carrega, vai embora pelo pátio e volta, vapor da chaminé conforme a produção, luz acesa de noite.
+     Tudo sai do relógio t (sem estado): ciclo de 16 s = 8 carregando, 2,5 saindo, 2,5 fora, 3 voltando de ré. ---- */
+  const estCurta = f => SP('fab/estc' + f, 56, 14, P => {
+    P.rect(0, 2, 56, 5, PC.belt);
+    for (let x = 6 - f * 2; x < 54; x += 8) if (x >= 0) P.rect(x, 3, 2, 3, '#55555C');
+    P.rect(0, 7, 56, 2, PC.yel);
+    for (const x of [3, 26, 50]) P.rect(x, 9, 3, 5, PC.yel);
+    P.bevel(0.25, 0.2);
+  });
+  const caixa = () => SP('fab/caixa', 9, 9, P => { P.rect(1, 1, 7, 7, '#D9A066'); P.rect(1, 1, 7, 2, '#EBBE86'); P.rect(4, 1, 1, 7, PC.cream); P.rect(2, 4, 2, 2, PC.red); P.rect(1, 7, 7, 1, '#B07C46'); });
+  function working(g, t, act) {
+    const night = S.tod > 0.62, T = 16, u = (t % T), a = Math.max(0.15, act);
+    // porta aberta (por cima da porta fechada do desenho) com a luz de dentro
+    g.fillStyle = PAL.line; g.fillRect(-217, -23, 22, 23);
+    g.fillStyle = night ? '#FFD67A' : '#5A3E2A'; g.fillRect(-216, -22, 20, 22);
+    g.fillStyle = night ? '#FFE9A8' : '#7A5638'; g.fillRect(-216, -22, 20, 4);
+    g.fillStyle = night ? '#E8B02E' : '#3E2A1C'; g.fillRect(-216, -9, 20, 9);
+    if (night) { g.globalAlpha = 0.22; g.fillStyle = '#FFD67A'; g.beginPath(); g.moveTo(-216, 0); g.lineTo(-196, 0); g.lineTo(-180, 14); g.lineTo(-236, 14); g.closePath(); g.fill(); g.globalAlpha = 1; }
+    // vapor/fumaça da chaminé: mais e maior com a fábrica rendendo
+    const n = 2 + Math.round(a * 6);
+    for (let i = 0; i < n; i++) {
+      const q = (t * (0.22 + a * 0.2) + i / n) % 1, rr = 2 + Math.round(q * (2 + a * 6));
+      g.globalAlpha = 0.8 * (1 - q); blitAt(g, fumaca(rr), -118 + q * (10 + a * 16) + Math.sin(t * 1.3 + i * 2) * 3 - rr, -70 - q * (26 + a * 34) + rr);
+    }
+    g.globalAlpha = 1;
+    // esteirinha da porta pra esquerda, com as caixas andando
+    blitAt(g, estCurta(Math.floor(t * 8) % 4), -268, 0);
+    const loading = u < 8;
+    for (let i = 0; i < 4; i++) {
+      const q = (t * 0.32 + i / 4) % 1; if (!loading && q > 0.72) continue;      // sem caminhão as caixas esperam na ponta
+      blitAt(g, caixa(), -213 - q * 52, -11 + (q < 0.1 ? (0.1 - q) * 30 : 0));
+    }
+    // kei-truck (o mesmo sprite da tela da fábrica), de frente pra esquerda
+    const tr = G.FabArt && G.FabArt.spr && G.FabArt.spr.truck; if (!tr) return;
+    let dx = 0, al = 1, boxes = 0, moving = false;
+    if (u < 8) boxes = Math.min(6, Math.floor(u / 8 * 7));
+    else if (u < 10.5) { const k = (u - 8) / 2.5; dx = -U.ease.in(k) * 230; al = 1 - Math.max(0, k - 0.7) / 0.3; boxes = 6; moving = true; }
+    else if (u < 13) al = 0;
+    else { const k = (u - 13) / 3; dx = -(1 - U.ease.out(k)) * 230; al = Math.min(1, k / 0.25); moving = true; }
+    if (al <= 0) return;
+    const tx = -292 + dx, bob = moving ? Math.abs(Math.sin(t * 20)) * 0.6 : 0;
+    g.globalAlpha = al;
+    if (moving) for (let i = 0; i < 3; i++) { const q = (t * 2.2 + i / 3) % 1; g.fillStyle = 'rgba(214,196,160,' + (0.6 * (1 - q)).toFixed(2) + ')'; g.beginPath(); g.arc(tx + 24 + q * 14, -3 - q * 5, 2 + q * 3, 0, 6.3); g.fill(); }
+    for (let i = 0; i < boxes; i++) blitAt(g, caixa(), tx + 2 + (i % 3) * 7, -13 - Math.floor(i / 3) * 7 - bob);
+    if (loading && boxes < 6) { const hq = (u / 8 * 7) % 1; if (hq < 0.5) blitAt(g, caixa(), -268 - hq * 2 * 14, -12 - Math.sin(hq * 2 * Math.PI) * 10); }   // caixa pulando da esteira pra carroceria
+    g.save(); g.translate(Math.round(tx), -bob); g.scale(-0.75, 0.75); g.drawImage(tr, -28, -31); g.restore();
+    if (night && moving) { g.globalAlpha = al * 0.3; g.fillStyle = '#FFE9A8'; g.beginPath(); g.moveTo(tx - 20, -9); g.lineTo(tx - 60, -18); g.lineTo(tx - 60, 0); g.closePath(); g.fill(); }
+    g.globalAlpha = 1;
+  }
   function drawFront(g, t, ctx) {
-    const L = run().fab | 0; if (!S.ended || L < 1) return;
-    drawFactory(g, t, AX, 0, K, L);
+    const fabOn = !!(G.Fab && G.Fab.on && G.Fab.on());   // a Fábrica (tela de cima) aberta já faz o galpão aparecer e trabalhar
+    const L = Math.max(S.ended ? run().fab | 0 : 0, fabOn ? 1 : 0); if (L < 1) return;
+    drawFactory(g, t, AX, 0, K, L, fabOn ? (G.Fab.activity ? G.Fab.activity() : 0.5) : -1);
   }
   // drawFactory(g, t, x, y, k, nível): desenha a fábrica em qualquer lugar (o jogo usa AX/K; demos e prints usam o que quiserem)
-  function drawFactory(g, t, ax, ay, kk, L) {
+  function drawFactory(g, t, ax, ay, kk, L, act) {
     g.save(); g.translate(ax, ay); g.scale(kk, kk); const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
     const artOk = !!(E.Assets && E.Assets.ready && E.Assets.ready('fabrica_kome_pack'));   // galpão gerado já tem chaminé e fumaça
     if (!artOk) for (let i = 0; i < 5; i++) { const q = (t * 0.35 + i / 5) % 1, rr = 2 + Math.round(q * (3 + Math.min(4, L / 2))); g.globalAlpha = 0.85 * (1 - q); blitAt(g, fumaca(rr), -168 + q * 14 + Math.sin(t + i) * 2 - rr, -104 - q * 40 + rr); }
@@ -197,6 +248,7 @@
     blitAt(g, mesa(), -122, 0);
     blitAt(g, esteira(Math.floor(t * 8) % 4), -88, 0);
     for (let i = 0; i < 6; i++) { const q = (t * 0.25 + i / 6) % 1, x = Math.round(-6 - q * 80); g.fillStyle = PAL.line; g.fillRect(x - 1, -14, 7, 3); g.fillStyle = PC.cream; g.fillRect(x, -14, 5, 2); }
+    if (act !== undefined && act >= 0) working(g, t, act);
     if (L >= 4) blitAt(g, braco(Math.floor(t * 6) % 12), -110, 0);
     if (L >= 6) {
       const n = Math.min(4, L - 5);
