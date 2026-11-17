@@ -33,6 +33,21 @@ infinito ligado, e maxar a árvore vira meta de várias voltas.
   tempo de ouro e o de prata; **nenhuma ilha abaixo de 15 min** na 1ª volta; árvore maxada só na volta 3+.
 - Se alguma ilha ainda ficar abaixo de 15 min: subir `priceMul` daquela ilha, não mexer nas sementes.
 
+## Medalhas recalibradas pro final novo (casa pronta + 95% cavado) — 19/11
+Medido pelo programador: campanha ~70 min; ilhas 31–34 min com sementes moderadas. As medalhas antigas eram do final velho.
+
+| | Honshu | Hokkaido | Kyushu | Okinawa | Mochi |
+|---|---|---|---|---|---|
+| Ouro (antes) | 70 | 34 | 28 | 28 | 30 |
+| **Ouro (agora)** | **75** | **30** | **30** | **30** | **32** |
+| Prata (antes) | 100 | 50 | 42 | 42 | 45 |
+| **Prata (agora)** | **105** | **42** | **42** | **42** | **45** |
+
+- Regra: prata ≈ tempo de quem joga normal + 25%; ouro ≈ 10% mais rápido que o normal (pede atenção, não farm).
+- Com o rebalanço das sementes acima (nenhuma ilha abaixo de 15 min na 1ª volta), o ouro continua sendo conquista.
+- **Na Volta 2+** os tempos das medalhas encolhem 20% por volta (`ouro × 0,8^(volta-1)`), senão viram brinde.
+- `D.ENDGAME.medal = { ouro: [75, 30, 30, 30, 32], prata: [105, 42, 42, 42, 45], lapK: 0.8, seeds: {bronze: 0, prata: 2, ouro: 5} }`
+
 ## Fora do escopo
 Sementes novas, reset de árvore, converter sementes sobrando.
 

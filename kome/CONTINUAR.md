@@ -459,3 +459,11 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
   comprado, fura um túnel reto na base da montanha (boca onde a altura > D.TATU.minH); cada anel paga D.TATU.ringSec s da
   renda; túnel recortado pela superfície (onde cavou, some); montanha nova = túnel novo. Admin: botão "TATUZÃO".
   Pro Fable: o design de verdade (onde comprar, o que ele faz além de renda, se vira peça da Oficina) ainda é dele.
+
+## 19/11 — rodada 3 do designer (Fable): só specs (rascunho, esperando o dono aprovar)
+- docs/design/fabrica-ligacao.md (fila 1): 3 destinos na Doca de Venda (vender / marmita da turma / Vila), Cardápio com selos,
+  pedidos da Vila, receitas por ilha.
+- docs/design/sementes.md (fila 2): seção nova "Medalhas recalibradas pro final novo".
+- docs/design/tatuzao.md (fila 3): Tatuzão como caçador de tesouro (mira 3 alturas, bolsões/baús/núcleo, atalho pra Vila).
+- docs/design/robozinhos.md (fila 5): enxame como "limpeza" (forte no fim da montanha; pode alimentar a fábrica).
+- Fila 4 (pontos fracos do mundo novo) NÃO feita nesta rodada. Nenhum código mexido.
