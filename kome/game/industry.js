@@ -228,19 +228,20 @@
     }
     // kei-truck (o mesmo sprite da tela da fábrica), de frente pra esquerda
     const tr = G.FabArt && G.FabArt.spr && G.FabArt.spr.truck; if (!tr) return;
-    let dx = 0, al = 1, boxes = 0, moving = false;
+    let dx = 0, al = 1, boxes = 0, moving = false, dp = 0;   // dp 0..1 = entrando no beco (some pro fundo, entre o galpão e a Oficina)
+    const lane = k => { dx = -U.ease.in(Math.min(1, k / 0.6)) * 84; dp = U.clamp((k - 0.5) / 0.5, 0, 1); al = 1 - dp * dp; };
     if (u < 8) boxes = Math.min(6, Math.floor(u / 8 * 7));
-    else if (u < 10.5) { const k = (u - 8) / 2.5; dx = -U.ease.in(k) * 230; al = 1 - Math.max(0, k - 0.7) / 0.3; boxes = 6; moving = true; }
+    else if (u < 10.5) { lane((u - 8) / 2.5); boxes = 6; moving = true; }
     else if (u < 13) al = 0;
-    else { const k = (u - 13) / 3; dx = -(1 - U.ease.out(k)) * 230; al = Math.min(1, k / 0.25); moving = true; }
+    else { lane(1 - U.ease.out((u - 13) / 3)); moving = true; }
     if (al <= 0) return;
-    const tx = -292 + dx, bob = moving ? Math.abs(Math.sin(t * 20)) * 0.6 : 0;
+    const tx = -292 + dx, bob = moving ? Math.abs(Math.sin(t * 20)) * 0.6 : 0, ts = 0.75 - 0.3 * dp, ty = -dp * 11;
     g.globalAlpha = al;
-    if (moving) for (let i = 0; i < 3; i++) { const q = (t * 2.2 + i / 3) % 1; g.fillStyle = 'rgba(214,196,160,' + (0.6 * (1 - q)).toFixed(2) + ')'; g.beginPath(); g.arc(tx + 24 + q * 14, -3 - q * 5, 2 + q * 3, 0, 6.3); g.fill(); }
-    for (let i = 0; i < boxes; i++) blitAt(g, caixa(), tx + 2 + (i % 3) * 7, -13 - Math.floor(i / 3) * 7 - bob);
+    if (moving && dp < 0.3) for (let i = 0; i < 3; i++) { const q = (t * 2.2 + i / 3) % 1; g.fillStyle = 'rgba(214,196,160,' + (0.6 * (1 - q)).toFixed(2) + ')'; g.beginPath(); g.arc(tx + 24 + q * 14, -3 - q * 5, 2 + q * 3, 0, 6.3); g.fill(); }
+    if (dp < 0.25) for (let i = 0; i < boxes; i++) blitAt(g, caixa(), tx + 2 + (i % 3) * 7, -13 - Math.floor(i / 3) * 7 - bob);
     if (loading && boxes < 6) { const hq = (u / 8 * 7) % 1; if (hq < 0.5) blitAt(g, caixa(), -268 - hq * 2 * 14, -12 - Math.sin(hq * 2 * Math.PI) * 10); }   // caixa pulando da esteira pra carroceria
-    g.save(); g.translate(Math.round(tx), -bob); g.scale(-0.75, 0.75); g.drawImage(tr, -28, -31); g.restore();
-    if (night && moving) { g.globalAlpha = al * 0.3; g.fillStyle = '#FFE9A8'; g.beginPath(); g.moveTo(tx - 20, -9); g.lineTo(tx - 60, -18); g.lineTo(tx - 60, 0); g.closePath(); g.fill(); }
+    g.save(); g.translate(Math.round(tx), ty - bob); g.scale(-ts, ts); g.drawImage(tr, -28, -31); g.restore();
+    if (night && moving && dp < 0.3) { g.globalAlpha = al * 0.3; g.fillStyle = '#FFE9A8'; g.beginPath(); g.moveTo(tx - 20, -9); g.lineTo(tx - 60, -18); g.lineTo(tx - 60, 0); g.closePath(); g.fill(); }
     g.globalAlpha = 1;
   }
   // nível visual do galpão do pátio: nó "Fábrica de Onigiri" (m5) já levanta o galpão quieto; Fábrica aberta ou níveis do infinito animam

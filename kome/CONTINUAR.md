@@ -467,3 +467,4 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - docs/design/tatuzao.md (fila 3): Tatuzão como caçador de tesouro (mira 3 alturas, bolsões/baús/núcleo, atalho pra Vila).
 - docs/design/robozinhos.md (fila 5): enxame como "limpeza" (forte no fim da montanha; pode alimentar a fábrica).
 - Fila 4 (pontos fracos do mundo novo) NÃO feita nesta rodada. Nenhum código mexido.
+- Fila 4 FEITA (mundo-dois-lados.md): estacionamento virou a 1ª vaga do pátio; voo da Vila passa acima do pico; kei-truck do galpão entra num beco; pequenas trabalham em bancadas na encosta com Caminhão/Bagger. Gêmea continua do outro lado.

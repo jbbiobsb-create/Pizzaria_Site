@@ -16,7 +16,7 @@ Vila do Kome, toda fofa, que o jogador visita com o botão "Vila".
   - "distrito" (Caminhão em diante, ou peças da Bagger compradas): começa em `x0 = 100`, porque a frente de lavra precisa
     de ~1700 de pista livre (a Bagger ocupa de `bagX-770` a `bagX+620`).
 - Botão "Vila" ⇄ "Montanha" no topo (aparece depois da dica de controles): a câmera voa por cima da montanha em 1,5 s e
-  volta. O jogo continua rodando (modo automático, frota, ajudantes); o dedo/mouse não cava olhando a vila; tocar em
+  volta (o arco passa acima do pico atual da montanha). O jogo continua rodando (modo automático, frota, ajudantes); o dedo/mouse não cava olhando a vila; tocar em
   qualquer lugar volta. Comprar etapa da casa ou adereço que mora na vila leva a câmera até lá e ela volta sozinha.
 - Ilha espelhada (scene.mirror): nada muda no código, os bairros trocam de lado junto com a montanha.
 
@@ -27,16 +27,21 @@ Vila do Kome, toda fofa, que o jogador visita com o botão "Vila".
 |---|---|---|---|
 | Frente de lavra (só a máquina ativa, coletor móvel, esteira 1) | x0 .. pé da montanha | livre | sempre |
 | Kei-truck (coletor) | nunca à esquerda de x0+60 | 82 | Britadeira |
-| Silo | x0-60 | 80 | nó Silo (a7) |
-| Capataz / antena | x0-118 / x0-150 | 30 | e3 / e5 |
-| Galpão KOME PACK (escala 3) | x0-210 até x0-1170 | 960 | nó Fábrica de Onigiri (m5), Fábrica aberta ou nível do infinito |
-| Oficina (escala 3) | 20 de folga depois do galpão | 330 | nó Oficina (e2a) |
-| Estacionamento (placa PÁTIO, piso, cerca, vagas pintadas) | 40 depois da Oficina | soma das vagas | Empilhadeira |
-| Vagas, da menor pra maior, folga 64 | trator 152, empilhadeira 150, colheitadeira 170, escavadeira 330, caminhão 352, pá de cabo 700 | | cada máquina comprada |
+| Bancadas da frota (com Caminhão/Bagger na frente) | 160 depois da frente da gigante, encosta acima, fila pela largura + 70 | largura da máquina + 22 | piloto comprado |
+| ESTACIONAMENTO (placa PÁTIO, piso, cerca, vagas pintadas) | começa em x0-40: é a PRIMEIRA vaga | soma das vagas compradas | Empilhadeira (vaga do trator desde o Trator) |
+| Vagas, da menor pra maior, folga 64 (só as compradas ocupam espaço) | trator 152, empilhadeira 150, colheitadeira 170, escavadeira 330, caminhão 352, pá de cabo 700 | | cada máquina comprada |
 | Holofotes (e2b) | nas duas pontas do estacionamento | | e2b |
-| Caixotes de exportação (m_f) | 150 depois da última vaga | 148 | m_f |
-| Torre de energia (referência de escala) | 430 depois da última vaga | 228 | sempre |
-| Estátua KOME-OH | 900 depois da última vaga | 340 | Grande Final |
+| Silo | 80 depois da última vaga (sem frota: x0-60) | 80 | nó Silo (a7) |
+| Capataz / antena | silo-58 / silo-90 | 30 | e3 / e5 |
+| Galpão KOME PACK (escala 3) | 150 depois do silo | 960 | nó Fábrica de Onigiri (m5), Fábrica aberta ou nível do infinito |
+| Beco do kei-truck do galpão (`X.beco`) | colado na ponta de fora do galpão | 260 | junto com o galpão |
+| Oficina (escala 3) | depois do beco (sem galpão: 20 de folga) | 330 | nó Oficina (e2a) |
+| Caixotes de exportação (m_f) | 150 depois da Oficina | 148 | m_f |
+| Torre de energia (referência de escala) | 430 depois da Oficina | 228 | sempre |
+| Estátua KOME-OH | 900 depois da Oficina | 340 | Grande Final |
+
+A esteira 1 (pé da montanha -> silo) corre por trás das máquinas estacionadas. Distrito completo vai até x ≈ -5000
+(limite da câmera `X.minX` = -5600).
 
 Vila (fixo, `VB + ...`): placa -120 · sakura 60 · torii 260 · barris de sake 400 · vaga de ilha v4 500 · barraquinha 740 ·
 mural 845 · casinha 925 · mesinha 995 · CASA 1200 · kakashi 1490 · v3 1620 · sobrado 1840 · poste 1980 · v2 2080 ·
@@ -64,12 +69,27 @@ Chip rosa no topo, junto dos chips de Ilhas/Fábrica. Câmera da vila: centro `V
 - `game/scenery.js`: `YARD` usa as vagas `X.v1..v4` da vila; `legendStatue` usa `X.estatua`.
 - Save e colunas da montanha: intocados. Balanço: intocado.
 
+## Rodada 3, item 4 (pontos fracos): funções mexidas
+- `game/game-world.js` `layout(S)`: ordem nova (estacionamento primeiro, depois silo, galpão, beco, Oficina); assinatura do
+  layout inclui quantas vagas existem; `X.beco` novo; `drawYard` desenha a pista do beco; `X.minX` -5000 -> -5600.
+- `game/industry.js` `working()`: o kei-truck do galpão anda só 84 (antes 230) e entra no beco entre o galpão e a Oficina
+  (encolhe, sobe e some pro fundo). Não passa mais na frente de porta nenhuma.
+- `game/game.js`
+  - `camTick` (bloco da vila): arco calculado pelo pico atual (`heap.peak().h`): o centro da câmera passa acima do pico
+    + 8% da tela, zoom abre até `H / (pico*1,5 + 500)`, subida rápida e topo chato, smootherstep, mesmos 1,5 s.
+    `vilaGo` continua sem voar no modo FAST (conserto do programador mantido).
+  - `fleetWork(f, i, dt, solo)` + `giantFront()` + `drawBench()` (novos) e `fleetTick`: com Caminhão/Bagger na frente as
+    pequenas com piloto sobem a encosta e cavam numa bancada de madeira (tablado nivelado com pernas), cada uma no seu x.
+    A renda é a mesma do `autoTick` (só muda ONDE cava: `f.biteX` na bancada). No modo FAST nada disso roda (ficam na vaga,
+    renda pelo autoTick, igual antes). Montanha acabando (sem encosta de 40 de altura): voltam pra vaga.
+
 ## Ficou de fora (corte de escopo)
 - Fundo industrial do lado da cava (chaminés, guindastes, tanques): o fundo ainda é a cidadezinha fofa nos dois lados.
 - Bagger Gêmea continua do outro lado da montanha (entre a montanha e a vila, sem encostar na vila).
 - Cena de fim de dia: continua a tela própria com a casa (não usa a câmera da vila).
 - Lojas do modo infinito (D.SHOPS) ainda não viram prédios na rua da vila.
-- Kei-truck do galpão sai andando ~690 pra esquerda e passa na frente da Oficina enquanto some.
+- A frente de lavra anda pra direita conforme cava e o pátio não acompanha: no fim de cada era a frota volta a ficar longe.
+- Indo e voltando da bancada as pequenas passam por cima do desenho da gigante (faixa da frente) e sobem a encosta sem inclinar.
 - Vila aparecendo por cima da montanha cavada: não tratado.
 
 ## Perguntas do programador

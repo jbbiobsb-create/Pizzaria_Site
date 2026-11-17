@@ -27,36 +27,45 @@
     fabrica: VB + 2560, v1: VB + 2880, outdoor: VB + 3140,
     vilaX0: VB, vilaX1: VB + 3370, vilaCx: VB + 1040,
     // lado da cava (layout(S) recalcula)
-    casinha: 1716, barraca: 1560, silo: 1320, capataz: 1262, antena: 1230, fab: 0, fabPorta: 0, oficina: 0, lotR: 0, lotL: 0, lotFull: 0,
+    casinha: 1716, barraca: 1560, silo: 1320, capataz: 1262, antena: 1230, fab: 0, fabPorta: 0, oficina: 0, lotR: 0, lotL: 0, lotFull: 0, beco: 0,
     caixotes: 0, torre: 0, estatua: 0, keiMin: 1440, x0: 1380, park: {},
-    minX: -5000, maxX: VB + 3600,                   // limites da câmera (o jogador continua preso ao lado da cava)
+    minX: -5600, maxX: VB + 3600,                   // limites da câmera (o jogador continua preso ao lado da cava)
   };
   // vagas do estacionamento, da menor pra maior: [id, largura real da máquina]
   const BAYS = [['trator', 152], ['empilhadeira', 150], ['colheita', 170], ['escav', 330], ['caminhao', 352], ['pacabo', 700]];
-  const FAB_K = 3, FAB_W = 960, OFI_K = 3, OFI_W = 330, BAY_GAP = 64;
+  const FAB_K = 3, FAB_W = 960, OFI_K = 3, OFI_W = 330, BAY_GAP = 64, ALLEY = 260;
   let laySig = -1;
   // tem galpão no pátio? (nó Fábrica de Onigiri, Fábrica aberta ou nível de fábrica do modo infinito)
   const hasFab = S => !!(S.own.m5 || (G.Ind && G.Ind.level && G.Ind.level() > 0));
   /* layout(S): vagas da zona industrial, da montanha pra fora, sem nada em cima de nada:
-     frente de lavra (só a máquina ativa) -> silo/coletor -> galpão KOME PACK -> Oficina -> estacionamento da frota -> ramal.
+     frente de lavra (só a máquina ativa) -> coletor -> ESTACIONAMENTO DA FROTA (as máquinas ficam à vista da frente de lavra)
+     -> silo -> galpão KOME PACK -> beco do kei-truck -> Oficina -> ramal.
+     O estacionamento só ocupa as vagas das máquinas já compradas; cada compra empurra silo/galpão/Oficina pra fora.
      Era "canteiro" (até a Escavadeira): o pátio começa em 1380. Era "distrito" (Caminhão em diante, ou peças da Bagger):
      começa em 100, porque a frente de lavra precisa de ~1700 de pista pra Bagger/caminhão manobrarem sem tapar prédio. */
   function layout(S) {
     const TI = (G.Data && G.Data.toolIndex) || {}, big = S.tool >= (TI.caminhao || 11) || !!S.bag || !!S.own.bg1;
     const fab = hasFab(S), ofi = !!S.own.e2a, stall = S.tool < (TI.trator || 7);
-    const sig = (big ? 8 : 0) + (fab ? 4 : 0) + (ofi ? 2 : 0) + (stall ? 1 : 0);
+    let nb = 0; for (const [id] of BAYS) if ((TI[id] || 99) <= S.tool) nb++;
+    const sig = nb * 16 + (big ? 8 : 0) + (fab ? 4 : 0) + (ofi ? 2 : 0) + (stall ? 1 : 0);
     if (sig === laySig) return X;
     laySig = sig;
     const x0 = big ? 100 : 1380;
-    X.x0 = x0; X.keiMin = x0 + 60; X.silo = x0 - 60; X.capataz = x0 - 118; X.antena = x0 - 150;
+    X.x0 = x0; X.keiMin = x0 + 60;
     X.barraca = stall ? 1560 : X.barracaVila;
     X.casinha = stall ? 1716 : X.casinhaVila;        // com o Trator o Kome compra o terreno: a casinha de cachorro muda pra vila junto
-    let c = x0 - 190;
-    if (fab) { X.fab = c - 20; X.fabPorta = X.fab; c = X.fab - FAB_W; } else { X.fab = 0; X.fabPorta = 0; }
-    if (ofi) { X.oficina = c - 20 - OFI_W / 2; c = X.oficina - OFI_W / 2 - 20; } else X.oficina = c - 20 - OFI_W / 2;
-    X.lotR = c - 40; let b = X.lotR - 30;
-    for (const [id, w] of BAYS) { X.park[id] = b - w / 2; X.park[id + '_L'] = b - w - BAY_GAP / 2; b -= w + BAY_GAP; }
-    X.lotFull = b; X.caixotes = b - 150; X.torre = b - 430; X.estatua = b - 900;
+    // 1) estacionamento: colado na frente de lavra, da menor pra maior (vaga de máquina ainda não comprada não ocupa espaço)
+    X.lotR = x0 - 40; let b = X.lotR - 30;
+    for (const [id, w] of BAYS) { X.park[id] = b - w / 2; X.park[id + '_L'] = b - w - BAY_GAP / 2; if ((TI[id] || 99) <= S.tool) b -= w + BAY_GAP; }
+    X.lotFull = b;
+    // 2) silo (com capataz e antena), 3) galpão, 4) beco do kei-truck + Oficina
+    let c = nb ? b - 20 : x0;
+    X.silo = c - 60; X.capataz = c - 118; X.antena = c - 150; c -= 190;
+    if (fab) { X.fab = c - 20; X.fabPorta = X.fab; c = X.fab - FAB_W; X.beco = c; } else { X.fab = 0; X.fabPorta = 0; X.beco = 0; }
+    const gap = fab ? ALLEY : 20;                    // beco entre o galpão e a Oficina: o kei-truck entra nele (não passa na frente de porta nenhuma)
+    X.oficina = c - gap - OFI_W / 2;
+    if (ofi || fab) c = X.oficina - OFI_W / 2 - 20;  // com galpão o beco fica reservado mesmo sem Oficina
+    X.caixotes = c - 150; X.torre = c - 430; X.estatua = c - 900;
     for (const p of props) if (p.k) p.x = X[p.k];
     for (const o of RULER) if (o.k) o.x = X[o.k];
     return X;
@@ -450,6 +459,11 @@
       else { Draw.box(g, X.casa - 2, -40, 4, 40, PAL.wood, { ol: 1 }); Draw.sign(g, X.casa - 34, -66, 68, 26, 'À VENDA', { col: PAL.cream, ink: PAL.red }); }
     }
     drawLot(g, v, S);
+    if (X.beco && X.beco > v.x0 && X.beco - ALLEY < v.x1) {   // beco do kei-truck: pista que entra pro fundo entre o galpão e a Oficina
+      const R = X.beco - 14, L = X.beco - ALLEY + 14;
+      g.fillStyle = '#8B8F96'; g.beginPath(); g.moveTo(L, 8); g.lineTo(R, 8); g.lineTo(R - 62, -22); g.lineTo(L + 62, -22); g.closePath(); g.fill();
+      g.fillStyle = '#F3EBDB'; for (let i = 0; i < 3; i++) g.fillRect((L + R) / 2 - 3 + i, 2 - i * 9, 6 - i * 2, 5 - i);
+    }
     for (let i = 0; i < RULER.length; i++) { const o = RULER[i]; if (o.x + o.r > v.x0 && o.x - o.r < v.x1) o.draw(g, o.x, t, S); }
     for (let i = 0; i < props.length; i++) {
       const p = props[i], r = p.r || 500;

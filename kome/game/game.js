@@ -764,34 +764,64 @@
   // (o rendimento continua o do autoTick, só que cavado onde a máquina está)
   const WORKERS = { trator: 1, colheita: 1, empilhadeira: 1, escav: 1 };
   const iW = { x: 0, y: 0, face: 1, tx: null, ty: null, digging: false, power: 1, speedMul: 1, vx: 0, floor: null, t: 0, parts: null, boost: 0, night: 0, zoom: 1 };
-  function fleetWork(f, i, dt) {
-    const t = TOOLS[D.toolIndex[f.id]], spd = Math.min(220, t.spd * 0.6);
+  let benchY = 0; const benchFn = () => benchY;
+  // frente da máquina gigante (caminhão + escavadeira do Tetsu, ou a Bagger): as pequenas só trabalham DEPOIS desse x
+  function giantFront() {
+    let fr = P.x + (T.w || 100) / 2;
+    if (cur.kind === 'bagger') { const b = T.bite(S.m); fr = Math.max(fr, b && b.x ? b.x + (b.r || 0) : P.x + 620); }
+    else if (cur.kind === 'haul') fr = Math.max(fr, LX.x + 340);
+    if (S.bag && S.bag.m !== S.m && S.tool === NT - 1) fr = Math.max(fr, S.bagX + 700);
+    return Math.max(S.footX, fr);
+  }
+  // solo = gigante na frente de lavra: as pequenas sobem a encosta e trabalham numa BANCADA (plataforma) mais acima, cada uma
+  // no seu x (fila pela largura real, 160 depois da frente da gigante). Sem gigante: fila no pé da montanha, como antes.
+  function fleetWork(f, i, dt, solo) {
+    const t = TOOLS[D.toolIndex[f.id]], spd = Math.min(220, t.spd * 0.6), TW = G.Tools[f.id].w;
     if (!f.st) { f.st = 'park'; f.wt = 1.5 + i * 2.2; f.vx = 0; }
     // cada uma tem o seu lugar na frente de lavra: fila pela largura real, atrás da máquina do Kome (nada encavalado)
-    let slot = 0; for (let j = 0; j < i; j++) { const o = S.fleet[j]; if (WORKERS[o.id] && st.pilots[o.id]) slot += G.Tools[o.id].w + 40; }
-    const face = faceAhead(Math.min(Math.max(f.x, WL.MX0 - 400), S.footX - 40), 16, 1400), gap = (T.w || 100) / 2 + G.Tools[f.id].w / 2 + 40;
-    const digX = Math.min(face - t.park, P.x - gap) - slot, home = PARK(f.id);
+    let slot = 0; for (let j = 0; j < i; j++) { const o = S.fleet[j]; if (WORKERS[o.id] && st.pilots[o.id]) slot += G.Tools[o.id].w + (solo ? 70 : 40); }
+    const home = PARK(f.id);
+    let face, digX, ok = true;
+    if (solo) {
+      digX = giantFront() + 160 + slot + TW / 2;
+      ok = digX < WL.MX1 - 300 && heap.height(digX + TW / 2) > 40;   // montanha acabando: sem encosta pra bancada, fica na vaga
+      face = faceAhead(f.x + TW / 2 - 8, 16, 300);
+    } else {
+      face = faceAhead(Math.min(Math.max(f.x, WL.MX0 - 400), S.footX - 40), 16, 1400);
+      digX = Math.min(face - t.park, P.x - (T.w || 100) / 2 - TW / 2 - 40) - slot;
+    }
     if (f.st === 'park') f.x = home;
     let tx = f.x;
-    if (f.st === 'park') { f.wt -= dt; if (f.wt <= 0) f.st = 'go'; }
-    else if (f.st === 'go') { tx = digX; if (Math.abs(f.x - digX) < 6) { f.st = 'dig'; f.wt = 26 + i * 4; } }
-    else if (f.st === 'dig') { tx = digX; f.wt -= dt; if (f.wt <= 0) { f.st = 'back'; } }
+    if (f.st === 'park') { f.wt -= dt; if (f.wt <= 0 && ok) f.st = 'go'; }
+    else if (f.st === 'go') { tx = digX; if (!ok) f.st = 'back'; else if (Math.abs(f.x - digX) < 6) { f.st = 'dig'; f.wt = 26 + i * 4; } }
+    else if (f.st === 'dig') { tx = digX; f.wt -= dt; if (f.wt <= 0 || !ok) { f.st = 'back'; } }
     else if (f.st === 'back') { tx = home; if (Math.abs(f.x - home) < 8) { f.st = 'park'; f.wt = 1.5 + i * 0.4; } }
     const want = U.clamp((tx - f.x) * 2, -spd, spd);
     f.vx = U.damp(f.vx || 0, want, 4, dt); f.x += f.vx * dt;
-    f.y = LANE_Y;   // trabalham na faixa da frente (mais perto da câmera), por cima da máquina do Kome
+    // chão: faixa da frente do pátio; na encosta, a altura do barranco na ponta da frente da máquina (a bancada nivela o resto)
+    const hy = solo && f.st !== 'park' && heap.height(f.x + TW / 2) > 12 ? heap.surf(f.x + TW / 2) : LANE_Y;
+    f.y = f.st === 'park' ? LANE_Y : U.damp(f.y, hy, 7, dt);
+    f.bench = solo && f.st === 'dig' && f.y < -6;
+    benchY = f.y;
     iW.x = f.x; iW.y = f.y; iW.face = f.st === 'back' ? -1 : 1; iW.vx = f.vx; iW.t = S.time; iW.parts = FAST ? null : parts;
-    iW.floor = flatFn; iW.digging = f.st === 'dig'; iW.tx = face + 10; iW.ty = heap.surf(face + 10);
+    iW.floor = f.y < 0 ? benchFn : flatFn; iW.digging = f.st === 'dig'; iW.tx = face + 10; iW.ty = heap.surf(face + 10);
     G.Tools[f.id].update(f.m, dt, iW); f.warm = true;
-    if (f.st === 'dig' && digX > face - t.park - 30) { const b = G.Tools[f.id].bite(f.m); if (b && b.active) f.biteX = b.x; } else f.biteX = 0;   // longe do barranco: rende pelo autoTick (pé da montanha)
+    if (f.st === 'dig' && (solo || digX > face - t.park - 30)) { const b = G.Tools[f.id].bite(f.m); if (b && b.active) f.biteX = b.x; } else f.biteX = 0;   // longe do barranco: rende pelo autoTick (pé da montanha)
+  }
+  // bancada: tablado de madeira nivelado na encosta, com pernas até o barranco (desenhado logo antes da máquina que está em cima)
+  function drawBench(g, f) {
+    const w = G.Tools[f.id].w, L = f.x - w / 2 - 16, R = f.x + w / 2 + 6, y = f.y;
+    for (let x = L + 8; x < R - 4; x += 46) { const sy = heap.surf(x); if (sy > y + 9) Draw.box(g, x - 3, y + 6, 6, sy - y - 4, PAL.wood, { ol: 1 }); }
+    Draw.box(g, L, y, R - L, 8, PAL.woodL, { ol: 1 }); g.fillStyle = PAL.wood; g.fillRect(L + 1, y + 5, R - L - 2, 2);
+    g.fillStyle = PAL.yel; for (let x = L + 4; x < L + 28; x += 12) g.fillRect(x, y + 1, 6, 3);   // faixa de segurança na ponta de fora
   }
   function fleetTick(dt) {
+    // com caminhão/Bagger na frente de lavra as pequenas trabalham na bancada, mais acima na encosta (a renda delas não muda)
+    const solo = cur.kind === 'bagger' || cur.kind === 'haul' || !!(S.bag && S.tool === NT - 1);
     for (let i = 0; i < S.fleet.length; i++) {
       const f = S.fleet[i];
-      // com caminhão/Bagger na frente de lavra as pequenas ficam na vaga (UMA máquina no barranco; a renda delas continua no autoTick)
-      const solo = cur.kind === 'bagger' || cur.kind === 'haul' || (S.bag && S.tool === NT - 1);
-      if (st.pilots[f.id] && WORKERS[f.id] && !solo) { if (!FAST || !f.warm) fleetWork(f, i, dt); else { f.x = PARK(f.id); } continue; }
-      f.st = null; f.biteX = 0; f.x = PARK(f.id); f.y = LANE_Y;
+      if (st.pilots[f.id] && WORKERS[f.id]) { if (!FAST || !f.warm) fleetWork(f, i, dt, solo); else { f.x = PARK(f.id); f.y = LANE_Y; f.st = 'park'; f.bench = false; f.biteX = 0; } continue; }
+      f.st = null; f.biteX = 0; f.bench = false; f.x = PARK(f.id); f.y = LANE_Y;
       if (FAST && f.warm) continue;
       if (!f.warm || cam.visible(f.x, -100, 700)) { iF.x = f.x; iF.y = f.y; iF.t = S.time; iF.parts = null; G.Tools[f.id].update(f.m, dt, iF); f.warm = true; }
     }
@@ -1490,9 +1520,12 @@
       if (vila.on && vila.auto > 0 && vila.k >= 1 && (vila.auto -= dt) <= 0) vila.on = false;
       vila.k = U.clamp(vila.k + (vila.on ? dt : -dt) / 1.5, 0, 1);
       if (vila.k > 0) {
-        const e = vila.k * vila.k * (3 - 2 * vila.k), arc = Math.sin(Math.PI * e), vy = -0.2 * H / vila.z;
-        const zz = Math.exp(U.lerp(Math.log(vila.hz), Math.log(vila.z), e)) * (1 - 0.72 * arc);   // abre o zoom e sobe no meio do voo: passa POR CIMA da montanha
-        cam.snapTo(U.lerp(vila.hx, vila.x, e), U.lerp(vila.hy, vy, e) - arc * 1500, zz); cam.maxShake = 0; cam.update(dt); return;
+        // voo POR CIMA do pico atual: e = vai-e-vem suave (smootherstep); up sobe rápido e fica chato no alto; no ápice o zoom abre
+        // e o centro da câmera passa ACIMA do pico (pico + 8% da tela de folga): a encosta nunca raspa na câmera
+        const k = vila.k, e = k * k * k * (k * (6 * k - 15) + 10), a = Math.sin(Math.PI * e), up = 1 - (1 - a) * (1 - a), vy = -0.2 * H / vila.z;
+        const pk = heap.peak ? heap.peak().h : heap.maxH, zb = Math.exp(U.lerp(Math.log(vila.hz), Math.log(vila.z), e));
+        const zA = Math.min(zb, H / (pk * 1.5 + 500)), yb = U.lerp(vila.hy, vy, e), yA = Math.min(yb - 160, -pk - 0.08 * H / zA);
+        cam.snapTo(U.lerp(vila.hx, vila.x, e), U.lerp(yb, yA, up), Math.exp(U.lerp(Math.log(zb), Math.log(zA), up))); cam.maxShake = 0; cam.update(dt); return;
       }
       cam.snapTo(vila.hx, vila.hy, vila.hz);
     }
@@ -1637,7 +1670,7 @@
     if (twinPaint) { try { g.filter = 'none'; } catch (e) { /* */ } }   // zoom bem aberto: Bagger em cache (redesenha 1 quadro sim, 1 não)
     if (c.kind === 'cesto' && cur.kind === 'hand') drawBackpack(g, c, t);
     p2Draw(g, t);
-    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && f.warm && cam.visible(f.x, -150, 800)) drawMach(g, f.id, f.m, f); }   // frota trabalhando, na frente
+    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && f.warm && cam.visible(f.x, f.y - 150, 800)) { if (f.bench) drawBench(g, f); drawMach(g, f.id, f.m, f); } }   // frota trabalhando, na frente (na bancada quando tem gigante)
     if (crack.k > 0.05 && cur.kind === 'jack') drawCrack(g);
     if (S.own.c6 && S.autoMode && cur.kind === 'hand') { drawSweat(g, t); if (S.own.c6b) drawSweat(g, t + 0.45); }
     if (cur.kind === 'hand' || cur.kind === 'push' || cur.kind === 'jack') { drawAcc(g, t); drawDizzy(g, t); }   // acessório também com carrinho e britadeira
