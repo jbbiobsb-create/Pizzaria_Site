@@ -17,6 +17,10 @@
    Classes (camada-cookie.md): MÃO (pata…britadeira) = turma de até 8 shibas num canteiro com montinho de arroz;
    MÉDIA (trator…escavadeira) = até 4 nas vagas + comboio na rua do pátio; GIGANTE (caminhão, pá de cabo, Bagger) = silhuetas no
    horizonte (3 camadas, névoa, parallax). Patamares visuais em PA.TIERS (10, 25, 50, 100, 150…).
+   Polimento: ferramentas grandes na pata (silhueta lê de longe), QG-pagode por turma de mão (100+, 1 andar por patamar, à altura dos
+   estacionamentos), patamar de OURO (500+) = brilho + friso dourado + placa "LENDÁRIA", faixa da frente (rua, calçada, cercas, arrozal,
+   poças, placas; drawFront) até embaixo do HUD, máquinas desviradas em ilha espelhada (drawM), absurdas em skyline com lote por máquina.
+   stats.part = {giants, front, hand, mid} em ms.
    Desempenho: shiba de turma = quadro pronto (6 quadros por ferramenta/paleta), máquinas = imagem pronta (2 quadros), estruturas
    e placas = imagem pronta; corta pelo view; no máx. PA.FIG_CAP figuras animadas soltas, o resto vira imagem de grupo. */
 (function () {
@@ -650,7 +654,7 @@
         const x = B.bx1 + B.w * 0.5 - ((t * spd + j * sp) % span), y = 64, sc = 0.66 * mk;
         const o = machImg(id, Math.floor(t * 2 + j) % 2, k, variant); if (!o) break;
         Draw.shadow(g, x, y + 1, MW[id] * 0.4 * sc, 3, 0.16);
-        drawM(g, o.c, x, y + Math.sin(t * 11 + j) * 0.6, o.ax * sc, o.ay * sc, o.w * sc, o.h * sc, true); stats.mach++;
+        drawM(g, o.c, x, y + Math.sin(t * 11 + j) * 0.6, o.ax * sc, o.ay * sc, o.w * sc, o.h * sc, !Draw.mirrored(g)); stats.mach++;   // comboio: vira junto com o mundo (de frente pra onde anda)
         const dn = tier >= T25 ? 4 : 2;
         for (let d = 0; d < dn; d++) { const q = (t * 1.3 + d / dn + j * 0.3) % 1; g.globalAlpha = 0.3 * (1 - q); g.fillStyle = '#E6D8B8'; g.beginPath(); g.arc(x + MW[id] * 0.42 * sc + q * 30, y - 3 - q * 10, 4 + q * 9, 0, TAU); g.fill(); }
         g.globalAlpha = 1;
@@ -916,7 +920,7 @@
     // céu: dirigível (300+) e fogos (400+) — por turma
     for (const id of PA.HAND.concat(PA.MID)) {
       const n = st(id).n | 0, tr = tierOf(n); if (tr < T300) continue;
-      const gx = isHand[id] ? L.hand[id].px0 + HPW / 2 : (L.mid[id].bx0 + L.mid[id].bx1) / 2, gy = isHand[id] ? -4 - (Math.min(6, 2 + Math.floor((n - 100) / 50)) * PG_FH + 92) - 70 : -(Math.min(6, 2 + Math.floor((n - 100) / 50)) * Math.max(64, MH[id] * 0.62) + 26) - 110;
+      const gx = isHand[id] ? L.hand[id].px0 + HPW / 2 : (L.mid[id].bx0 + L.mid[id].bx1) / 2, gy = isHand[id] ? -4 - (Math.min(6, 2 + Math.floor((n - 100) / 50)) * PG_FH + 92) - 70 : -(Math.min(6, 2 + Math.floor((n - 100) / 50)) * Math.max(64, MH[id] * 0.62) + 26) - 110 - (tr >= T500 ? 70 : 0);
       if (gx + 200 < v.x0 || gx - 200 > v.x1) continue;
       const o = blimpImg(id), bs = isHand[id] ? 1 : 2; blitText(g, o, gx - 60 * bs + Math.sin(t * 0.3 + gx) * 30, gy + Math.sin(t * 0.8 + gx) * 5, bs);
       if (tr >= T400) for (let k = 0; k < 2; k++) {
