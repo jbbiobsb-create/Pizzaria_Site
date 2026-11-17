@@ -17,6 +17,10 @@
   };
 
   /* ---------------- economia ---------------- */
+  // FINAL: a casa pronta E a montanha cavada até END_DUG (antes acabava na compra do onsen, com ~80% cavado)
+  D.END_DUG = 0.95;
+  // TATUZÃO (game/tatuzao.js): vende depois do final; price em segundos de renda; cada anel paga ringSec s da renda de agora
+  D.TATU = { price: 900, ringSec: 1.2, minH: 330 };
   D.ECON = {
     P0: 0.20,               // ¥ por px² de arroz solto
     COST_TOOL: 1.47,          // botões de ajuste do balanceamento (o playtest.js mede o efeito)

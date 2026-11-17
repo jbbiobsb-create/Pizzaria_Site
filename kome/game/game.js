@@ -621,10 +621,10 @@
   }
 
   /* máquinas de cabine (trator, empilhadeira, escavadeira, pá de cabo): estacionam na distância de trabalho do barranco */
-  function parkAt(x, vxObj, park, maxV, busy, dt, hold) {
+  function parkAt(x, vxObj, park, maxV, busy, dt, hold, noPtr) {
     const fxr = faceAhead(x, 16, 900);
     let xT = fxr - park;
-    if (hold) xT = Math.min(xT, ptr.wx - park * 0.5);
+    if (hold && !noPtr) xT = Math.min(xT, ptr.wx - park * 0.5);
     xT = Math.max(WL.MX0 - 300, xT);
     const want = busy || !hold ? 0 : U.clamp((xT - x) * 3, -maxV, maxV);
     vxObj.vx = U.damp(vxObj.vx, want, 5, dt);
@@ -670,8 +670,11 @@
   /* caminhão de mineração: o Tetsu carrega com a pá de cabo, o Kome leva até a moega; o ¥ sai na basculada */
   function driveHaul(dt, hold) {
     const tr = S.m, sh = S.loader, TS = G.Tools.escav, TT = T, park = TOOLS[D.toolIndex.escav].park;
-    const loadSide = ptr.wx > P.x - 60;
-    LX.x = parkAt(LX.x, LX, park, 30, sh.busy, dt, hold && loadSide);
+    // segurar em cima do caminhão (inclusive na caçamba) ou na frente = carregar; só bem atrás dele = "leva embora já"
+    // (antes era P.x - 60: clicar na caçamba fazia ele dar ré pro pátio e parecer travado)
+    const loadSide = ptr.wx > P.x - 380;
+    const far = Math.abs(faceAhead(LX.x, 16, 900) - park - LX.x) > 160;   // longe da montanha (ex.: save com o caminhão no pátio): vem rápido
+    LX.x = parkAt(LX.x, LX, park, far ? 320 : 30, sh.busy, dt, hold && loadSide, true);   // a pá do caminhão fica na montanha (não segue o mouse)
     iL.x = LX.x; iL.y = heap.surf(LX.x); iL.vx = LX.vx; iL.t = S.time; iL.tx = parkAt.face + 30; iL.ty = Math.min(ptr.wy, -40);
     iL.speedMul = iT.speedMul = animSpeed() * EC.HAUL_SPEED;
     const wantLoad = hold && loadSide && tr.load < 1.0;
@@ -894,7 +897,7 @@
      vila.k 0..1 = progresso do voo; o jogo continua rodando, só o dedo/mouse não cava enquanto olha a vila. */
   const vila = { on: false, k: 0, x: 0, y: 0, z: 0.5, auto: 0, hx: 0, hy: 0, hz: 1 };
   function vilaGo(on, x, z, sec) {
-    if (cs || S.endOpen) return false;
+    if (cs || S.endOpen || (FAST && on)) return false;   // modo acelerado (testes): o voo só anda nos quadros de tela, não voa
     if (on) { if (vila.k <= 0) { vila.hx = cam.x; vila.hy = cam.y; vila.hz = cam.z; } vila.x = x || Wd.X.vilaCx; vila.z = z || 0.56; vila.auto = sec || 0; }
     vila.on = !!on; if (!FAST) sfx('whoosh', { vol: 0.4 });
     return true;
@@ -939,10 +942,11 @@
       vilaGo(true, Wd.X.casa, 0.95, 4);   // a casa nova fica na vila: a câmera vai lá mostrar
       if (h.id === 'h2') ui(() => UI.toast('Carta do corretor', { icon: 'house', sub: 'o iene mudou :) o onsen subiu pra ¥70 mi', dur: 6 }));
     }
-    if (S.house >= D.HOUSE.length) ending();
+    if (S.house >= D.HOUSE.length) { if (dugFrac() >= D.END_DUG) ending(); else if (!FAST) ui(() => UI.toast('Casa pronta!', { icon: 'house', tone: 'gold', sub: 'agora termine a montanha: faltam ' + Math.ceil((D.END_DUG - dugFrac()) * 100) + '%', dur: 6 })); }
     if (!FAST) saveNow();
     return true;
   }
+  const dugFrac = () => (S.heapTotal ? 1 - S.heapArea / S.heapTotal : 0);
   function ending() {
     S.ended = true; S.endT = S.time; computeStats();
     const res = G.Islands ? G.Islands.onEnding(S.time) : null;   // tempo e medalha da ilha (sementes extras)
@@ -996,7 +1000,8 @@
   const PORTRAIT = () => MOBILE && innerHeight > innerWidth * 1.1;   // celular em pé: aviso de virar cobre tudo e o jogo pausa
   let rotDrawn = false;
   function update(dt) {
-    if (G.Sim && !cs && !PORTRAIT()) G.Sim.tick(dt);   // sistemas por tempo (E.Sim): rodam mesmo com a Casa ou o mapa abertos
+    if (G.Sim && !cs && !PORTRAIT()) G.Sim.tick(dt);
+    if (G.Tatu && !cs && !PORTRAIT()) G.Tatu.tick(dt);   // sistemas por tempo (E.Sim): rodam mesmo com a Casa ou o mapa abertos
     if (PORTRAIT()) { if (!rotDrawn) { const c = document.getElementById('k-rot-cv'); if (c) { const cg = c.getContext('2d'); cg.imageSmoothingEnabled = false; E.drawShiba(cg, 48, 74, 'wag', 1, { scale: 2, pal: (S.look && S.look.pal) || 'kome' }); rotDrawn = true; } } return; }
     if (cs) { csTick(dt); return; }
     if (G.Home && G.Home.isOpen()) { G.Home.tick(dt); return; }
@@ -1014,7 +1019,7 @@
     S.bury = 0;   // soterramento removido (o dono não curtiu); variável fica pra saves antigos
     if (cur.kind === 'jack' && !FAST) crackTick(dt);
     const lock = locked();
-    let hold = ptr.down && !lock && vila.k <= 0;
+    let hold = ptr.down && !lock && (vila.k <= 0 || FAST);
     S.autoMode = false;
     if (!hold && !lock && st.auto > 0 && ptr.has) { hold = true; S.autoMode = true; }
     inp.parts = iL.parts = iT.parts = FAST ? null : parts;
@@ -1030,7 +1035,7 @@
     if (!FAST) slideTick(dt);
     if (!FAST && heap.flow > 30 && Math.random() < Math.min(0.9, heap.flow / 400)) trickle(heap.flowX, 1 + (heap.flow > 300 ? 2 : 0));
     S.heapArea = heap.area;
-    S.footT -= dt; if (S.footT <= 0) { S.footT = 1; S.footX = scanFoot(); }
+    S.footT -= dt; if (S.footT <= 0) { S.footT = 1; S.footX = scanFoot(); if (!S.ended && S.house >= D.HOUSE.length && dugFrac() >= D.END_DUG && !cs) ending(); }   // final = casa pronta + montanha acabada
     celeTick(dt);
     fleetTick(dt);
     collectorTick(dt);
@@ -1256,6 +1261,7 @@
   }
   function newMountain(shape) {
     if (!S.ended) { ui(() => UI.toast('Termine a primeira montanha antes', { icon: 'lock' })); return false; }
+    if (G.Tatu) G.Tatu.reset();   // túnel novo na montanha nova
     // recorde da montanha que está saindo (tempo do início até agora), só se cavou boa parte
     if (S.heapTotal && (S.heapTotal - S.heapArea) / S.heapTotal > 0.6) { const r = (S.stats.rec = S.stats.rec || {}), dt = S.time - (S.mountT || 0), id = shapeId(); if (!r[id] || dt < r[id]) r[id] = dt; }
     S.mount = (S.mount || 1) + 1; S.shape = typeof shape === 'string' ? shape : SHAPES[(S.mount - 1) % SHAPES.length].id; S.mountT = S.time;
@@ -1588,6 +1594,7 @@
     if (slideFX) slideFX.draw(g, cam.z);
     if (G.Scenery) G.Scenery.crest(g, heap, view, t, cam.z, S);   // neve / cinza / areia / brilho de mochi por cima
     if (S.own.s10) drawVeins(g, view, t);
+    if (G.Tatu) { G.Tatu.drawTunnel(g, view); G.Tatu.draw(g, view); }   // Tatuzão furando a montanha
     g.restore(); g.save(); g.translate(qx * 0.3, qy * 0.3);
     Wd.drawGround(g, view, z);
     drawFoot(g, view);
@@ -1753,6 +1760,9 @@
     }
     else if (kd) {
       if (keyAim === null) { const b = T.bite ? T.bite(S.m) : null; keyAim = b && b.x === b.x && b.x !== 0 ? b.x : P.x + P.face * 20; }
+      // caminhão: o ponto de mordida é a caçamba (atrás da cabine) e ficava a poucos px do lado "descarregar";
+      // com o CAVAR do celular ele dava ré pro pátio e não carregava nunca. Mira sempre do lado da montanha.
+      if (cur.kind === 'haul') keyAim = Math.max(keyAim, P.x + 200);
       ptr.wx = keyAim; ptr.wy = heap.surf(keyAim) - 4; ptr.down = true; ptr.has = true;
     } else keyAim = null;
     if (input.keyPressed && input.keyPressed('Space') && S.own.b0 && cur.kind === 'bagger') horn();
@@ -1931,6 +1941,8 @@
     if (G.Ind) G.Ind.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
       visit: (x, z, y, dur) => { visit = { x, t: 0, dur: dur || 3.5, z, y, far: true }; } });   // câmera vai mostrar a Bagger gêmea do outro lado
     if (G.Topo) G.Topo.init({ sfx });
+    if (G.Tatu) G.Tatu.init({ heap: () => heap, parts: () => parts, pay: (v, x, y) => pay(v, x, y, 1),
+      bought: x => { sfx('fanfare'); ui(() => UI.banner('TATUZÃO!', 'ele vai furar a montanha e cada anel paga', { icon: 'star', tone: 'gold', dur: 3.5 })); visit = { x: x - 300, t: 0, dur: 3.5 }; } });
     if (G.Fab) G.Fab.init({ save: () => saveNow(),
       banner: () => { sfx('fanfare'); ui(() => UI.banner('O galpão KOME PACK abriu!', 'toque em Fábrica, no topo da tela', { icon: 'star', tone: 'gold', dur: 4 })); },
       toast: (t, sub) => ui(() => UI.toast(t, { icon: 'yen', tone: 'gold', sub })) });
@@ -1964,7 +1976,8 @@
   }
 
   /* ---- API pública e ganchos de teste ---- */
-  G.Game = { vila: vilaGo, on: (ev, fn) => { nListen++; return em.on(ev, fn); }, buyTool, buyNode, buyHouse, setTool, stats: () => st, nodeState, nodeCost, toolCost, houseCost, pay, aim, tapAll, saveNow, horn };
+  G.Game = { vila: vilaGo, on: (ev, fn) => { nListen++; return em.on(ev, fn); }, buyTool, buyNode, buyHouse, setTool, stats: () => st, nodeState, nodeCost, toolCost, houseCost, pay, aim, tapAll, saveNow, horn,
+    reset: () => { save.clear(); saveNow = () => {}; location.reload(); } };   // admin: apaga o save e começa do zero
   window.__kome = {
     S, P, data: D, buyTool, buyNode, buyHouse, tapAll, aim: () => { const a = aim(); return { x: a.x, y: a.y }; },
     setTool(i) { setTool(i); S.cele.t = -1; cam.snapTo(P.x, P.y - 60, cur.zoom); return cur.id; },
@@ -1975,7 +1988,7 @@
     // step(seg, dt=1/30): avança a simulação sem desenhar (determinístico o bastante pro autoplayer)
     step(sec, h) { h = h || 1 / 30; FAST = true; const n = Math.round(sec / h); try { for (let i = 0; i < n; i++) update(h); } finally { FAST = false; } return S.time; },
     play(id) { csPlay(id); },
-    dbg() { return { px: P.x | 0, py: P.y | 0, wx: ptr.wx | 0, wy: ptr.wy | 0, h: heap.height(ptr.wx) | 0, hk: heap.height(P.x + P.face * 30) | 0, stun: S.stun || 0, down: ptr.down }; },
+    dbg() { return { lx: LX.x | 0, near: !!parkAt.near, face: parkAt.face | 0, keyAim, budget: S.budget | 0, wantsLoad: S.m && S.m.wantsLoad, px: P.x | 0, py: P.y | 0, wx: ptr.wx | 0, wy: ptr.wy | 0, h: heap.height(ptr.wx) | 0, hk: heap.height(P.x + P.face * 30) | 0, stun: S.stun || 0, down: ptr.down }; },
     newMountain() { S.ended = true; return newMountain(); },
     // setIsland(n): troca de ilha sem viajar (prints e testes): materiais, formato, cenário e lado da montanha
     setIsland(n) { S.island = n | 0; S.mount = 1; S.shape = ''; buildWorld(); S.heapArea = heap.area; S.footX = scanFoot(); S.sacks.length = 0; setMirror(); computeStats(); setTool(S.tool); P.x = WL.START_X; P.y = heap.surf(P.x); S.camX = P.x + 30; camTick(1); cam.snapTo(cam.tx, cam.ty, cur.zoom); return G.Islands.island().id; },

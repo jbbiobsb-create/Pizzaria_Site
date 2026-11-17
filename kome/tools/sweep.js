@@ -15,7 +15,7 @@ const DEVICES = [
 ];
 // cada cena: [nome, código rodado na página (pode devolver texto curto), espera em ms]
 const CLEAN = `document.querySelectorAll('.k-toast,.k-banner,.k-ach,.k-tipcontrols').forEach(e=>e.remove());`;
-const CLOSE = `document.querySelectorAll('.k-x').forEach(b=>{ if (b.offsetParent) b.click(); }); if (KomeGame.Home && KomeGame.Home.isOpen()) KomeGame.Home.close();`;
+const CLOSE = `document.querySelectorAll('.k-x').forEach(b=>{ if (b.offsetParent) b.click(); }); if (KomeGame.Home && KomeGame.Home.isOpen()) KomeGame.Home.close(); if (KomeGame.Ofi && KomeGame.Ofi.isOpen()) KomeGame.Ofi.close();`;
 const DIG = n => `for (let i=0;i<${n};i++){ const a=__kome.aim(); __kome.hold(a.x,a.y,true); __kome.step(1);} __kome.hold(0,0,false);`;
 const SCENES = [
   ['início', `${DIG(4)}`],

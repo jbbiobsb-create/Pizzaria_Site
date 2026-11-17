@@ -424,6 +424,13 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
   na hora da venda, como antes).
 
 
+## 17/11 — caminhão e final (pedido do dono)
+- Caminhão de Mineração não carregava com o botão CAVAR do celular (mirava na caçamba, a poucos px do lado "descarregar";
+  dava ré pro pátio). game.js · teclado/CAVAR: no 'haul' a mira é sempre do lado da montanha. Ciclo completo testado.
+- FINAL agora = casa pronta E montanha cavada até D.END_DUG (95%) (antes: na compra do onsen, com ~80–90% cavado).
+  Toast "Casa pronta! agora termine a montanha"; barra "Montanha" chega a 100% no final. Campanha: 71 min (meta 60–90 ok).
+  Ilhas (vale pra elas também): --island 1 = 31,5 min, --island 2 = 34 min com sementes moderadas. As medalhas de
+  D.ENDGAME.medal foram pensadas pro final antigo: designer rever os tempos de ouro/prata.
 ## 18/11 — rodada do designer (Fable): fábrica retocada, Oficina nova, mundo em dois lados
 - Fábrica (fila item 1): máquinas giram o desenho (4 vistas), topo transparente quando passa item atrás, texto ≥ 17 px no palco,
   selo verde só no upgrade mais barato. Arquivos: game/fabrica-arte.js, game/fabrica.js.
@@ -436,3 +443,19 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
   NÃO feito: fundo industrial, Gêmea no lado industrial, lojas como prédios na vila.
 - Design (rascunhos pro dono aprovar): docs/design/sementes.md; "Fim de jogo da fábrica" em docs/design/fabrica.md.
 - NADA desta rodada passou por check/playtest/monkey/sweep depois das últimas mudanças (o dono testa no PC).
+
+## 17/11 — merge da rodada do Fable (mundo em dois lados, Oficina nova)
+- Conflito só no G.Game (vila + reset) e no CONTINUAR. Bug achado: o voo da câmera pra Vila (compra de casa) só anda em
+  quadro de tela; no modo acelerado ficava "olhando a vila" e o Kome não cavava (playtest empacava na empilhadeira).
+  vilaGo não voa em FAST e hold ignora o voo em FAST. Campanha 68 min ok; 14 ferramentas ok nas 5 ilhas; robô ok.
+- Botão da Oficina (HUD) mostra "Bagger Gêmea N/4 · peça à venda!" até a Gêmea ficar pronta (o dono não achava).
+- sweep.js fecha a Oficina nova (G.Ofi.close) entre telas.
+
+## PRA DEPOIS (pedido do dono, 17/11)
+- LIGAR A FÁBRICA AO JOGO TODO (hoje ela só recebe % do arroz e devolve ¥): pedir design ao Fable. Ideias na mesa:
+  pedidos da Cidade consumindo onigiri/mochi; receitas por ilha (curry rice em Kyushu, sorvete de mochi em Hokkaido);
+  produto ajudando a montanha (ex.: onigiri dá energia aos ajudantes). Dono achou a fábrica "só um mini Satisfactory".
+- TATUZÃO no jogo (game/tatuzao.js + game/tbm.js): chip "Tatuzão" no topo depois do final (D.TATU.price s de renda);
+  comprado, fura um túnel reto na base da montanha (boca onde a altura > D.TATU.minH); cada anel paga D.TATU.ringSec s da
+  renda; túnel recortado pela superfície (onde cavou, some); montanha nova = túnel novo. Admin: botão "TATUZÃO".
+  Pro Fable: o design de verdade (onde comprar, o que ele faz além de renda, se vira peça da Oficina) ainda é dele.

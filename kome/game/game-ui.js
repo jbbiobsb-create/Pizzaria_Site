@@ -258,14 +258,14 @@
     combo.el.classList.toggle('k-maxed', S.combo >= D.COMBO.max - 0.01);
     const tone = S.furia > 0 ? 'fury' : st.comboCap >= 2 ? 'pink' : st.comboCap > 1.5 ? 'sack' : '';
     if (tone !== lastComboTone && combo.tone) { combo.tone(tone); lastComboTone = tone; }
-    mount.set(S.heapTotal - S.heapArea, S.heapTotal);
+    mount.set(Math.min(S.heapTotal - S.heapArea, S.heapTotal * D.END_DUG), S.heapTotal * D.END_DUG);   // 100% = o final (D.END_DUG da montanha)
 
     const nt = D.TOOLS[S.tool + 1];
     if (nt) {
       let lock = null;
       if (nt.needs) for (const id of nt.needs) if (!S.own[id]) { lock = 'precisa: ' + D.nodeById[id].n; break; }
       goalBtn(toolBtn, nt.name, api.toolCost(nt), lock, toolBtn._id !== nt.id ? icon(nt.id) : null); toolBtn._id = nt.id;
-    } else toolBtn.set(S.ended ? { title: 'Oficina', sub: 'melhorar as máquinas', progress: 1, state: '' } : { title: 'Bagger 293', sub: 'a maior máquina do mundo', progress: 1, state: '' });
+    } else toolBtn.set(S.ended ? ofiBtn() : { title: 'Bagger 293', sub: 'a maior máquina do mundo', progress: 1, state: '' });
     const h = D.HOUSE[S.house];
     if (h) {
       // nome curto pro cartão não vazar ("Escavadeira Hidráulica" -> "Escavadeira")
@@ -287,6 +287,13 @@
   };
 
   HUD.bump = function () { if (HUD.ready && yenPill.bump) yenPill.bump(); };
+  // botão da Oficina depois do final: mostra a Bagger Gêmea (que mora dentro da Oficina, na prancheta azul) até ela ficar pronta
+  function ofiBtn() {
+    const I = G.Ind, r = I && I.run ? I.run() : null, gp = r ? r.giant | 0 : 4;
+    if (gp >= 4 || !I.cost) return { title: 'Oficina', sub: 'melhorar as máquinas', progress: 1, state: '' };
+    const c = I.cost.giant(), can = S.money >= c;
+    return { title: 'Oficina', sub: 'Bagger Gêmea ' + gp + '/4 · ' + (can ? 'peça à venda!' : 'faltam ' + yen(c - S.money)), progress: 0.12 + 0.88 * U.clamp(S.money / c, 0, 1), state: can ? 'can' : '' };
+  }
   // endCard(rows): cartão simples do final com as estatísticas
   HUD.endCard = function (rows, onMore) {
     if (!UI) return;
