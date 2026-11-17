@@ -29,7 +29,7 @@
   const V = {
     tool: null, board: null, live: null, enter: 1, sq: 0, sqV: 0, liftH: 0, burst: 0, burstN: 0, kick: 0,
     stamp: null, mile: null, banner: null, toast: null, help: false, shop: null, hover: -1, hold: null, t: 0, flash: 0, boardFx: null,
-    tinkT: 4, tinkWho: 0, tinkLeft: 0,
+    tinkT: 4, tinkWho: 0, tinkLeft: 0, pops: [],
   };
   const ps = E.Particles(700), fl = E.Floaters(80);
   // a equipe do elevador: onde descansam e que ferramenta usam
@@ -104,7 +104,7 @@
     const lp = A.liftPos(V.tool), cx = LIFT.x, half = Math.min(lp.w / 2, 210);
     return [[cx - half + 4, LIFT.y + 22, 1], [cx + half - 4, LIFT.y + 20, -1], [cx + Math.min(40, half * 0.4), LIFT.y + 32, -1]];
   }
-  function sparksAt(x, y, n) { ps.sparks(x, y, n, { speed: [90, 300], life: [0.2, 0.5] }); }
+  function sparksAt(x, y, n) { ps.sparks(x, y, n, { speed: [120, 380], life: [0.25, 0.6], w: [5, 9] }); V.pops.push({ x, y, t: 0 }); if (V.pops.length > 12) V.pops.shift(); }
   function upgrade() {
     const t = toolOf(V.tool); if (!t || V.mile || !G.Inf) return false;
     const inf = G.Inf.info(t);
@@ -554,6 +554,13 @@
     items.sort(sortY);
     for (const it of items) it.fn();
     ps.draw(g);
+    // estalos de impacto (estrelinha de 4 pontas que abre e some)
+    for (let i = V.pops.length - 1; i >= 0; i--) {
+      const p = V.pops[i]; p.t += dt * 5; if (p.t >= 1) { V.pops.splice(i, 1); continue; }
+      const r = 6 + p.t * 16, a = 1 - p.t;
+      g.globalAlpha = a; g.fillStyle = INK; g.beginPath(); for (let k = 0; k < 8; k++) { const an = k / 8 * TAU, rr = (k % 2 ? r * 0.36 : r) + 2; g.lineTo(p.x + Math.cos(an) * rr, p.y + Math.sin(an) * rr); } g.closePath(); g.fill();
+      g.fillStyle = '#FFF6C8'; g.beginPath(); for (let k = 0; k < 8; k++) { const an = k / 8 * TAU, rr = k % 2 ? r * 0.36 : r; g.lineTo(p.x + Math.cos(an) * rr, p.y + Math.sin(an) * rr); } g.closePath(); g.fill(); g.globalAlpha = 1;
+    }
     if (day > 0.2) {                                         // poeirinha no sol da porta
       g.fillStyle = '#FFF6D0';
       for (let i = 0; i < 16; i++) { const y = 206 + ((i * 97 + t * (5 + i % 4)) % 190), x = 40 + ((i * 53) % 190) + (y - 206) * 0.42 + Math.sin(t * 0.5 + i) * 6; g.globalAlpha = day * 0.5 * (0.5 + 0.5 * Math.sin(t * 1.3 + i * 2.1)); g.fillRect(Math.round(x), Math.round(y), 2, 2); }

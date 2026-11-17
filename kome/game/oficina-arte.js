@@ -50,7 +50,7 @@
     blue: '#3F5E92', blueL: '#6487C0', blueD: '#2C4470',
     green: '#7F9E5C', greenL: '#A9C08A', greenD: '#5D7A40',
     mint: '#8DB2A2', mintL: '#A9C9BB', mintD: '#739888', mintDD: '#587A6C',
-    conc: '#CDBFA6', concL: '#DCD0B9', concD: '#B5A68C', concDD: '#9A8B72',
+    conc: '#C7B697', concL: '#D6C7A9', concD: '#B3A183', concDD: '#978566',
     cork: '#C8985A', corkL: '#D9AD72', corkD: '#B07F45',
     rub: '#3E3A38', rubL: '#5C5753', rubD: '#2A2624',
     pink: '#F4B8C5', pinkD: '#D98AA0', ora: '#E2742E', oraL: '#F3A566',
@@ -251,14 +251,14 @@
       let x = -((r * 37) % 60);
       while (x < 480) {
         const len = 70 + Math.floor(rng() * 40), tone = rng();
-        R(x, y0, len, y1 - y0, tone < 0.3 ? '#D2C5AD' : tone < 0.7 ? K.conc : '#C8B99F');
-        R(x + len - 1, y0, 1, y1 - y0, '#B3A388'); R(x, y0, 1, y1 - y0, '#D9CDB6');
+        R(x, y0, len, y1 - y0, tone < 0.3 ? '#CEBE9F' : tone < 0.7 ? K.conc : '#BEAC8C');
+        R(x + len - 1, y0, 1, y1 - y0, '#A5936F'); R(x, y0, 1, y1 - y0, '#D8C9AB');
         x += len;
       }
-      R(0, y0, 480, 1, '#AD9D82'); R(0, y0 + 1, 480, 1, '#DACEB7');
+      R(0, y0, 480, 1, '#A08E6C'); R(0, y0 + 1, 480, 1, '#D8C9AB');
     }
-    for (let i = 0; i < 520; i++) { const x = Math.floor(rng() * 480), y = wy + 2 + Math.floor(rng() * 166); R(x, y, rng() < 0.2 ? 2 : 1, 1, rng() < 0.55 ? '#BFB095' : '#DBCFB8'); }
-    b.strokeStyle = '#A39378'; b.lineWidth = 1;
+    for (let i = 0; i < 520; i++) { const x = Math.floor(rng() * 480), y = wy + 2 + Math.floor(rng() * 166); R(x, y, rng() < 0.2 ? 2 : 1, 1, rng() < 0.55 ? '#B5A382' : '#D9CAAC'); }
+    b.strokeStyle = '#9A8866'; b.lineWidth = 1;
     for (const [x, y, n] of [[300, 128, 5], [52, 236, 6], [420, 190, 4], [150, 170, 3]]) { b.beginPath(); let px = x + 0.5, py = y + 0.5; b.moveTo(px, py); for (let i = 0; i < n; i++) { px += 3 + Math.floor(rng() * 6); py += Math.floor(rng() * 5) - 2; b.lineTo(px, py); } b.stroke(); }
     // marcas de pneu da porta até o elevador
     b.strokeStyle = 'rgba(70,58,46,.16)'; b.lineWidth = 3;
@@ -286,7 +286,7 @@
         if (rng() < 0.035) continue;                           // falha na tinta: aparece o concreto
         R(x, y, 1, 1, ((x * 7 + y * 13) % 11 === 0) ? '#B4C2BD' : ((x + y * 3) % 17 === 0) ? '#93A6A1' : '#A3B5B0');
       }
-      for (let i = 0; i < 14; i++) { const x = x0 + 6 + Math.floor(rng() * (x1 - x0 - 16)), y = y0 + 4 + Math.floor(rng() * (y1 - y0 - 8)); R(x, y, 3 + Math.floor(rng() * 5), 1, '#C2B59B'); R(x + 1, y + 1, 2 + Math.floor(rng() * 3), 1, '#CDBFA6'); }
+      for (let i = 0; i < 14; i++) { const x = x0 + 6 + Math.floor(rng() * (x1 - x0 - 16)), y = y0 + 4 + Math.floor(rng() * (y1 - y0 - 8)); R(x, y, 3 + Math.floor(rng() * 5), 1, '#BBAA8A'); R(x + 1, y + 1, 2 + Math.floor(rng() * 3), 1, K.conc); }
       R(x0 + 2, y0 + 2, x1 - x0 - 4, 1, '#B9C7C2');
     }
     // ralo
@@ -377,7 +377,7 @@
     blit(g, spr.vise, 736, 184); blit(g, spr.oilcan, 866, 182); blit(g, spr.toolbox, 846, 222 + 2);
     shadow(g, 920, 224, 34, 6, 0.3); blit(g, spr.tires, 920, 226);
     shadow(g, 676, 252, 20, 5); blit(g, spr.drum, 676, 254); blit(g, spr.broom, 696, 238, 2, { rot: 0.12 });
-    shadow(g, 244, 378, 22, 5); blit(g, spr.cart, 244, 380); blit(g, spr.wrench, 250, 338, 2, { rot: 1.2 });
+    shadow(g, 244, 378, 22, 5); blit(g, spr.cart, 244, 380);
     shadow(g, 132, 362, 26, 4, 0.2); blit(g, spr.creeper, 132, 364); shadow(g, 26, 368, 14, 4, 0.2); blit(g, spr.jack, 26, 370); blit(g, spr.oilpan, 172, 384);
     shadow(g, 318, 470, 13, 4); blit(g, spr.cone, 318, 472); shadow(g, 668, 468, 13, 4); blit(g, spr.cone, 670, 470);
     // sombra de contato: parede/piso, cantos, frente do palco e teto
