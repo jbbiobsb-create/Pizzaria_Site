@@ -199,7 +199,7 @@
     const top = yb - post * zk;
     g.fillStyle = LINE; g.fillRect(x - 2.4 * zk, top, 4.8 * zk, yb - top); g.fillStyle = tier >= T100 ? PAL.gold : '#9A8A72'; g.fillRect(x - 1.2 * zk, top, 2.4 * zk, yb - top);
     blitText(g, o, x - o.w * sc / 2, top - o.h * sc + 4 * sc, sc);
-    if (age >= 0 && age < 1.1 && s.dn > 0) Draw.text(g, '+' + fmtN(s.dn), x, top - o.h * sc - 6 - age * 30, { size: 12 * zk, col: PAL.goldL, sw: 3 * zk, alpha: 1 - age / 1.1 });
+    if (age >= 0 && age < 1.2 && s.dn > 0) Draw.text(g, '+' + fmtN(s.dn), x, top - o.h * sc - 8 - age * 34, { size: 15 * zk, col: '#FFE68A', sw: 4 * zk, alpha: Math.min(1, (1.2 - age) * 2) });
   }
 
   /* ---------- peças de cenário (todas em cache) ---------- */
@@ -218,15 +218,19 @@
       Draw.text(cg, PA.NAMES[id] || id, w / 2, 9, { size: Math.min(9, (w - 10) / Math.max(1, (PA.NAMES[id] || id).length) * 1.7), col: PAL.cream, sw: 0 });
     });
   }
-  function bleachImg(id, f) {   // arquibancada com torcida (100+), 2 quadros
-    return cached('blc|' + id + '|' + f, 84, 64, 2, cg => {
-      for (let r = 0; r < 3; r++) Draw.box(cg, 4 + r * 8, 22 + r * 13, 76 - r * 16, 13, r % 2 ? '#B9C0C8' : '#CDD3DA', { ol: 1 });
-      cg.fillStyle = '#7A808A'; cg.fillRect(6, 61, 3, 3); cg.fillRect(75, 61, 3, 3);
-      cg.imageSmoothingEnabled = false;
-      for (let r = 2; r >= 0; r--) for (let i = 0; i < 4 - (r === 2 ? 1 : 0); i++) {
-        const x = 16 + r * 6 + i * 17 + (r === 2 ? 8 : 0), y = 24 + r * 13;
-        E.drawShiba(cg, x, y, 'cheer', ((f + i + r) % 2) * 0.25 + 0.05, { pal: uniPal(id, i + r), scale: 0.5, smooth: true, shadow: false });
+  function bleachImg(id, f) {   // arquibancada com torcida (100+), 2 quadros: degraus de trás pra frente, torcida sentada em cada um
+    return cached('blc|' + id + '|' + f, 92, 66, 2, cg => {
+      cg.imageSmoothingEnabled = true;
+      for (let b = 2; b >= 0; b--) {
+        const yt = 50 - b * 15, x0 = 4 + b * 7, x1 = 88 - b * 7;
+        Draw.box(cg, x0, yt, x1 - x0, 64 - yt, b % 2 ? '#B9C0C8' : '#D3D8DE', { ol: 1, top: '#EEF1F4' });
+        const nn = b === 0 ? 4 : b === 1 ? 4 : 3;
+        for (let i = 0; i < nn; i++) {
+          const x = x0 + 9 + i * (x1 - x0 - 18) / Math.max(1, nn - 1);
+          E.drawShiba(cg, x, yt + 2, (i + b) % 3 === 0 ? 'wave' : 'cheer', ((f + i + b) % 2) * 0.25 + 0.05, { pal: uniPal(id, i + b), scale: 0.52, smooth: true, shadow: false, face: i % 2 ? -1 : 1 });
+        }
       }
+      cg.fillStyle = PA.COLORS[id]; cg.fillRect(4, 62, 84, 2);
     });
   }
   function statueImg(id) {   // estátua dourada da turma (250+)
@@ -289,8 +293,8 @@
       for (let l = 0; l < levels; l++) {
         const y = H0 - (l + 1) * lh;
         Draw.box(cg, 0, y, w, 9, '#B7AFA2', { ol: 1.2 });
+        cg.fillStyle = '#7D766B'; cg.fillRect(2, y + 9, w - 4, lh - 9); cg.fillStyle = '#6A645A'; cg.fillRect(2, y + lh - 6, w - 4, 6);
         for (let px = 8; px < w - 4; px += Math.max(70, w / 6)) Draw.box(cg, px, y + 9, 7, lh - 9, '#CFC8B6', { ol: 1 });
-        cg.fillStyle = 'rgba(40,30,20,.18)'; cg.fillRect(0, y + 9, w, lh - 9);
         if (mini) { const mw = mini.w * mini.s, nn = Math.max(1, Math.floor((w - 20) / (mw * 1.1))); for (let i = 0; i < nn; i++) cg.drawImage(mini.c, 14 + i * (w - 28) / nn + ((w - 28) / nn - mw) / 2, y + lh - mini.h * mini.s + 2, mw, mini.h * mini.s); }
         cg.fillStyle = c; cg.fillRect(0, y + 7, w, 2);
       }
@@ -314,7 +318,7 @@
       const z0 = Draw.zoom, m0 = Draw.minPx; Draw.lod(Math.max(0.6, k), 0.6);
       cg.setTransform(k, 0, 0, k, w * k * 0.5, (h - 24) * k); cg.lineJoin = 'round'; cg.lineCap = 'round';
       T0.draw(cg, m); Draw.lod(z0, m0);
-      if (variant === 'gold') { cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-atop'; cg.fillStyle = 'rgba(243,201,74,.55)'; cg.fillRect(0, 0, c.width, c.height); cg.globalCompositeOperation = 'source-over'; }
+      if (variant === 'gold') { cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-atop'; cg.fillStyle = 'rgba(243,190,60,.46)'; cg.fillRect(0, 0, c.width, c.height); cg.globalCompositeOperation = 'source-over'; }
     } catch (e) { /* rig que não sabe desenhar fora do jogo: fica sem imagem */ }
     o = { c, w, h, ax: w * 0.5, ay: h - 24 }; MACH.set(key, o);
     return o;
@@ -323,12 +327,12 @@
   function giantImg(id, layer, tint, gold) {
     const key = 'gi|' + id + '|' + layer + '|' + tint + '|' + (gold ? 1 : 0); let o = MACH.get(key);
     if (o) return o;
-    const sc = { caminhao: [0.5, 0.34, 0.22], pacabo: [0.4, 0.27, 0.17], bagger: [0.3, 0.2, 0.13] }[id][layer], k = 1.6;
+    const sc = { caminhao: [0.3, 0.21, 0.14], pacabo: [0.24, 0.17, 0.115], bagger: [0.17, 0.12, 0.085] }[id][layer], k = 1.6;
     const src = machImg(id, 0, 0.6, 'n'); if (!src) return null;
     const w = src.w * sc, h = src.h * sc, c = mkc(w * k, h * k), cg = c.getContext('2d');
     cg.drawImage(src.c, 0, 0, c.width, c.height);
     cg.globalCompositeOperation = 'source-atop';
-    const haze = [0.5, 0.7, 0.84][layer];
+    const haze = [0.66, 0.78, 0.88][layer];
     cg.globalAlpha = gold ? 0.45 : haze; cg.fillStyle = gold ? '#F3C94A' : tint; cg.fillRect(0, 0, c.width, c.height);
     cg.globalAlpha = 1; cg.globalCompositeOperation = 'source-over';
     o = { c, w, h, ax: src.ax * sc, ay: src.ay * sc }; MACH.set(key, o);
@@ -396,7 +400,7 @@
     });
   }
   function mound(g, x, y, t, gold, i) {
-    const h = 15 + 2.5 * Math.sin(t * 1.1 + i * 2), w = 30;
+    const h = 22 + 3 * Math.sin(t * 1.1 + i * 2), w = 36;
     g.fillStyle = gold ? PAL.gold : PAL.rice; g.strokeStyle = LINE; g.lineWidth = 1.2;
     g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w * 0.35, y - h * 1.15, x, y - h); g.quadraticCurveTo(x + w * 0.4, y - h * 1.1, x + w, y); g.closePath(); g.fill(); g.stroke();
     g.fillStyle = gold ? PAL.goldL : PAL.riceS; g.beginPath(); g.ellipse(x - 8, y - 4, 4, 1.6, 0.3, 0, TAU); g.ellipse(x + 9, y - 6, 4, 1.6, -0.3, 0, TAU); g.fill();
@@ -421,19 +425,19 @@
     if (tier >= T150) {   // 2º andar: deck sobre palafitas com mais uma turma
       const dy = -92;
       g.fillStyle = LINE; for (const px of [50, 120, 196]) g.fillRect(x0 + px - 2.5, dy, 5, -dy); g.fillStyle = PAL.woodD; for (const px of [50, 120, 196]) g.fillRect(x0 + px - 1.2, dy, 2.4, -dy);
-      Draw.box(g, x0 + 36, dy - 2, 176, 8, PAL.wood, { ol: 1.2 });
-      mound(g, x0 + 124, dy - 2, t, tier >= T500, 9);
+      Draw.box(g, x0 + 36, dy - 20, 176, 22, '#C49A66', { ol: 1.2, top: '#D9B07A' }); Draw.box(g, x0 + 36, dy + 2, 176, 7, PAL.woodD, { ol: 1.2 });
       const f = Math.floor(t * 4) % 2, o = crewGroup(id, 4, true, f, 1);
-      g.drawImage(o.c, x0 + 26, dy - 2 - 52 - 20 * 0.7 + 4, HPW * 0.7, 70 * 0.7);
+      mound(g, x0 + 36 + MOUND_X * 0.7, dy - 6, t, tier >= T500, 9);
+      g.drawImage(o.c, x0 + 36, dy + 4 - 52 * 0.7, HPW * 0.7, 70 * 0.7);
       stats.groupSpr++;
     }
-    if (tier >= T100) { const o = bleachImg(id, Math.floor(t * 3) % 2); blit(g, o, x0 + 44, -62); }
+    if (tier >= T100) { const o = bleachImg(id, Math.floor(t * 3) % 2); blit(g, o, x0 + 58, -62); }
     if (tier >= T25) {
       blit(g, shedImg(id), x0 - 6, -56);
       if (E.Nature && E.Nature.nobori) E.Nature.nobori(g, x0 + HPW - 10, 2, { t: t + PA.HAND.indexOf(id), col: c, h: 74 });
     }
     if (tier >= T50) {
-      const o = bannerImg(id, 150); blit(g, o, x0 + 46, tier >= T100 ? -82 : -60);
+      const by = tier >= T100 ? -82 : -60, o = bannerImg(id, 150); g.fillStyle = LINE; g.fillRect(x0 + 49, by, 3.4, 2 - by); g.fillRect(x0 + 191, by, 3.4, 2 - by); g.fillStyle = PAL.woodL; g.fillRect(x0 + 50, by, 1.4, 2 - by); g.fillRect(x0 + 192, by, 1.4, 2 - by); blit(g, o, x0 + 46, by);
       if (E.Nature && E.Nature.stall) E.Nature.stall(g, x0 + 190, 0, { s: 0.62, col: c, t, lit: nightK > 0.3 });
     }
     if (tier >= T100) {   // holofote
@@ -507,6 +511,15 @@
     const B = L.mid[id], w = B.w;
     return [B.bx0 + 12 + w * PITCH * (i + 0.5), Y_BACK + 2, 1];
   }
+  function drawBay(g, id, i, x, y, dust, t, tier, k, variant, hh) {
+    const gold = (tier >= T250 && i === 0) || tier >= T500;
+    const o = machImg(id, Math.floor(t * 1.5 + i) % 2, k, gold ? 'gold' : variant); if (!o) return;
+    const sc = MK[id], bob = Math.sin(t * 9 + i * 2) * 0.5;
+    Draw.shadow(g, x, y + 1, MW[id] * 0.45 * sc, 4 * sc, 0.16);
+    g.drawImage(o.c, x - o.ax * sc, y - o.ay * sc + bob, o.w * sc, o.h * sc); stats.mach++;
+    if (dust > 0) for (let d = 0; d < 4; d++) { g.globalAlpha = 0.35 * dust; g.fillStyle = '#E6D8B8'; g.beginPath(); g.arc(x + MW[id] * 0.5 * sc + d * 14, y - 4 - d * 3, 6 + d * 3, 0, TAU); g.fill(); g.globalAlpha = 1; }
+    if (gold && Math.sin(t * 4 + i) > 0.7) { g.fillStyle = '#FFFFFF'; g.fillRect(x - 20 + Math.sin(t * 2) * 30, y - hh * 0.6, 3, 3); }
+  }
   function drawMid(g, id, t, z, nightK) {
     const B = L.mid[id], s = st(id), n = s.n | 0, tier = tierOf(n), c = PA.COLORS[id], mk = MK[id];
     const k = clamp(Math.round(z * dpr() * 4) / 4, 0.5, 1), variant = tier >= T10 ? 'uni' : 'n', gw = B.bx1 - B.bx0, hh = MH[id] * mk;
@@ -515,35 +528,33 @@
       const lv = Math.min(6, 2 + Math.floor((n - 100) / 50)), mi = machImg(id, 0, 0.5, variant);
       const o = parkingImg(id, lv, mi ? { c: mi.c, w: mi.w, h: mi.h, s: 0.4 * mk } : null, k < 0.75 ? 0.5 : 0.75);
       blit(g, o, B.bx0, Y_BACK - 8 - o.h);
-    } else if (tier >= T50) { const o = garageImg(id, gw, hh * 1.25, 3, k); blit(g, o, B.bx0, Y_BACK - 8 - o.h); }
-    else if (tier >= T25) { const o = garageImg(id, B.w * 1.2, hh * 1.2, 1, k); blit(g, o, B.bx0 + 4, Y_BACK - 8 - o.h); }
+    } else if (tier >= T50) { const o = garageImg(id, gw, hh * 1.3, 4, k); blit(g, o, B.bx0, Y_BACK - 8 - o.h); }
+    else if (tier >= T25) { const o = garageImg(id, B.w * 1.25, hh * 1.25, 1, k); blit(g, o, B.bx0 + 4, Y_BACK - 8 - o.h); }
     // piso das vagas: faixas pintadas (10+), douradas (100+), número da vaga
     if (n > 0 && tier >= T10) {
-      g.fillStyle = tier >= T100 ? PAL.gold : '#F3C94A';
-      for (let i = 0; i <= 4; i++) { const x = B.bx0 + B.w * (0.0 + i * 0.62); g.fillRect(x - 1.6, Y_FRONT + 8, 3.2, 14); }
-      for (let i = 0; i < 4; i++) Draw.text(g, String(i + 1), B.bx0 + B.w * (0.31 + i * 0.62), Y_FRONT + 18, { size: 9, col: 'rgba(255,250,230,.75)', sw: 0 });
+      g.fillStyle = tier >= T100 ? PAL.gold : '#F3C94A'; const pw = B.w * PITCH;
+      for (let i = 0; i <= 4; i++) g.fillRect(B.bx0 + 12 + i * pw - 1.6, Y_BACK + 6, 3.2, 30);
+      for (let i = 0; i < 4; i++) Draw.text(g, String(i + 1), B.bx0 + 12 + (i + 0.5) * pw, Y_BACK + 28, { size: 10, col: 'rgba(255,250,230,.8)', sw: 0 });
     }
     const nb = Math.min(PA.BAY_MAX, n), arr = s.arr;
-    // vagas de trás primeiro (2, 3), depois da frente (0, 1)
-    for (const i of [2, 3, 0, 1]) {
-      if (i >= nb) continue;
-      const p = bayPos(id, i); let x = p[0];
+    let late = null;
+    for (let i = 0; i < nb; i++) {
+      const p = bayPos(id, i); let x = p[0], y = p[1];
       const A = arr.find(a => a.slot === i); let dust = 0;
-      if (A) { const u = (t - A.t0) / 2; if (u < 0) continue; if (u >= 1) arr.splice(arr.indexOf(A), 1); else { const e = 1 - Math.pow(1 - u, 3); x = lerp(B.bx0 - B.w * 1.2, p[0], e); dust = 1 - u; } }
-      const gold = (tier >= T250 && i === 0) || tier >= T500;
-      const o = machImg(id, Math.floor(t * 1.5 + i) % 2, k, gold ? 'gold' : variant); if (!o) continue;
-      const sc = p[2] * mk, bob = Math.sin(t * 9 + i * 2) * 0.5;
-      Draw.shadow(g, x, p[1] + 1, MW[id] * 0.45 * sc, 4 * sc, 0.16);
-      g.drawImage(o.c, x - o.ax * sc, p[1] - o.ay * sc + bob, o.w * sc, o.h * sc); stats.mach++;
-      if (dust > 0) for (let d = 0; d < 4; d++) { g.globalAlpha = 0.35 * dust; g.fillStyle = '#E6D8B8'; g.beginPath(); g.arc(x - MW[id] * 0.5 * sc - d * 14, p[1] - 4 - d * 3, 6 + d * 3, 0, TAU); g.fill(); g.globalAlpha = 1; }
-      if (gold && Math.sin(t * 4 + i) > 0.7) { g.fillStyle = '#FFFFFF'; g.fillRect(x - 20 + Math.sin(t * 2) * 30, p[1] - hh * 0.6, 3, 3); }
+      if (A) {   // chega pela rua do pátio (vem do portão) e encosta na vaga
+        const u = (t - A.t0) / 2.2; if (u < 0) continue;
+        if (u >= 1) arr.splice(arr.indexOf(A), 1);
+        else { const e = 1 - Math.pow(1 - Math.min(1, u / 0.75), 2); x = lerp(B.bx1 + B.w, p[0], e); y = lerp(60, p[1], clamp((u - 0.55) / 0.45, 0, 1)); dust = 1 - u; late = [i, x, y, dust]; continue; }
+      }
+      drawBay(g, id, i, x, y, 0, t, tier, k, variant, hh);
     }
+    if (late) drawBay(g, id, late[0], late[1], late[2], late[3], t, tier, k, variant, hh);
     // comboio na rua do pátio (5+): fila arrumada, espaçamento fixo, poeira; desfile com bandeirinha (100+)
     if (n > PA.BAY_MAX) {
-      const nc = Math.min(PA.CONVOY_MAX, n - PA.BAY_MAX), spd = 26, sp = B.w * mk * 0.75 * 1.35, span = gw + B.w;
-      g.save(); g.beginPath(); g.rect(B.bx0 - 10, -400, gw + 20, 520); g.clip();
+      const nc = Math.min(PA.CONVOY_MAX, n - PA.BAY_MAX), spd = 30, sp = B.w * 1.45, span = Math.max(gw + B.w, sp * nc + B.w);
+      g.save(); g.beginPath(); g.rect(B.bx0 - 10, -400, gw + MSW + 10, 520); g.clip();
       for (let j = 0; j < nc; j++) {
-        const x = B.bx1 + B.w * 0.5 - ((t * spd + j * sp) % span), y = 58, sc = 0.75 * mk;
+        const x = B.bx1 + B.w * 0.5 - ((t * spd + j * sp) % span), y = 64, sc = 0.66 * mk;
         const o = machImg(id, Math.floor(t * 2 + j) % 2, k, variant); if (!o) break;
         Draw.shadow(g, x, y + 1, MW[id] * 0.4 * sc, 3, 0.16);
         g.save(); g.translate(x, 0); g.scale(-1, 1); g.drawImage(o.c, -o.ax * sc, y - o.ay * sc + Math.sin(t * 11 + j) * 0.6, o.w * sc, o.h * sc); g.restore(); stats.mach++;
@@ -570,7 +581,7 @@
         if (nightK > 0.2) { g.globalAlpha = 0.14 * nightK; g.fillStyle = '#FFF3C4'; g.beginPath(); g.moveTo(px - 10, -hh * 1.6 - 32); g.lineTo(px + 10, -hh * 1.6 - 32); g.lineTo(px + (px < B.sx ? 220 : -220), 50); g.lineTo(px + (px < B.sx ? 40 : -40), 50); g.closePath(); g.fill(); g.globalAlpha = 1; }
       }
     }
-    if (n === 0) { g.fillStyle = 'rgba(243,201,74,.45)'; for (let i = 0; i < 2; i++) g.fillRect(B.bx0 + B.w * (0.0 + i * 1.24), Y_FRONT + 8, 3, 14); }
+    if (n === 0) { g.fillStyle = 'rgba(243,201,74,.45)'; for (let i = 0; i < 2; i++) g.fillRect(B.bx0 + 12 + i * B.w * PITCH, Y_BACK + 6, 3, 30); }
   }
 
   // horizonte das gigantes: 3 camadas (longe → perto), névoa, parallax, luzinhas de noite, holofote varrendo (100+)
@@ -578,16 +589,16 @@
   function drawGiants(g, v, t, nightK) {
     const sc = G.Scenery && G.Scenery.profile ? G.Scenery.profile() : null, sky = (sc && sc.sky && sc.sky[1]) || '#CFE3F2';
     const tint = [mix('#7C8C9E', sky, 0.35), mix('#93A3B4', sky, 0.5), mix('#AAB8C6', sky, 0.62)];
-    const cx = (v.x0 + v.x1) / 2, P = [0.9, 0.8, 0.7], BASE = [-4, -24, -42];
+    const cx = (v.x0 + v.x1) / 2, P = [0.62, 0.48, 0.36], BASE = [-6, -22, -36];
     g.save(); g.beginPath(); g.rect(L.L, -1400, L.R - 30 - L.L, 1400); g.clip();
     for (let layer = 2; layer >= 0; layer--) {
-      const shift = (cx - (L.L + L.R) / 2) * (1 - P[layer]);
+      const shiftR = clamp((cx - (L.L + L.R) / 2) * (1 - P[layer]), -500, 500);
       for (const id of PA.GIANT) {
         const n = st(id).n | 0; if (!n) continue;
         let before = 0; for (let l = 0; l < layer; l++) before += PA.GIANT_LAYERS[l];
         const cnt = Math.min(PA.GIANT_LAYERS[layer], Math.max(0, n - before)); if (!cnt) continue;
         const o = giantImg(id, layer, tint[layer], false); if (!o) continue;
-        const b = L.band[id], bw = b[1] - b[0];
+        const b = L.band[id], bw = b[1] - b[0], shift = clamp((cx - (b[0] + b[1]) / 2) * (1 - P[layer]), -bw * 0.4, bw * 0.4);
         for (let i = 0; i < cnt; i++) {
           const u = (i + 0.5) / PA.GIANT_LAYERS[layer], x = b[0] + bw * (layer === 0 ? (i + 0.5) / Math.max(cnt, 2) : u) + (rnd(i * 13 + layer) - 0.5) * bw / PA.GIANT_LAYERS[layer] * 0.6 + shift;
           if (x + o.w < v.x0 || x - o.w > v.x1) continue;
@@ -598,11 +609,11 @@
           if (nightK > 0.3 && layer < 2) { const on = Math.sin(t * 3 + i * 1.7) > 0; g.fillStyle = on ? '#FF6B5E' : '#FFE3A0'; g.fillRect(x - 1.5, y - img.ay * 0.85, 3, 3); g.fillStyle = '#FFE3A0'; g.fillRect(x + img.w * 0.2 * face, y - img.ay * 0.4, 2, 2); }
         }
         // número discreto, na névoa
-        if (layer === 0) { const mx = b[0] + bw * 0.5 + shift; if (mx > v.x0 - 80 && mx < v.x1 + 80) Draw.text(g, PA.NAMES[id] + ' ×' + fmtN(n), mx, BASE[0] + 8, { size: 9, col: mix(tint[0], '#FFFFFF', 0.5), sw: 2, stroke: mix(tint[0], '#3B2818', 0.4), alpha: 0.85 }); }
+        if (layer === 0) { const mx = b[0] + bw * 0.5 + shift * 0.5; if (mx > v.x0 - 80 && mx < v.x1 + 80) Draw.text(g, PA.NAMES[id] + ' ×' + fmtN(n), mx, BASE[0] + 8, { size: 9, col: mix(tint[0], '#FFFFFF', 0.5), sw: 2, stroke: mix(tint[0], '#3B2818', 0.4), alpha: 0.85 }); }
       }
       // morro de névoa da camada (os de trás ficam de pé "no morro")
       const col = layer === 0 ? mix('#9DB083', sky, 0.38) : layer === 1 ? mix('#A9BC92', sky, 0.55) : mix('#B9C8A8', sky, 0.7);
-      const y0 = BASE[layer] + 5, step = 40, xa = Math.max(L.L, v.x0 - step) , xb = Math.min(L.R, v.x1 + step);
+      const shift = shiftR, y0 = BASE[layer] + 5, step = 40, xa = Math.max(L.L, v.x0 - step), xb = Math.min(L.R, v.x1 + step);
       g.fillStyle = col; g.beginPath(); g.moveTo(xa, 2);
       for (let x = Math.floor((xa - shift) / step) * step + shift; x <= xb + step; x += step) { const q = Math.round((x - shift) / step); g.lineTo(x, y0 - 4 - 4 * Math.sin(q * 0.9 + layer) - 3 * rnd(q + layer * 50)); }
       g.lineTo(xb + step, 2); g.closePath(); g.fill();
@@ -680,9 +691,9 @@
     // céu: dirigível (300+) e fogos (400+) — por turma
     for (const id of PA.HAND.concat(PA.MID)) {
       const n = st(id).n | 0, tr = tierOf(n); if (tr < T300) continue;
-      const gx = isHand[id] ? L.hand[id].px0 + HPW / 2 : (L.mid[id].bx0 + L.mid[id].bx1) / 2, gy = isHand[id] ? -300 : -MH[id] * 2.6 - 120;
+      const gx = isHand[id] ? L.hand[id].px0 + HPW / 2 : (L.mid[id].bx0 + L.mid[id].bx1) / 2, gy = isHand[id] ? -300 : -(Math.min(6, 2 + Math.floor((n - 100) / 50)) * Math.max(64, MH[id] * 0.62) + 26) - 110;
       if (gx + 200 < v.x0 || gx - 200 > v.x1) continue;
-      const o = blimpImg(id); blitText(g, o, gx - 60 + Math.sin(t * 0.3 + gx) * 30, gy + Math.sin(t * 0.8 + gx) * 5);
+      const o = blimpImg(id), bs = isHand[id] ? 1 : 2; blitText(g, o, gx - 60 * bs + Math.sin(t * 0.3 + gx) * 30, gy + Math.sin(t * 0.8 + gx) * 5, bs);
       if (tr >= T400) for (let k = 0; k < 2; k++) {
         const cyc = 2.6, ph = (t + k * 1.3 + gx * 0.01) % cyc, fx = gx + (rnd(Math.floor((t + k * 1.3) / cyc) + k * 9) - 0.5) * 200, fy = gy - 60 - rnd(k + Math.floor(t / cyc)) * 80;
         if (ph < 0.5) { g.fillStyle = '#FFE9A0'; g.fillRect(fx - 1, fy + 160 * (1 - ph / 0.5), 2, 8); }
@@ -701,7 +712,7 @@
     }
     g.globalAlpha = 1;
     const ms = performance.now() - t0;
-    stats.ms = ms; stats.n++; stats.avg += (ms - stats.avg) / Math.min(stats.n, 60); stats.figs = figs;
+    stats.ms = ms; stats.n++; stats.avg += (ms - stats.avg) / Math.min(stats.n, 60); stats.figs = figs; stats.max = Math.max(stats.max || 0, ms);
   }
 
   /* ---------- retângulos pro programador (câmera, chip "Pátio", limite X.minX) ---------- */
@@ -713,9 +724,9 @@
     for (const id of PA.GIANT) groups.push({ id, kind: 'giant', x0: L.band[id][0], x1: L.band[id][1] });
     return {
       x0: L.L, x1: L.R, y0: -420, y1: 70, gate: L.gate, groups,
-      cam: { x: (L.L + L.R) / 2, y: -150, z: 0.2 },
-      camHand: { x: (L.handL + L.R) / 2, y: -70, z: 0.48 },
-      camMid: { x: (L.midL + L.midR) / 2, y: -110, z: 0.38 },
+      cam: { x: (L.L + L.R) / 2, y: -220, z: 0.2 },
+      camHand: { x: (L.handL + L.R) / 2, y: -100, z: 0.48 },
+      camMid: { x: (L.midL + L.midR) / 2, y: -170, z: 0.34 },
     };
   }
 
