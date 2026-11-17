@@ -195,13 +195,15 @@
     if (!S.fast && pend.v >= 1) {
       const b = pend.best, size = 12 + Math.log2(b + 1) * 2.6, x = GEO.doorOut.x + 78, y = GEO.WALL - 34;   // o +¥ estoura em cima do kei-truck
       const c = b >= 40 ? C.goldL : b >= 10 ? C.sakura : b >= 4 ? C.yelL : C.cream;
-      fl.add(x + U.rnd(-8, 8), y, '+¥' + U.fmt(pend.v), { size, c, life: 1.1 + b / 60, pop: 1 + b / 30, shake: b >= 40 ? 1.2 : 0 });
+      popK = (popK + 1) % 3;   // 3 posições alternadas: os +¥ não se encavalam
+      fl.add(x + (popK - 1) * 34, y - popK * 6, '+¥' + U.fmt(pend.v), { size, c, life: 0.85 + b / 90, pop: 1 + b / 30, shake: b >= 40 ? 1.2 : 0 });
       if (b >= 40) ps.burst(x, y, 10, { c: [C.gold, C.goldL], shape: 'star', speed: [60, 160], life: 0.7, up: 80 });
       coinFly(x, y, b >= 40 ? 4 : b >= 10 ? 3 : b >= 4 ? 2 : 1); saleFlash = 1;
       sfx('fab-caixa', { pitch: 0.82 + Math.min(1.1, Math.log2(b + 1) * 0.17), vol: 0.5 });   // produto mais caro = sininho mais agudo
     }
-    pend.v = 0; pend.best = 0; pend.n = 0; pend.t = 0.5;
+    pend.v = 0; pend.best = 0; pend.n = 0; pend.t = 0.8;
   }
+  let popK = 0;
 
   /* ---------- passo da simulação ---------- */
   function sim(dt, offline) {
@@ -797,11 +799,12 @@
   }
 
   /* ---- cartões flutuantes (máquina, divisor, docas): pequenos, presos ao lado do que foi tocado ---- */
-  function floatCard(ax, ay, w, h, side) {       // devolve o canto (x, y) do cartão; a setinha aponta pra (ax, ay)
-    let x = side > 0 ? ax + 16 : ax - 16 - w;
-    if (x + w > W - 8) x = ax - 16 - w; if (x < 8) x = ax + 16;
+  function floatCard(ax, ay, w, h, side, bx) {   // devolve o canto (x, y) do cartão; ax = borda direita da máquina, bx = esquerda
+    if (bx === undefined) bx = ax;
+    let x = side > 0 ? ax + 16 : bx - 16 - w;      // nunca em cima da máquina (o 2º toque do toque duplo cai nela)
+    if (x + w > W - 8) x = bx - 16 - w; if (x < 8) x = ax + 16;
     x = U.clamp(x, 8, W - w - 8);
-    const y = U.clamp(ay - h / 2, 52, 462 - h), left = x > ax;
+    const y = U.clamp(ay - h / 2, 52, 462 - h), left = x >= ax;
     g.fillStyle = 'rgba(40,22,8,.30)'; D.rrect(g, x - 2, y + 3, w + 4, h + 6, 14); g.fill();
     g.fillStyle = INK; D.rrect(g, x - 3, y - 3, w + 6, h + 8, 14); g.fill();
     const py = U.clamp(ay, y + 16, y + h - 16);
@@ -818,13 +821,13 @@
   function drawCard(m, t) {
     const r = mrect(m.type, m.x, m.y, m.rot), ax = r.x + r.w, ay = r.y + r.h / 2 - 10, def = MDEF[m.type], w = 236;
     if (m.type === 'divisor') {
-      const c = floatCard(ax - 6, ay + 10, w, 132, 1), x = c.x + 10, y = c.y;
+      const c = floatCard(ax - 6, ay + 10, w, 132, m.x < 5 ? 1 : -1, r.x + 6), x = c.x + 10, y = c.y;
       txt('Divisor', x, y + 18, T(15, INK, 'left'));
       txt('entra por trás e sai', c.x + w / 2, y + 42, T(13, '#6B4A2E')); txt('um pra cada lado', c.x + w / 2, y + 58, T(13, '#6B4A2E'));
       button(x, y + 76, 104, 44, 'Girar', () => rotateMachine(m), { size: 14 }); removeBtn(m, x + 112, y + 76, 104);
       return;
     }
-    const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 270 : 222, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1), x = c.x + 10;
+    const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 270 : 222, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1, r.x + 4), x = c.x + 10;
     let y = c.y;
     txt(def.name, x, y + 18, T(16, INK, 'left'));
     g.fillStyle = INK; D.rrect(g, c.x + w - 64, y + 7, 54, 22, 8); g.fill(); g.fillStyle = [C.cream, '#DDE6EE', K.copperL, C.goldL][A.tierOf(m.lvl)]; D.rrect(g, c.x + w - 62, y + 9, 50, 18, 6); g.fill();
@@ -1163,8 +1166,9 @@
   function persist() {
     const s = GS(); if (!s || !S.on) return;
     const bs = [];
-    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; if (c && c.k === 'b') bs.push([x, y, c.dir]); }
-    s.stats.fab = { on: 1, dock: S.dockLvl, ms: machines.map(m => [m.type, m.x, m.y, m.rot, m.lvl, m.rec, Math.round(m.paid), Math.round(m.spent)]), bs,
+    // o que está andando também vai pro save (itens nas esteiras e dentro das máquinas): é isso que o offline termina
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; if (c && c.k === 'b') bs.push(c.items.length ? [x, y, c.dir, c.items.map(i => i.t + ':' + i.p.toFixed(2) + ':' + (i.from | 0)).join(' ')] : [x, y, c.dir]); }
+    s.stats.fab = { on: 1, dock: S.dockLvl, ms: machines.map(m => [m.type, m.x, m.y, m.rot, m.lvl, m.rec, Math.round(m.paid), Math.round(m.spent), [m.inB.raw | 0, m.inB.gold | 0, m.inB.cozido | 0, m.out.map(i => i.t).join(' '), m.work ? 1 : 0, +m.prog.toFixed(2)]]), bs,
       made: Object.assign({}, S.made), un: [S.unlocked.pilao ? 1 : 0, S.unlocked.mochid ? 1 : 0], tut: S.tutDone ? 1 : 0, fs: S.firstSale, pb: S.pb, slow: S.slow };
   }
   function load() {
@@ -1172,8 +1176,11 @@
     newGrid(); machines = [];
     S.on = true; S.dockLvl = d.dock | 0 || 1; Object.assign(S.made, d.made || {});
     S.unlocked.pilao = !!(d.un && d.un[0]); S.unlocked.mochid = !!(d.un && d.un[1]); S.tutDone = !!d.tut; S.firstSale = d.fs === undefined ? -1 : d.fs; S.pb = +d.pb || 0; S.slow = +d.slow || 0;
-    for (const [x, y, dir] of d.bs || []) setBelt(x, y, dir);
-    for (const q of d.ms || []) if (MDEF[q[0]] && canPlace(q[0], q[1], q[2], q[3])) makeMachine(q[0], q[1], q[2], q[3], { lvl: q[4], rec: q[5], paid: q[6], spent: q[7] });
+    for (const [x, y, dir, its] of d.bs || []) { setBelt(x, y, dir); if (its && grid[y][x]) grid[y][x].items = its.split(' ').map(q => { const [t, pp, fr] = q.split(':'); return { t, p: +pp || 0, from: fr | 0, stuck: 0, f: -1 }; }).filter(i => ITEMS[i.t]); }
+    for (const q of d.ms || []) if (MDEF[q[0]] && canPlace(q[0], q[1], q[2], q[3])) {
+      const m = makeMachine(q[0], q[1], q[2], q[3], { lvl: q[4], rec: q[5], paid: q[6], spent: q[7] }), b = q[8];
+      if (b) { m.inB = { raw: b[0] | 0, gold: b[1] | 0, cozido: b[2] | 0 }; m.out = (b[3] || '').split(' ').filter(t => ITEMS[t]).map(t => ({ t })); m.work = !!b[4]; m.prog = +b[5] || 0; }
+    }
     return true;
   }
   function setup() {
@@ -1248,13 +1255,15 @@
       api = a || {};
       if (!load() && GS().ended) unlock(true);   // save antigo que já terminou a campanha: fábrica aparece direto
       if (G.Sim) G.Sim.add('fabrica', { tick, offline });
-      const aw = GS().away, yen = aw && aw.res && aw.res.fabrica ? aw.res.fabrica.yen : 0;
+      // tempo fora: o game.js calcula antes da fábrica se registrar, então ela termina a esteira aqui
+      const aw = GS().away; let yen = aw && aw.res && aw.res.fabrica ? aw.res.fabrica.yen : 0;
+      if (!yen && aw && aw.sec > 5 && S.on) { const r = offline(aw.sec); yen = r ? r.yen : 0; if (aw.res) aw.res.fabrica = { yen }; }
       if (yen > 0 && api.toast) api.toast('Enquanto você estava fora', 'a fábrica terminou o que estava na esteira: +¥' + U.fmt(yen));
     },
     // chamados pelo game.js / items.js
     dig(v) { if (S.on) S.digAcc += v; },                       // só conta com a fábrica aberta (senão a campanha inteira entrava na 1ª média)
     sacks(id, n) { if (!S.on) return; S.sackAcc += n; if (id === 'koshi') S.goldAcc += n; },
-    open, close, isOpen, unlock: () => unlock(true), on: () => S.on, persist,
+    open, close, isOpen, unlock: () => unlock(true), on: () => S.on, persist, tool(t) { S.tool = t || null; S.sel = null; },
     // 0..1: o quanto a fábrica está rendendo agora (o galpão do pátio solta mais vapor; industry.js)
     activity() { if (!S.on) return 0; const rt = rates(), tot = rt.raw + rt.fac; return tot > 0 ? Math.min(1, rt.fac / tot * 2.2) : 0; },
     // testes e simulador
