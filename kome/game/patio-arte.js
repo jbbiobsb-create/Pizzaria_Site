@@ -853,7 +853,7 @@
     const i0 = Math.floor((a - L.L) / FG_W), i1 = Math.floor((b - L.L) / FG_W);
     for (let i = i0; i <= i1; i++) { const o = fgTile(Math.floor(rnd(i * 5.1 + 2) * 3), k); blitText(g, o, L.L + i * FG_W, FG_Y); }
     // vivo: shibas indo e vindo na calçada (com saco ou não), um a cada ~700 de pátio
-    const yS = FG_Y + 112, sp = 700, n = Math.ceil((L.R - L.L) / sp);
+    const yS = FG_Y + 112, sp = 700, n = z < PA.LOD_Z ? 0 : Math.ceil((L.R - L.L) / sp);   // zoom aberto: ninguém na calçada (seriam 2 pixels)
     for (let j = 0; j < n; j++) {
       const dir = j % 2 ? 1 : -1, u = ((t * 22 * (0.8 + rnd(j) * 0.4) * dir + j * 260) % sp + sp) % sp, x = L.L + j * sp + u;
       if (x < v.x0 - 40 || x > v.x1 + 40) continue;
