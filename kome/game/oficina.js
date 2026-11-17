@@ -118,11 +118,26 @@
     if (r.mile) milestone(t, r.L);
     return true;
   }
+  /* MARCO (níveis 10/25/50): a escolha "mais rápida × mais dourada" NÃO trava mais a tela. Dá pra fechar ("decidir depois"):
+     o marco fica PENDENTE naquela máquina (estrela piscando na régua, na vaga e no cartão), ela continua subindo de nível e
+     nada é escolhido sozinho. Pendente = marcos batidos (G.Inf.info.miles) > escolhas gravadas (S.stats.spec[id]). */
+  const pendOf = id => { const t = toolOf(id); if (!t || !G.Inf) return 0; const inf = G.Inf.info(t); return Math.max(0, inf.miles - inf.spec.length); };
   function milestone(t, L) {
     V.hold = null; V.mile = { tool: t, L, t: 0 }; V.flash = 1;
     sfx('ofi-marco'); sfx('fanfare', { vol: 0.6 });
     ps.burst(LIFT.x, LIFT.y - 120, 60, { c: [C.gold, C.sakura, C.goldL, C.cream], shape: 'star', speed: [140, 420], life: 1.3 });
     V.stamp = { t: 0, txt: 'MARCO!', x: LIFT.x, y: LIFT.y - 150, big: true };
+  }
+  // reabre a escolha de um marco pendente (o mais antigo daquela máquina)
+  function openMile(id) {
+    const t = toolOf(id); if (!t || !pendOf(id) || V.mile) return false;
+    V.hold = null; V.board = null; V.mile = { tool: t, L: G.Inf.MILES[G.Inf.info(t).spec.length], t: 0.9, again: true }; sfx('click', { pitch: 1.2 });
+    return true;
+  }
+  function later() {
+    const m = V.mile; if (!m || m.t < 0.9) return false;
+    V.mile = null; sfx('click', { pitch: 0.9 }); toast('Guardado! Escolha quando quiser na ★ da máquina');
+    return true;
   }
   function pick(ch) {
     const m = V.mile; if (!m || m.t < 0.9) return false;
@@ -130,6 +145,14 @@
     V.mile = null; V.sqV = -3; V.flash = 0.6; sfx('ofi-peca'); sfx('chirin');
     ps.burst(LIFT.x, LIFT.y - 100, 34, { c: ch === 'd' ? [C.gold, C.goldL, C.cream] : [C.red, C.yel, C.cream], shape: 'star', speed: [120, 360], life: 1 });
     banner(ch === 'd' ? 'Mais dourada!' : 'Mais rápida!', ch === 'd' ? '+10% em todos os bolsões dourados' : m.tool.name + ': bônus +50%', ch === 'd' ? K.gold : K.red);
+    return true;
+  }
+  // "Usar esta máquina": a troca de lugar de sempre do jogo (game.js playAs), sem sair da Oficina
+  function useTool() {
+    const i = idxOf(V.tool), GM = G.Game; if (i < 0 || !GM || !GM.playAs) return false;
+    if (GM.playIndex && GM.playIndex() === i && !(GS() && GS().twinPlay)) return false;
+    if (!GM.playAs(i)) { toast('Agora não dá pra trocar'); sfx('error'); return false; }
+    V.flash = 0.5; V.sqV = 3.6; sfx('chirin');
     return true;
   }
   function boardFx(b, s) { const r = b === 'gemea' ? GEO.plan : b === 'fab' ? GEO.fab : GEO.cork; V.boardFx = { b, t: 0 }; ps.burst(r.x + r.w / 2, r.y + r.h / 2, 22, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [80, 260], life: 0.9 }); V.stamp = { t: 0, txt: s, x: r.x + r.w / 2, y: r.y + r.h / 2 + 8 }; sfx('ofi-peca'); sfx('ofi-carimbo', { delay: 0.08 }); }
@@ -221,6 +244,7 @@
       iconAt(tl.id, x + BAR.w / 2, y + 21 + dy, 2);
       txt(String(L), x + BAR.w / 2, y + 49 + dy, T(17, ml >= 3 ? C.goldD : INK));
       for (let k = 0; k < ml; k++) { g.fillStyle = INK; g.fillRect(x + 5 + k * 8, y + 5 + dy, 8, 8); g.fillStyle = C.gold; g.fillRect(x + 6 + k * 8, y + 6 + dy, 6, 6); g.fillStyle = C.goldL; g.fillRect(x + 6 + k * 8, y + 6 + dy, 3, 2); }
+      if (pendOf(tl.id)) { const by = y + dy - 9 + Math.sin(t * 5 + i) * 2; g.fillStyle = INK; g.beginPath(); g.arc(x + 9, by + 6, 11, 0, TAU); g.fill(); g.fillStyle = C.gold; g.beginPath(); g.arc(x + 9, by + 6, 8.5, 0, TAU); g.fill(); txt('!', x + 9, by + 7, T(17, INK)); }   // marco esperando escolha
       if (cur && cur.id === tl.id) { g.fillStyle = INK; g.beginPath(); g.moveTo(x + BAR.w - 18, y + dy - 1); g.lineTo(x + BAR.w + 1, y + dy - 1); g.lineTo(x + BAR.w + 1, y + 18 + dy); g.closePath(); g.fill(); g.fillStyle = C.red; g.beginPath(); g.moveTo(x + BAR.w - 13, y + dy + 1); g.lineTo(x + BAR.w - 1, y + dy + 1); g.lineTo(x + BAR.w - 1, y + 13 + dy); g.closePath(); g.fill(); }
       hit(x - 2, BAR.y - 6, BAR.w + 4, BAR.h + 10, () => { if (!V.mile) select(tl.id); }, { x, y: BAR.y });
       if (V.hover === i || (on && V.enter < 1)) {
@@ -249,69 +273,83 @@
     g.fill();
     hit(x - 4, y - 4, w + 8, h + 10, () => {}, null);
   }
+  // quebra em até 2 linhas de n letras (texto de cartão estreito, sempre 17 px)
+  function wrap2(str, n) { if (str.length <= n) return [str, '']; const w = str.split(' '); let a = '', i = 0; while (i < w.length && (a + ' ' + w[i]).trim().length <= n) { a = (a + ' ' + w[i]).trim(); i++; } return [a, w.slice(i).join(' ')]; }
   function drawToolCard(t) {
     const tl = toolOf(V.tool); if (!tl) return;
-    const c = GEO.card, x = c.x + 12, w = c.w - 24, inf = G.Inf.info(tl), cur = G.Inf.playing ? G.Inf.playing() : null, using = cur && cur.id === tl.id;
-    let y = c.y;
-    card(c.x, c.y, c.w, c.h, 0, c.y + 150, 'l');
-    fit(tl.name, x, y + 22, w, 19, INK, 'left');
-    nvBadge(x, y + 38, inf.L, inf.miles);
-    txt(using ? 'usando agora' : 'na garagem', c.x + c.w - 12, y + 51.5, T(17, using ? C.grassD : '#8A6A4A', 'right'));
-    // régua dos marcos: 10, 25 e 50 viram estrela
-    const rx = x + 4, rw = w - 14, ry = y + 82, MIL = G.Inf.MILES;
-    meter(rx, ry, rw, 9, Math.min(1, inf.L / 50), C.gold);
-    MIL.forEach((m, i) => {
-      const mx = rx + rw * m / 50, got = inf.L >= m, nxt = inf.nextMile === m;
-      blit(got ? SPR.star : SPR.starOff, mx - 2, ry + 15 + (nxt ? Math.sin(t * 4) * 1.5 : 0), 2);
-      txt(String(m), mx - 2, ry + 28, T(17, got ? C.goldD : nxt ? INK : '#9a8a76'));
-    });
-    y += 122;
+    const c = GEO.card, x = c.x + 12, w = c.w - 24, y = c.y, inf = G.Inf.info(tl), cur = G.Inf.playing ? G.Inf.playing() : null, using = cur && cur.id === tl.id, pend = Math.max(0, inf.miles - inf.spec.length);
+    card(c.x, c.y, c.w, c.h, 0, c.y + 120, 'l');
+    fit(tl.name, x, y + 20, w, 19, INK, 'left');
+    nvBadge(x, y + 34, inf.L, inf.miles);
+    if (pend) {   // marco pendente: o botão dourado reabre a escolha
+      button(x + 76, y + 33, w - 76, 28, '★ escolher', () => openMile(tl.id), { fill: Math.sin(t * 6) > 0 ? C.goldL : '#FFF0B8', size: 17 });
+      txt('marco ' + G.Inf.MILES[inf.spec.length] + ' pendente', x + w, y + 78, T(17, C.goldD, 'right'));
+    } else {      // régua dos marcos: 10, 25 e 50 viram estrela
+      const rx = x + 82, rw = w - 96, ry = y + 42, MIL = G.Inf.MILES;
+      meter(rx, ry, rw, 9, Math.min(1, inf.L / 50), C.gold);
+      MIL.forEach(m => {
+        const mx = rx + rw * m / 50, got = inf.L >= m, nxt = inf.nextMile === m;
+        blit(got ? SPR.star : SPR.starOff, mx - 2, ry + 15 + (nxt ? Math.sin(t * 4) * 1.5 : 0), 2);
+        txt(String(m), mx - 2, ry + 30, T(17, got ? C.goldD : nxt ? INK : '#9a8a76'));
+      });
+    }
     const row = (lab, a, b, col, yy) => { txt(lab, x, yy, T(17, '#6B4A2E', 'left')); txt('×' + a + '  ▸  ×' + b, c.x + c.w - 12, yy, T(17, col, 'right')); };
-    row('renda', fx2(inf.mult), fx2(inf.multNext), C.grassD, y + 6);
-    row('força', fx1(inf.pow), fx1(inf.powNext), C.oraD, y + 28);
+    row('renda', fx2(inf.mult), fx2(inf.multNext), C.grassD, y + 96);
+    row('força', fx1(inf.pow), fx1(inf.powNext), C.oraD, y + 116);
     const can = money() >= inf.cost, soon = inf.nextMile && inf.L + 1 === inf.nextMile;
-    button(x, y + 44, w, 54, soon ? 'Melhorar ★' : 'Melhorar', () => { if (upgrade()) V.hold = { t: 0.38, n: 0 }; }, { fill: soon ? '#FFE9A8' : '#DDF0C2', off: !can, size: 20, sub: '¥' + U.fmt(inf.cost), subCol: can ? C.grassD : C.redD, hold: true });
+    button(x, y + 128, w, 48, soon ? 'Melhorar ★' : 'Melhorar', () => { if (upgrade()) V.hold = { t: 0.38, n: 0 }; }, { fill: soon ? '#FFE9A8' : '#DDF0C2', off: !can, size: 19, sub: '¥' + U.fmt(inf.cost), subCol: can ? C.grassD : C.redD, hold: true });
+    button(x, y + 186, w, 30, using ? 'usando agora' : 'Usar esta máquina', useTool, { on: using, fill: '#D6E8F7', size: 17 });
+  }
+  /* cartões dos quadros da parede (Gêmea, fábrica do pátio, lojas): moram na COLUNA DA DIREITA, no lugar do cartão da máquina,
+     e o quadro deles acende na parede. Assim nunca tapam a máquina que está no elevador. */
+  const RC = { x: 708, w: 244, bottom: 460 };
+  function boardCard(h, p, t) {
+    const y = RC.bottom - h, k = 0.5 + 0.5 * Math.sin(t * 5);
+    g.strokeStyle = INK; g.lineWidth = 7; D.rrect(g, p.x - 4, p.y - 4, p.w + 8, p.h + 8, 8); g.stroke();
+    g.strokeStyle = k > 0.5 ? C.goldL : C.gold; g.lineWidth = 3.5; D.rrect(g, p.x - 4, p.y - 4, p.w + 8, p.h + 8, 8); g.stroke();
+    card(RC.x, y, RC.w, h, U.clamp(p.x + p.w / 2, RC.x + 22, RC.x + RC.w - 22), 0, 'u');
+    return y;
   }
   function drawGemeaCard(t) {
-    const I = G.Ind, r = I.run(), gp = Math.min(4, r.giant | 0), part = DATA.GIANT[gp], p = GEO.plan;
-    const w = 316, h = part ? 232 : 236, x = U.clamp(p.x + p.w / 2 - w / 2, 8, W - w - 8), y = p.y + p.h + 18;
-    card(x, y, w, h, p.x + p.w / 2, 0, 'u');
-    txt('Bagger Gêmea', x + 14, y + 22, T(19, INK, 'left'));
-    txt(gp + '/4 peças', x + w - 14, y + 22, T(17, gp >= 4 ? C.goldD : '#8A6A4A', 'right'));
+    const I = G.Ind, r = I.run(), gp = Math.min(4, r.giant | 0), part = DATA.GIANT[gp], x = RC.x + 12, w = RC.w - 24;
+    const y = boardCard(part ? 266 : 240, GEO.plan, t);
+    txt('Bagger Gêmea', x, y + 22, T(19, INK, 'left'));
+    txt(gp + '/4', x + w, y + 22, T(17, gp >= 4 ? C.goldD : '#8A6A4A', 'right'));
     for (let i = 0; i < 4; i++) {
-      const tx = x + 14 + i * 73, on = i < gp, nx = i === gp;
-      g.fillStyle = INK; D.rrect(g, tx - 2, y + 38, 70, 46, 9); g.fill();
-      g.fillStyle = on ? '#34558C' : nx ? '#FFE9A8' : '#E0D4BA'; D.rrect(g, tx, y + 40, 66, 42, 7); g.fill();
-      txt(String(i + 1), tx + 16, y + 62, T(22, on ? C.cream : nx ? INK : '#9a8a76'));
-      if (on) blit(SPR.star, tx + 46, y + 73, 2); else if (!nx) blit(SPR.lock, tx + 46, y + 72, 2, { alpha: 0.7 });
-      else blit(SPR.up, tx + 46, y + 72 + Math.sin(t * 5) * 2, 2);
+      const tx = x + i * 56, on = i < gp, nx = i === gp;
+      g.fillStyle = INK; D.rrect(g, tx - 2, y + 36, 54, 44, 9); g.fill();
+      g.fillStyle = on ? '#34558C' : nx ? '#FFE9A8' : '#E0D4BA'; D.rrect(g, tx, y + 38, 50, 40, 7); g.fill();
+      txt(String(i + 1), tx + 13, y + 59, T(20, on ? C.cream : nx ? INK : '#9a8a76'));
+      if (on) blit(SPR.star, tx + 36, y + 70, 2); else if (!nx) blit(SPR.lock, tx + 36, y + 69, 2, { alpha: 0.7 });
+      else blit(SPR.up, tx + 36, y + 69 + Math.sin(t * 5) * 2, 2);
     }
     if (part) {
-      const c = I.cost.giant(), can = money() >= c, m0 = gp ? DATA.GIANT[gp - 1].mult : 1;
-      fit('Peça ' + (gp + 1) + ': ' + part.n, x + 14, y + 106, w - 28, 18, INK, 'left');
-      fit(part.d, x + 14, y + 128, w - 28, 17, '#6B4A2E', 'left');
-      txt('renda', x + 14, y + 152, T(17, '#6B4A2E', 'left')); txt('×' + String(m0).replace('.', ',') + '  ▸  ×' + String(part.mult).replace('.', ','), x + w - 14, y + 152, T(17, C.grassD, 'right'));
-      button(x + 14, y + 168, w - 28, 52, 'Comprar a peça', buyGiant, { fill: '#DDF0C2', off: !can, size: 19, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
+      const c = I.cost.giant(), can = money() >= c, m0 = gp ? DATA.GIANT[gp - 1].mult : 1, ds = wrap2(part.d, 23);
+      txt('Peça ' + (gp + 1) + ' de 4', x, y + 100, T(17, '#8A6A4A', 'left'));
+      fit(part.n, x, y + 122, w, 18, INK, 'left');
+      txt(ds[0], x, y + 144, T(17, '#6B4A2E', 'left')); if (ds[1]) fit(ds[1], x, y + 164, w, 17, '#6B4A2E', 'left');
+      txt('renda', x, y + 188, T(17, '#6B4A2E', 'left')); txt('×' + String(m0).replace('.', ',') + '  ▸  ×' + String(part.mult).replace('.', ','), x + w, y + 188, T(17, C.grassD, 'right'));
+      button(x, y + 202, w, 50, 'Comprar a peça', buyGiant, { fill: '#DDF0C2', off: !can, size: 18, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
     } else {
-      txt('completa! ao lado da 293', x + w / 2, y + 106, T(17, C.grassD));
-      txt('renda ×' + String(DATA.GIANT[3].mult).replace('.', ',') + ' · escolha a pintura:', x + w / 2, y + 130, T(17, '#6B4A2E'));
-      const cur = r.paint || 'kawaii', cols = { kawaii: '#F4B8C5', dino: '#9BC47A', normal: '#EDB93A' }, names = { kawaii: 'Kawaii', dino: 'Dino', normal: 'Fábrica' };
+      txt('completa!', x, y + 102, T(19, C.grassD, 'left'));
+      txt('cava ao lado da 293', x, y + 124, T(17, '#6B4A2E', 'left'));
+      txt('renda ×' + String(DATA.GIANT[3].mult).replace('.', ',') + ' · pintura:', x, y + 148, T(17, '#6B4A2E', 'left'));
+      const cur = r.paint || 'kawaii', cols = { kawaii: '#F4B8C5', dino: '#9BC47A', normal: '#EDB93A' }, names = { kawaii: 'Kawaii', dino: 'Dino', normal: 'Normal' };
       I.PAINTS.forEach(([id], i) => {
-        const bx = x + 14 + i * 98;
-        button(bx, y + 150, 92, 70, names[id], () => { I.buy.paint(id, true); sfx('pop'); boardFx('gemea', names[id].toUpperCase()); }, { on: cur === id, size: 17, dx: 0, sub: ' ', });
-        g.fillStyle = INK; D.rrect(g, bx + 24, y + 186, 44, 24, 7); g.fill(); g.fillStyle = cols[id]; D.rrect(g, bx + 26, y + 188, 40, 20, 5); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(bx + 29, y + 190, 34, 3);
+        const bx = x + i * 75;
+        button(bx, y + 164, 70, 62, names[id], () => { I.buy.paint(id, true); sfx('pop'); boardFx('gemea', names[id].toUpperCase()); }, { on: cur === id, size: 17, sub: ' ' });
+        g.fillStyle = INK; D.rrect(g, bx + 13, y + 196, 44, 22, 7); g.fill(); g.fillStyle = cols[id]; D.rrect(g, bx + 15, y + 198, 40, 18, 5); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(bx + 18, y + 200, 34, 3);
       });
     }
   }
   function drawFabCard(t) {
-    const I = G.Ind, r = I.run(), L = r.fab | 0, p = GEO.fab, w = 300, h = 204, x = U.clamp(p.x + p.w / 2 - w / 2, 8, W - w - 8), y = p.y + p.h + 30;
-    const c = I.cost.fab(), can = money() >= c;
-    card(x, y, w, h, p.x + p.w / 2, 0, 'u');
-    txt('Fábrica do pátio', x + 14, y + 22, T(19, INK, 'left')); nvBadge(x + w - 80, y + 9, L, 0);
-    txt('o galpão no pé da montanha', x + 14, y + 50, T(17, '#6B4A2E', 'left'));
-    txt('renda', x + 14, y + 78, T(17, '#6B4A2E', 'left')); txt(pct(0.12 * L) + '  ▸  ' + pct(0.12 * (L + 1)), x + w - 14, y + 78, T(17, C.grassD, 'right'));
-    txt('chega', x + 14, y + 102, T(17, '#6B4A2E', 'left')); fit(I.nextFab(L), x + w - 14, y + 102, w - 90, 17, C.oraD, 'right');
-    button(x + 14, y + 122, w - 28, 54, 'Ampliar', buyFab, { fill: '#DDF0C2', off: !can, size: 19, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
+    const I = G.Ind, r = I.run(), L = r.fab | 0, x = RC.x + 12, w = RC.w - 24, c = I.cost.fab(), can = money() >= c;
+    const y = boardCard(186, GEO.fab, t);
+    txt('Fábrica do pátio', x, y + 22, T(19, INK, 'left'));
+    nvBadge(x, y + 36, L, 0); txt('KOME PACK', x + w, y + 49, T(17, '#8A6A4A', 'right'));
+    txt('renda', x, y + 84, T(17, '#6B4A2E', 'left')); txt(pct(0.12 * L) + '  ▸  ' + pct(0.12 * (L + 1)), x + w, y + 84, T(17, C.grassD, 'right'));
+    txt('chega', x, y + 106, T(17, '#6B4A2E', 'left')); fit(I.nextFab(L), x + w, y + 106, w - 56, 17, C.oraD, 'right');
+    button(x, y + 120, w, 50, 'Ampliar', buyFab, { fill: '#DDF0C2', off: !can, size: 18, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
   }
   // lojas: funciona com qualquer número delas (as fichas de conteudo/ podem somar lojas novas, ex.: Barraca de Ramen)
   const shopName = sh => { const n = sh.n || sh.id; return n.indexOf(' de ') > 0 ? n.split(' de ').pop() : n; };
@@ -323,26 +361,24 @@
     return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
   }
   function drawShopCard(t) {
-    const I = G.Ind, r = I.run(), p = GEO.cork, list = DATA.SHOPS, n = list.length, two = n > 6, per = two ? Math.ceil(n / 2) : n;
-    const rh = Math.max(36, Math.min(44, Math.floor(252 / per))), w = 336, h = 62 + per * rh + 118, x = p.x - w - 18, y = Math.max(52, 462 - h);
-    card(x, y, w, h, 0, U.clamp(p.y + p.h / 2, y + 20, y + h - 20), 'r');
-    txt('Cidade que compra', x + 14, y + 22, T(19, INK, 'left'));
-    txt('cada nível de loja: +4% de renda', x + 14, y + 46, T(17, '#6B4A2E', 'left'));
+    const I = G.Ind, r = I.run(), list = DATA.SHOPS, n = list.length, rows = Math.ceil(n / 2), x = RC.x + 12, w = RC.w - 24;
+    const gh = rows * 38, y = boardCard(36 + gh + 162, GEO.cork, t);
+    txt('Cidade que compra', x, y + 22, T(19, INK, 'left'));
     list.forEach((sh, i) => {
-      const col = two ? Math.floor(i / per) : 0, cw = two ? (w - 24) / 2 : w - 20, rx = x + 10 + col * (cw + 4), ry = y + 62 + (two ? i % per : i) * rh, on = V.shop === sh.id, L = r.shops[sh.id] | 0, cl = r.client === sh.id;
-      g.fillStyle = INK; D.rrect(g, rx, ry - 2, cw, rh - 2, 9); g.fill();
-      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, rx + 2, ry, cw - 4, rh - 6, 7); g.fill();
-      blit(A.flyerOf(sh.id), rx + 22, ry + rh / 2 + 13, 2, { alpha: L ? 1 : 0.6 });
-      fit(shopName(sh), rx + 44, ry + rh / 2 - 2.5, two ? cw - 96 : 150, 17, INK, 'left');
-      if (cl) { blit(SPR.star, rx + cw - 78, ry + rh / 2 + 8, 2); if (!two) txt('cliente', rx + cw - 92, ry + rh / 2 - 2.5, T(17, C.goldD, 'right')); }
-      txt('Nv ' + L, rx + cw - 12, ry + rh / 2 - 2.5, T(17, L ? INK : '#9a8a76', 'right'));
-      hit(rx, ry - 2, cw, rh, () => { V.shop = sh.id; sfx('click', { pitch: 1.2 }); }, null);
+      const cx = x + (i % 2) * 113, cy = y + 36 + Math.floor(i / 2) * 38, on = V.shop === sh.id, L = r.shops[sh.id] | 0, cl = r.client === sh.id;
+      g.fillStyle = INK; D.rrect(g, cx - 2, cy - 2, 111, 34, 9); g.fill();
+      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, cx, cy, 107, 30, 7); g.fill();
+      blit(A.flyerOf(sh.id), cx + 17, cy + 28, 2, { alpha: L ? 1 : 0.6 });
+      if (cl) blit(SPR.star, cx + 42, cy + 23, 2);
+      txt('Nv ' + L, cx + 101, cy + 16, T(17, L ? INK : '#9a8a76', 'right'));
+      hit(cx - 2, cy - 2, 111, 36, () => { V.shop = sh.id; sfx('click', { pitch: 1.2 }); }, null);
     });
-    const sh = list.find(q => q.id === V.shop) || list[0], L = r.shops[sh.id] | 0, c = I.cost.shop(sh.id), can = money() >= c, cl = r.client === sh.id, by = y + 62 + per * rh + 4, ds = shopDesc(sh);
-    txt('se for a cliente:', x + 14, by + 12, T(17, '#8A6A4A', 'left'));
-    fit(ds[0], x + w - 14, by + 12, 170, 17, C.oraD, 'right'); fit(ds[1], x + w - 14, by + 34, 300, 17, C.oraD, 'right');
-    button(x + 14, by + 50, 176, 54, L ? 'Subir nível' : 'Abrir loja', () => buyShop(sh.id), { fill: '#DDF0C2', off: !can, size: 18, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
-    button(x + 200, by + 50, w - 214, 54, cl ? 'Cliente ★' : 'Cliente', () => { if (!L) { toast('Abra a loja primeiro'); sfx('error'); return; } if (I.buy.client(sh.id)) { sfx('chirin'); boardFx('lojas', 'CLIENTE'); } }, { on: cl, off: !L, size: 18 });
+    const sh = list.find(q => q.id === V.shop) || list[0], L = r.shops[sh.id] | 0, c = I.cost.shop(sh.id), can = money() >= c, cl = r.client === sh.id, by = y + 36 + gh + 6, ds = shopDesc(sh);
+    fit(sh.n || sh.id, x, by + 12, w, 18, INK, 'left');
+    txt('se for a cliente:', x, by + 34, T(17, '#8A6A4A', 'left'));
+    txt(ds[0], x, by + 54, T(17, C.oraD, 'left')); if (ds[1]) fit(ds[1], x, by + 74, w, 17, C.oraD, 'left');
+    button(x, by + 90, 128, 50, L ? 'Subir nível' : 'Abrir loja', () => buyShop(sh.id), { fill: '#DDF0C2', off: !can, size: 17, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
+    button(x + 136, by + 90, w - 136, 50, 'Cliente', () => { if (!L) { toast('Abra a loja primeiro'); sfx('error'); return; } if (I.buy.client(sh.id)) { sfx('chirin'); boardFx('lojas', 'CLIENTE'); } }, { on: cl, off: !L, size: 17 });
   }
 
   /* ---- escolha do marco: dois cartões ilustrados ---- */
@@ -351,11 +387,11 @@
     const k = U.clamp((m.t - 0.9) / 0.35, 0, 1); if (k <= 0) return;
     g.fillStyle = 'rgba(30,18,10,' + (0.6 * k).toFixed(2) + ')'; g.fillRect(0, 0, W, H);
     hit(0, 0, W, H, () => {}, null);
-    const e = U.ease.out(k), cw = 268, ch = 286, gap = 28, x0 = W / 2 - cw - gap / 2, y0 = 150 + (1 - e) * 40;
+    const e = U.ease.out(k), cw = 268, ch = 286, gap = 28, x0 = W / 2 - cw - gap / 2, y0 = 138 + (1 - e) * 40;
     g.globalAlpha = k;
-    pill(W / 2 - 300, 64 - (1 - e) * 20, 600, 66, '#FFF6DE', 14);
-    fit('Marco! ' + m.tool.name + ' nível ' + m.L, W / 2, 86 - (1 - e) * 20, 570, 21, INK);
-    txt('o bônus desta máquina DOBROU · agora escolha um caminho', W / 2, 112 - (1 - e) * 20, T(17, C.oraD));
+    pill(W / 2 - 300, 54 - (1 - e) * 20, 600, 66, '#FFF6DE', 14);
+    fit('Marco! ' + m.tool.name + ' nível ' + m.L, W / 2, 76 - (1 - e) * 20, 570, 21, INK);
+    txt(m.again ? 'marco guardado · escolha um caminho quando quiser' : 'o bônus desta máquina DOBROU · escolha um caminho', W / 2, 102 - (1 - e) * 20, T(17, C.oraD));
     const opts = [['r', 'Mais rápida', ['bônus desta', 'máquina +50%'], K.red, '#FBD9D2'], ['d', 'Mais dourada', ['+10% em todos os', 'bolsões dourados'], K.goldD, '#FFF0B8']];
     opts.forEach(([id, name, sub, col, bgc], i) => {
       const x = x0 + i * (cw + gap), pressed = pressBtn && pressBtn.x === x, y = y0 + (pressed ? 2 : 0) + Math.sin(t * 2.4 + i * 2) * 2;
@@ -387,6 +423,7 @@
       txt('escolher', x + cw / 2, y + 264.5, T(17, INK));
       hit(x, y0, cw, ch, () => pick(id), { x, y: y0 });
     });
+    button(W / 2 - 130, y0 + ch + 20, 260, 40, 'decidir depois', later, { fill: '#F3E7CC', size: 18 });
     g.globalAlpha = 1;
   }
   function drawHelp() {
@@ -396,7 +433,7 @@
     E.drawShibaHead(g, x + 52, y + 50, performance.now() / 1000, { scale: 1.1, expr: 'happy' });
     txt('Oficina do Kome', x + 100, y + 34, T(22, INK, 'left'));
     txt('cada máquina sua mora aqui e pode ficar mais forte', x + 100, y + 62, T(17, '#6B4A2E', 'left'));
-    const tips = ['Toque numa máquina (ou na régua de baixo): ela sobe na plataforma', 'Melhorar: +5% de renda e mais força. Segure pra repetir', 'Nível 10, 25 e 50: o bônus DOBRA e você escolhe um caminho', 'O nível vale pra máquina que você está USANDO na montanha', 'Prancheta azul: Bagger Gêmea · Quadro: fábrica do pátio', 'Cortiça: as lojas da cidade e a cliente preferida'];
+    const tips = ['Toque numa máquina (ou na régua de baixo): ela sobe na plataforma', 'Melhorar: +5% de renda e mais força. Segure pra repetir', 'Nível 10, 25 e 50: o bônus DOBRA; escolha o caminho na hora ou depois', '“Usar esta máquina” troca a que o Kome pilota na montanha', 'Prancheta azul: Bagger Gêmea · Quadro: fábrica do pátio', 'Cortiça: as lojas da cidade e a cliente preferida'];
     tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 104 + i * 34, 5, 0, TAU); g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke(); txt(s, x + 50, y + 105 + i * 34, T(18, INK, 'left')); });
     hit(0, 0, W, H, () => { V.help = false; sfx('click'); });
   }
@@ -442,7 +479,7 @@
   addEventListener('blur', () => { V.hold = null; pressBtn = null; });
   addEventListener('keydown', e => {
     if (!isOpen()) return;
-    if (e.key === 'Escape') { if (V.help) V.help = false; else if (V.mile) { /* tem que escolher */ } else if (V.board) V.board = null; else close(); return; }
+    if (e.key === 'Escape') { if (V.help) V.help = false; else if (V.mile) later(); else if (V.board) V.board = null; else close(); return; }
     if (V.mile || V.help) return;
     if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !V.board) { upgrade(); e.preventDefault(); }
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const l = owned(), i = Math.max(0, l.findIndex(q => q.id === V.tool)) + (e.key === 'ArrowRight' ? 1 : -1); if (l[i]) select(l[i].id); }
@@ -521,11 +558,23 @@
         const bx = b.x + bk.dx + 22;
         A.levelBadge(g, bx, b.y + 6, inf.L, inf.miles);
         A.medals(g, bx + 30 + (inf.miles + Math.min(3, inf.spec.length)) * 5.5, b.y + 16, inf.miles, inf.spec, t);
+        if (inf.miles > inf.spec.length) blit(SPR.star, bx, b.y - 12 + Math.sin(t * 5) * 3, 2);   // marco esperando escolha
       } });
     }
     // mecânico cochilando embaixo do trator e outro mexendo na bancada
     if (own.trator && onLift !== 'trator') items.push({ y: 307, fn: () => A.mech(g, 96, 312, (t % 14) < 10 ? 'lie' : 'scratch', t, { pal: 'cha', face: -1 }) });
-    items.push({ y: 229, fn: () => A.mech(g, 792, 230, ['sit', 'think', 'sniff', 'sit'][Math.floor(t / 4.5) % 4], t + 2, { pal: 'aka', face: 1, tool: Math.floor(t / 4.5) % 4 === 0 ? 'spanner' : null, rot: -0.6 + Math.sin(t * 5) * 0.4 }) });
+    items.push({ y: 229, fn: () => A.mech(g, 806, 230, ['sit', 'think', 'sniff', 'sit'][Math.floor(t / 4.5) % 4], t + 2, { pal: 'aka', face: 1, tool: Math.floor(t / 4.5) % 4 === 0 ? 'spanner' : null, rot: -0.6 + Math.sin(t * 5) * 0.4 }) });
+    // segundo mecânico da bancada: solda uma peça na morsa de tempos em tempos (máscara, maçarico e clarão azul)
+    items.push({ y: 228, fn: () => {
+      const ph = (t + 3) % 11, weld = ph < 3.4, bx = 752, by = 230;
+      A.mech(g, bx, by, weld ? 'stand' : ['sit', 'wag', 'sniff'][Math.floor(t / 5.5) % 3], t + 5, { pal: 'shiro', face: -1, hat: weld ? 'mask' : 'cap', tool: weld ? 'torch' : null, rot: -0.5 + Math.sin(t * 22) * 0.25 });
+      if (weld) {
+        const fk = 0.5 + 0.5 * Math.sin(t * 61); g.globalCompositeOperation = 'lighter';
+        const gr = g.createRadialGradient(bx - 24, by - 22, 2, bx - 24, by - 22, 38); gr.addColorStop(0, 'rgba(190,225,255,' + (0.65 * fk).toFixed(2) + ')'); gr.addColorStop(1, 'rgba(190,225,255,0)'); g.fillStyle = gr; g.fillRect(bx - 64, by - 62, 80, 80);
+        g.globalCompositeOperation = 'source-over';
+        for (let k = 0; k < 3; k++) { const q = (t * 3.1 + k / 3) % 1; g.fillStyle = k % 2 ? '#FFF6C8' : '#FFD67A'; g.fillRect(Math.round(bx - 24 - q * (10 + k * 6)), Math.round(by - 22 + q * q * 26 - q * 10), 2, 2); }
+      }
+    } });
     // o Kome assistindo (quando não é ele mesmo em cima do elevador)
     if (onLift && !A.HAND[onLift]) items.push({ y: 467, fn: () => E.drawShiba(g, 346, 466, V.burst > 0 ? 'cheer' : ['sit', 'wag', 'proud', 'wag'][Math.floor(t / 3.7) % 4], t, { pal: pal(), face: 1 }) });
     // elevador: colunas atrás, plataforma, máquina viva
@@ -581,6 +630,7 @@
     drawBottomBar(t);
     if (V.board === 'gemea') drawGemeaCard(t); else if (V.board === 'fab') drawFabCard(t); else if (V.board === 'lojas') drawShopCard(t); else if (V.tool) drawToolCard(t);
     if (V.stamp && V.stamp.big) A.stamp(g, V.stamp.x, V.stamp.y, V.stamp.t, V.stamp.txt, K.red, 44);
+    if (G.News) G.News.draw(g, 10, 54, dt, { maxW: 400 });   // evento do modo infinito + avisos do jogo (banner, toast, conquista)
     drawOverlayMsgs(t, dt);
     if (V.mile) drawMile(t, dt);
     if (V.help) drawHelp();
@@ -610,7 +660,7 @@
   }
   function close() {
     if (!isOpen()) return;
-    if (V.mile) { V.mile.t = 2; pick('r'); }                 // nunca sai sem gravar a escolha do marco
+    V.mile = null;                                           // marco sem escolha fica PENDENTE na máquina (nada é escolhido sozinho)
     root.classList.remove('k-ofi-open'); V.hold = null; V.help = false; V.board = null; ps.clear(); fl.clear();
     if (G.Inf && G.Inf.recompute) G.Inf.recompute();
   }
@@ -619,8 +669,8 @@
     open, close, isOpen,
     // testes e prints
     select: id => select(id, true), board: b => { V.board = b || null; if (b === 'lojas' && !V.shop) V.shop = DATA.SHOPS[0].id; }, upgrade, pick: ch => { if (V.mile) V.mile.t = Math.max(V.mile.t, 2); return pick(ch); },
-    help: on => { V.help = !!on; }, shop: id => { V.shop = id; },
+    help: on => { V.help = !!on; }, shop: id => { V.shop = id; }, later: () => { if (V.mile) V.mile.t = Math.max(V.mile.t, 2); return later(); }, openMile, pending: pendOf, use: useTool,
     step(sec) { let left = sec, n = 0; const t0 = performance.now(); while (left > 1e-6) { const d = Math.min(1 / 30, left); tick(d); render(d); left -= d; n++; } return +((performance.now() - t0) / n).toFixed(2); },   // avança sem esperar o relógio (prints); devolve ms por quadro
-    get state() { return { open: isOpen(), tool: V.tool, board: V.board, mile: !!V.mile, lv: V.tool ? lvOf(V.tool) : 0, burst: V.burst }; },
+    get state() { return { open: isOpen(), tool: V.tool, board: V.board, mile: !!V.mile, lv: V.tool ? lvOf(V.tool) : 0, burst: V.burst, pend: V.tool ? pendOf(V.tool) : 0, hold: !!V.hold }; },
   };
 })();

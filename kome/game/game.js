@@ -2080,7 +2080,7 @@
   }
 
   /* ---- API pública e ganchos de teste ---- */
-  G.Game = { vila: vilaGo, on: (ev, fn) => { nListen++; return em.on(ev, fn); }, buyTool, buyNode, buyHouse, setTool, stats: () => st, nodeState, nodeCost, toolCost, houseCost, pay, aim, tapAll, saveNow, horn,
+  G.Game = { playAs, playIndex: () => (S.play >= 0 && S.play < S.tool ? S.play : S.tool), vila: vilaGo, on: (ev, fn) => { nListen++; return em.on(ev, fn); }, buyTool, buyNode, buyHouse, setTool, stats: () => st, nodeState, nodeCost, toolCost, houseCost, pay, aim, tapAll, saveNow, horn,
     reset: () => { save.clear(); saveNow = () => {}; location.reload(); } };   // admin: apaga o save e começa do zero
   window.__kome = {
     S, P, data: D, buyTool, buyNode, buyHouse, tapAll, aim: () => { const a = aim(); return { x: a.x, y: a.y }; },

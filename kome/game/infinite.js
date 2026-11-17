@@ -100,11 +100,49 @@
     pill.style.display = ''; pill.textContent = ev.n.replace('!', '') + ' ×' + String(ev.mult).replace('.', ',') + ' · ' + Math.ceil(evT) + 's';
   }
 
+  /* ---- AVISOS NAS TELAS CHEIAS (Oficina e Fábrica): banner, toast e conquista do jogo são DOM e ficam ATRÁS do palco dessas
+     telas. G.News guarda os avisos que chegam (UI.banner/toast/achievement embrulhados aqui) e desenha uma faixinha dentro do
+     canvas da tela: o evento atual numa pílula dourada e, embaixo, um aviso por vez (2,8 s cada). Texto ≥ 17 px (regra do celular). */
+  const NEWS = { q: [], cur: null };
+  const push = (kind, a, b) => { if (!a) return; NEWS.q.push({ kind, a: String(a), b: b ? String(b) : '', at: performance.now() }); if (NEWS.q.length > 6) NEWS.q.shift(); };
+  for (const [fn, kind] of [['banner', 'banner'], ['toast', 'toast'], ['achievement', 'ach']]) {
+    const orig = UI[fn]; if (typeof orig !== 'function') continue;
+    UI[fn] = function (text, sub, o) { try { push(kind, text, kind === 'banner' ? sub : (sub && sub.sub) || ''); } catch (e) { /* aviso é enfeite */ } return orig.apply(this, arguments); };
+  }
+  const rr = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  function newsPill(g, x, y, w, h, fill, al) {
+    g.globalAlpha = al; g.fillStyle = 'rgba(40,22,8,.30)'; rr(g, x - 2, y + 2, w + 4, h + 5, 11); g.fill();
+    g.fillStyle = '#3B2818'; rr(g, x - 2.5, y - 2.5, w + 5, h + 6.5, 11); g.fill(); g.fillStyle = fill; rr(g, x, y, w, h, 9); g.fill();
+  }
+  const NT_O = { size: 17, col: '#3B2818', sw: 0, align: 'left', weight: 900 }, NS_O = { size: 17, col: '#6B4A2E', sw: 0, align: 'left', weight: 800 };
+  // G.News.draw(g, x, y, dt, {maxW}): desenha a partir de (x, y), alinhado à esquerda; devolve a altura usada
+  function newsDraw(g, x, y, dt, o) {
+    const maxW = (o && o.maxW) || 420, D = E.Draw, now = performance.now(); let used = 0;
+    const cut = (t, w, sz) => { const n = Math.max(6, Math.floor(w / (sz * 0.56))); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+    if (ev && S && S.ended) {
+      const t = cut(ev.n.replace('!', '') + ' ×' + String(ev.mult).replace('.', ',') + ' · ' + Math.ceil(evT) + 's', maxW - 28, 17), w = Math.min(maxW, t.length * 17 * 0.56 + 30);
+      newsPill(g, x, y, w, 28, '#FFE68A', 1); g.globalAlpha = 1; NT_O.align = 'left'; D.text(g, t, x + 14, y + 15, NT_O); used = 36;
+    }
+    if (!NEWS.cur) { while (NEWS.q.length && now - NEWS.q[0].at > 5000) NEWS.q.shift(); if (NEWS.q.length) { NEWS.cur = NEWS.q.shift(); NEWS.cur.t = 0; } }
+    const c = NEWS.cur;
+    if (c) {
+      c.t += dt; const life = 2.8, k = Math.min(1, c.t / 0.2), out = c.t > life - 0.3 ? Math.max(0, (life - c.t) / 0.3) : 1, al = Math.min(k, out);
+      const head = c.kind === 'ach' ? 'Conquista: ' + c.a : c.a, a = cut(head, maxW - 28, 17), b = c.b ? cut(c.b, maxW - 28, 17) : '';
+      const w = Math.min(maxW, Math.max(a.length, b.length) * 17 * 0.56 + 30), h = b ? 50 : 28, yy = y + used - (1 - k) * 8;
+      newsPill(g, x, yy, w, h, c.kind === 'ach' ? '#FBD9D2' : c.kind === 'banner' ? '#FFF6DE' : '#F3E7CC', al);
+      g.globalAlpha = al; D.text(g, a, x + 14, yy + 15, NT_O); if (b) D.text(g, b, x + 14, yy + 37, NS_O); g.globalAlpha = 1;
+      used += h + 8;
+      if (c.t >= life) NEWS.cur = null;
+    }
+    return used;
+  }
+  G.News = { draw: newsDraw, push, clear() { NEWS.q.length = 0; NEWS.cur = null; } };
+
   G.Inf = {
     init(a) { api = a; S = G.S; },
     sim: { cost, up },   // tools/longo.js (simulador de horas) compra sem abrir a tela
     addEvent: e => { if (!EVENTS.some(x => x.id === e.id)) EVENTS.push(e); },   // fichas de conteudo/ (tipo evento)
-    mult, powK, evMult, tick, open, openList, event: () => ev,
+    mult, powK, evMult, tick, open, openList, event: () => ev, eventLeft: () => evT,
     levels: lv, info, up, owned, playing: () => (api && api.playing ? api.playing() : null), MILES, classic: false,
     recompute() { api.recompute(); api.save(); refresh(); },
   };

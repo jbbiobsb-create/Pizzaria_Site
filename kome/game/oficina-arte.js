@@ -156,6 +156,22 @@
       P.rect(2, 4, 20, 14, K.red); P.rect(2, 4, 2, 14, K.redL); P.rect(19, 4, 3, 14, K.redD); for (let j = 0; j < 3; j++) { P.rect(4, 8 + j * 4, 15, 1, K.redD); P.rect(9, 6 + j * 4, 5, 1, K.steelL); }
       P.rect(1, 3, 1, 8, K.blk); P.ell(5, 19.5, 2, 2, K.blk); P.ell(18, 19.5, 2, 2, K.blk);
     }),
+    cart2: SP('cart2', 24, 22, P => {             // segundo carrinho de ferramentas (azul), com a gaveta de cima aberta
+      P.rect(2, 2, 20, 2, K.steelD); P.rect(2, 2, 20, 1, K.steel); P.rect(5, 0, 2, 2, K.red); P.rect(9, 0, 5, 2, K.steelL); P.rect(16, 0, 3, 2, K.yel);
+      P.rect(2, 4, 20, 14, K.blue); P.rect(2, 4, 2, 14, K.blueL); P.rect(19, 4, 3, 14, K.blueD); for (let j = 0; j < 3; j++) { P.rect(4, 8 + j * 4, 15, 1, K.blueD); P.rect(9, 6 + j * 4, 5, 1, K.steelL); }
+      P.rect(22, 5, 1, 7, K.blk); P.ell(5, 19.5, 2, 2, K.blk); P.ell(18, 19.5, 2, 2, K.blk);
+    }),
+    crate: SP('crate', 20, 16, P => {            // caixote de peças (ripas, cantoneiras e estêncil de engrenagem)
+      P.rect(1, 1, 18, 14, K.woodL); P.rect(1, 1, 18, 2, '#E2B983'); P.rect(1, 13, 18, 2, K.wood);
+      for (const y of [5, 9]) P.rect(1, y, 18, 1, K.wood); P.rect(1, 1, 2, 14, K.wood); P.rect(17, 1, 2, 14, K.woodD);
+      P.ell(10, 8, 3, 3, K.woodD); P.ell(10, 8, 1.2, 1.2, K.woodL); for (const [x, y] of [[10, 4], [10, 12], [6, 8], [14, 8]]) P.set(x, y, K.woodD);
+    }),
+    crateS: SP('crateS', 14, 11, P => { P.rect(1, 1, 12, 9, '#D8AC70'); P.rect(1, 1, 12, 2, '#E6BE86'); P.rect(1, 5, 12, 1, K.wood); P.rect(1, 1, 2, 9, K.wood); P.rect(11, 1, 2, 9, K.woodD); P.rect(5, 3, 4, 2, K.red); }),
+    gear: SP('gear', 11, 11, P => { P.ell(5, 5, 4, 4, K.steel); for (const [x, y] of [[5, 0], [5, 10], [0, 5], [10, 5], [1.5, 1.5], [8.5, 1.5], [1.5, 8.5], [8.5, 8.5]]) P.rect(Math.round(x), Math.round(y), 1, 1, K.steelD); P.ell(4, 4, 2, 2, K.steelL); P.ell(5, 5, 1.5, 1.5, K.blk); }),
+    reel: SP('reel', 18, 18, P => {              // carretel de mangueira de ar preso na parede
+      P.rect(7, 0, 4, 3, K.steelD); P.ell(9, 10, 8, 8, K.red); P.ell(9, 10, 6, 6, K.yel); P.ell(9, 10, 6, 6, K.yel); P.ell(9, 10, 4.5, 4.5, K.yelD); P.ell(9, 10, 3, 3, K.yel); P.ell(9, 10, 1.5, 1.5, K.blk); P.ell(6, 6, 2, 1.5, K.redL);
+    }),
+    bucket: SP('bucket', 11, 11, P => { P.poly([[1, 2], [9, 2], [8, 10], [2, 10]], K.steel); P.rect(1, 2, 9, 1, K.steelL); P.rect(2, 3, 2, 6, K.steelL); P.rect(1, 0, 1, 2, K.blk); P.rect(9, 0, 1, 2, K.blk); P.rect(1, 0, 9, 1, K.blk); P.rect(3, 3, 5, 1, '#6FA8DC'); }),
     creeper: SP('creeper', 26, 8, P => { P.rrect(1, 1, 24, 4, 1, K.red); P.rect(2, 1, 22, 1, K.redL); P.rect(1, 1, 6, 4, K.blk); P.rect(2, 1, 4, 1, K.blkL); for (const x of [4, 12, 21]) P.ell(x, 6, 1.5, 1.5, K.blk); }),
     oilpan: SP('oilpan', 16, 7, P => { P.poly([[1, 1], [14, 1], [12, 5], [3, 5]], K.steelD); P.rect(1, 1, 14, 1, K.steel); P.rect(3, 2, 10, 1, K.dark); }),
     cone: SP('cone', 11, 13, P => { P.poly([[5, 1], [6, 1], [9, 10], [2, 10]], K.ora); P.rect(4, 5, 4, 2, K.cream); P.rect(1, 10, 9, 2, K.ora); P.rect(1, 11, 9, 1, '#B0531C'); P.set(5, 2, K.oraL); }),
@@ -291,6 +307,25 @@
     }
     // ralo
     R(232, 238, 14, 5, '#8A7C66'); for (let x = 233; x < 245; x += 2) R(x, 239, 1, 3, '#4A4038');
+    // ---- mais vida no piso (sem entulhar): vagas pintadas do carrinho e da britadeira, zona zebrada na porta, setas até o
+    //      elevador, faixa de pedestre junto da parede e a mangueira de ar que sai do carretel e vai até a britadeira
+    {
+      const r2 = E.RNG(131), wornB = (x, y, w, h, c1, c2) => { for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) if (r2() > 0.22) R(x + i, y + j, 1, 1, r2() < 0.7 ? c1 : c2); };
+      DIG[5] = ['###', '#..', '###', '..#', '###']; DIG[6] = ['###', '#..', '###', '#.#', '###'];
+      bay(139, 181, 106, 126, 5); bay(187, 240, 106, 126, 6);
+      // zebrado "não estacione" na soleira da porta de enrolar
+      for (let x = 12; x < 120; x++) for (let y = 103; y < 110; y++) if (((x + y) >> 2) % 2 === 0 && r2() > 0.18) R(x, y, 1, 1, r2() < 0.7 ? '#E0B43C' : '#C89C2E');
+      // setas (chevrons) da porta pro elevador, por cima das marcas de pneu
+      for (const [cx, cy] of [[96, 150], [128, 172], [162, 190]]) for (let k = 0; k < 6; k++) { wornB(cx + k, cy - 6 + k, 2, 2, '#E8DFC8', '#D4C8AA'); wornB(cx + k, cy + 6 - k, 2, 2, '#E8DFC8', '#D4C8AA'); }
+      // faixa de pedestre verde junto da parede, da bancada até o painel de ferramentas
+      for (let x = 246; x < 336; x += 7) wornB(x, 104, 4, 9, '#9CC6A4', '#86B28E');
+      wornB(244, 102, 94, 1, '#E8DFC8', '#D4C8AA'); wornB(244, 114, 94, 1, '#E8DFC8', '#D4C8AA');
+      // mangueira de ar: desce do carretel (parede), faz uma barriga no chão e chega na vaga 6
+      b.lineCap = 'round'; b.lineJoin = 'round';
+      for (const [col, lw, dy] of [['#5E2A22', 3, 1], ['#C8423A', 2, 0], ['#E8776A', 1, -0.5]]) {
+        b.strokeStyle = col; b.lineWidth = lw; b.beginPath(); b.moveTo(184.5, 96 + dy); b.bezierCurveTo(184, 110 + dy, 176, 128 + dy, 190, 130 + dy); b.bezierCurveTo(204, 132 + dy, 196, 122 + dy, 210, 123 + dy); b.stroke();
+      }
+    }
 
     // ---- parede: caibros escuros no alto (o HUD mora ali), viga de aço, reboco creme, lambri verde-menta
     R(0, 0, 480, 22, '#3A2516');
@@ -380,6 +415,10 @@
     shadow(g, 244, 378, 22, 5); blit(g, spr.cart, 244, 380);
     shadow(g, 132, 362, 26, 4, 0.2); blit(g, spr.creeper, 132, 364); shadow(g, 26, 368, 14, 4, 0.2); blit(g, spr.jack, 26, 370); blit(g, spr.oilpan, 172, 384);
     shadow(g, 318, 470, 13, 4); blit(g, spr.cone, 318, 472); shadow(g, 668, 468, 13, 4); blit(g, spr.cone, 670, 470);
+    // peças novas: carretel da mangueira, caixotes de peças com engrenagens, segundo carrinho, balde
+    blit(g, spr.reel, 369, 198);
+    shadow(g, 296, 330, 30, 5); blit(g, spr.crate, 284, 332); blit(g, spr.crate, 312, 334); blit(g, spr.crateS, 296, 304); blit(g, spr.gear, 318, 306); blit(g, spr.gear, 268, 334, 2, { rot: 0.5 });
+    shadow(g, 604, 300, 22, 5); blit(g, spr.cart2, 604, 302); blit(g, spr.bucket, 574, 304);
     // sombra de contato: parede/piso, cantos, frente do palco e teto
     let gr = g.createLinearGradient(0, WALL, 0, WALL + 34); gr.addColorStop(0, 'rgba(58,30,10,.36)'); gr.addColorStop(1, 'rgba(58,30,10,0)'); g.fillStyle = gr; g.fillRect(0, WALL, W, 34);
     gr = g.createLinearGradient(0, 0, 46, 0); gr.addColorStop(0, 'rgba(58,30,10,.28)'); gr.addColorStop(1, 'rgba(58,30,10,0)'); g.fillStyle = gr; g.fillRect(0, WALL, 46, H - WALL);
@@ -643,18 +682,36 @@
     { const f = Math.floor(t * 0.8) % 2; blit(g, f ? spr.cat1 : spr.cat0, 920, 166, 2); const u = (t * 0.5) % 1; D.text(g, 'z', 938 + u * 8, 144 - u * 14, { size: 11 + u * 5, col: K.cream, sw: 3, alpha: 1 - u }); }
   }
   /* lamps(g, t, dusk, hotX): luminárias penduradas balançando; add=true desenha só os cones de luz (somar por cima) */
+  // feixe de luz em cache: imagem pequena (o canvas amplia suavizando) com queda suave do centro pra borda e do bico pro chão
+  const BEAM_W = 196; let beamCv = null;
+  function beam() {
+    if (beamCv) return beamCv;
+    const w = 128, h = 96; beamCv = document.createElement('canvas'); beamCv.width = w; beamCv.height = h;
+    const c = beamCv.getContext('2d'), im = c.createImageData(w, h), d = im.data;
+    for (let y = 0; y < h; y++) {
+      const v = y / (h - 1), half = (8 + (190 - 8) * v) / BEAM_W, kv = 0.048 * 5 * (1.6 - 1.1 * v);   // meia largura (0..1) e força nessa altura
+      for (let x = 0; x < w; x++) {
+        const u = Math.abs((x + 0.5) / w * 2 - 1) / half, f = u >= 1 ? 0 : Math.pow(1 - u, 1.35) * (0.55 + 0.45 * (1 - u)), i = (y * w + x) * 4;
+        // um tiquinho de ruído ordenado quebra qualquer degrau que sobrar nos 8 bits
+        const a = kv * f * 255 + ((x * 7 + y * 13) % 5) / 5 - 0.4;
+        d[i] = 255; d[i + 1] = 236; d[i + 2] = 170; d[i + 3] = Math.max(0, Math.min(255, Math.round(a)));
+      }
+    }
+    c.putImageData(im, 0, 0);
+    return beamCv;
+  }
   function lamps(g, t, o) {
     for (let i = 0; i < geo.lamps.length; i++) {
       const lx = geo.lamps[i], a = Math.sin(t * 1.1 + i * 1.7) * 0.05 + (o.kick || 0) * Math.sin(t * 9 + i) * 0.06, len = 16;
       const bx = lx + Math.sin(a) * len, by = 44 + Math.cos(a) * len;
       if (o.add) {
         const spot = i === 1 || i === 2, tx = spot ? geo.lift.x : lx, ty = spot ? geo.lift.y + 10 : 430;
-        if (spot) {                                          // feixe de palco: várias camadas pra borda ficar macia
-          const k = 0.022 + o.dusk * 0.026;
-          for (let j = 0; j < 5; j++) {
-            const rw = 190 - j * 30, gr = g.createLinearGradient(bx, by + 20, tx, ty); gr.addColorStop(0, 'rgba(255,236,170,' + (k * 1.6).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(255,236,170,' + (k * 0.5).toFixed(3) + ')');
-            g.fillStyle = gr; g.beginPath(); g.moveTo(bx - 8 + j, by + 20); g.lineTo(bx + 8 - j, by + 20); g.lineTo(tx + rw, ty); g.lineTo(tx - rw, ty); g.closePath(); g.fill();
-          }
+        if (spot) {                                          // feixe de palco: UMA imagem com a borda macia calculada ponto a ponto
+          // (antes eram 5 trapézios empilhados: no fim de tarde, com os dois feixes cruzando, dava pra contar as faixas)
+          const bm = beam(), dx = tx - bx, dy = ty - (by + 20), len = Math.hypot(dx, dy);
+          g.save(); g.translate(bx, by + 20); g.rotate(Math.atan2(dy, dx) - Math.PI / 2); g.globalAlpha = (0.022 + o.dusk * 0.026) / 0.048;
+          g.imageSmoothingEnabled = true; g.drawImage(bm, -BEAM_W, 0, BEAM_W * 2, len); g.imageSmoothingEnabled = false;
+          g.restore();
         }
         if (i === 1 || !spot) {                              // poça de luz no chão
           g.save(); g.translate(tx, ty); g.scale(1, 0.26); const pr = spot ? 260 : 150, pg = g.createRadialGradient(0, 0, 10, 0, 0, pr);
