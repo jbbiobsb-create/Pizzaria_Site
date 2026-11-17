@@ -25,6 +25,16 @@ Leia isto ANTES de procurar no código. Use os nomes de função com `grep -n "f
 
 Formato da ficha e paleta das letras: ver cabeçalho de `tools/content.js`.
 
+### Interfaces da camada Cookie (adaptador: `game/cookie-ui.js`)
+Painel do Pátio, cartão "Enquanto você estava fora · Pegar!", Arroz do Coração (+8 Tigelas, galeria), Árvore de Sementes nova
+(E.UI.tree), chips "Pátio" e "hora de partir", Cochilo do Kome (linha nos Ajustes entra sozinha em `G.HUD.settings`). A tela só
+lê `G.CookieUI.api`; o sistema troca os falsos com **`G.CookieUI.use({ready, money, patio, total, price, maxBuy, buy, marco,
+buyMarco, sinergias, buySinergia, coracao, conquistas, tigelas, buyTigela, seeds, seedTree, seedLevel, seedCost, buySeed, away,
+claimAway, partir, openMap, onSettings, onCochilo})`** (formato de cada um no topo do arquivo). Falsos e a árvore proposta de
+34+6 nós: seção 10 do arquivo (apagar quando o sistema existir); textos da planilha no demo vêm de `game/cookie-demo-data.js`
+(gerado do CSV, carregado só no demo). Arte: `game/cookie-arte.js` (`G.CookieArt`). Demo: `?dev&cookie=demo` (`&away=cap`,
+`&cochilo=1`). Ajuste salvo: `S.opts.cochilo` (false = desligado).
+
 ## Balanço (só números)
 `game/data.js`: `D.ECON` (COST_TOOL/NODE/HOUSE, P0, EXTRA_BY_TOOL, BOOST), `D.TOOLS` (cost, A, r, pow, zoom), `D.TREE` (nós, c, fx),
 `D.HOUSE`, `D.MATS` (camadas), `D.COMBO`, `D.DECOR`, `D.THEMES`, `D.CLOSET`. Metas: `node tools/playtest.js --auto`.
