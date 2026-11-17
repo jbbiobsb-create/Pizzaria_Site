@@ -183,3 +183,85 @@ placar contra outras pessoas. Também fora desta versão: amuletos, faixas, evol
 2. Níveis da Oficina zeram na viagem (hoje sim?) ou ficam? Proposta: seguem a regra de hoje.
 3. "Cochilo do Kome": depois de ~60 min seguidos, o Kome boceja e sugere uma pausa (sem perder nada, some com um toque).
    Entra ou fica fora? Proposta: entra, desligável nos ajustes (P9, P11).
+
+## Conteúdo (planilha cheia)
+Arquivo: `docs/design/camada-cookie-conteudo.csv` (mesmo cabeçalho e ordem de colunas do exemplo, 13 colunas, `;`, número com
+ponto). **673 linhas:** 212 upgrades (182 marcos + 22 sinergias + 8 Tigelas do Coração) · 418 conquistas · 37 nomes de número ·
+6 eventos (pesos somam 100). Números gerados por script a partir das fórmulas desta spec; nomes e piadas escritos à mão
+(tom jovem adulto). Ids sistemáticos: `m_<maq>_<qtd>`, `s_<a>_<b>`, `tigela_coracao_<n>`, `c_<família>_<alvo>`, `c_seg_<nome>`,
+`n_<expoente>`; os textos do exemplo foram reaproveitados nas mesmas vagas (Meias Antiderrapantes = `m_pata_1` etc.).
+
+**O que o `tools/planilha.js` precisa passar a aceitar (novo em relação ao exemplo):**
+- `tipo` novo **`numero`**: `nome` = rótulo que o `fmt` mostra (`undeci`…`viginti`, depois `arrozilhão`…`chega-lhão`), `alvo` =
+  10^n, `valor` = expoente, `efeito` = `nome_numero`. 37 nomes de 1e36 a 1e144 (estende a spec, que parava em 1e93);
+  depois disso, notação `1,23e147`.
+- `efeito` novo **`mult_par`** (sinergia de vizinhas): ×`valor` (1,5) **nas duas** máquinas de `a+b`. O `efeito sinergia`
+  (já no exemplo) = **a segunda** máquina de `a+b` ganha +`valor` por unidade da **primeira** (`pata+trator`: trator +1%/Pata).
+  Preço da sinergia (`preco` = 30) é × custo-base da **maior** das duas. 13 vizinhas + 9 extras (`alvo` 15, 25 ou 50).
+- Tigelas: `upgrade` sem máquina, `condicao conquistas`, `efeito coracao`, `preco` em segundos de renda (600, ×10 cada).
+- Conquistas: `valor` fica vazio = 1 grão do Coração (+1% × (1 + tigelas)). `desc` já traz a condição + a piada;
+  nas **secretas** `desc` é só a **dica** (aparece com a Lupa de Segredos ou depois de pegar).
+- `condicao` novas (todas: valor ≥ `alvo`, `maquina` vazia salvo indicado):
+
+| condicao | o que conta |
+|---|---|
+| `cavado` | grãos cavados no total, na unidade mostrada ao jogador (S.dug × 40, igual às missões) |
+| `renda` | maior ¥/s alcançado |
+| `qtd` + `maquina todas` | ter ≥ alvo de **cada uma** das 14 |
+| `marcos` | marcos comprados daquela `maquina`; com `maquina todas` = total de marcos |
+| `sinergias` | sinergias compradas |
+| `compras` | unidades compradas no Pátio, somando todas as viagens |
+| `livro` | tipos diferentes de evento dourado vistos (Livro dos Eventos) |
+| `evento_<id>` | vezes que pegou aquele evento (`evento_frenesi`, `evento_chuva`…) |
+| `chuva_graos` · `gigante_patadas` · `tempestade_sacos` | recorde numa única ocorrência do evento |
+| `desfile_n` | tamanho da turma num Desfile |
+| `frenesi_compras` | unidades compradas durante um único Frenesi |
+| `mochila` | eventos soltos da Mochila do Tatuzão |
+| `ilha` | `alvo` = id da ilha (código, não número): abriu o Pátio nela |
+| `voltas` | voltas completas pelo Japão |
+| `fabrica` · `cardapio` | itens feitos na Fábrica (total) · produtos diferentes feitos na mesma corrida (máx 4) |
+| `oficina` · `oficina_soma` | nível daquela `maquina` na Oficina · soma dos níveis de todas |
+| `tatuzao` · `colecao` | bolsões/fósseis achados · itens na coleção (roupinhas, bichos, enfeites) |
+| `tempo` · `offline` · `offline_max` | segundos jogados no total · vezes que apertou Pegar! · maior ausência em segundos |
+| `nomes` · `conquistas` · `tigelas` | nomes de número vistos · conquistas que tem · Tigelas do Coração compradas |
+
+**Códigos das 34 secretas** (`condicao segredo`, `alvo` = código):
+
+| código | condição |
+|---|---|
+| `hashi_com_100_bagger` | comprar 1 hashi tendo ≥100 Baggers |
+| `tocar_kome_100` | tocar no Kome 100 vezes seguidas sem cavar |
+| `parado_10min` | 10 min com o jogo aberto e visível sem tocar em nada |
+| `sem_compra_1h` | 1 h no Pátio da mesma corrida sem comprar nada |
+| `compra_11h11` | comprar algo às 11:11 do relógio local |
+| `meia_noite` | estar jogando às 00:00 |
+| `sexta_18h` | jogar numa sexta entre 18h e 23h59 |
+| `segunda_9h` | jogar numa segunda entre 9h e 10h |
+| `notacao_ligada` | ligar "sempre notação" nos ajustes |
+| `mudo_10min` | 10 min jogando com o som desligado |
+| `trator_69` | exatamente 69 tratores |
+| `alguma_42` | exatamente 42 de alguma turma |
+| `pata_404` | exatamente 404 Patas |
+| `soma_1337` | soma de todas as unidades do Pátio = 1337 |
+| `bagger_sem_pata` | ter ≥1 Bagger e 0 Patas no Pátio |
+| `festival_e_frenesi` | Festival e Frenesi ativos ao mesmo tempo (vale soltar da Mochila) |
+| `chuva_sem_toque` | uma Chuva de Arroz inteira sem tocar em nenhum grão |
+| `gigante_sem_patada` | um Kome Gigante inteiro sem dar patada |
+| `nome_kome_kome` | ver o nome de número `kome-kome` |
+| `dinheiro_777` | dinheiro mostrado começando com "777" |
+| `viagem_1_semente` | viajar ganhando exatamente 1 Semente do Pátio |
+| `livro_aberto_20` | abrir o Livro dos Eventos 20 vezes |
+| `creditos` | abrir a tela de créditos (se não existir, trocar por outro código) |
+| `cochilo_aceito` · `cochilo_desligado` | aceitar o Cochilo do Kome · desligar o Cochilo nos ajustes |
+| `todas_iguais_10` | as 14 turmas com a mesma quantidade (≥10) |
+| `cem_compras_x1` | 100 compras seguidas usando só ×1 |
+| `pegar_rapido` | apertar Pegar! em menos de 1 s depois que a carta abre |
+| `gigante_no_frenesi` | Kome Gigante durante um Frenesi |
+| `desfile_bagger` · `desfile_pata_300` | Desfile da turma de Baggers · Desfile da Pata com ≥300 |
+| `tigela_8_8` | 8 Tigelas do Coração e exatamente 8 Tigelas no Pátio |
+| `ilha_sem_tatuzao` | terminar a campanha de uma ilha sem usar o Tatuzão |
+| `dinheiro_zero` | ficar com exatamente ¥0 depois de uma compra |
+
+Nenhuma secreta pune parar nem pede sequência de dias; as de horário (11:11, meia-noite, sexta, segunda) são piada, não meta.
+Ícones usados: os do HUD (`paw check rice mount swap sack bolt horn chest tree gear star yen clock trophy book boat drill factory
+hat house music mute`); trocar à vontade.
