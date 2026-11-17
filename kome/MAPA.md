@@ -57,7 +57,7 @@ Formato da ficha e paleta das letras: ver cabeçalho de `tools/content.js`.
 | Kome sente o clima (frio, calor, praia) | `game/game.js` · FEEL, feelFlags, feelTick, drawFeel, drawBreath |
 | Cutscenes do fim de jogo | `game/cutscenes.js` · ilhas, chegada, ilhafim, finale (Kome-Oh de `game/komeoh.js`) |
 | Conquistas e missões | `game/goals.js` · ACH, TPL |
-| Ferramentas de mão / máquinas | `game/tools-hand.js`, `machines-mid.js`, `machines-mine.js`, `colheitadeira.js`, `bagger.js` (interface G.Tools[id]) |
+| Ferramentas de mão / máquinas | `game/tools-hand.js`, `machines-mid.js`, `machines-mine.js`, `colheitadeira.js`, `bagger.js`, absurdas `tbm.js`, `komeoh.js`, `trembala.js` (interface G.Tools[id]) |
 
 ## Engine Pixxel
 `engine/` (docs em PIXXEL.md, gerado por `node tools/docs.js`). Pixel art: `E.sprite`, `E.spriteText` (desenho em texto) em `pix.js`.

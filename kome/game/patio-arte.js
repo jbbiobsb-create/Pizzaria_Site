@@ -30,6 +30,8 @@
     HAND: ['pata', 'hashi', 'tigela', 'pa', 'duaspas', 'carrinho', 'britadeira'],
     MID: ['trator', 'empilhadeira', 'colheita', 'escav'],
     GIANT: ['caminhao', 'pacabo', 'bagger'],
+    // absurdas (15–20) no horizonte: cada uma desenha a si mesma com G.Tools[id].horizon(g, {x0,x1,y,k,t,n,tint,haze,night}), se tiver
+    ABSURD: ['tatus', 'komeohs', 'trembala', 'foguete', 'fuji', 'portal'],
     CREW_MAX: 8,          // shibas soltos por turma de mão
     BAY_MAX: 4,           // máquinas médias nas vagas
     CONVOY_MAX: 3,        // máquinas médias andando no comboio (por tipo)
@@ -346,7 +348,7 @@
     poucos: { pata: 5, hashi: 4, tigela: 3, pa: 3, duaspas: 2, carrinho: 2, britadeira: 1, trator: 3, empilhadeira: 2, colheita: 1, escav: 1, caminhao: 2, pacabo: 1, bagger: 1 },
     medio: { pata: 25, hashi: 22, tigela: 18, pa: 14, duaspas: 12, carrinho: 10, britadeira: 10, trator: 25, empilhadeira: 15, colheita: 12, escav: 10, caminhao: 10, pacabo: 6, bagger: 3 },
     cheio: { pata: 100, hashi: 100, tigela: 90, pa: 75, duaspas: 60, carrinho: 55, britadeira: 50, trator: 100, empilhadeira: 80, colheita: 60, escav: 50, caminhao: 40, pacabo: 25, bagger: 12 },
-    absurdo: { pata: 500, hashi: 450, tigela: 400, pa: 350, duaspas: 300, carrinho: 260, britadeira: 220, trator: 400, empilhadeira: 300, colheita: 250, escav: 200, caminhao: 150, pacabo: 100, bagger: 50 },
+    absurdo: { pata: 500, hashi: 450, tigela: 400, pa: 350, duaspas: 300, carrinho: 260, britadeira: 220, trator: 400, empilhadeira: 300, colheita: 250, escav: 200, caminhao: 150, pacabo: 100, bagger: 50, trembala: 30 },
   };
   let FAKE = null, PATIO = {};
   function milestones(n) { const M = [1, 5, 25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]; let k = 0; while (k < M.length && n >= M[k]) k++; return k; }
@@ -611,6 +613,7 @@
         // número discreto, na névoa
         if (layer === 0) { const mx = b[0] + bw * 0.5 + shift * 0.5; if (mx > v.x0 - 80 && mx < v.x1 + 80) Draw.text(g, PA.NAMES[id] + ' ×' + fmtN(n), mx, BASE[0] + 8, { size: 9, col: mix(tint[0], '#FFFFFF', 0.5), sw: 2, stroke: mix(tint[0], '#3B2818', 0.4), alpha: 0.85 }); }
       }
+      if (layer === 1) drawAbsurd(g, t, nightK, tint[1], BASE[1]);
       // morro de névoa da camada (os de trás ficam de pé "no morro")
       const col = layer === 0 ? mix('#9DB083', sky, 0.38) : layer === 1 ? mix('#A9BC92', sky, 0.55) : mix('#B9C8A8', sky, 0.7);
       const shift = shiftR, y0 = BASE[layer] + 5, step = 40, xa = Math.max(L.L, v.x0 - step), xb = Math.min(L.R, v.x1 + step);
@@ -630,6 +633,15 @@
       g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     }
     g.restore();
+  }
+
+  // máquinas absurdas no horizonte do meio (Trem-Bala: viadutos com o trem fazendo o ciclo inteiro lá longe)
+  function drawAbsurd(g, t, nightK, tint, base) {
+    for (const id of PA.ABSURD) {
+      const p = PATIO[id], n = p ? p.n | 0 : 0, T0 = G.Tools && G.Tools[id];
+      if (n <= 0 || !T0 || !T0.horizon) continue;
+      try { T0.horizon(g, { x0: L.L + 60, x1: L.R - 90, y: base - 6, k: 0.12, t, n, tint, haze: 0.5, night: nightK }); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
+    }
   }
 
   function drawGround(g, v) {
