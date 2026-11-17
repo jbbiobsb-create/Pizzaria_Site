@@ -6,7 +6,7 @@
    Depende de: core.js, pix.js, shiba.js, fx.js (só Draw/drawShiba de fato). Molde: trembala.js.
 
    Interface comum: G.Tools.portal = {id, name, kind, w, h, meta, create(opts), update(m,dt,inp), draw(g,m), bite(m), bites(m),
-   dump(m), seat(m), dig(m, heap, area, o), horizon(g, o), prebake(level?)}.
+   dump(m), seat(m), dig(m, heap, area, o), horizon(g, o), prebake(level?), silence(m)}.
    Espaço do modelo: origem no chão sob o anel grande; +x = lado da montanha (inp.face); escala fixa 1. Anel de x −650 a +650, topo
    y ≈ −1310; portal gêmeo em dx −1.500 (centro y ≈ −330). Mordidas em dx 1.300 / 1.600 / 1.900 na superfície (inp.floor).
    m.x pega inp.x só no 1º update. inp: x, y, face, floor(x), digging (false = vórtice em marcha lenta, sem chupar), speedMul, parts, night.
@@ -14,6 +14,11 @@
    (carrega, fica dourado) · 9 'spit' (PAGAR AQUI com m.payload; o gêmeo cospe ~14 onigiris dourados até 11; m.flash) · 12 = 0.
    Modo 'chegada' (meta.chegadaT = 8 s): 24 onigiris voam de fora e montam o anel ('clink'), 'ignite' 3.5 (flash, shake, vórtice
    nasce), título (m.title) 4, 'twin' 5 (o gêmeo aparece), 'ready' 8 → 'normal' (ct = 0).
+   Cuspe: os onigiris (pixel art 22×22, 16 rotações prontas, pixel inteiro de tela) saem em arco, quicam 2× e empilham num monte
+   (pirâmide 4-3-2-1 ao lado do gêmeo); quando tudo assenta, o monte fica 0,7 s à mostra e é recolhido (pulam pro coletor = moedas).
+   Kome: 'gasp' agarrado e orelhas batendo enquanto chupa; 'cheer' no cuspe. SOM próprio (E.Sfx.define/E.Loops.define, nomes
+   'portal-*'): vento em loop que sobe de tom com m.fill, pop/ploc do cuspe, sino quando o monte é recolhido. Respeita
+   E.Audio.muted e S.opts.mute; create({sfx:false}) ou inp.sfx=false desliga; silence(m) para o loop (chamar ao sair da tela).
    Ler: m.phase ('abrindo','sugando','carregando','cuspindo','chegada'), m.fill, m.payload, m.spin (0..1 força do vórtice),
    m.gold (0..1), m.flash, m.shakeK, m.cam {x,y,z}, m.title. */
 (function () {
@@ -283,7 +288,8 @@
       if (spitting) { m.spitAcc += d * 5.5; while (m.spitAcc >= 1) { m.spitAcc--; spitOne(m); } }
       // recolhe o monte (de cima pra baixo) depois do cuspe
       let busy = spitting; for (const o of m.oni) if (o.st === 'fly' || o.st === 'settle') { busy = true; break; }
-      if (!busy && m.pile > 0) {
+      m.restT = busy ? 0 : (m.restT || 0) + dt;   // o monte fica à mostra um instante antes de ser recolhido
+      if (m.restT > 0.7 && m.pile > 0) {
         m.collectAcc += dt * 22;
         while (m.collectAcc >= 1) {
           m.collectAcc--;
