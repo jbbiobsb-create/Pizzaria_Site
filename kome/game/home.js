@@ -290,16 +290,16 @@
   function sino(g, x, y, t) { const sy = y - 108, wd = PAL.wood || '#8B5A2B'; Draw.box(g, x - 3, sy - 4, 6, y - sy + 4, wd, { r: 2 }); Draw.box(g, x - 3, sy - 6, 30, 6, wd, { r: 2 }); NT().windchime(g, x + 22, sy, { t, s: 1.15 }); }
   const SPOTS = {
     sakura: { x: 70, y: 4, w: 150, h: 170, d: (g, x, y, t) => NT().tree(g, x, y, { kind: 'sakura', seed: 2, t, s: 1.45 }) },
-    koinobori: { x: 184, y: 2, w: 70, h: 150, d: (g, x, y, t) => NT().koinobori(g, x, y, { t, s: 1.05, h: 136 }) },
-    sino: { x: 640, y: 3, w: 56, h: 124, d: sino },
-    torii: { x: 724, y: 4, w: 120, h: 112, d: (g, x, y, t) => NT().torii(g, x, y, 1.05, { t }) },
-    momiji: { x: 826, y: 3, w: 130, h: 150, d: (g, x, y, t) => NT().tree(g, x, y, { kind: 'maple', seed: 6, t, s: 1.25 }) },
+    koinobori: { x: 196, y: 2, w: 70, h: 150, d: (g, x, y, t) => NT().koinobori(g, x, y, { t, s: 1.05, h: 136 }) },
+    sino: { x: 612, y: 3, w: 56, h: 124, d: sino },
+    torii: { x: 676, y: 6, w: 120, h: 112, d: (g, x, y, t) => NT().torii(g, x, y, 1.05, { t }) },
+    momiji: { x: 270, y: 2, w: 110, h: 140, d: (g, x, y, t) => NT().tree(g, x, y, { kind: 'maple', seed: 6, t, s: 1.25 }) },
     bambu: { x: 924, y: 3, w: 80, h: 180, d: (g, x, y, t) => { NT().tree(g, x - 14, y, { kind: 'bamboo', seed: 4, t, s: 1.35 }); NT().tree(g, x + 18, y + 2, { kind: 'bamboo', seed: 9, t, s: 1.2 }); } },
-    lanterna: { x: 266, y: 26, w: 44, h: 74, d: (g, x, y, t) => NT().lantern(g, x, y, 1.1, { t }) },
+    lanterna: { x: 300, y: 30, w: 44, h: 74, d: (g, x, y, t) => NT().lantern(g, x, y, 1.1, { t }) },
     flores: { x: 96, y: 46, w: 96, h: 44, d: (g, x, y, t) => ['tanpopo', 'iris', 'ajisai', 'tulip', 'daisy'].forEach((f, i) => NT().flower(g, x - 32 + i * 16, y - 7 + (i % 2) * 8, { kind: f, seed: i + 1, t, s: 1.25 })) },
     bonsai: { x: 362, y: 30, w: 56, h: 56, d: (g, x, y, t) => NT().tree(g, x, y, { kind: 'bonsai', seed: 3, t, s: 1 }) },
     pedras: { x: 600, y: 36, w: 64, h: 32, d: (g, x, y) => { NT().rock(g, x - 8, y - 4, { seed: 4, w: 26, h: 15, moss: true }); NT().rock(g, x + 17, y, { seed: 7, w: 16, h: 10 }); } },
-    onsen: { x: 884, y: 80, w: 150, h: 86, d: (g, x, y, t) => NT().onsen(g, x, y, { t, s: 0.88, guest: has('capivara'), screen: false }) },
+    onsen: { x: 880, y: 92, w: 170, h: 96, d: (g, x, y, t) => NT().onsen(g, x, y, { t, s: 1.25, guest: has('capivara'), screen: false }) },
     lago: { x: 694, y: 116, w: 244, h: 62, d: (g, x, y, t) => { if (P && P.pond) { P.pond.x = x; P.pond.y = y - 30; P.pond.draw(g, t); } } },
   };
   const spotOf = id => SPOTS[id === 'carpas' ? 'lago' : id === 'capivara' ? 'onsen' : id] || null;
@@ -378,7 +378,7 @@
       '.kh-body{flex:1;min-height:0;overflow-y:auto;padding:10px;touch-action:pan-y;-webkit-overflow-scrolling:touch;font-size:17px}',
       '.kh-hint{font-size:17px;opacity:.78;margin:0 2px 8px}',
       '.kh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
-      '.kh-tile{position:relative;display:flex;align-items:center;gap:6px;padding:5px 8px 5px 3px;border:3px solid #3B2818;border-radius:14px;background:#FFFDF4;box-shadow:0 3px 0 #3B2818;cursor:pointer;min-height:76px;text-align:left;font:inherit;color:inherit;width:100%}',
+      '.kh-tile{position:relative;display:flex;align-items:center;gap:6px;padding:5px 8px 5px 3px;border:3px solid #3B2818;border-radius:14px;background:#FFFDF4;box-shadow:0 3px 0 #3B2818;cursor:pointer;min-height:76px;padding-right:22px;text-align:left;font:inherit;color:inherit;width:100%}',
       '.kh-tile canvas{width:58px;height:58px;flex:none;image-rendering:auto}',
       '.kh-tile b{display:block;font-size:17px;line-height:1.08;font-weight:900}',
       '.kh-tile small{display:block;font-size:17px;line-height:1.1;font-weight:800;opacity:.72;margin-top:2px}',

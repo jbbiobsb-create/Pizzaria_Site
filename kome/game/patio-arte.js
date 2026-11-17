@@ -746,7 +746,9 @@
     let x = X0;
     for (const id of absList) {
       const w = span * (ABS_W[id] || 1) / tw, n = PATIO[id].n | 0;
-      try { G.Tools[id].horizon(g, { x0: x, x1: x + w, y: py, k: 0.12, t, n, tint, haze: 0.5, night: nightK }); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
+      try { G.Tools[id].horizon(g, { x0: x, x1: x + w, y: py, k: 0.16, t, n, tint, haze: 0.45, night: nightK }); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
+      const nm = (G.Tools[id].name || id).toUpperCase() + ' ×' + fmtN(n);   // plaquinha na névoa, igual às gigantes
+      Draw.text(g, nm, x + w / 2, py + 9, { size: 9, col: mix(tint, '#FFFFFF', 0.55), sw: 2, stroke: mix(tint, '#3B2818', 0.4), alpha: 0.9 });
       x += w + gap;
     }
   }
@@ -793,7 +795,7 @@
       const gr = cg.createLinearGradient(0, 360, 0, FG_H); gr.addColorStop(0, 'rgba(40,60,20,0)'); gr.addColorStop(1, 'rgba(40,60,20,.38)'); cg.fillStyle = gr; cg.fillRect(0, 360, W, FG_H - 360);
       // fileira 1 (logo atrás da calçada): cerca de madeira em lances, caixotes, cones, placas, moitas
       const y1 = 176;
-      if (N && N.fence) { N.fence(cg, 20 + R(1) * 40, 250 + R(2) * 40, y1 - 4, { kind: 'wood' }); N.fence(cg, 430 + R(3) * 30, 690, y1 - 4, { kind: 'wood' }); }
+      if (N && N.fence) { N.fence(cg, 20 + R(1) * 40, 170 + R(2) * 120, y1 - 4, { kind: 'wood' }); if (R(3) > 0.35) N.fence(cg, 430 + R(3) * 60, 690, y1 - 4, { kind: R(22) > 0.5 ? 'bamboo' : 'wood' }); }
       const art = (id, x, y, sc) => { if (A && A.ready && A.ready(id)) A.draw(cg, id, 0, Math.round(x), Math.round(y), { scale: sc }); };
       if (N && N.bush) { N.bush(cg, 300 + R(4) * 30, y1 + 4, { s: 1.2, seed: vi + 1 }); N.bush(cg, 380 + R(5) * 20, y1 + 6, { kind: 'azalea', s: 1, seed: vi + 2 }); }
       art('prop_caixote', 120 + R(6) * 60, y1 + 4, 2); art('prop_caixote', 150 + R(6) * 60, y1 + 4, 2); art('prop_caixote', 135 + R(6) * 60, y1 + 4 - 28, 2);
@@ -803,7 +805,7 @@
         cg.fillStyle = LINE; cg.fillRect(sx + 18, y1 - 30, 4.4, 34); cg.fillRect(sx + 90, y1 - 30, 4.4, 34); cg.fillStyle = PAL.woodL; cg.fillRect(sx + 19.2, y1 - 30, 2, 33); cg.fillRect(sx + 91.2, y1 - 30, 2, 33);
         Draw.sign(cg, sx, y1 - 62, 112, 34, txt, { col: vi % 2 ? '#2F4670' : '#C8423A', ink: PAL.cream }); }
       // arrozal (2 lances) com taipa
-      if (N && N.paddy) { N.paddy(cg, 18 + R(10) * 20, 236, 320, 44, { t: 0, seed: vi * 3 + 1 }); N.paddy(cg, 380 + R(11) * 20, 240, 310, 40, { t: 0, seed: vi * 3 + 2 }); }
+      if (N && N.paddy) { const pa = 160 + R(10) * 260; N.paddy(cg, 10 + R(13) * 40, 232 + R(17) * 14, pa, 44, { t: 0, seed: vi * 3 + 1 }); if (R(21) > 0.3) N.paddy(cg, pa + 70 + R(11) * 40, 238, W - pa - 110 - R(11) * 40, 40, { t: 0, seed: vi * 3 + 2 }); else if (N.tree) N.tree(cg, pa + 200, 280, { kind: 'sakura', s: 0.9, seed: vi + 11 }); }
       // fileira 2: poças que refletem o céu, pedras, flores, sacos
       for (let i = 0; i < 2; i++) {
         const px = 90 + i * 330 + R(12 + i) * 120, py = 344 + R(14 + i) * 30, pw = 38 + R(16 + i) * 26;
@@ -818,7 +820,7 @@
       if (N && N.fence) N.fence(cg, -4, W + 4, 492, { kind: 'bamboo' });
       if (N && N.tree) { N.tree(cg, 130 + R(41) * 120, 520, { kind: ['round', 'pine', 'maple'][vi % 3], s: 1.1, seed: vi + 7 }); N.tree(cg, 520 + R(42) * 120, 526, { kind: ['pine', 'sakura', 'round'][vi % 3], s: 1.25, seed: vi + 8 }); }
       if (N && N.bush) for (let i = 0; i < 3; i++) N.bush(cg, 40 + i * 240 + R(43 + i) * 60, 540, { s: 1.4, seed: vi * 5 + i, kind: i === 1 ? 'azalea' : 'bush' });
-      if (N && N.paddy) N.paddy(cg, 60 + R(47) * 30, 600, 600, 56, { t: 0, seed: vi * 3 + 9 });
+      if (N && N.paddy) { const w3 = 280 + R(47) * 300; N.paddy(cg, 20 + R(48) * (W - w3 - 40), 596 + R(49) * 30, w3, 56, { t: 0, seed: vi * 3 + 9 }); }
       if (N && N.grassTuft) for (let i = 0; i < 16; i++) N.grassTuft(cg, R(50 + i) * W, 300 + R(70 + i) * 480, { seed: i + vi * 13, t: 0, s: 1 + R(90 + i) * 0.8 });
     });
   }

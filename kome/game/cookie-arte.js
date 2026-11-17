@@ -55,13 +55,21 @@
   function heart(n, total, w, h) {
     const [c, g] = mk(w, h);
     const cx = w / 2, cy = h * 0.5, s = Math.min(w / 2.6, h / 2.1), f = U.clamp(n / Math.max(1, total), 0, 1);
-    // grãos em posições fixas (semente), ordenados de baixo pra cima
+    // um grão por conquista: grade com tremidinha dentro do coração, de baixo pra cima (os n primeiros aparecem)
     let sd = 3; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
-    const grains = [];
-    for (let i = 0; i < 900 && grains.length < 420; i++) { const x = cx + (rnd() - 0.5) * s * 2.5, y = cy + (rnd() - 0.5) * s * 2; grains.push([x, y, rnd() * TAU, rnd()]); }
-    const inside = []; heartPath(g, cx, cy, s * 0.9); for (const q of grains) if (g.isPointInPath(q[0] * 2, q[1] * 2)) inside.push(q);
+    const d0 = g.getTransform ? g.getTransform().a : 2;
+    let inside = [], step = 14;
+    for (let tries = 0; tries < 12; tries++) {
+      inside = []; heartPath(g, cx, cy, s * 0.92);
+      for (let y = cy + s; y > cy - s; y -= step * 0.8) for (let x = cx - s * 1.3; x < cx + s * 1.3; x += step) {
+        const jx = x + (rnd() - 0.5) * step * 0.5, jy = y + (rnd() - 0.5) * step * 0.4;
+        if (g.isPointInPath(jx * d0, jy * d0)) inside.push([jx, jy, rnd() * TAU, rnd()]);
+      }
+      if (inside.length >= total) break; step *= 0.9;
+    }
     inside.sort((a, b) => b[1] - a[1]);
-    const show = Math.round(inside.length * f);
+    const gr = step * 0.36;
+    const show = Math.min(inside.length, Math.round(total * f));
     return anim(c, t => {
       g.clearRect(0, 0, w, h);
       // brilho atrás
@@ -77,7 +85,7 @@
         const q = inside[i], wob = i > show - 12 ? Math.sin(t * 6 + i) * 0.6 : 0;
         g.save(); g.translate(q[0], q[1] + wob); g.rotate(q[2]);
         g.fillStyle = q[3] > 0.92 ? (PAL.gold || '#E3BC62') : '#FFFDF4'; g.strokeStyle = 'rgba(59,40,24,.55)'; g.lineWidth = 0.8;
-        g.beginPath(); g.ellipse(0, 0, 4.2, 2.2, 0, 0, TAU); g.fill(); g.stroke(); g.restore();
+        g.beginPath(); g.ellipse(0, 0, gr, gr * 0.52, 0, 0, TAU); g.fill(); g.stroke(); g.restore();
       }
       g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.ellipse(cx - s * 0.55, cy - s * 0.55, s * 0.22, s * 0.12, -0.6, 0, TAU); g.fill();
       g.restore();

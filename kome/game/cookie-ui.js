@@ -175,6 +175,7 @@
 .k-cui-heart{left:50%;top:10px;bottom:10px;width:940px;max-width:calc(100% - 20px);transform:translate(-50%,10px) scale(.97)}
 .k-cui-heart.on{transform:translate(-50%,0)}
 .k-cui-tabs{display:flex;gap:6px;flex:0 0 auto}
+.k-cui-tab{white-space:nowrap;flex:0 0 auto}
 .k-cui-tab{min-height:48px;padding:4px 16px;border-radius:12px!important;border:3px solid ${INK}!important;background:#C9A974!important;font-size:19px!important;font-weight:900!important;color:${INK}!important}
 .k-cui-tab.on{background:#FFFAEE!important}
 .k-cui-pane{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:10px 12px 14px;touch-action:pan-y;overscroll-behavior:contain}
@@ -456,7 +457,7 @@
     s.innerHTML = '';
     el('span', null, s, co.n + ' × ' + pctTxt(co.per) + ' = +' + pctTxt(co.bonus));
     el('small', null, s, 'cada conquista é um grão: +' + pctTxt(co.per) + ' de renda pra sempre');
-    if (co.next) el('small', null, s, 'próxima tigela: ' + co.next.need + ' conquistas (faltam ' + Math.max(0, co.next.need - co.n) + ')');
+    if (co.next) el('small', null, s, 'próxima tigela em ' + co.next.need + ' (faltam ' + Math.max(0, co.next.need - co.n) + ')');
     const h3 = el('div', 'k-cui-h3', R); h3.appendChild(iconCv('star', 22)); el('span', null, h3, 'Tigelas do Coração');
     const tg = api.tigelas(); el('small', null, h3, tg.filter(t => t.owned).length + ' de ' + tg.length + ' · cada uma: +1% por conquista');
     const bowls = el('div', 'k-cui-bowls', R);
@@ -778,7 +779,7 @@
     const seedCost = id => { const n = nodeBy[id]; if (!n) return Infinity; const L = F.sl[id] | 0; if (n.max && L >= n.max) return Infinity; return Math.ceil(n.base * Math.pow(1.45, L)); };
     const awayCap = /[?&]away=cap\b/.test(Q);
     let awayOn = true;
-    G.S.money = Math.max(G.S.money, 4e13); G.S.ended = true;
+    G.S.money = Math.max(G.S.money, 4e13); G.S.ended = true; if (G.S.stats) G.S.stats.tipDone = 1;
     if (G.PatioArt) { const sp = []; for (const id of IDS) if (F.n[id] && idx(id) < 14) sp.push(id + ':' + F.n[id]); G.PatioArt.fake(sp.join(',')); }
     CU.use({
       ready: () => true,

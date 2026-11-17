@@ -545,7 +545,7 @@
   // rua da vila: calçada clara de pedra + placa de entrada
   function drawStreet(g, v) {
     if (X.vilaX1 < v.x0 || X.vilaX0 - 200 > v.x1) return;
-    const a = Math.max(v.x0, X.vilaX0 - 40), b = Math.min(v.x1, X.vilaX1);
+    const a = Math.max(v.x0, X.vilaX0 - 300), b = Math.min(v.x1, X.vilaX1 + 120);
     g.fillStyle = '#E4D8BF'; g.fillRect(a, 5, b - a, 13); g.fillStyle = '#CDBE9F'; g.fillRect(a, 16, b - a, 2);
     g.fillStyle = '#F3EBDB'; for (let x = Math.ceil(a / 44) * 44; x < b; x += 44) g.fillRect(x, 7, 26, 3);
     const sx = X.vilaX0 - 120;   // placa de entrada, antes da sakura
@@ -628,8 +628,8 @@
   const VBACK = [   // [deslocamento, arte, placa da loja | null, varal?, gato no telhado: 0 nenhum, 1..3]
     [470, 'vila_loja_b', 'RAMEN', 0, 0], [578, 'vila_casa_b', null, 0, 1], [668, 'vila_casa_a', null, 1, 0],
     [1478, 'vila_casa_c', null, 0, 3], [1578, 'vila_loja_a', 'TOFU', 0, 0], [1682, 'vila_casa_b', null, 1, 0],
-    [2052, 'vila_loja_c', 'CAFÉ', 0, 2], [2150, 'vila_casa_a', null, 0, 0], [2352, 'vila_casa_c', null, 1, 0],
-    [2790, 'vila_loja_a', 'MOCHI', 0, 0], [2920, 'vila_casa_b', null, 0, 1], [3010, 'vila_loja_b', 'SOBA', 0, 0], [3300, 'vila_casa_a', null, 1, 3],
+    [2078, 'vila_loja_c', 'CAFÉ', 0, 2], [2170, 'vila_casa_a', null, 0, 0], [2352, 'vila_casa_c', null, 1, 0],
+    [2856, 'vila_loja_a', 'MOCHI', 0, 0], [2958, 'vila_casa_b', null, 0, 1], [3048, 'vila_loja_b', 'SOBA', 0, 0], [3300, 'vila_casa_a', null, 1, 3],
   ];
   const VB_Y = -10, VB_K = 2;   // fileira de fundo: um pouco acima do chão (mais longe) e em névoa
   const VART_H = { vila_loja_a: 72, vila_loja_b: 50, vila_loja_c: 72, vila_casa_a: 72, vila_casa_b: 72, vila_casa_c: 72 };
@@ -661,7 +661,15 @@
     g.fillStyle = '#B5E0EE'; const sh = (t * 14) % 90;
     for (let x = Math.floor(a / 90) * 90 - 90; x < b; x += 90) { g.fillRect(x + sh, R.can0 + 12, 22, 2); g.fillRect(x + 45 + sh * 0.7, R.can0 + 24, 14, 2); }
     g.fillStyle = '#A39C8C'; g.fillRect(a, R.can1, b - a, 7); g.fillStyle = '#77705F'; g.fillRect(a, R.can1, b - a, 2);
+    // barranco: flores na beira da calçada, capim e flores do outro lado do canal (bem espaçado: não vira bagunça)
+    g.fillStyle = grD; for (let x = Math.ceil(a / 40) * 40; x < b; x += 40) { const q = (x / 40) % 5; g.fillRect(x + q * 6, R.can1 + 22 + q * 9, 8, 2); g.fillRect(x + q * 6 + 3, R.can1 + 19 + q * 9, 2, 3); }
+    if (N && N.flower) {
+      const FK = ['ajisai', 'tanpopo', 'ajisai', 'daisy', 'iris'];
+      for (let x = Math.ceil(a / 150) * 150; x < b; x += 150) { const q = (x / 150) % 5; if (x > X.casa - 260 && x < X.casa + 260 && q % 2) continue; N.flower(g, x + q * 11, R.bank + 16, { kind: FK[q], seed: q, t, s: 1.5 }); }
+      for (let x = Math.ceil(a / 230) * 230 + 70; x < b; x += 230) { const q = (x / 230 | 0) % 3; N.flower(g, x, R.can1 + 44 + q * 14, { kind: q ? 'tanpopo' : 'higanbana', seed: q + 3, t, s: 1.4 }); }
+    }
     // a rua acaba antes da vila com uma ponta arredondada de grama (não é um corte seco)
+    const x1 = X.vilaX1 + 120; if (x1 < v.x1 + 60) { g.fillStyle = gc ? gc.soil : SOIL; g.fillRect(x1, 0, 60, v.y1 + 20); g.fillStyle = gr; g.beginPath(); g.ellipse(x1, R.bank, 34, R.bank - 6, 0, -Math.PI * 0.5, Math.PI * 0.5); g.fill(); }
     const x0 = X.vilaX0 - 300; if (x0 > v.x0 - 60) { g.fillStyle = gc ? gc.soil : SOIL; g.fillRect(x0 - 60, 0, 60, v.y1 + 20); g.fillStyle = gr; g.beginPath(); g.ellipse(x0, R.bank, 34, R.bank - 6, 0, Math.PI * 0.5, Math.PI * 1.5); g.fill(); }
   }
   // fileira de fundo (antes da fileira principal): casinhas e lojinhas com placa legível, varal, e o santuário atrás do torii
@@ -696,8 +704,8 @@
     for (const [dx, id, sign] of VBACK) {   // placas sem névoa (precisam ser lidas) e lanterna da porta acesa no fim da tarde
       const x = VB + dx; if (!sign || x + 80 < v.x0 || x - 80 > v.x1) continue;
       const h = (VART_H[id] || 64) * VB_K, w = 20 + sign.length * 13;
-      Draw.box(g, x - 1.5, VB_Y - h - 12, 3, 14, YC.woodD, { ol: 0 });
-      Draw.sign(g, x - w / 2, VB_Y - h - 38, w, 26, sign, { col: '#3B2818', ink: '#FFFAEE' });
+      Draw.box(g, x - 1.5, VB_Y - h + 2, 3, 12, YC.woodD, { ol: 0 });
+      Draw.sign(g, x - w / 2, VB_Y - h - 22, w, 26, sign, { col: '#3B2818', ink: '#FFFAEE' });
       if (lit > 0.05) glow(g, x, VB_Y - h * 0.32, 34, lit);
     }
   }
@@ -745,20 +753,20 @@
       for (const dx of VLAMP) {
         const x = VB + dx; if (!vis(x, 60)) continue;
         art(g, 'vila_poste', x, 2, R.walk0 + 6, lit > 0.4 ? 'noite' : 'dia');
-        if (N && N.chochin) N.chochin(g, x + 10, -26, { t, lit, seed: dx });
-        glow(g, x + 10, -14, 40, lit); glow(g, x + 14, R.walk0 - 108, 30, lit * 0.8);
+        g.fillStyle = LINE; g.fillRect(x, 4, 12, 2); if (N && N.chochin) N.chochin(g, x + 11, 5, { t, lit, seed: dx, s: 1.6 });
+        glow(g, x + 11, 24, 40, lit); glow(g, x + 14, R.walk0 - 108, 30, lit * 0.8);
       }
       const xc = VB + 905; if (vis(xc, 30)) art(g, 'vila_correio', xc, 2, R.walk0 + 6);
       const xv = VB + 2690; if (vis(xv, 120)) {   // duas máquinas de venda: um shiba compra, a latinha cai e ele comemora
         art(g, 'prop_venda', xv, 2, R.walk0 + 6); art(g, 'vila_venda2', xv + 56, 2, R.walk0 + 6);
-        glow(g, xv + 28, R.walk0 - 40, 60, 0.4 + lit * 0.6, '#DDF2FF');
+        glow(g, xv + 28, R.walk0 - 40, 60, lit * 0.9, '#DDF2FF');
         const u = t % 7; sh(g, xv + 6, yW + 2, u > 4.3 && u < 5.4 ? 'cheer' : 'stand', t, 'kuro', 1, 1);
         if (u > 3.6 && u < 4.3) { g.fillStyle = '#5BA4D6'; g.fillRect(xv - 4, R.walk0 - 40 + (u - 3.6) * 40, 7, 9); }
       }
       const xb = VB + 3220; if (vis(xb, 120)) {   // ponto de ônibus: placa, banco e quem espera
         art(g, 'vila_placa', xb + 58, 2, R.walk0 + 4); art(g, 'vila_banco', xb, 2, R.walk0 + 6);
         sh(g, xb - 18, R.walk0 - 6, 'sit', t, 'shiro', 1, 0.9); sh(g, xb + 16, R.walk0 - 6, Math.sin(t * 0.4) > 0.7 ? 'yawn' : 'sit', t + 1, 'aka', -1, 0.9);
-        Draw.sign(g, xb + 22, R.walk0 - 136, 72, 22, 'ÔNIBUS', { col: '#3F78C8', ink: '#FFFAEE' });
+        Draw.sign(g, xb + 28, R.walk0 - 44, 60, 17, 'ÔNIBUS', { col: '#3F78C8', ink: '#FFFAEE' });
       }
     }
     if (N) for (const [dx, k] of [[150, 'azalea'], [1960, 'bush'], [2600, 'azalea'], [3380, 'bush']]) { const x = VB + dx; if (vis(x, 40)) N.bush(g, x, R.walk1 + 4, { kind: k, s: 0.9, seed: dx, t }); }
