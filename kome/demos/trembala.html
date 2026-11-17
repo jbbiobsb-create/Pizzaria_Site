@@ -11,6 +11,7 @@
 <script src="../engine/pix.js"></script>
 <script src="../engine/shiba.js"></script>
 <script src="../engine/fx.js"></script>
+<script src="../engine/audio.js"></script>
 <script src="../engine/terrain.js"></script>
 <script src="../engine/rig.js"></script>
 <script src="../game/trembala.js"></script>
@@ -19,6 +20,7 @@
    URL: ?mode=normal|chegada  &z=zoom (padrão: câmera sugerida m.cam)  &face=-1  &night=1  &t=segundos (avança e congela)
         &spd=speedMul  &dig=0  &debug=1  &cx=desvio da câmera  &cy=  &horizon=1 (testa o desenho do horizonte do Pátio, &n=quantidade)
         &cam=cockpit (zoom na cabine do Kome)
+   Som: clique/tecla destrava o áudio (ding-dong, chiado, apito, BUUUM, trilho, freio); M = mudo.
    Automação: __demo.step(seg) avança em passos fixos de 1/60; __demo.m = instância; __demo.cost() = ms por draw (média de 60). */
 (function () {
   'use strict';
@@ -41,11 +43,14 @@
   const inp = { x: DOCK, y: 0, face: FACE, digging: !NODIG, speedMul: SPD, floor: x => -heap.height(x), parts, night: NIGHT ? 1 : 0, view: null };
   const cam = { x: 0, y: -300, z: q.has('z') ? +q.get('z') : 0.2 };
   const CX = +(q.get('cx') || 0), CY = +(q.get('cy') || 0);
-  const log = []; let logT = 0, T = 0, dug = 0;
+  const log = []; let logT = 0, T = 0, dug = 0, mute = false;
+  const unlock = () => { try { E.Audio && E.Audio.unlock(); } catch (e) { /* sem áudio */ } };
+  addEventListener('pointerdown', unlock); addEventListener('keydown', e => { unlock(); if (e.key === 'm' || e.key === 'M') mute = !mute; });
   const view = { x0: 0, x1: 0, y0: 0, y1: 0 };
   function update(dt) {
     T += dt; inp.view = view;
     tool.update(m, dt, inp);
+    if (tool.audio) tool.audio(m, !mute);
     for (const ev of m.ev) { log.unshift(ev); if (log.length > 6) log.pop(); logT = 2.2; }
     logT -= dt;
     dug += tool.dig(m, heap, 1400 * 8 * dt * SPD);
@@ -110,6 +115,7 @@
     Draw.text(g, 'Trem-Bala de Arroz (trembala) · ' + m.mode, 12, 22, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
     Draw.text(g, m.phase + '  s ' + Math.round(m.s) + '  v ' + Math.round(m.v) + '  enchido ' + Math.round(m.fill * 100) + '%  cavado ' + Math.round(dug) + ' px²  zoom ' + c.z.toFixed(2),
       12, 40, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+    Draw.text(g, (E.Audio && E.Audio.ready ? (mute ? 'som: mudo (M)' : 'som: ligado (M = mudo)') : 'clique pra ligar o som'), W - 12, 22, { size: 12, align: 'right', col: PAL.cream, sw: 3, weight: 700 });
     if (logT > 0) Draw.text(g, log.join('  '), 12, 56, { size: 10.5, align: 'left', col: PAL.white, sw: 3, weight: 700 });
   }
   let frozen = false;

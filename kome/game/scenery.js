@@ -31,16 +31,32 @@
   // picos nevados de Hokkaido (cordilheira azulada com chapéu de neve em zigue-zague)
   function peaks(g, W, H, hz, cam, t, S) {
     const L = lightOf(S), off = (cam.x - 2000) * 0.012, fs = 1 + 0.5 * Math.sqrt(U.clamp(cam.z / 3, 0, 1));
+    const nt = L.night || 0;
+    if (nt > 0.05) {   // aurora de Hokkaido nas noites: 3 fitas verdes/rosadas ondulando devagar
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 3; k++) {
+        const base = H * (0.16 + k * 0.07), col = k === 1 ? '120,255,190' : k === 2 ? '255,140,210' : '90,230,170';
+        for (let x = -20; x < W + 20; x += 6) {
+          const y = base + Math.sin(x * 0.006 + t * 0.25 + k * 2) * 26 + Math.sin(x * 0.017 - t * 0.4 + k) * 9;
+          const a = nt * (0.16 + 0.1 * Math.sin(x * 0.02 + t * 0.9 + k * 3)) * (k === 2 ? 0.6 : 1);
+          const gr = g.createLinearGradient(0, y, 0, y + 60); gr.addColorStop(0, 'rgba(' + col + ',0)'); gr.addColorStop(0.25, 'rgba(' + col + ',' + a.toFixed(3) + ')'); gr.addColorStop(1, 'rgba(' + col + ',0)');
+          g.fillStyle = gr; g.fillRect(x, y, 6, 60);
+        }
+      }
+      g.restore();
+    }
     const P = [[0.08, 0.8, 1.0], [0.24, 1.25, 1.2], [0.4, 0.9, 0.9], [0.58, 1.1, 1.05], [0.76, 0.75, 0.85], [0.92, 1.0, 1.0]];
     for (let k = 0; k < P.length; k++) {
       const p = P[k], x = W * p[0] - off * (0.7 + k * 0.05), h = 92 * p[1] * fs, w = 120 * p[2] * fs;
       const body = mix(mix('#7C93B4', L.haze, 0.35), L.top, 0.12), dark = mix(body, '#2A3348', 0.18), snow = mix('#FFFFFF', L.haze, 0.18 + 0.3 * (L.night || 0));
       g.fillStyle = body; g.beginPath(); g.moveTo(x - w, hz + 2); g.lineTo(x - w * 0.12, hz - h); g.lineTo(x + w * 0.08, hz - h * 0.97); g.lineTo(x + w, hz + 2); g.closePath(); g.fill();
       g.fillStyle = dark; g.beginPath(); g.moveTo(x + w * 0.08, hz - h * 0.97); g.lineTo(x + w, hz + 2); g.lineTo(x + w * 0.2, hz + 2); g.lineTo(x + w * 0.02, hz - h * 0.5); g.closePath(); g.fill();
+      g.fillStyle = mix(body, '#FFFFFF', 0.14); g.beginPath(); g.moveTo(x - w * 0.12, hz - h); g.lineTo(x - w * 0.3, hz - h * 0.5); g.lineTo(x - w * 0.62, hz + 2); g.lineTo(x - w, hz + 2); g.closePath(); g.fill();
       g.fillStyle = snow; g.beginPath(); g.moveTo(x - w * 0.12, hz - h); g.lineTo(x + w * 0.08, hz - h * 0.97);
       const sx1 = x + w * 0.42, sx0 = x - w * 0.55, sy = hz - h * 0.52;
       g.lineTo(sx1, sy); for (let i = 0; i <= 6; i++) { const u = i / 6; g.lineTo(sx1 + (sx0 - sx1) * u, sy + (i % 2 ? 9 : -2) * fs); }
       g.closePath(); g.fill();
+      g.fillStyle = mix(snow, '#9FB8D6', 0.4); g.beginPath(); g.moveTo(x + w * 0.08, hz - h * 0.97); g.lineTo(sx1, sy); g.lineTo(sx1 - w * 0.2, sy + 6 * fs); g.lineTo(x + w * 0.04, hz - h * 0.72); g.closePath(); g.fill();
     }
   }
   // Sakurajima: vulcão largo com cratera, fumaça subindo (erupção: mais fumaça, lava e brilho)
@@ -53,6 +69,27 @@
     g.fillStyle = dark; for (let i = 0; i < 5; i++) { const u = -0.08 + i * 0.05; g.fillRect(x + u * w * 2, hz - h * (0.92 - i * 0.04), 2 * fs, h * (0.35 + 0.08 * i)); }   // ravinas
     const glow = Math.max(er, 0.35, (L.night || 0) * 0.8);
     if (glow > 0.02) { g.save(); g.globalAlpha = glow * (0.6 + 0.3 * Math.sin(t * 6)); g.fillStyle = '#FF8A3A'; g.beginPath(); g.ellipse(x, hz - h, w * 0.17, 5 * fs, 0, 0, 6.3); g.fill(); g.restore(); }
+    // a cada ~13 s o Sakurajima dá uma tossida: bolota escura de cinza que sobe rápido e solta uma cortina de cinza caindo a sotavento
+    const cyc = (t + 3) % 13, burst = er ? 1 : cyc < 4.5 ? Math.sin(Math.PI * cyc / 4.5) : 0;
+    if (cyc < 6 || er) {
+      const q = er ? (t * 0.3) % 1 : cyc / 6;
+      for (let j = 0; j < 4; j++) {
+        const qq = Math.min(1, q * (1.1 - j * 0.08)), r = (14 + qq * 40 + j * 5) * fs;
+        g.globalAlpha = 0.75 * (1 - qq * 0.8); g.fillStyle = j % 2 ? '#6E625C' : '#857770';
+        g.beginPath(); g.arc(x + (j - 1.5) * 9 * fs + qq * 30 * fs, hz - h - qq * 150 * fs - j * 6 * fs, r, 0, 6.3); g.fill();
+      }
+    }
+    const plume = 0.35 + 0.4 * burst;   // pluma comprida deitada pelo vento + cortina de cinza
+    for (let j = 0; j < 14; j++) {
+      const u = j / 13, px = x + 30 * fs + u * W * 0.55, py = hz - h - 70 * fs - u * 18 * fs + Math.sin(t * 0.3 + j) * 4;
+      g.globalAlpha = plume * 0.5 * (1 - u * 0.8); g.fillStyle = mix('#A89C94', L.haze, 0.25 + u * 0.4);
+      g.beginPath(); g.ellipse(px, py, (24 + u * 30) * fs, (10 + u * 8) * fs, 0, 0, 6.3); g.fill();
+      if (j % 2 === 0 && j > 1) {
+        g.globalAlpha = plume * 0.22 * (1 - u * 0.7); g.fillStyle = '#7A6E68';
+        for (let s = 0; s < 3; s++) { const sx = px + (s - 1) * 10 * fs - ((t * 14) % 20); g.fillRect(sx, py + 8 * fs, 1.4 * fs, (hz - py) * (0.45 + 0.2 * s) ); }
+      }
+    }
+    g.globalAlpha = 1;
     // fumaça
     const n = er ? 12 : 6;
     for (let i = 0; i < n; i++) {
@@ -68,8 +105,18 @@
     }
   }
   // mar de Okinawa no horizonte: faixa azul com brilhos, ilhotas e um barquinho (maré baixa: o mar recua)
+  // torres de cúmulo do verão de Okinawa: 3 tons (base sombreada, corpo, topo iluminado), presas à altura da tela
+  function cumulus(g, x, y, r, L) {
+    const c0 = mix('#FFFFFF', L.haze, 0.1 + 0.4 * (L.night || 0)), c1 = mix('#D6E8F2', L.haze, 0.2), c2 = mix('#B8D2E2', L.haze, 0.25);
+    const B = [[-1.1, 0.1, 0.55], [-0.45, -0.2, 0.75], [0.35, -0.1, 0.7], [1.05, 0.12, 0.5], [-0.1, -0.85, 0.7], [0.45, -0.7, 0.55], [-0.6, -0.65, 0.5], [0.05, -1.4, 0.5]];
+    g.fillStyle = c2; g.beginPath(); for (const b of B) { g.moveTo(x + b[0] * r + b[2] * r, y + b[1] * r + r * 0.12); g.arc(x + b[0] * r, y + b[1] * r + r * 0.12, b[2] * r, 0, 6.3); } g.fill();
+    g.fillStyle = c1; g.beginPath(); for (const b of B) { g.moveTo(x + b[0] * r + b[2] * r, y + b[1] * r + r * 0.04); g.arc(x + b[0] * r, y + b[1] * r + r * 0.04, b[2] * r, 0, 6.3); } g.fill();
+    g.fillStyle = c0; g.beginPath(); for (const b of B) { g.moveTo(x + b[0] * r - r * 0.06 + b[2] * r * 0.9, y + b[1] * r - r * 0.06); g.arc(x + b[0] * r - r * 0.06, y + b[1] * r - r * 0.06, b[2] * r * 0.9, 0, 6.3); } g.fill();
+    g.fillStyle = c2; g.fillRect(x - r * 1.5, y + r * 0.45, r * 3, Math.max(2, r * 0.08));
+  }
   function sea(g, W, H, hz, cam, t, S, ev) {
-    const L = lightOf(S), tide = ev && ev.tide ? 6 : 0, y0 = hz - 30 + tide;
+    const L = lightOf(S), tide = ev && ev.tide ? 6 : 0, y0 = hz - 30 + tide, fs = 0.8 + 0.5 * Math.sqrt(U.clamp(cam.z / 3, 0, 1));
+    for (let i = 0; i < 3; i++) { const span = W + 300, x = ((W * (0.2 + i * 0.36) - cam.x * 0.006 + t * 1.5) % span + span) % span - 150, y = Math.min(y0 - 40 * fs, H * (0.42 + (i % 2) * 0.08)); cumulus(g, x, y, (30 + i * 8) * fs, L); }
     seaBand(g, W, H, y0, cam, t, L);
   }
   function seaBand(g, W, H, y0, cam, t, L) {
@@ -86,42 +133,135 @@
     if (by > H) return;
     g.fillStyle = '#7A5034'; g.fillRect(bx - 9, by, 18, 3); g.fillStyle = '#FFF8EC'; g.beginPath(); g.moveTo(bx, by - 12); g.lineTo(bx + 8, by - 1); g.lineTo(bx, by - 1); g.closePath(); g.fill();
   }
-  // ilha flutuante de mochi: ilhotas que boiam no céu com sakura e cachoeira, e nuvens de mochi com carinha
-  function mochiSky(g, W, H, hz, cam, t, S) {
-    const L = lightOf(S);
-    for (let i = 0; i < 5; i++) {   // nuvens de mochi
-      const r = (22 + (i % 3) * 8), x = ((i * 230 + t * (3 + i) - cam.x * 0.03) % (W + 160) + W + 160) % (W + 160) - 80, y = 60 + (i % 3) * 46 + Math.sin(t * 0.8 + i) * 4;
-      const body = mix(i % 2 ? '#FFF6F8' : '#FBE0EA', L.haze, 0.12 + 0.3 * (L.night || 0));
-      g.fillStyle = shade(body, -0.08); g.beginPath(); g.ellipse(x, y + 3, r * 1.25, r * 0.78, 0, 0, 6.3); g.fill();
-      g.fillStyle = body; g.beginPath(); g.ellipse(x, y, r * 1.2, r * 0.72, 0, 0, 6.3); g.fill();
-      g.fillStyle = '#FFFFFF'; g.beginPath(); g.ellipse(x - r * 0.45, y - r * 0.3, r * 0.3, r * 0.14, -0.3, 0, 6.3); g.fill();
-      g.fillStyle = '#3B2818'; g.fillRect(x - 6, y - 1, 2, 3); g.fillRect(x + 4, y - 1, 2, 3);   // carinha
-      g.fillStyle = 'rgba(240,120,150,.55)'; g.fillRect(x - 11, y + 3, 4, 2); g.fillRect(x + 7, y + 3, 4, 2);
+  // ilha flutuante de mochi: ilhotas que boiam no céu (pedra rosada em 3 tons, gramado, sakura, cachoeira que vira névoa) e
+  // nuvens de mochi com carinha. As ilhotas ficam presas à ALTURA DA TELA (não ao horizonte): no zoom de perto o horizonte
+  // desce pro rodapé e elas continuam no céu, à vista.
+  function islet(g, x, y, w, t, L, i, fs) {
+    const hz2 = 0.3 + 0.25 * (L.night || 0), rock = mix('#E4AFC2', L.haze, hz2), rockD = mix('#C27D98', L.haze, hz2), rockL = mix('#F6D3DE', L.haze, hz2);
+    const gr = mix('#BFE6A6', L.haze, hz2 * 0.8), grD = mix('#8FC07A', L.haze, hz2 * 0.8);
+    // barriga de pedra (cone com bicos), sombra à direita, luz à esquerda
+    g.fillStyle = rock; g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w * 0.55, y + w * 0.5, x - w * 0.12, y + w * 0.95); g.lineTo(x + w * 0.02, y + w * 0.78); g.quadraticCurveTo(x + w * 0.55, y + w * 0.5, x + w, y); g.closePath(); g.fill();
+    g.fillStyle = rockD; g.beginPath(); g.moveTo(x + w * 0.2, y); g.quadraticCurveTo(x + w * 0.5, y + w * 0.4, x + w * 0.02, y + w * 0.78); g.quadraticCurveTo(x + w * 0.55, y + w * 0.5, x + w, y); g.closePath(); g.fill();
+    g.fillStyle = rockL; g.beginPath(); g.moveTo(x - w * 0.9, y + 2); g.quadraticCurveTo(x - w * 0.6, y + w * 0.35, x - w * 0.3, y + w * 0.55); g.lineTo(x - w * 0.42, y + 2); g.closePath(); g.fill();
+    // pedrinhas soltas boiando embaixo
+    for (let k = 0; k < 2; k++) { const bx = x + (k ? 0.45 : -0.5) * w, by = y + w * (0.9 + 0.15 * k) + Math.sin(t * 1.2 + i + k) * 3 * fs; g.fillStyle = k ? rockD : rock; g.beginPath(); g.moveTo(bx - 5 * fs, by); g.lineTo(bx + 5 * fs, by); g.lineTo(bx, by + 7 * fs); g.closePath(); g.fill(); }
+    // gramado com franja
+    g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, w, 6 * fs, 0, Math.PI, 0); g.fill(); g.fillRect(x - w, y - 1, w * 2, 3 * fs);
+    g.fillStyle = grD; for (let k = -w + 3; k < w - 3; k += 7 * fs) g.fillRect(x + k, y + 2 * fs, 3 * fs, (3 + (k / fs | 0) % 3) * fs);
+    // sakura em 3 tons + tronco
+    const tx = x - w * 0.35, ty = y - 2;
+    g.fillStyle = mix('#8E5E3C', L.haze, hz2); g.fillRect(tx - 1.5 * fs, ty - 12 * fs, 3 * fs, 12 * fs);
+    const bl = mix('#F29CB4', L.haze, hz2 * 0.7), bd = mix('#D9799A', L.haze, hz2 * 0.7), bL = mix('#FFD3E0', L.haze, hz2 * 0.7);
+    g.fillStyle = bd; g.beginPath(); g.arc(tx + 4 * fs, ty - 14 * fs, 9 * fs, 0, 6.3); g.fill();
+    g.fillStyle = bl; g.beginPath(); g.arc(tx - 5 * fs, ty - 15 * fs, 9 * fs, 0, 6.3); g.arc(tx + 1 * fs, ty - 21 * fs, 9 * fs, 0, 6.3); g.fill();
+    g.fillStyle = bL; g.beginPath(); g.arc(tx - 5 * fs, ty - 20 * fs, 4 * fs, 0, 6.3); g.fill();
+    if (i !== 1) {   // casinha de chá ou toriizinho
+      const hx = x + w * 0.3;
+      g.fillStyle = mix('#D8574E', L.haze, hz2); g.fillRect(hx - 7 * fs, y - 13 * fs, 2 * fs, 13 * fs); g.fillRect(hx + 5 * fs, y - 13 * fs, 2 * fs, 13 * fs); g.fillRect(hx - 10 * fs, y - 15 * fs, 20 * fs, 3 * fs); g.fillRect(hx - 8 * fs, y - 11 * fs, 16 * fs, 2 * fs);
     }
-    for (let i = 0; i < 3; i++) {   // ilhotas flutuantes
-      const x = W * (0.16 + i * 0.32) - (cam.x - 2000) * (0.008 + i * 0.003), y = hz - 120 - i * 26 + Math.sin(t * 0.7 + i * 2) * 5, w = 46 + i * 10;
-      g.fillStyle = mix('#E4B7C6', L.haze, 0.3); g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w * 0.3, y + w * 0.9, x + w * 0.1, y + w * 0.75); g.quadraticCurveTo(x + w * 0.5, y + w * 0.5, x + w, y); g.closePath(); g.fill();
-      g.fillStyle = mix('#BFE3A8', L.haze, 0.25); g.beginPath(); g.ellipse(x, y, w, 7, 0, Math.PI, 0); g.fill(); g.fillRect(x - w, y - 1, w * 2, 3);
-      g.fillStyle = mix('#F29CB4', L.haze, 0.2); g.beginPath(); g.arc(x - w * 0.35, y - 12, 9, 0, 6.3); g.arc(x - w * 0.2, y - 16, 8, 0, 6.3); g.fill();
-      g.fillStyle = mix('#8E5E3C', L.haze, 0.3); g.fillRect(x - w * 0.3, y - 8, 2, 8);
-      g.fillStyle = 'rgba(190,230,255,.7)'; g.fillRect(x + w * 0.55, y + 2, 3, 18 + 6 * Math.sin(t * 3 + i));   // cachoeirinha
+    // cachoeira caindo da borda e virando névoa
+    const wx = x + w * 0.62, wl = (34 + 10 * Math.sin(t * 2 + i)) * fs;
+    g.fillStyle = 'rgba(200,236,255,.75)'; g.fillRect(wx, y + 1, 3 * fs, wl);
+    g.fillStyle = 'rgba(255,255,255,.8)'; g.fillRect(wx + fs, y + 1 + ((t * 40 * fs) % wl), fs, 6 * fs);
+    g.globalAlpha = 0.45; g.fillStyle = '#FFFFFF'; for (let k = 0; k < 3; k++) { g.beginPath(); g.arc(wx + 1.5 * fs + (k - 1) * 4 * fs, y + wl + 2 * fs, (4 + k) * fs, 0, 6.3); g.fill(); } g.globalAlpha = 1;
+  }
+  function mochiCloud(g, x, y, r, t, L, i) {
+    const body = mix(i % 2 ? '#FFF6F8' : '#FBE0EA', L.haze, 0.1 + 0.3 * (L.night || 0));
+    const sq = 1 + Math.sin(t * 1.6 + i * 2) * 0.04;
+    g.fillStyle = shade(body, -0.1); g.beginPath(); g.ellipse(x, y + r * 0.12, r * 1.25 / sq, r * 0.74 * sq, 0, 0, 6.3); g.fill();
+    g.fillStyle = body; g.beginPath(); g.ellipse(x, y, r * 1.2 / sq, r * 0.7 * sq, 0, 0, 6.3); g.fill();
+    g.beginPath(); g.ellipse(x - r * 0.55, y - r * 0.32, r * 0.55, r * 0.42, 0, 0, 6.3); g.ellipse(x + r * 0.35, y - r * 0.42, r * 0.6, r * 0.45, 0, 0, 6.3); g.fill();
+    g.fillStyle = '#FFFFFF'; g.beginPath(); g.ellipse(x - r * 0.6, y - r * 0.5, r * 0.28, r * 0.13, -0.3, 0, 6.3); g.fill();
+    const e = Math.max(2, r * 0.09), blink = (t + i * 1.7) % 5 < 0.15;   // carinha (pisca de vez em quando)
+    g.fillStyle = '#3B2818'; g.fillRect(x - r * 0.3 - e / 2, y - e * 0.3, e, blink ? e * 0.4 : e * 1.4); g.fillRect(x + r * 0.3 - e / 2, y - e * 0.3, e, blink ? e * 0.4 : e * 1.4);
+    g.fillRect(x - e * 0.7, y + e * 1.6, e * 1.4, e * 0.5);
+    g.fillStyle = 'rgba(240,120,150,.55)'; g.fillRect(x - r * 0.55, y + e * 1.1, e * 2, e); g.fillRect(x + r * 0.55 - e * 2, y + e * 1.1, e * 2, e);
+  }
+  function mochiSky(g, W, H, hz, cam, t, S) {
+    const L = lightOf(S), fs = 0.8 + 0.5 * Math.sqrt(U.clamp(cam.z / 3, 0, 1)), top = Math.min(hz - 40, H * 0.62);
+    for (let i = 0; i < 6; i++) {   // nuvens de mochi atravessando o céu
+      const r = (20 + (i % 3) * 9) * fs, x = ((i * 190 + t * (3 + i) - cam.x * 0.03) % (W + 200) + W + 200) % (W + 200) - 100, y = H * (0.14 + (i % 3) * 0.1) + Math.sin(t * 0.8 + i) * 4;
+      if (y < top) mochiCloud(g, x, y, r, t, L, i);
+    }
+    const IS = [[0.14, 0.42, 46], [0.47, 0.28, 34], [0.8, 0.46, 58], [1.12, 0.33, 40]];
+    for (let i = 0; i < IS.length; i++) {   // ilhotas flutuantes
+      const p = IS[i], span = W + 260, x = ((W * p[0] - (cam.x - 2000) * (0.01 + i * 0.004)) % span + span) % span - 130;
+      const y = Math.min(top - 20, H * p[1]) + Math.sin(t * 0.7 + i * 2) * 5 * fs;
+      islet(g, x, y, p[2] * fs, t, L, i, fs);
     }
   }
   const FAR = { peaks, volcano, sea, mochi: mochiSky };
   function far(g, W, H, hz, cam, t, S, sc) { const f = FAR[sc.far]; if (f) f(g, W, H, hz, cam, t, S, evNow()); }
-  // na frente do morro de perto: palmeiras (Okinawa), pinheiros nevados (Hokkaido)
-  function near(g, W, H, hz, cam, t, S, sc) {
-    if (sc.far === 'sea') { const ev = evNow(); seaBand(g, W, H, hz - 34 + (ev && ev.tide ? 8 : 0), cam, t, lightOf(S)); }   // o mar aparece logo atrás do pátio
-    if (sc.tree === 'palm') { const off = cam.x * 0.5; for (let i = 0; i < 9; i++) { const x = ((i * 150 - off) % (W + 300) + W + 300) % (W + 300) - 150; palm(g, x, hz + 14 + (i % 2) * 6, 0.32 + (i % 3) * 0.05, t + i, true); } }
-    else if (sc.tree === 'pine' && sc.yard === 'neve') {
-      const off = cam.x * 0.5, L = lightOf(S);
-      for (let i = 0; i < 14; i++) {
-        const x = ((i * 92 - off) % (W + 200) + W + 200) % (W + 200) - 100, y = hz + 12 + (i % 3) * 4, s = 0.6 + (i % 4) * 0.12;
-        g.fillStyle = mix('#3E5E4C', L.haze, 0.35); g.beginPath(); g.moveTo(x, y - 30 * s); g.lineTo(x + 10 * s, y); g.lineTo(x - 10 * s, y); g.closePath(); g.fill();
-        g.fillStyle = mix('#FFFFFF', L.haze, 0.15); g.beginPath(); g.moveTo(x, y - 30 * s); g.lineTo(x + 4 * s, y - 19 * s); g.lineTo(x - 4 * s, y - 19 * s); g.closePath(); g.fill();
-        g.fillRect(x - 8 * s, y - 8 * s, 16 * s, 2);
-      }
+
+  /* ---- faixa "de perto" (na frente do morro próximo, atrás do pátio): natureza da ilha que se lê nos DOIS zooms ----
+     Tudo em coordenadas de tela, com parallax 0,5 e tamanho que acompanha o zoom (nk). Do lado da cava ganha uma névoa
+     tingida da ilha por cima do horizonte industrial; do lado da vila a névoa some (lá o horizonte é a cidadezinha fofa). */
+  const wrapX = (x, W, pad) => ((x % (W + pad * 2)) + W + pad * 2) % (W + pad * 2) - pad;
+  function vilaK(cam) { const X = G.World && G.World.X; return X ? U.clamp((cam.x - (X.vilaX0 - 1500)) / 1000, 0, 1) : 0; }
+  function pineB(g, x, y, s, L, snowK) {   // pinheiro em 3 andares, 3 tons, neve em cada andar
+    const d = mix('#22392F', L.haze, 0.18), m = mix('#35553F', L.haze, 0.18), l = mix('#5C806A', L.haze, 0.18), sn = mix('#FFFFFF', L.haze, 0.12);
+    g.fillStyle = mix('#5A3E2A', L.haze, 0.35); g.fillRect(x - 1.5 * s, y - 6 * s, 3 * s, 6 * s);
+    for (let k = 0; k < 3; k++) {
+      const yb = y - 4 * s - k * 9 * s, w = (12 - k * 3) * s, h = 13 * s;
+      g.fillStyle = m; g.beginPath(); g.moveTo(x, yb - h); g.lineTo(x + w, yb); g.lineTo(x - w, yb); g.closePath(); g.fill();
+      g.fillStyle = d; g.beginPath(); g.moveTo(x, yb - h); g.lineTo(x + w, yb); g.lineTo(x + w * 0.2, yb); g.closePath(); g.fill();
+      g.fillStyle = l; g.beginPath(); g.moveTo(x, yb - h); g.lineTo(x - w * 0.45, yb - h * 0.45); g.lineTo(x - w * 0.15, yb - h * 0.4); g.closePath(); g.fill();
+      if (snowK) { g.fillStyle = sn; g.beginPath(); g.moveTo(x, yb - h); g.lineTo(x + w * 0.38, yb - h * 0.55); g.lineTo(x + w * 0.1, yb - h * 0.62); g.lineTo(x - w * 0.15, yb - h * 0.5); g.lineTo(x - w * 0.36, yb - h * 0.58); g.closePath(); g.fill(); g.fillRect(x - w * 0.9, yb - 2 * s, w * 1.5, 2 * s); }
     }
+  }
+  function steamPuffs(g, x, y, t, s, n, a, seed) {   // coluna de vapor subindo (onsen, fumarola)
+    for (let i = 0; i < n; i++) {
+      const q = (t * 0.22 + i / n + seed * 0.37) % 1;
+      g.globalAlpha = a * (1 - q) * Math.min(1, q * 6); g.fillStyle = '#FFFFFF';
+      g.beginPath(); g.arc(x + Math.sin(t * 0.8 + i * 1.9 + seed) * 5 * s + q * 14 * s, y - q * 60 * s, (4 + q * 11) * s, 0, 6.3); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+  function near(g, W, H, hz, cam, t, S, sc) {
+    const L = lightOf(S), ev = evNow(), nk = 1.05 + 0.2 * Math.sqrt(U.clamp(cam.z / 3, 0, 1)), off = cam.x * 0.5, vk = vilaK(cam);
+    if (sc.far === 'sea') seaBand(g, W, H, hz - 34 + (ev && ev.tide ? 8 : 0), cam, t, L);   // o mar aparece logo atrás do pátio
+    // névoa industrial tingida pela ilha (só do lado da cava): assenta o horizonte de chaminés no céu de cada ilha
+    if (vk < 1 && sc.sky) {
+      const hc = sc.far === 'volcano' ? '#B89A88' : sc.far === 'peaks' ? '#E6EEF6' : sc.far === 'sea' ? '#D8F2F6' : '#FBD9E6';
+      const gr = g.createLinearGradient(0, hz - 70, 0, hz + 10); gr.addColorStop(0, mix(hc, L.haze, 0.3) + '00'); gr.addColorStop(1, mix(hc, L.haze, 0.3));
+      g.save(); g.globalAlpha = 0.35 * (1 - vk); g.fillStyle = gr; g.fillRect(0, hz - 70, W, 80); g.restore();
+    }
+    const y0 = hz - 3;   // o chão do pátio cobre a tela abaixo de hz: tudo aqui precisa nascer um pouco acima
+    if (sc.far === 'peaks') {
+      for (let i = 0; i < 3; i++) {   // lagos congelados com brilho correndo
+        const x = wrapX(i * 340 + 120 - off, W, 160), y = y0 - 2 - (i % 2) * 3, w = (54 + i * 14) * nk, h = 6 * nk;
+        g.fillStyle = mix('#8FB8D4', L.haze, 0.25); g.beginPath(); g.ellipse(x, y, w + 3, h + 2, 0, 0, 6.3); g.fill();
+        g.fillStyle = mix('#CFE8F6', L.haze, 0.15); g.beginPath(); g.ellipse(x, y - 1, w, h, 0, 0, 6.3); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.9)'; const gx = x - w + ((t * 22 + i * 40) % (w * 2)); g.fillRect(gx, y - 2, 10 * nk, 1.5); g.fillRect(gx + 6 * nk, y + 1, 5 * nk, 1.5);
+        if (i === 1) { steamPuffs(g, x + w + 16 * nk, y, t, nk, 5, 0.6, i); g.fillStyle = mix('#7FC7D8', L.haze, 0.2); g.beginPath(); g.ellipse(x + w + 16 * nk, y + 1, 12 * nk, 3.5 * nk, 0, 0, 6.3); g.fill(); }   // onsen ao lado
+      }
+      for (let i = 0; i < 16; i++) { const x = wrapX(i * 86 - off, W, 100), y = y0 + (i % 3) * 4, s = (0.62 + (i % 4) * 0.13) * nk; pineB(g, x, y, s, L, 1); }
+    } else if (sc.far === 'volcano') {
+      for (let i = 0; i < 7; i++) {   // rochas vulcânicas escuras e fumarolas
+        const x = wrapX(i * 180 + 40 - off, W, 120), y = y0 + (i % 2) * 3, s = (0.8 + (i % 3) * 0.25) * nk;
+        const r0 = mix('#4A3E3C', L.haze, 0.25), r1 = mix('#6A5A54', L.haze, 0.25), r2 = mix('#2E2624', L.haze, 0.25);
+        g.fillStyle = r0; g.beginPath(); g.moveTo(x - 16 * s, y); g.lineTo(x - 10 * s, y - 12 * s); g.lineTo(x + 2 * s, y - 17 * s); g.lineTo(x + 14 * s, y - 9 * s); g.lineTo(x + 18 * s, y); g.closePath(); g.fill();
+        g.fillStyle = r1; g.beginPath(); g.moveTo(x - 10 * s, y - 12 * s); g.lineTo(x + 2 * s, y - 17 * s); g.lineTo(x - 1 * s, y - 9 * s); g.lineTo(x - 13 * s, y - 5 * s); g.closePath(); g.fill();
+        g.fillStyle = r2; g.beginPath(); g.moveTo(x + 14 * s, y - 9 * s); g.lineTo(x + 18 * s, y); g.lineTo(x + 6 * s, y); g.closePath(); g.fill();
+        if (i % 3 === 0) { g.fillStyle = 'rgba(255,140,60,' + (0.5 + 0.3 * Math.sin(t * 3 + i)).toFixed(2) + ')'; g.fillRect(x - 4 * s, y - 8 * s, 2 * s, 5 * s); g.fillRect(x - 2 * s, y - 4 * s, 4 * s, 2 * s); }   // fresta de lava
+        if (i % 2 === 1) { g.fillStyle = mix('#7FC9C2', L.haze, 0.2); g.beginPath(); g.ellipse(x + 34 * s, y + 2, 14 * s, 3.5 * s, 0, 0, 6.3); g.fill(); steamPuffs(g, x + 34 * s, y, t, nk, 5, 0.55, i); }   // fonte termal
+      }
+    } else if (sc.far === 'sea') {
+      for (let i = 0; i < 9; i++) { const x = wrapX(i * 150 - off, W, 150); palm(g, x, hz + 4 + (i % 2) * 4, (0.3 + (i % 3) * 0.05) * nk, t + i, true); }
+      for (let i = 0; i < 3; i++) {   // guarda-sóis na areia ao longe
+        const x = wrapX(i * 410 + 210 - off, W, 120), y = y0 + 1, s = 0.9 * nk;
+        g.fillStyle = '#7A5034'; g.fillRect(x, y - 16 * s, 1.5 * s, 16 * s);
+        for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#FFF8EC' : ['#D8574E', '#3F78C8', '#F3C94A'][i]; g.beginPath(); g.moveTo(x, y - 20 * s); g.lineTo(x - 14 * s + k * 7 * s, y - 13 * s); g.lineTo(x - 7 * s + k * 7 * s, y - 13 * s); g.closePath(); g.fill(); }
+      }
+    } else if (sc.far === 'mochi') {
+      for (let i = 0; i < 10; i++) {   // sakuras redondinhas ao longe
+        const x = wrapX(i * 128 + 30 - off, W, 100), y = y0 + (i % 3) * 3, s = (0.8 + (i % 3) * 0.2) * nk;
+        g.fillStyle = mix('#8E5E3C', L.haze, 0.3); g.fillRect(x - 1.5 * s, y - 9 * s, 3 * s, 9 * s);
+        g.fillStyle = mix('#D9799A', L.haze, 0.3); g.beginPath(); g.arc(x + 4 * s, y - 12 * s, 8 * s, 0, 6.3); g.fill();
+        g.fillStyle = mix('#F29CB4', L.haze, 0.25); g.beginPath(); g.arc(x - 4 * s, y - 13 * s, 8 * s, 0, 6.3); g.arc(x + 1 * s, y - 18 * s, 7 * s, 0, 6.3); g.fill();
+        g.fillStyle = mix('#FFD3E0', L.haze, 0.2); g.beginPath(); g.arc(x - 4 * s, y - 17 * s, 3 * s, 0, 6.3); g.fill();
+      }
+    } else if (sc.tree === 'palm') { for (let i = 0; i < 9; i++) { const x = wrapX(i * 150 - off, W, 150); palm(g, x, hz + 14 + (i % 2) * 6, 0.32 + (i % 3) * 0.05, t + i, true); } }
   }
 
   /* ================= pátio (coordenadas de mundo, chão em y = 0) ================= */
@@ -175,14 +315,38 @@
     P.rect(7, 6, 2, 2, '#2A1A10').rect(12, 6, 2, 2, '#2A1A10');
     if (open) P.rect(8, 10, 5, 2, '#7A2A1A').rect(8, 10, 1, 1, '#FFFFFF').rect(12, 10, 1, 1, '#FFFFFF'); else P.rect(8, 10, 5, 1, d);
   });
+  // zoom real da tela neste desenho (transform do canvas / dpr): decide o nível de detalhe
+  function zoomOf(g) { try { const m = g.getTransform(), c = g.canvas, k = c.clientWidth ? c.width / c.clientWidth : 1; return Math.hypot(m.a, m.b) / k; } catch (e) { return 1; } }
+  // shisa de longe (LOD): silhueta grande e simples que se lê como leão-cão mesmo com 20 px — juba em cachos, orelha,
+  // focinho e rabo em chama. Pedestal de pedra embaixo. dir = pra onde olha.
+  function shisaFar(g, px, dir, open) {
+    const b = '#D9733E', d = '#A9512A', l = '#F2A060';
+    g.save(); g.translate(px, -20); g.scale(dir, 1); g.lineJoin = 'round';
+    Draw.poly(g, [[-26, 0], [-14, -30], [8, -34], [20, -18], [22, 0]], b, { ol: 3 });   // corpo sentado
+    Draw.poly(g, [[-26, 0], [-34, -22], [-22, -46], [-14, -30]], d, { ol: 3 });         // rabo em chama
+    Draw.poly(g, [[-30, -30], [-40, -40], [-28, -44], [-26, -36]], d, { ol: 2.4 });
+    Draw.circle(g, 12, -48, 20, d, { ol: 3 });                                          // juba
+    for (let k = 0; k < 6; k++) { const a = -2.6 + k * 0.62; Draw.circle(g, 12 + Math.cos(a) * 19, -48 + Math.sin(a) * 19, 6, d, { ol: 2 }); }
+    Draw.circle(g, 16, -46, 13, b, { ol: 2.6 });                                        // cara
+    Draw.poly(g, [[6, -60], [10, -70], [16, -60]], d, { ol: 2 });                        // orelha
+    g.fillStyle = LINE; g.fillRect(16, -52, 4, 4);                                       // olho
+    Draw.box(g, 22, -46, 10, 8, l, { r: 3, ol: 2 });                                     // focinho
+    if (open) { g.fillStyle = '#7A2A1A'; g.fillRect(22, -38, 10, 5); g.fillStyle = '#FFFFFF'; g.fillRect(23, -38, 2, 2); g.fillRect(29, -38, 2, 2); }
+    Draw.box(g, 8, -14, 12, 14, l, { r: 3, ol: 2.4 });                                   // patas da frente
+    g.restore();
+  }
   function shisas(g, x, t) {
+    if (zoomOf(g) < 0.45) {   // de longe: silhueta forte em vez do sprite (que virava bloco laranja)
+      for (const s of [-1, 1]) { const px = x + s * 120; Draw.box(g, px - 36, -20, 72, 20, '#B7AFA2', { r: 2, ol: 2.4 }); Draw.box(g, px - 40, -24, 80, 7, '#D6CFC4', { r: 2, ol: 2 }); shisaFar(g, px, -s, s > 0); }
+      return;
+    }
     // arte gerada (conteudo/estrutura-shisa.js): par de guardiões sentados num pedestal, um de frente pro outro
     const A = E.Assets;
     if (A && A.ready && A.ready('shisa')) {
       const a = A.get('shisa'), r = (a.anims || {}).sentar || { from: 0, to: 0 }, n = r.to - r.from + 1;
       for (const s of [-1, 1]) {
         const px = x + s * 120;
-        Draw.box(g, px - 34, -16, 68, 16, '#B7AFA2', { r: 2 }); Draw.box(g, px - 38, -20, 76, 6, '#D6CFC4', { r: 2 });
+        Draw.box(g, px - 34, -16, 68, 16, '#B7AFA2', { r: 2, ol: 2 }); Draw.box(g, px - 38, -20, 76, 6, '#D6CFC4', { r: 2, ol: 1.6 });
         g.save(); g.translate(px, 0); g.scale(-s, 1);
         A.draw(g, 'shisa', r.from + (Math.floor(((t || 0) + (s > 0 ? 0.7 : 0)) * 4) % n), 0, -16, { scale: 2.4 });   // Assets.draw ancora nos PÉS: sentado em cima do pedestal (antes flutuava no ar)
         g.restore();
@@ -206,6 +370,7 @@
     const sq = 1 + Math.sin(t * 2 + i) * 0.05;
     g.save(); g.translate(x, 0); g.scale(1 / sq, sq);
     g.fillStyle = col; g.strokeStyle = LINE; g.lineWidth = 2; g.beginPath(); g.ellipse(0, -24, 36, 24, 0, Math.PI, 0); g.lineTo(36, 0); g.lineTo(-36, 0); g.closePath(); g.fill(); g.stroke();
+    g.save(); g.clip(); g.fillStyle = 'rgba(120,60,80,.16)'; g.beginPath(); g.ellipse(12, -6, 34, 16, 0, 0, 6.3); g.fill(); g.restore();   // sombra embaixo (3º tom)
     g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.ellipse(-14, -36, 9, 4, -0.4, 0, 6.3); g.fill();
     g.fillStyle = LINE; g.fillRect(-10, -22, 3, 4); g.fillRect(7, -22, 3, 4); g.fillRect(-3, -15, 6, 2);
     g.fillStyle = 'rgba(240,110,140,.6)'; g.fillRect(-19, -16, 6, 3); g.fillRect(13, -16, 6, 3);
@@ -217,11 +382,34 @@
   }
   // enfeites por ilha: TODOS fofos, então moram na VILA (lado de lá da montanha), nas 4 vagas livres da rua (X.v1..v4 do
   // game-world.js) e ao lado do torii. A zona industrial fica só com o fundo/chão/crista da ilha.
+  const at = (g, x, k, fn) => { g.save(); g.translate(x, 0); g.scale(k, k); fn(); g.restore(); };
+  function frozenPond(g, x, t) {   // laguinho congelado com patinador de brilho e rachadura
+    Draw.box(g, x - 92, -6, 184, 12, '#8FB8D4', { r: 6, ol: 2 }); Draw.box(g, x - 86, -5, 172, 7, '#D6EEF9', { r: 4 });
+    g.fillStyle = '#FFFFFF'; const gx = x - 80 + ((t * 30) % 150); g.fillRect(gx, -4, 18, 2); g.fillRect(gx + 10, -1, 8, 1.5);
+    g.strokeStyle = '#9CC4DC'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - 30, -4); g.lineTo(x - 18, -1); g.lineTo(x - 6, -3); g.stroke();
+    for (const k of [-1, 1]) { Draw.circle(g, x + k * 96, -6, 10, '#FFFFFF', { ol: 1.6 }); Draw.circle(g, x + k * 84, -4, 7, '#FFFFFF', { ol: 1.4 }); }   // montinhos de neve na beira
+  }
+  function sakuraBig(g, x, t) { if (N) N.tree(g, x, 0, { kind: 'sakura', s: 1.6, seed: 7, t }); }
+  // enfeites por ilha: TODOS fofos, então moram na VILA (lado de lá da montanha), nas 4 vagas livres da rua (X.v1..v4 do
+  // game-world.js) e ao lado do torii. A zona industrial fica só com o fundo/chão/crista da ilha. Escala ~1,7: a câmera da
+  // vila fica em 0,56, então tudo precisa ser GRANDE pra ler (antes boneco de neve e mochis viravam pontinhos).
   const YARD = {
-    neve(g, v, t, S, X) { if (N) { N.tree(g, X.v1, 0, { kind: 'pine', s: 1.4, seed: 2, t }); N.tree(g, X.v3, 0, { kind: 'pine', s: 1.2, seed: 5, t }); } snowman(g, X.v4, t); snowman(g, X.v2, t + 1); },
-    vulcao(g, v, t, S, X) { steamRocks(g, X.v4, t); lavaRock(g, X.v2, t); if (N) N.tree(g, X.v3, 0, { kind: 'maple', s: 1.1, seed: 3, t }); },
-    praia(g, v, t, S, X) { shisas(g, X.torii, t); umbrella(g, X.v4, t); palm(g, X.v3, 0, 1.1, t); palm(g, X.v1, 0, 1.25, t + 2); },
-    mochi(g, v, t, S, X) { giantMochi(g, X.v1, t, '#FFF6F4', 0); giantMochi(g, X.v2, t, '#F6C6D2', 1); giantMochi(g, X.v4, t, '#A9CB8A', 2); dango(g, X.v3, t); },
+    neve(g, v, t, S, X) {
+      if (N) { N.tree(g, X.v1 + 70, 0, { kind: 'pine', s: 1.7, seed: 2, t }); N.tree(g, X.v3 - 60, 0, { kind: 'pine', s: 1.4, seed: 5, t }); N.tree(g, X.torii - 150, 0, { kind: 'pine', s: 1.2, seed: 8, t }); }
+      frozenPond(g, X.v1 - 40, t);
+      at(g, X.v4, 1.6, () => snowman(g, 0, t)); at(g, X.v2, 1.5, () => snowman(g, 0, t + 1));
+      at(g, X.v3 + 40, 1.5, () => steamRocks(g, 0, t));
+    },
+    vulcao(g, v, t, S, X) {
+      at(g, X.v4, 1.6, () => steamRocks(g, 0, t)); at(g, X.v2, 1.6, () => lavaRock(g, 0, t)); at(g, X.v1 + 40, 1.3, () => lavaRock(g, 0, t + 1));
+      if (N) { N.tree(g, X.v3, 0, { kind: 'maple', s: 1.5, seed: 3, t }); N.tree(g, X.torii - 150, 0, { kind: 'maple', s: 1.2, seed: 6, t }); N.rock(g, X.v1 - 60, 0, { w: 40, h: 24, seed: 4, s: 1.6 }); }
+    },
+    praia(g, v, t, S, X) { shisas(g, X.torii, t); at(g, X.v4, 1.4, () => umbrella(g, 0, t)); at(g, X.v2, 1.3, () => umbrella(g, 0, t + 1)); palm(g, X.v3, 0, 1.5, t); palm(g, X.v1, 0, 1.6, t + 2); palm(g, X.v1 + 90, 0, 1.2, t + 4); },
+    mochi(g, v, t, S, X) {
+      sakuraBig(g, X.v3 + 30, t); if (N) N.tree(g, X.torii - 150, 0, { kind: 'sakura', s: 1.3, seed: 11, t });
+      at(g, X.v1, 1.9, () => giantMochi(g, 0, t, '#FFF6F4', 0)); at(g, X.v2, 1.7, () => giantMochi(g, 0, t, '#F6C6D2', 1)); at(g, X.v4, 1.8, () => giantMochi(g, 0, t, '#A9CB8A', 2));
+      at(g, X.v1 + 95, 1.6, () => dango(g, 0, t)); at(g, X.v3 - 70, 1.5, () => dango(g, 0, t + 1));
+    },
   };
 
   // estátua do KOME-OH no pátio depois do Grande Final (desenhada uma vez numa imagem e reaproveitada)

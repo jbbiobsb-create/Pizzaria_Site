@@ -13,13 +13,14 @@
 <script src="../engine/fx.js"></script>
 <script src="../engine/terrain.js"></script>
 <script src="../engine/rig.js"></script>
+<script src="../engine/audio.js"></script>
 <script src="../game/machines-mid.js"></script>
 <script src="../game/fuji.js"></script>
 <script>
 /* Demo de game/fuji.js (molde: demos/trembala.html).
    URL: ?mode=normal|chegada  &z=zoom (padrão: câmera sugerida m.cam)  &face=-1  &night=1  &t=segundos (avança e congela)
-        &spd=speedMul  &dig=0  &debug=1  &cx=  &cy=  &horizon=1 (testa o desenho do horizonte do Pátio, &n=quantidade)
-   Automação: __demo.step(seg) avança em passos fixos de 1/60; __demo.m = instância; __demo.cost() = ms por draw (média de 60).
+        &spd=speedMul  &dig=0  &debug=1  &cx=  &cy=  &mute=1  &horizon=1 (testa o desenho do horizonte do Pátio, &n=quantidade)
+   Automação: __demo.step(seg) avança em passos fixos de 1/60; __demo.m = instância; __demo.cost() = ms por draw (200 quadros num canvas de CPU).
    Um Kome de 44 px fica parado perto da máquina pra dar a escala. */
 (function () {
   'use strict';
@@ -27,7 +28,7 @@
   const W = 960, H = 540;
   const q = new URLSearchParams(location.search);
   const MODE = q.get('mode') === 'chegada' ? 'chegada' : 'normal', FACE = +(q.get('face') || 1) < 0 ? -1 : 1;
-  const NIGHT = q.get('night') === '1', SPD = +(q.get('spd') || 1), NODIG = q.get('dig') === '0', HOR = q.get('horizon') === '1';
+  const MUTE = q.get('mute') === '1', NIGHT = q.get('night') === '1', SPD = +(q.get('spd') || 1), NODIG = q.get('dig') === '0', HOR = q.get('horizon') === '1';
   const stage = E.Stage({ width: W, height: H, bg: PAL.ink });
   const g = stage.g;
   const input = E.Input(stage);
@@ -48,6 +49,7 @@
   function update(dt) {
     T += dt; inp.view = view;
     tool.update(m, dt, inp);
+    if (tool.sound) tool.sound(m, { mute: MUTE });
     for (const ev of m.ev) { log.unshift(ev); if (log.length > 6) log.pop(); logT = 2.2; }
     logT -= dt;
     dug += tool.dig(m, heap, 9000 * dt * SPD);
@@ -108,6 +110,7 @@
     Draw.text(g, 'Escavadeira do Monte Fuji (fuji) · ' + m.mode, 12, 22, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
     Draw.text(g, m.phase + '  enchido ' + Math.round((m.fill || 0) * 100) + '%  cavado ' + Math.round(dug) + ' px²  zoom ' + c.z.toFixed(2),
       12, 40, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+    Draw.text(g, 'clique pra ligar o som' + (MUTE ? ' (mudo)' : ''), W - 12, 22, { size: 11, align: 'right', col: PAL.cream, sw: 3, weight: 700 });
     if (logT > 0) Draw.text(g, log.join('  '), 12, 56, { size: 10.5, align: 'left', col: PAL.white, sw: 3, weight: 700 });
   }
   let frozen = false;
@@ -115,7 +118,17 @@
   window.__demo = {
     m, tool, loop, stage, heap,
     step(sec) { frozen = true; const n = Math.round(sec * 60); for (let i = 0; i < n; i++) update(1 / 60); render(); return true; },
-    cost() { drawMs = 0; drawN = 0; for (let i = 0; i < 60; i++) render(); return +(drawMs / drawN).toFixed(3); },
+    // cost(n=200) -> ms por draw da máquina: n quadros num canvas de CPU (willReadFrequently), avançando 1/60 entre eles
+    cost(n) {
+      n = n || 200; const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const cg = cv.getContext('2d', { willReadFrequently: true }), c = m.cam; let ms = 0;
+      for (let i = 0; i < n + 20; i++) {
+        tool.update(m, 1 / 60, inp);
+        cg.setTransform(1, 0, 0, 1, 0, 0); cg.clearRect(0, 0, W, H); cg.translate(W / 2, H / 2); cg.scale(c.z, c.z); cg.translate(-c.x, -c.y); Draw.lod(c.z);
+        const t0 = performance.now(); tool.draw(cg, m); if (i >= 20) ms += performance.now() - t0;
+      }
+      cg.getImageData(0, 0, 1, 1); Draw.lod(1); return +(ms / n).toFixed(3);
+    },
   };
   if (q.has('t')) window.__demo.step(+q.get('t'));
   if (tool.prebake) tool.prebake();

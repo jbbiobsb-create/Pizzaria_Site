@@ -60,7 +60,7 @@
   { let a = 0; for (let i = 0; i < NCAR; i++) { FRONT[i] = a; LEN[i] = KIND[i] === 'lead' || KIND[i] === 'tail' ? LEAD : CAR; a += LEN[i] + GAP; } }
   const TRAIN = FRONT[NCAR - 1] + LEN[NCAR - 1];            // ≈ 4.040 px
   const PANTO = [[0, -470], [NCAR - 1, -130]];               // [vagão, x no vagão]
-  const KOME_FEET = [-226, -170];                             // pés do Kome dentro da cabine (modelo do vagão-líder)
+  const KOME_FEET = [-236, -112], KOME_SC = 2.3;                             // pés do Kome dentro da cabine (modelo do vagão-líder)
   const PLAT0 = -300, PLAT1 = 1560, PLAT_Y = -30;             // plataforma: dx (pra trás da doca) e topo
   const BOARD_DX = 760;
 
@@ -77,20 +77,31 @@
     { h: STRAW, g: STRAWD, o: '#B88E62', c: '#EFE0C4', k: '#2A1A10', n: '#2A1A10', p: '#E8707A' },
     { h: STRAW, g: STRAWD, o: '#34302C', c: '#C98A4A', k: '#F2E6C9', n: '#0E0C0B', p: '#E8707A' },
     { h: STRAW, g: STRAWD, o: '#F2E9DA', c: '#FFFFFF', k: '#2A1A10', n: '#2A1A10', p: '#E8707A' },
+    { h: STRAW, g: STRAWD, o: '#C9783A', c: '#FFF1DC', k: '#2A1A10', n: '#2A1A10', p: '#D95763' },   // chefe da estação (quepe próprio)
   ];
   // equipe da plataforma: dx = distância pra trás da doca (negativo = à frente do nariz)
+  // sc = escala do shiba (a plataforma é vista de 0.2: 44 px viram 9; com 2× o povo se lê). hold = segura o chapéu no estrondo
   const CREW = [
-    { dx: -190, pal: 1, role: 'chefe' }, { dx: 330, pal: 0 }, { dx: 560, pal: 2, role: 'bento' }, { dx: 1010, pal: 3 }, { dx: 1270, pal: 1 },
+    { dx: -200, pal: 4, role: 'chefe', sc: 2.5, hold: true },
+    { dx: 150, pal: 0, sc: 2.1 }, { dx: 300, pal: 2, sc: 1.9, hold: true }, { dx: 470, pal: 3, role: 'bento', sc: 2.0 },
+    { dx: 640, pal: 1, sc: 2.2, hold: true }, { dx: 930, pal: 2, sc: 2.0 }, { dx: 1090, pal: 0, sc: 1.9, hold: true },
+    { dx: 1250, pal: 3, sc: 2.1 }, { dx: 1440, pal: 1, sc: 2.0, hold: true },
   ];
+  const CREW_SC = 2;
 
   /* ---- tempo ---- */
-  const T_OPEN = 0.8, T_FULL = 9.0, T_WHISTLE = 9.4, T_DEP = 10.0, T_BOOM = T_DEP + 1.6, T_GONE = T_BOOM + 0.45, T_RET = 16.4, T_BRAKE = 17.4, T_CYC = 20;
-  const CH = { lay: 3.4, glide: 4.0, ribbon: 5.0, whistle: 5.8, dep: 6.2, boom: 7.8, ret: 8.6, end: 11.6 };
+  const T_ACC = 1.8;   // depois do estrondo: 1,8 s de aceleração pra curtir (câmera vai junto) antes de sumir
+  const T_OPEN = 0.8, T_FULL = 9.0, T_WHISTLE = 9.4, T_DEP = 10.0, T_BOOM = T_DEP + 1.6, T_GONE = T_BOOM + T_ACC + 0.45, T_RET = 16.4, T_BRAKE = 17.4, T_CYC = 20;
+  const CH = { lay: 3.4, glide: 4.0, ribbon: 5.0, whistle: 5.8, dep: 6.2, boom: 7.8, ret: 10.4, end: 13.4 };
   const A_DEP = 700, S_BOOM = 0.5 * A_DEP * 1.6 * 1.6, V_BOOM = A_DEP * 1.6, RET_D = 14000, RET_D_CH = 12000;
+  const A_ACC = 2600, S_ACC = S_BOOM + V_BOOM * T_ACC + A_ACC * T_ACC * T_ACC, V_ACC = V_BOOM + 2 * A_ACC * T_ACC;   // ≈ 11.300 px e 10.500 px/s
+  const CAM_CAP = 8200;   // até onde a câmera sugerida persegue o nariz antes de deixar o trem fugir
   function sDep(tau) {
     if (tau <= 0) return 0;
     if (tau < 1.6) return 0.5 * A_DEP * tau * tau;
-    const q = tau - 1.6; return S_BOOM + V_BOOM * q + 26000 * q * q;
+    const q = tau - 1.6;
+    if (q < T_ACC) return S_BOOM + V_BOOM * q + A_ACC * q * q;
+    const r = q - T_ACC; return S_ACC + V_ACC * r + 26000 * r * r;
   }
   const sRet = (p, D) => -D * Math.pow(1 - clamp(p, 0, 1), 3);
   // profile(mode, t, out): o "roteiro" puro (sem estado): s, ext (calhas), lid, fill, load, lay (frente do trilho, dx à frente da doca), phase
@@ -102,7 +113,7 @@
       if (t < CH.lay) { o.lay = lerp(-4800, 520, smooth(t / CH.lay * 0.85 + 0.15) * 1.0); o.s = Math.min(0, o.lay - 640); o.phase = 'chegada'; }
       else if (t < CH.glide) { const s0 = 520 - 640; o.lay = 520; o.s = lerp(s0, 0, smooth((t - CH.lay) / (CH.glide - CH.lay))); o.phase = 'chegada'; }
       else if (t < CH.dep) { o.lay = 520; o.s = 0; o.phase = 'chegada'; }
-      else if (t < CH.ret) { o.s = sDep(t - CH.dep); o.phase = t < CH.boom + 0.45 ? 'partindo' : 'fora'; }
+      else if (t < CH.ret) { o.s = sDep(t - CH.dep); o.phase = t < CH.boom + T_ACC + 0.45 ? 'partindo' : 'fora'; }
       else { o.s = sRet((t - CH.ret) / (CH.end - CH.ret), RET_D_CH); o.phase = 'voltando'; }
       return o;
     }
@@ -189,10 +200,10 @@
   }
   function canopyPath(c) {
     c.beginPath();
-    c.moveTo(-146, -178);
-    c.quadraticCurveTo(-214, -214, -300, -236);
-    c.lineTo(-302, -214);
-    c.quadraticCurveTo(-230, -162, -146, -178);
+    c.moveTo(-138, -166);
+    c.quadraticCurveTo(-214, -214, -304, -237);
+    c.lineTo(-308, -172);
+    c.quadraticCurveTo(-226, -136, -138, -166);
     c.closePath();
   }
   function earPath(c, x, h, w) { c.beginPath(); c.moveTo(x - w / 2, BT + 2); c.quadraticCurveTo(x - w * 0.18, BT - h * 0.7, x + w * 0.12, BT - h); c.quadraticCurveTo(x + w * 0.3, BT - h * 0.45, x + w / 2, BT + 2); c.closePath(); }
@@ -231,7 +242,7 @@
     c.restore();
     // cabine (vidro escuro; o Kome entra ao vivo)
     canopyPath(c); olPath(c, C_GLASS, 1.6);
-    c.save(); canopyPath(c); c.clip(); c.fillStyle = C_GLASSL; c.fillRect(-310, -240, 170, 14); c.fillStyle = sh(C_GLASS, -0.2); c.fillRect(-310, -194, 170, 30); c.restore();
+    c.save(); canopyPath(c); c.clip(); c.fillStyle = C_GLASSL; c.fillRect(-312, -240, 180, 12); c.restore();
     // focinho preto na ponta + boquinha "w"
     c.fillStyle = LINE; c.beginPath(); c.ellipse(-8, -94, 13, 11, 0.5, 0, TAU); c.fill();
     c.fillStyle = sh(F.eye, 0.12); c.beginPath(); c.ellipse(-8, -94, 10.5, 8.6, 0.5, 0, TAU); c.fill();
@@ -463,11 +474,13 @@
     let pick = mid; if (!mid.active) for (const b of m.bitesA) if (b.active) { pick = b; break; }
     const bo = m.biteO; bo.x = pick.x; bo.y = pick.y; bo.r = pick.r; bo.active = pick.active; bo.phase = P.fill;
     const dc = m.ch[3] || m.ch[0]; m.dumpO.x = dc.hx; m.dumpO.y = dc.hy; m.dumpO.active = m.load && m.ext > 0.9;
-    m.seatO.x = carX(m, 0) + f * KOME_FEET[0]; m.seatO.y = m.y + KOME_FEET[1] - 20;
+    m.seatO.x = carX(m, 0) + f * KOME_FEET[0]; m.seatO.y = m.y + KOME_FEET[1] - 32;
     // efeitos
     m.flash = Math.max(0, m.flash - dt * 4); m.shakeK = Math.max(0, m.shakeK - dt * 1.4);
     const sinceBoom = m.t - m.boomT;
-    m.speed.on = sinceBoom < 1.3 || (m.phase === 'voltando' && Math.abs(m.v) > 2500); m.speed.dir = f; m.speed.k = sinceBoom < 1.3 ? 1 - sinceBoom / 1.3 : clamp(Math.abs(m.v) / 9000, 0, 1);
+    const accel = m.phase === 'partindo' && m.v > 600;
+    m.speed.on = sinceBoom < 1.3 || accel || (m.phase === 'voltando' && Math.abs(m.v) > 2500); m.speed.dir = f;
+    m.speed.k = Math.max(sinceBoom < 1.3 ? 1 - sinceBoom / 1.3 : 0, clamp(Math.abs(m.v) / 9000, 0, 1));
     if (m.title > 0) m.title = Math.min(1, m.title + dt / 2.8);
     if (m.title >= 1) m.title = 0;
     partsTick(m, dt, nAct);
@@ -481,8 +494,9 @@
     m.boomT = m.t; m.boomX = m.x - m.face * (TRAIN / 2 - 300); m.flash = 1; m.shakeK = 1;
     const f = m.face;
     for (let k = 0; k < m.hats.length; k++) {
-      const h = m.hats[k], c = CREW[k]; if (h.st !== 0) continue;
-      h.st = 1; h.x = m.x - f * c.dx; h.y = m.y + PLAT_Y - 34; h.vx = f * (520 + rnd(k + m.t) * 700); h.vy = -(380 + rnd(k * 3 + m.t) * 360); h.r = 0; h.vr = (rnd(k * 5 + m.t) - 0.5) * 22;
+      const h = m.hats[k], c = CREW[k]; if (h.st !== 0 || c.hold) continue;
+      const sc = c.sc || CREW_SC;
+      h.st = 1; h.x = m.x - f * c.dx; h.y = m.y + PLAT_Y - 34 * sc; h.vx = f * (520 + rnd(k + m.t) * 700); h.vy = -(380 + rnd(k * 3 + m.t) * 360); h.r = 0; h.vr = (rnd(k * 5 + m.t) - 0.5) * 22;
     }
     if (m.parts) for (let i = 0; i < 14; i++) m.parts.puff(m.x - f * (i * 300 - 600), m.y - 6, 2, 26, { c: PAL.sand, speed: 260, up: 40 });
   }
@@ -563,8 +577,15 @@
       if (m.tc < CH.lay - 0.4) { tx = m.x + f * (m.lay - 150); ty = -260; tz = 0.34; }
       else { tx = m.x + f * 60; ty = -230; tz = 0.46; }
     } else { tx = m.x - f * (TRAIN / 2 - 260); ty = -560; tz = 0.2; }
+    // partida: a câmera persegue o trem (nariz ~1/3 da tela à frente) até CAM_CAP; depois ele foge e ela volta pra estação
+    let kx = m.mode === 'chegada' && m.tc < CH.lay ? 7 : 2.2;
+    if (m.phase === 'partindo' && m.s > 0) {
+      const s = Math.min(m.s, CAM_CAP);
+      tx = m.x + f * (s - TRAIN * 0.42 + 260 * (1 - smooth(m.s / 2400))); ty = -540; tz = 0.2 - 0.02 * smooth(m.s / 6000);
+      kx = m.s < CAM_CAP ? 2.2 + 5 * smooth(m.s / 3000) : 3;
+    }
     if (!m.camInit) { m.camInit = true; c.x = tx; c.y = ty; c.z = tz; return; }
-    c.x = damp(c.x, tx, m.mode === 'chegada' && m.tc < CH.lay ? 7 : 2.2, dt); c.y = damp(c.y, ty, 2.2, dt); c.z = damp(c.z, tz, 1.8, dt);
+    c.x = damp(c.x, tx, kx, dt); c.y = damp(c.y, ty, 2.2, dt); c.z = damp(c.z, tz, 1.8, dt);
   }
 
   /* ======================================================================
@@ -596,7 +617,7 @@
       for (let x = Math.floor((xa - m.x) / TW) * TW + m.x; x < xb; x += TW) g.drawImage(tb.cv, x, m.y + tb.y0, TW, tb.h);
       g.restore();
     }
-    drawCatenary(g, m, v, li, lay);
+    drawCatenary(g, m, v, li, lay, 'poles');
     drawTowers(g, m, li);
     // vagões, da cauda pra cabeça
     const fast = Math.abs(m.v) > 2600;
@@ -616,11 +637,12 @@
     }
     drawSpeedStreaks(g, m, v);
     drawChutes(g, m, li);
+    drawCatenary(g, m, v, li, lay, 'wires');   // fio por cima das calhas: elas descem da encosta POR TRÁS da catenária
     drawStation(g, m, li, v);
     drawFx(g, m, v);
   }
 
-  function drawCatenary(g, m, v, li, lay) {
+  function drawCatenary(g, m, v, li, lay, part) {
     const f = m.face, pb = poleBake(li);
     const xa = v.x0 - 80, xb = v.x1 + 80;
     let wa = xa, wb = xb;
@@ -628,7 +650,7 @@
     if (wb <= wa) return;
     const k0 = Math.floor((wa - m.x) / POLE) - 1, k1 = Math.ceil((wb - m.x) / POLE) + 1;
     // postes (os novos sobem com um quique)
-    for (let k = k0; k <= k1; k++) {
+    if (part !== 'wires') for (let k = k0; k <= k1; k++) {
       const x = m.x + k * POLE + 30 * f;
       if (x < wa - 60 || x > wb + 60) continue;
       let sc = 1;
@@ -636,6 +658,7 @@
       if (sc < 0.999) { g.save(); g.translate(x, m.y); g.scale(1, sc); g.drawImage(pb.cv, pb.x0, pb.y0, pb.w, pb.h); g.restore(); }
       else g.drawImage(pb.cv, x + pb.x0, m.y + pb.y0, pb.w, pb.h);
     }
+    if (part === 'poles') return;
     // fio de contato e mensageiro (com barriga entre postes) e pendurais
     const y = m.y;
     g.strokeStyle = LINE; g.lineWidth = 3; g.beginPath(); g.moveTo(wa, y + WIRE); g.lineTo(wb, y + WIRE); g.stroke();
@@ -701,15 +724,25 @@
       }
       if (kind === 'lead') {
         g.save(); canopyPath(g); g.clip();
+        // cabine acesa: luz quente de painel (lê-se até em 0.2) e o Kome grande de quepe
+        g.fillStyle = m.night > 0.3 ? '#FFD98A' : '#F6C77A'; g.fillRect(-312, -240, 180, 110);
+        g.fillStyle = '#FFE9B8'; g.beginPath(); g.ellipse(-214, -176, 70, 30, -0.3, 0, TAU); g.fill();
+        g.fillStyle = '#C98F4A'; g.fillRect(-312, -150, 180, 20);
         const pose = 'drive';
-        KOME_O.pal = m.pilot;
+        KOME_O.pal = m.pilot; KOME_O.scale = KOME_SC;
         E.drawShiba(g, KOME_FEET[0], KOME_FEET[1], pose, t, KOME_O);
         const ft = E.drawShiba.frameT ? E.drawShiba.frameT(t) : t;
         const hd2 = E.shibaAnchor(pose, ft, 'head', TMP, { hat: false });
-        cap(g, KOME_FEET[0] + hd2.x, KOME_FEET[1] + hd2.y);
-        g.fillStyle = 'rgba(255,255,255,.28)'; g.beginPath(); g.moveTo(-200, -240); g.lineTo(-176, -240); g.lineTo(-206, -160); g.lineTo(-230, -160); g.closePath(); g.fill();
-        g.fillStyle = 'rgba(255,255,255,.16)'; g.beginPath(); g.moveTo(-250, -240); g.lineTo(-238, -240); g.lineTo(-268, -160); g.lineTo(-280, -160); g.closePath(); g.fill();
+        capS(g, KOME_FEET[0] + hd2.x * KOME_SC, KOME_FEET[1] + hd2.y * KOME_SC - 2, KOME_SC * 1.15, 1, C_GOLD);
+        // painel: botões e alavanca
+        g.fillStyle = LINE; g.fillRect(-176, -166, 30, 14); g.fillStyle = '#2F3E4C'; g.fillRect(-174, -164, 26, 10);
+        g.fillStyle = (t * 2 | 0) & 1 ? '#7FE08A' : '#3E7A48'; g.fillRect(-170, -162, 5, 4); g.fillStyle = PAL.red; g.fillRect(-162, -162, 5, 4);
+        g.fillStyle = 'rgba(255,255,255,.30)'; g.beginPath(); g.moveTo(-196, -240); g.lineTo(-172, -240); g.lineTo(-206, -150); g.lineTo(-230, -150); g.closePath(); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.16)'; g.beginPath(); g.moveTo(-262, -240); g.lineTo(-250, -240); g.lineTo(-284, -150); g.lineTo(-296, -150); g.closePath(); g.fill();
         g.restore();
+        // brilho da cabine pra fora (halo quente)
+        g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.05 + 0.3 * m.night; g.fillStyle = '#FFC860';
+        g.beginPath(); g.ellipse(-222, -194, 100, 42, -0.3, 0, TAU); g.fill(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
         if (m.night > 0.05) Draw.light(g, -96, -126, 10, '#FFF3C4', m.night, { ol: 0, halo: 5 });
       } else if (m.night > 0.05) Draw.light(g, -LEAD + 40, -64, 5, PAL.red, m.night, { ol: 0, halo: 4 });
       return;
@@ -751,6 +784,38 @@
     g.fillStyle = C_GOLD; g.fillRect(hx - 8.8, hy - 10, 17.6, 2.6);
     g.fillStyle = PAL.goldL; g.beginPath(); g.arc(hx + 2, hy - 13.5, 2, 0, TAU); g.fill();
     g.fillStyle = LINE; g.beginPath(); g.moveTo(hx + 4, hy - 7.5); g.lineTo(hx + 14, hy - 6); g.lineTo(hx + 13, hy - 4); g.lineTo(hx + 3, hy - 5); g.closePath(); g.fill();
+  }
+
+  // capS: quepe escalado (s = escala do shiba) virado pra `face`, com faixa colorida
+  function capS(g, hx, hy, s, face, band) {
+    g.save(); g.translate(hx, hy); g.scale(s * face, s);
+    g.fillStyle = LINE; g.beginPath(); g.moveTo(-6.5, -4); g.lineTo(-7.5, -10); g.quadraticCurveTo(0, -14.5, 7.5, -10); g.lineTo(6.5, -4); g.closePath(); g.fill();
+    g.fillStyle = '#2E3E66'; g.beginPath(); g.moveTo(-5.4, -4.8); g.lineTo(-6.3, -9.7); g.quadraticCurveTo(0, -13.2, 6.3, -9.7); g.lineTo(5.4, -4.8); g.closePath(); g.fill();
+    g.fillStyle = '#44588A'; g.fillRect(-5, -11, 6, 1.4);
+    g.fillStyle = band || C_GOLD; g.fillRect(-5.8, -7, 11.6, 2.2);
+    g.fillStyle = PAL.goldL; g.fillRect(0.6, -10.2, 2.2, 2.2);
+    g.fillStyle = LINE; g.beginPath(); g.moveTo(2.5, -5); g.lineTo(10, -4); g.lineTo(9.4, -2.4); g.lineTo(2, -3.2); g.closePath(); g.fill();
+    g.restore();
+  }
+  // patinha segurando o chapéu/quepe (contorno + pelo + dedinhos)
+  function pawOn(g, x, y, s, pal) {
+    const r = 4.2 * s;
+    g.fillStyle = LINE; g.beginPath(); g.arc(x, y, r + s, 0, TAU); g.fill();
+    g.fillStyle = pal.o; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    g.fillStyle = pal.c; g.beginPath(); g.arc(x - r * 0.25, y - r * 0.3, r * 0.45, 0, TAU); g.fill();
+    g.fillStyle = LINE; g.fillRect(x - r * 0.5, y + r * 0.2, s * 0.8, r * 0.6); g.fillRect(x + r * 0.15, y + r * 0.2, s * 0.8, r * 0.6);
+  }
+  // bandeira do chefe: verde enchendo, vermelha erguida no apito, tremulando forte no vento da partida
+  function flag(g, ax, ay, face, s, m, u, windy) {
+    const red = (u > T_WHISTLE - 0.2 && u < T_DEP + 0.2) || windy;
+    const up = red ? 1 : 0, L = 36 * s, px = ax + face * (2 + up * 2) * s, top = ay - L * (0.7 + 0.3 * up);
+    Draw.beam(g, [[ax, ay + 4 * s], [px, top]], 1.6 * s, PAL.wood, { ol: 1, hi: false });
+    const fw = 22 * s, fh = 14 * s, t = m.t, amp = (windy ? 3.2 : red ? 1.8 : 0.8) * s, sp = windy ? 22 : 7;
+    const pts = [];
+    for (let i = 0; i <= 6; i++) { const q = i / 6; pts.push([px + face * q * fw, top + Math.sin(t * sp - q * 5) * amp * q]); }
+    for (let i = 6; i >= 0; i--) { const q = i / 6; pts.push([px + face * q * fw, top + fh + Math.sin(t * sp - q * 5 + 0.6) * amp * q]); }
+    Draw.poly(g, pts, red ? PAL.red : '#4FA36A', { ol: 1.4, shade: false, hi: false });
+    g.fillStyle = red ? PAL.redL : '#7FC98F'; g.fillRect(Math.min(px, px + face * fw * 0.5), top + 1.5 * s, fw * 0.5, 2 * s);
   }
 
   function drawChutes(g, m, li) {
@@ -799,9 +864,20 @@
 
   function drawSpeedStreaks(g, m, v) {
     const f = m.face, sb = m.t - m.boomT;
-    const fastRet = m.phase === 'voltando' && Math.abs(m.v) > 2500;
-    if (!(sb < 1.2) && !fastRet) return;
-    const k = sb < 1.2 ? 1 - sb / 1.2 : clamp(Math.abs(m.v) / 11000, 0, 1);
+    const fastRet = m.phase === 'voltando' && Math.abs(m.v) > 2500, acc = m.phase === 'partindo' && m.v > 500;
+    if (!(sb < 1.2) && !fastRet && !acc) return;
+    const k = Math.max(sb < 1.2 ? 1 - sb / 1.2 : 0, clamp(Math.abs(m.v) / 11000, 0, 1));
+    // vento colado no trem: linhas brancas que nascem no nariz e escorrem pra trás (com a câmera indo junto, é aqui que se sente)
+    if (acc) {
+      const nose = carX(m, 0), tail = nose - f * TRAIN, vk = clamp(m.v / 9000, 0.15, 1);
+      g.fillStyle = '#FFFFFF';
+      for (let i = 0; i < 22; i++) {
+        const ph = (m.t * (1.4 + vk * 2.2) + rnd(i * 4.3)) % 1, len = (300 + rnd(i * 2.9) * 700) * (0.5 + vk);
+        const x = nose - f * ph * (TRAIN + 1200), y = m.y - 40 - rnd(i * 6.1) * 520;
+        g.globalAlpha = 0.65 * vk * Math.sin(ph * PI); g.fillRect(Math.min(x, x + f * len), y, len, 3 + rnd(i) * 5);
+      }
+      g.globalAlpha = 1;
+    }
     g.fillStyle = '#FFFFFF';
     for (let i = 0; i < 18; i++) {
       const y = m.y - 20 - rnd(i * 3.1) * 460, len = 400 + rnd(i * 7.7) * 900;
@@ -816,31 +892,51 @@
     if (x + pb.x0 + pb.w < v.x0 || x + pb.x0 > v.x1) return;
     // equipe (atrás da beira da plataforma)
     const t = m.t, sb = t - m.boomT, u = m.mode === 'normal' ? ((m.ct % T_CYC) + T_CYC) % T_CYC : -1;
+    const dep = m.phase === 'partindo', windK = dep ? clamp(Math.abs(m.v) / 5000, 0.25, 1) : 0;
     for (let k = 0; k < CREW.length; k++) {
-      const c = CREW[k], h = m.hats[k], cx = x - f * c.dx;
-      if (cx < v.x0 - 60 || cx > v.x1 + 60) continue;
-      let pose = 'stand', face = k & 1 ? -f : f;
-      if (sb >= 0 && sb < 1.6) { pose = 'surprise'; face = -f; }
-      else if (sb >= 1.6 && sb < 4.2 && m.phase === 'fora') pose = k & 1 ? 'dizzy' : 'gasp';
-      else if (m.phase === 'voltando') { pose = Math.abs(m.v) > 3000 ? 'surprise' : 'gasp'; face = -f; }
-      else if (m.phase === 'partindo') { pose = 'wave'; face = -f; }
-      else if (m.mode === 'chegada') {
-        if (m.tc < CH.glide) { pose = k === 0 ? 'stand' : 'cheer'; face = -f; }
-        else if (m.tc < CH.ribbon + 0.1) { pose = k === 0 ? 'point' : 'stand'; face = k === 0 ? f : -f; }
-        else pose = 'cheer';
-      } else if (c.role === 'chefe') pose = u > T_FULL && u < T_DEP ? 'point' : 'stand';
-      else if (c.role === 'bento') pose = 'sit';
-      else pose = m.phase === 'carregando' ? (k === 3 ? 'wag' : 'sit') : 'cheer';
-      CREW_O.pal = P_CREW[c.pal]; CREW_O.face = face; CREW_O.hat = h.st === 0;
-      E.drawShiba(g, cx, y + PLAT_Y, pose, t + k * 0.37, CREW_O);
-      // bandeirinha do chefe / tesoura gigante
+      const c = CREW[k], h = m.hats[k], cx = x - f * c.dx, sc = c.sc || CREW_SC, tk = t + k * 0.37;
+      if (cx < v.x0 - 120 || cx > v.x1 + 120) continue;
+      let pose = 'stand', face = k & 1 ? -f : f, rot = 0, holding = false;
+      const lost = h.st !== 0;
       if (c.role === 'chefe') {
-        const pa = E.shibaAnchor(pose, E.drawShiba.frameT ? E.drawShiba.frameT(t + k * 0.37) : t, 'paw', TMP);
-        const ax = cx + pa.x * face, ay = y + PLAT_Y + pa.y;
+        // chefe da estação: de frente pro trem, bandeira verde enquanto enche, vermelha no apito, acena na partida
+        face = -f;
+        if (m.mode === 'chegada') pose = m.tc < CH.glide ? 'stand' : m.tc < CH.ribbon + 0.1 ? 'point' : 'cheer';
+        else if (dep || (sb >= 0 && sb < 2.4)) { pose = 'stand'; holding = true; rot = -0.1 * f * windK; }
+        else pose = u > T_FULL && u < T_DEP ? 'point' : 'stand';
+        if (m.mode === 'chegada' && m.tc < CH.glide) face = f;
+      } else if (dep && sb < 0) { pose = 'stand'; face = -f; holding = !lost; rot = -0.08 * f * windK; }
+      else if (sb >= 0 && sb < 1.8) { if (c.hold) { pose = 'gasp'; holding = true; rot = -0.16 * f; } else pose = 'surprise'; face = -f; }
+      else if (sb >= 1.8 && sb < 4.4 && m.phase === 'fora') pose = c.hold ? 'proud' : k & 1 ? 'dizzy' : 'gasp';
+      else if (m.phase === 'voltando') { pose = Math.abs(m.v) > 3000 ? 'surprise' : 'gasp'; face = -f; }
+      else if (m.mode === 'chegada') { pose = m.tc < CH.glide ? 'cheer' : m.tc < CH.ribbon + 0.1 ? 'stand' : 'cheer'; face = -f; }
+      else if (c.role === 'bento') pose = 'sit';
+      else pose = m.phase === 'carregando' ? (k % 3 === 1 ? 'wag' : 'sit') : m.phase === 'fechando' ? 'wave' : 'cheer';
+      CREW_O.pal = P_CREW[c.pal]; CREW_O.face = face; CREW_O.scale = sc; CREW_O.rot = rot;
+      CREW_O.hat = c.role === 'chefe' ? false : !lost;
+      E.drawShiba(g, cx, y + PLAT_Y, pose, tk, CREW_O);
+      const ft = E.drawShiba.frameT ? E.drawShiba.frameT(tk) : tk;
+      if (c.role === 'chefe') {
+        const hd = E.shibaAnchor(pose, ft, 'head', TMP, { hat: false });
+        const hx = cx + hd.x * face * sc, hy = y + PLAT_Y + hd.y * sc;
+        capS(g, hx, hy, sc * 1.05, face, PAL.red);
+        if (holding) pawOn(g, hx - face * 2 * sc, hy - 16 * sc, sc, P_CREW[c.pal]);
+        const pa = E.shibaAnchor(pose, ft, 'paw', TMP);
+        const ax = cx + pa.x * face * sc, ay = y + PLAT_Y + pa.y * sc;
         if (m.mode === 'chegada' && m.tc < CH.ribbon + 0.6) scissors(g, ax, ay, face, m.tc);
-        else { Draw.beam(g, [[ax, ay + 6], [ax + 4 * face, ay - 30]], 2.4, PAL.wood, { ol: 1, hi: false }); g.fillStyle = LINE; g.fillRect(ax + 4 * face - (face < 0 ? 19 : 1), ay - 31, 20, 13); g.fillStyle = u > T_WHISTLE && u < T_DEP ? PAL.red : '#4FA36A'; g.fillRect(ax + 4 * face - (face < 0 ? 18 : 0), ay - 30, 18, 11); }
+        else flag(g, ax, ay, face, sc, m, u, dep || (sb >= 0 && sb < 2.4));
+      } else if (holding) {
+        const ht = E.shibaAnchor(pose, ft, 'hatTop', TMP);
+        pawOn(g, cx + ht.x * face * sc, y + PLAT_Y + ht.y * sc + 2 * sc, sc, P_CREW[c.pal]);
+      }
+      // vento da partida: risquinhos passando pelo povo
+      if (windK > 0.3 && dep) {
+        g.fillStyle = '#FFFFFF'; g.globalAlpha = 0.6 * windK;
+        for (let j = 0; j < 3; j++) { const ph = ((t * 2.6 + j * 0.33 + k * 0.17) % 1), wx = cx + f * (ph - 0.5) * 220, wy = y + PLAT_Y - (14 + j * 22 + rnd(k * 3 + j) * 10) * sc / 2; g.fillRect(wx - 34, wy, 68 * (1 - Math.abs(ph - 0.5)), 4); }
+        g.globalAlpha = 1;
       }
     }
+    CREW_O.rot = 0;
     g.drawImage(pb.cv, x + pb.x0, y + pb.y0, pb.w, pb.h);
     // painel de horários (texto ao vivo)
     const bx = x - f * BOARD_DX, bw = 270, txt = boardText(m, u);
@@ -853,7 +949,7 @@
     for (let k = 0; k < m.hats.length; k++) {
       const h = m.hats[k]; if (h.st !== 1 && h.st !== 2) continue;
       if (h.x < v.x0 - 40 || h.x > v.x1 + 40) continue;
-      g.save(); g.translate(h.x, h.y); g.rotate(h.r);
+      g.save(); g.translate(h.x, h.y); g.rotate(h.r); g.scale(CREW_SC, CREW_SC);
       g.fillStyle = LINE; g.beginPath(); g.moveTo(-12, 2); g.lineTo(0, -10); g.lineTo(12, 2); g.closePath(); g.fill();
       g.fillStyle = STRAW; g.beginPath(); g.moveTo(-9.5, 0.6); g.lineTo(0, -7.6); g.lineTo(9.5, 0.6); g.closePath(); g.fill();
       g.fillStyle = STRAWD; g.fillRect(-9.5, -0.6, 19, 1.6);
@@ -929,7 +1025,7 @@
       g.globalAlpha = 1;
       if (sb < 1.45) {
         const k = sb < 0.16 ? sb / 0.16 : 1, pop = sb < 0.16 ? 0.4 + 0.95 * k : 1.35 - 0.3 * smooth((sb - 0.16) / 0.3), al = sb > 1.05 ? 1 - (sb - 1.05) / 0.4 : 1;
-        g.save(); g.translate(bx, y - 800 - sb * 40); g.rotate(-0.07 * f); g.scale(pop, pop);
+        g.save(); g.translate(bx + f * Math.max(0, m.s - S_BOOM) * 0.55, y - 800 - sb * 40); g.rotate(-0.07 * f); g.scale(pop, pop);
         Draw.text(g, 'BUUUM!', 0, 0, { size: 230, col: PAL.goldL, sw: 24, stroke: LINE, weight: 900, alpha: al, shadow: 12 });
         g.restore();
       }
@@ -1014,45 +1110,144 @@
     return o;
   }
   const HP = {};
+  // horizonte calmo: no máximo 2 viadutos (n ≥ 10), sem catenária no de trás; n ≥ 50 põe um 2º trem no da frente.
+  // À noite: postes de luz no viaduto, janelinhas acesas e farol.
   function horizon(g, o) {
     const k = o.k || 0.12, t = o.t || 0, n = Math.max(1, o.n | 0), tint = o.tint || '#93A3B4', haze = o.haze === undefined ? 0.7 : o.haze, night = o.night || 0;
-    const lanes = n >= 25 ? 3 : n >= 10 ? 2 : 1;
+    const lanes = n >= 10 ? 2 : 1;
     for (let L = lanes - 1; L >= 0; L--) {
-      const kk = k * (1 - L * 0.22), y = o.y - L * 26 * (k / 0.12), hz = Math.min(0.92, haze + L * 0.08), face = L & 1 ? -1 : 1;
-      const x0 = o.x0 + L * 60, x1 = o.x1 - L * 40, dock = face > 0 ? lerp(x0, x1, 0.78) : lerp(x0, x1, 0.22);
-      // viaduto
-      const sk = kk / 0.12;
-      g.fillStyle = U.mixCss(tint, '#FFFFFF', 0.2);
+      const kk = k * (1 - L * 0.3), y = o.y - L * 30 * (k / 0.12), hz = Math.min(0.92, haze + L * 0.1), face = L & 1 ? -1 : 1;
+      const x0 = o.x0 + L * 90, x1 = o.x1 - L * 70, dock = face > 0 ? lerp(x0, x1, 0.72) : lerp(x0, x1, 0.3);
+      const sk = kk / 0.12, deck = U.mixCss(tint, '#FFFFFF', L ? 0.32 : 0.2);
+      // viaduto: tabuleiro + pilares espaçados (sem triângulos)
+      g.fillStyle = deck;
       g.fillRect(x0, y - 3 * sk, x1 - x0, 6 * sk);
-      for (let x = x0 + 40; x < x1; x += 300 * sk) { g.fillRect(x - 3 * sk, y, 6 * sk, 60); g.beginPath(); g.moveTo(x - 16 * sk, y + 3 * sk); g.lineTo(x + 16 * sk, y + 3 * sk); g.lineTo(x, y + 14 * sk); g.closePath(); g.fill(); }
-      g.globalAlpha = 0.55;
-      for (let x = x0 + 60; x < x1; x += POLE * 2 * kk) g.fillRect(x, y + WIRE * kk, 1.2, -WIRE * kk);
-      g.fillRect(x0, y + WIRE * kk, x1 - x0, 1);
-      g.globalAlpha = 1;
+      for (let x = x0 + 80; x < x1 - 40; x += 420 * sk) g.fillRect(x - 3 * sk, y, 6 * sk, 60);
+      if (!L) {
+        g.globalAlpha = 0.4;
+        for (let x = x0 + 60; x < x1; x += POLE * 3 * kk) g.fillRect(x, y + WIRE * kk, 1, -WIRE * kk);
+        g.fillRect(x0, y + WIRE * kk, x1 - x0, 1);
+        g.globalAlpha = 1;
+      }
       // bocas de túnel nas pontas (o trem some numa e volta pela outra)
-      for (const [x, s] of [[x0, 1], [x1, -1]]) { g.fillStyle = U.mixCss(tint, '#3B2818', 0.25); g.beginPath(); g.moveTo(x, y + 4); g.lineTo(x, y - 300 * kk); g.quadraticCurveTo(x + s * 120 * kk, y - 330 * kk, x + s * 160 * kk, y + 4); g.closePath(); g.fill(); g.fillStyle = U.mixCss(tint, '#1A1A22', 0.55); g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x, y - 250 * kk); g.quadraticCurveTo(x + s * 70 * kk, y - 260 * kk, x + s * 90 * kk, y + 2); g.closePath(); g.fill(); }
-      const trains = n >= 50 ? 2 : 1;
+      for (const [x, s] of [[x0, 1], [x1, -1]]) { g.fillStyle = U.mixCss(tint, '#3B2818', 0.2); g.beginPath(); g.moveTo(x, y + 4); g.lineTo(x, y - 300 * kk); g.quadraticCurveTo(x + s * 120 * kk, y - 330 * kk, x + s * 160 * kk, y + 4); g.closePath(); g.fill(); g.fillStyle = U.mixCss(tint, '#1A1A22', 0.5); g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x, y - 250 * kk); g.quadraticCurveTo(x + s * 70 * kk, y - 260 * kk, x + s * 90 * kk, y + 2); g.closePath(); g.fill(); }
+      // luzes da noite: postes no viaduto (pontinhos quentes com halo) e lampião nas bocas
+      if (night > 0.2) {
+        g.globalAlpha = night * (L ? 0.6 : 0.9);
+        for (let x = x0 + 150 * sk; x < x1 - 60; x += 420 * sk) { g.fillStyle = 'rgba(255,214,140,.25)'; g.beginPath(); g.arc(x, y - 22 * sk, 7 * sk, 0, TAU); g.fill(); g.fillStyle = '#FFE3A0'; g.fillRect(x - 1.2 * sk, y - 24 * sk, 2.4 * sk, 2.4 * sk); g.fillStyle = deck; g.fillRect(x - 0.5 * sk, y - 22 * sk, 1 * sk, 19 * sk); }
+        g.fillStyle = '#FFC86A'; for (const [x, s] of [[x0, 1], [x1, -1]]) g.fillRect(x + s * 96 * kk - 1.5, y - 270 * kk, 3, 3);
+        g.globalAlpha = 1;
+      }
+      const trains = n >= 50 && !L ? 2 : 1;
       g.save(); g.beginPath(); g.rect(x0 + 60 * kk, y - 520 * kk, x1 - x0 - 120 * kk, 560 * kk); g.clip();
       for (let j = 0; j < trains; j++) {
         const P = profile('normal', t + L * 6.7 + j * 10, HP), img = silImg(face, tint, hz, Math.round(kk * 1000) / 1000);
-        const nx = dock + face * P.s * kk - (j ? face * (TRAIN + 400) * kk * 0 : 0);
         if (Math.abs(P.s) > 20000) continue;
-        if (Math.abs(P.s) > 1) { g.globalAlpha = 0.35; g.drawImage(img.cv, nx - img.ax - face * 30 * clamp(Math.abs(P.s) / 3000, 0, 1), y - img.ay, img.w, img.h); g.globalAlpha = 1; }
+        const nx = dock + face * P.s * kk;
+        if (Math.abs(P.s) > 1) { g.globalAlpha = 0.3; g.drawImage(img.cv, nx - img.ax - face * 30 * clamp(Math.abs(P.s) / 3000, 0, 1), y - img.ay, img.w, img.h); g.globalAlpha = 1; }
         g.drawImage(img.cv, nx - img.ax, y - img.ay, img.w, img.h);
-        if (night > 0.2) { g.fillStyle = '#FFE3A0'; g.globalAlpha = night; for (let q = 0; q < 24; q++) g.fillRect(nx - face * (q * TRAIN / 24 + 40) * kk, y - 160 * kk, 2, 1.5); g.globalAlpha = 1; }
-        if (P.load) { g.fillStyle = U.mixCss(PAL.rice, tint, 0.3); for (let q = 0; q < 8; q++) { const cx = nx - face * (FRONT[q + 1] - HX) * kk; g.fillRect(cx - 1, y - 900 * kk, 2, 460 * kk); } }
+        if (night > 0.2) {
+          g.fillStyle = '#FFE3A0'; g.globalAlpha = night * (L ? 0.7 : 1);
+          for (let q = 0; q < 16; q++) g.fillRect(nx - face * (q * TRAIN / 16 + 90) * kk, y - 170 * kk, Math.max(1.5, 60 * kk), Math.max(1.2, 22 * kk));
+          g.fillStyle = 'rgba(255,240,190,.35)'; g.beginPath(); g.moveTo(nx, y - 120 * kk); g.lineTo(nx + face * 420 * kk, y - 190 * kk); g.lineTo(nx + face * 420 * kk, y - 40 * kk); g.closePath(); g.fill();
+          g.globalAlpha = 1;
+        }
+        if (P.load && !L) { g.fillStyle = U.mixCss(PAL.rice, tint, 0.45); g.globalAlpha = 0.7; for (let q = 0; q < 8; q++) { const cx = nx - face * (FRONT[q + 1] - HX) * kk; g.fillRect(cx - 0.75, y - 760 * kk, 1.5, 320 * kk); } g.globalAlpha = 1; }
       }
       g.restore();
-      // anel do estrondo (no horizonte também)
+      // anel do estrondo (só no da frente)
       const u = (((t + L * 6.7) % T_CYC) + T_CYC) % T_CYC, sb = u - T_BOOM;
-      if (sb > 0 && sb < 0.9) { const R = (60 + sb * 900) * kk / 0.12; g.globalAlpha = 0.6 * (1 - sb / 0.9); g.strokeStyle = '#FFFFFF'; g.lineWidth = 3; g.beginPath(); g.ellipse(dock + face * 300 * kk, y - 200 * kk, R, R * 0.6, 0, 0, TAU); g.stroke(); g.globalAlpha = 1; }
+      if (!L && sb > 0 && sb < 0.9) { const R = (60 + sb * 900) * kk / 0.12; g.globalAlpha = 0.5 * (1 - sb / 0.9); g.strokeStyle = '#FFFFFF'; g.lineWidth = 2.5; g.beginPath(); g.ellipse(dock + face * 300 * kk, y - 200 * kk, R, R * 0.6, 0, 0, TAU); g.stroke(); g.globalAlpha = 1; }
+    }
+  }
+
+  /* ======================================================================
+     som: E.Sfx/E.Loops sintetizados (sem arquivo). O host chama audio(m, ligado) uma vez por quadro, DEPOIS do update
+     (ele lê m.ev). ligado = false (ou E.Audio.muted) cala tudo e solta o loop do trilho.
+     ====================================================================== */
+  let sndOk = false;
+  function defineSounds() {
+    if (sndOk || !E.Sfx || !E.Sfx.define) return sndOk;
+    sndOk = true;
+    // "ding-dong" da estação: dois sinos (Mi5 → Dó5) com cauda longa
+    E.Sfx.define('trem-chime', { gate: 1.5, max: 1, peak: 0.42, jit: 0, rev: 0.35, render: D => {
+      const b = D.buf(2.2);
+      D.modal(b, 659, [1, 2.0, 2.76, 4.07], [0.6, 0.22, 0.12, 0.05], [1.4, 0.9, 0.5, 0.3]);
+      D.modal(b, 523, [1, 2.0, 2.76, 4.07], [0.6, 0.22, 0.12, 0.05], [1.6, 1.0, 0.55, 0.3], { at: 0.42 });
+      return b;
+    } });
+    // chiado pneumático (tampas fechando / freio soltando)
+    E.Sfx.define('trem-hiss', { gate: 0.4, max: 2, peak: 0.3, jit: 0.4, render: D => {
+      const b = D.buf(0.9); D.noise(b, { a: 0.01, s: 0.15, d: 0.65, vol: 0.6, hp: 3200, hp1: 1800 }); D.noise(b, { d: 0.05, vol: 0.3, bp: 900, q: 1.2 }); return b;
+    } });
+    // apito de partida: duas notas (acorde de buzina de trem), "pwaaa-pwaaa"
+    E.Sfx.define('trem-apito', { gate: 0.6, max: 2, peak: 0.45, jit: 0.2, rev: 0.25, render: D => {
+      const b = D.buf(1.25);
+      for (const [f, at, d] of [[466, 0, 0.42], [554, 0, 0.42], [466, 0.5, 0.65], [587, 0.5, 0.65]]) {
+        D.osc(b, { wave: 'saw', f, a: 0.03, s: d * 0.7, d: d * 0.3, vol: 0.22, at, lp: 2400, vib: 0.004, vibHz: 5.5 });
+        D.osc(b, { wave: 'sq', f: f * 1.003, a: 0.03, s: d * 0.7, d: d * 0.3, vol: 0.08, at, lp: 1600 });
+      }
+      D.noise(b, { a: 0.02, s: 0.9, d: 0.3, vol: 0.05, bp: 1800, q: 0.8 });
+      return b;
+    } });
+    // estrondo sônico: estalo duplo (N-wave) + grave longo rolando
+    E.Sfx.define('trem-boom', { gate: 1, max: 1, peak: 0.7, jit: 0.15, rev: 0.4, duck: 0.6, render: D => {
+      const b = D.buf(2.6);
+      D.noise(b, { d: 0.05, vol: 0.9, lp: 5000 }); D.noise(b, { d: 0.06, vol: 0.8, lp: 4000, at: 0.11 });
+      D.osc(b, { f: 70, f1: 32, a: 0.004, s: 0.1, d: 1.6, vol: 0.9, punch: 0.4, curve: 2.4 });
+      D.osc(b, { f: 48, f1: 28, a: 0.02, s: 0.2, d: 2.1, vol: 0.5, at: 0.11 });
+      D.noise(b, { color: 'brown', a: 0.01, s: 0.3, d: 2.0, vol: 0.7, lp: 600, lp1: 120 });
+      D.sat(b, 1.6); return b;
+    } });
+    // chiado do freio: metal agudo com vibrato + ruído de roda
+    E.Sfx.define('trem-freio', { gate: 1, max: 1, peak: 0.3, jit: 0.3, render: D => {
+      const b = D.buf(2.0);
+      D.osc(b, { f: 2350, f1: 1900, a: 0.12, s: 1.1, d: 0.7, vol: 0.32, vib: 0.012, vibHz: 9 });
+      D.osc(b, { f: 3120, f1: 2700, a: 0.2, s: 0.9, d: 0.6, vol: 0.14, vib: 0.016, vibHz: 7, at: 0.15 });
+      D.noise(b, { a: 0.1, s: 1.2, d: 0.6, vol: 0.18, bp: 2600, q: 2 });
+      return b;
+    } });
+    // engates batendo (clank)
+    E.Sfx.define('trem-clank', { gate: 0.3, max: 2, peak: 0.32, jit: 0.6, render: D => {
+      const b = D.buf(0.5); D.noise(b, { d: 0.03, vol: 0.5, bp: 1400, q: 1.4 });
+      D.modal(b, 420, [1, 2.7, 5.1], [0.5, 0.25, 0.1], [0.25, 0.15, 0.08]); D.modal(b, 380, [1, 2.7], [0.35, 0.15], [0.2, 0.1], { at: 0.09 }); return b;
+    } });
+    if (E.Loops && E.Loops.define) {
+      // batida do trilho: "ta-tak … ta-tak" sobre um ronco; o regime (rate) acelera o loop junto com o trem
+      E.Loops.define('trem-trilho', { vol: 0.9, rate: [0.55, 2.2], lp: [900, 5200], gain: [0.35, 1], render: D => {
+        const dur = 1.6, n = Math.floor(dur * D.sr), out = E.Loops.bed(D, n, { color: 'brown', vol: 0.22, lp: 380 }), hit = D.buf(0.12);
+        for (const at of [0, 0.13, 0.8, 0.93]) {
+          hit.fill(0); D.noise(hit, { d: 0.035, vol: 0.55, bp: 1100, q: 1.1 }); D.osc(hit, { f: 160, f1: 90, d: 0.06, vol: 0.5 }); D.modal(hit, 760, [1, 2.4], [0.18, 0.07], [0.05, 0.03]);
+          D.wrap(out, hit, at, at % 0.8 ? 0.8 : 1);
+        }
+        return out;
+      } });
+    }
+    return sndOk;
+  }
+  const SND = { load: null, full: ['trem-chime'], whistle: ['trem-hiss'], depart: ['trem-apito'], boom: ['trem-boom'], brake: ['trem-freio'],
+    clank: ['trem-clank'], horn: ['trem-apito'], arrive: ['trem-hiss'], ribbon: ['trem-chime'] };
+  // audio(m, on=true, o={vol}): toca os eventos do quadro e mantém o loop do trilho (m.sndLoop) no regime da velocidade
+  function audio(m, on, o) {
+    const muted = on === false || (E.Audio && E.Audio.muted);
+    if (muted || !defineSounds()) { if (m.sndLoop) { try { m.sndLoop.stop(0.3); } catch (e) { /* */ } m.sndLoop = null; } return; }
+    const vol = o && o.vol !== undefined ? o.vol : 1;
+    for (const ev of m.ev) {
+      const list = SND[ev]; if (!list) continue;
+      for (const n of list) { try { E.Sfx.play(n, { vol: vol * (ev === 'clank' ? 0.6 : 1), pitch: ev === 'horn' ? 1.12 : 1 }); } catch (e) { /* sem áudio */ } }
+    }
+    const sp = Math.abs(m.v), want = sp > 80 && sp < 30000;
+    if (want && !m.sndLoop && E.Loops) { try { m.sndLoop = E.Loops.start('trem-trilho', { vol: 0, rate: 0 }); } catch (e) { m.sndLoop = null; } }
+    if (m.sndLoop) {
+      const r = clamp(sp / 9000, 0, 1.3);
+      try { m.sndLoop.set({ vol: want ? vol * (0.25 + 0.5 * Math.min(1, r)) : 0, rate: r }, want ? 0.12 : 0.5); } catch (e) { /* */ }
     }
   }
 
   G.Tools.trembala = {
     id: 'trembala', name: 'Trem-Bala de Arroz', kind: 'train', w: TRAIN, h: -MESS,
-    meta: { zoom: 0.2, shake: 0.6, cycle: T_CYC, length: TRAIN, height: -MESS, wireY: WIRE, railY: RAIL, chutes: 8, cars: NCAR, chegadaT: CH.end,
+    meta: { zoom: 0.2, shake: 0.6, cycle: T_CYC, length: TRAIN, height: -MESS, wireY: WIRE, railY: RAIL, chutes: 8, cars: NCAR, chegadaT: CH.end, accel: T_ACC,
       platform: [PLAT0, PLAT1], times: { open: T_OPEN, full: T_FULL, depart: T_DEP, boom: T_BOOM, ret: T_RET, cycle: T_CYC } },
-    create, update, draw, bite, bites, dump, seat, dig, horizon, prebake, profile,
+    create, update, draw, bite, bites, dump, seat, dig, horizon, prebake, profile, audio, defineSounds,
   };
 })();

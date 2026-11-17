@@ -134,7 +134,7 @@
     if (vk < 1) drawIndustry(g, y, t, S, cam, 1 - vk);
     if (vk <= 0) return;
     const shops = S.stats && S.stats.run && S.stats.run.shops ? Object.values(S.stats.run.shops).reduce((a, b) => a + (b | 0), 0) : 0;
-    const n = Math.min(26, Math.max(0, S.tool - 3) * 2 + S.house * 2 + ((S.mount || 1) - 1) * 4 + shops + (S.island | 0) * 3);
+    const n = Math.min(26, Math.max(10, Math.max(0, S.tool - 3) * 2 + S.house * 2 + ((S.mount || 1) - 1) * 4 + shops + (S.island | 0) * 3));   // vila sempre com o horizonte mínimo (pagode e castelo)
     if (n <= 0 || !E.Assets || !E.Assets.ready || !E.Assets.ready('cid_machiya')) return;
     const span = 26 * 46, off = cam.x * 0.18;
     // ordem de crescimento: do meio pra fora; o castelo aparece no centro quando a cidade fica grande
@@ -143,7 +143,7 @@
     try { g.filter = 'saturate(0.75) brightness(1.06) contrast(0.85)'; } catch (e) { /* névoa de distância */ }
     for (const i of idx) {
       const x = ((i * 46 - off) % span + span) % span - 60; if (x > W + 80 || x < -90) continue;
-      const id = i === 13 && n > 14 ? 'cid_castelo' : CITY_ART[(i * 5) % CITY_ART.length];
+      const id = i === 13 && n > 9 ? 'cid_castelo' : CITY_ART[(i * 5) % CITY_ART.length];
       art(g, id, x, 0.55, y);
     }
     g.restore();
@@ -619,11 +619,181 @@
       }
     }
   }
+  /* ---------- VILA DO KOME: profundidade e vida (3 faixas) ----------
+     fundo: cidadezinha com pagode/castelo (drawCity) · meio: fileira de casinhas e lojinhas de fundo (arte vila_*, em névoa leve),
+     o santuário com sino atrás do torii, a fileira principal (casa do Kome, sobrado, ekiben...) e gatos nos telhados · frente:
+     rua de asfalto, calçada de pedra com postes de lanterna, bicicletas, correio, máquinas de venda, ponto de ônibus, canalzinho.
+     Shibas andam nas duas calçadas, conversam, compram na máquina e tocam o sino. Lanternas acendem no fim da tarde.
+     Só desenha (nada aqui mexe em estado). Posições = VB + deslocamento; a casa (VB+1000..1420) fica sem nada na frente. */
+  const VBACK = [   // [deslocamento, arte, placa da loja | null, varal?, gato no telhado: 0 nenhum, 1..3]
+    [470, 'vila_loja_b', 'RAMEN', 0, 0], [578, 'vila_casa_b', null, 0, 1], [668, 'vila_casa_a', null, 1, 0],
+    [1478, 'vila_casa_c', null, 0, 3], [1578, 'vila_loja_a', 'TOFU', 0, 0], [1682, 'vila_casa_b', null, 1, 0],
+    [2052, 'vila_loja_c', 'CAFÉ', 0, 2], [2150, 'vila_casa_a', null, 0, 0], [2352, 'vila_casa_c', null, 1, 0],
+    [2790, 'vila_loja_a', 'MOCHI', 0, 0], [2920, 'vila_casa_b', null, 0, 1], [3010, 'vila_loja_b', 'SOBA', 0, 0], [3300, 'vila_casa_a', null, 1, 3],
+  ];
+  const VB_Y = -10, VB_K = 2;   // fileira de fundo: um pouco acima do chão (mais longe) e em névoa
+  const VART_H = { vila_loja_a: 72, vila_loja_b: 50, vila_loja_c: 72, vila_casa_a: 72, vila_casa_b: 72, vila_casa_c: 72 };
+  const ROAD = { y0: 18, y1: 74, walk0: 78, walk1: 104, bank: 112, can0: 146, can1: 182 };
+  const vlit = S => U.smooth(U.clamp(((S.tod === undefined ? 0.42 : S.tod) - 0.6) / 0.14, 0, 1));   // 0 de dia, 1 aceso
+  const inVila = v => v.x1 > X.vilaX0 - 420 && v.x0 < X.vilaX1 + 220;
+  function glow(g, x, y, r, a, col) { if (a <= 0.02) return; g.globalAlpha = a * 0.35; Draw.circle(g, x, y, r, col || '#FFE2A0', { ol: 0, hi: false, shade: false }); g.globalAlpha = a * 0.5; Draw.circle(g, x, y, r * 0.55, col || '#FFE9B8', { ol: 0, hi: false, shade: false }); g.globalAlpha = 1; }
+  // rua: asfalto com faixa tracejada, meio-fio, calçada de pedra, sebe baixa, barranco de grama e um canalzinho de pedra
+  function drawRoad(g, v, t) {
+    const a = Math.max(v.x0, X.vilaX0 - 300), b = Math.min(v.x1, X.vilaX1 + 120); if (b <= a) return;
+    const R = ROAD, gc = (G.Scenery && G.Scenery.groundCols()) || null, gr = gc ? gc.grass : PAL.grass, grD = gc ? gc.grassD : PAL.grassD, grL = gc ? gc.grassL : PAL.grassL;
+    g.fillStyle = '#7E838B'; g.fillRect(a, R.y0, b - a, R.y1 - R.y0);
+    g.fillStyle = '#8C9199'; g.fillRect(a, R.y0, b - a, 6); g.fillStyle = '#6E737B'; g.fillRect(a, R.y1 - 4, b - a, 4);
+    g.fillStyle = '#EDE6D6'; for (let x = Math.ceil(a / 64) * 64; x < b; x += 64) g.fillRect(x, (R.y0 + R.y1) / 2 - 2, 32, 4);
+    g.fillStyle = '#DCD3C2'; g.fillRect(a, R.y1, b - a, R.walk0 - R.y1); g.fillStyle = '#B5AC9A'; g.fillRect(a, R.walk0 - 1.5, b - a, 1.5);
+    g.fillStyle = '#E6DCC8'; g.fillRect(a, R.walk0, b - a, R.walk1 - R.walk0);
+    g.fillStyle = '#CFC4AE'; for (let x = Math.ceil(a / 36) * 36; x < b; x += 36) g.fillRect(x, R.walk0, 1.5, R.walk1 - R.walk0);
+    g.fillRect(a, (R.walk0 + R.walk1) / 2, b - a, 1.5);
+    g.fillStyle = '#B5AC9A'; g.fillRect(a, R.walk1, b - a, 3);
+    // sebe baixa e barranco
+    g.fillStyle = grD; g.fillRect(a, R.walk1 + 3, b - a, R.bank - R.walk1 - 3);
+    g.fillStyle = gr; g.fillRect(a, R.bank, b - a, Math.max(0, v.y1 - R.bank + 20));
+    g.fillStyle = grL; for (let x = Math.ceil(a / 28) * 28; x < b; x += 28) g.fillRect(x + ((x / 28) % 3) * 5, R.walk1 + 4, 10, 3);
+    g.fillStyle = grD; for (let x = Math.ceil(a / 52) * 52; x < b; x += 52) g.fillRect(x + ((x / 52) % 4) * 7, R.bank + 12 + ((x / 52) % 3) * 6, 6, 2);
+    // canal: muro de pedra, água com brilho correndo
+    g.fillStyle = '#A39C8C'; g.fillRect(a, R.can0 - 8, b - a, 8); g.fillStyle = '#CFC8B6'; g.fillRect(a, R.can0 - 8, b - a, 2.5);
+    g.fillStyle = '#77705F'; for (let x = Math.ceil(a / 30) * 30; x < b; x += 30) g.fillRect(x, R.can0 - 6, 1.5, 6);
+    g.fillStyle = '#5E9FC0'; g.fillRect(a, R.can0, b - a, R.can1 - R.can0); g.fillStyle = '#3F7FA6'; g.fillRect(a, R.can0, b - a, 4);
+    g.fillStyle = '#B5E0EE'; const sh = (t * 14) % 90;
+    for (let x = Math.floor(a / 90) * 90 - 90; x < b; x += 90) { g.fillRect(x + sh, R.can0 + 12, 22, 2); g.fillRect(x + 45 + sh * 0.7, R.can0 + 24, 14, 2); }
+    g.fillStyle = '#A39C8C'; g.fillRect(a, R.can1, b - a, 7); g.fillStyle = '#77705F'; g.fillRect(a, R.can1, b - a, 2);
+    // a rua acaba antes da vila com uma ponta arredondada de grama (não é um corte seco)
+    const x0 = X.vilaX0 - 300; if (x0 > v.x0 - 60) { g.fillStyle = gc ? gc.soil : SOIL; g.fillRect(x0 - 60, 0, 60, v.y1 + 20); g.fillStyle = gr; g.beginPath(); g.ellipse(x0, R.bank, 34, R.bank - 6, 0, Math.PI * 0.5, Math.PI * 1.5); g.fill(); }
+  }
+  // fileira de fundo (antes da fileira principal): casinhas e lojinhas com placa legível, varal, e o santuário atrás do torii
+  function drawVilaBack(g, v, t, S) {
+    const A = E.Assets; if (!A || !A.ready || !A.ready('vila_casa_a')) return;
+    const lit = vlit(S);
+    // santuário (hokora) atrás do torii: sino de corda vermelha e branca que balança quando alguém reza
+    const hx = X.torii;
+    if (hx + 80 > v.x0 && hx - 80 < v.x1) {
+      art(g, 'vila_hokora', hx, 2, VB_Y + 2);
+      const ring = shrineRing(t), sw = Math.sin(t * 2.1) * 0.05 + ring * Math.sin(t * 18) * 0.35;
+      g.save(); g.translate(hx, VB_Y - 74); g.rotate(sw);
+      g.fillStyle = '#C8423A'; g.fillRect(-1.5, 0, 3, 34); g.fillStyle = '#FFFAEE'; for (let k = 0; k < 4; k++) g.fillRect(-1.5, 3 + k * 8, 3, 3);
+      Draw.circle(g, 0, 2, 6, PAL.gold, { ol: 1.4 });
+      g.restore();
+      if (ring > 0.05) { g.strokeStyle = PAL.goldD; g.lineWidth = 2; g.globalAlpha = ring; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(hx + d * 12, VB_Y - 78); g.lineTo(hx + d * 20, VB_Y - 84); g.moveTo(hx + d * 13, VB_Y - 70); g.lineTo(hx + d * 22, VB_Y - 70); g.stroke(); } g.globalAlpha = 1; }
+      glow(g, hx - 28, VB_Y - 30, 26, lit * 0.8);
+    }
+    g.save();
+    try { g.filter = 'saturate(0.8) brightness(1.04) contrast(0.9)'; } catch (e) { /* névoa leve: fica atrás da fileira principal */ }
+    for (const [dx, id, sign, varal] of VBACK) {
+      const x = VB + dx; if (x + 80 < v.x0 || x - 80 > v.x1) continue;
+      art(g, id, x, VB_K, VB_Y);
+      const h = (VART_H[id] || 64) * VB_K;
+      if (varal) {   // varal na varanda: roupinhas balançando
+        const y = VB_Y - h * 0.5, cols = ['#F6EEDC', '#5BA4D6', '#D8574E', '#F3C94A', '#FFFFFF'];
+        g.fillStyle = LINE; g.fillRect(x - 42, y - 2, 2, 22); g.fillRect(x + 40, y - 2, 2, 22); g.fillRect(x - 42, y, 84, 1.5);
+        for (let k = 0; k < 5; k++) { const cx = x - 34 + k * 15, a = Math.sin(t * 2 + k * 1.3 + dx) * 0.12; g.save(); g.translate(cx, y + 1); g.rotate(a); Draw.box(g, -5, 0, 10, k % 2 ? 9 : 13, cols[(k + dx) % 5], { ol: 1 }); g.restore(); }
+      }
+    }
+    g.restore();
+    for (const [dx, id, sign] of VBACK) {   // placas sem névoa (precisam ser lidas) e lanterna da porta acesa no fim da tarde
+      const x = VB + dx; if (!sign || x + 80 < v.x0 || x - 80 > v.x1) continue;
+      const h = (VART_H[id] || 64) * VB_K, w = 20 + sign.length * 13;
+      Draw.box(g, x - 1.5, VB_Y - h - 12, 3, 14, YC.woodD, { ol: 0 });
+      Draw.sign(g, x - w / 2, VB_Y - h - 38, w, 26, sign, { col: '#3B2818', ink: '#FFFAEE' });
+      if (lit > 0.05) glow(g, x, VB_Y - h * 0.32, 34, lit);
+    }
+  }
+  // sino do santuário: um shiba vem rezar a cada 14 s; ring 0..1 enquanto o sino toca
+  function shrineRing(t) { const u = t % 14; return u > 4.2 && u < 5.6 ? 1 - Math.abs(u - 4.9) / 0.7 : 0; }
+  // bicicleta (vetor, com contorno do traço): rodas com raios girando
+  function bike(g, x, y, col, face, spin) {
+    const f = face || 1, r = 10;
+    g.save(); g.translate(x, y); g.scale(f, 1);
+    for (const wx of [-15, 15]) { Draw.circle(g, wx, -r, r, '#3A332D', { ol: 1.2, hi: false, shade: false }); Draw.circle(g, wx, -r, r - 3, '#DCE2E8', { ol: 0, hi: false, shade: false }); g.strokeStyle = '#808A96'; g.lineWidth = 1; g.beginPath(); for (let k = 0; k < 3; k++) { const a = spin + k * 1.047; g.moveTo(wx - Math.cos(a) * (r - 3), -r - Math.sin(a) * (r - 3)); g.lineTo(wx + Math.cos(a) * (r - 3), -r + Math.sin(a) * (r - 3)); } g.stroke(); }
+    g.strokeStyle = LINE; g.lineWidth = 4; g.lineCap = 'round';
+    const fr = () => { g.beginPath(); g.moveTo(-15, -r); g.lineTo(-3, -r); g.lineTo(9, -24); g.lineTo(-6, -24); g.lineTo(-15, -r); g.moveTo(-3, -r); g.lineTo(-7, -28); g.moveTo(15, -r); g.lineTo(10, -30); g.stroke(); };
+    fr(); g.strokeStyle = col; g.lineWidth = 2; fr();
+    Draw.box(g, -11, -31, 8, 3, '#3A332D', { ol: 1 }); Draw.box(g, 6, -32, 9, 2.5, '#808A96', { ol: 1 });
+    Draw.box(g, 11, -29, 9, 7, '#C9B78E', { ol: 1 });   // cestinha
+    g.restore();
+  }
+  // frente: postes com lanterna, bicicletas, correio, máquinas de venda, ponto de ônibus, plantas, gatos, e os shibas
+  const VLAMP = [-40, 560, 1730, 2400, 3060];
+  const VBIKE = [[340, '#D8574E', 1], [372, '#5BA4D6', -1], [1790, '#7FB069', 1], [2480, '#F3C94A', -1], [2510, '#F6EEDC', 1]];
+  const VWALK = [   // [fase, velocidade, sentido, pelagem, calçada 0 frente / 1 fundo, sacolinha]
+    [0, 34, 1, 'shiro', 0, 1], [1300, 28, -1, 'kuro', 0, 0], [2500, 38, 1, 'cha', 0, 0], [700, 30, -1, 'goma', 1, 1], [2000, 26, 1, 'aka', 1, 0], [3100, 32, -1, 'shiro', 1, 0],
+  ];
+  const VCHAT = [[1590, 0, 'goma', 'shiro'], [2230, 1, 'kuro', 'cha'], [820, 1, 'aka', 'goma']];
+  function drawVilaFront(g, v, t, S) {
+    const lit = vlit(S), A = E.Assets, ok = A && A.ready && A.ready('vila_poste'), R = ROAD, vis = (x, r) => x + r > v.x0 && x - r < v.x1;
+    const yW = (R.walk0 + R.walk1) / 2 + 6, yF = 14;
+    // gatos nos telhados da fileira de fundo
+    if (ok) for (const [dx, id, , , cat] of VBACK) {
+      if (!cat) continue; const x = VB + dx + (cat === 2 ? -24 : 18); if (!vis(x, 40)) continue;
+      const h = (VART_H[id] || 64) * VB_K, tag = cat === 1 ? 'dormir' : Math.sin(t * 0.3 + dx) > 0.6 ? 'abanar' : 'sentar';
+      art(g, 'vila_gato_' + 'abc'[cat - 1], x, 1, VB_Y - h + 12, tag);
+    }
+    // santuário: shiba sobe, faz reverência e toca o sino
+    { const u = t % 14, hx = X.torii; if (vis(hx, 120) && u < 9) { const walk = u < 3.6 ? 1 - u / 3.6 : u > 6.4 ? (u - 6.4) / 2.6 : 0; sh(g, hx + 10 + walk * 120 * (u < 5 ? 1 : -1) * (u < 5 ? 1 : 1), 10, walk > 0 ? 'walk' : u < 4.4 ? 'stand' : 'bow', t, 'cha', walk > 0 ? (u < 5 ? -1 : 1) : -1, 0.85); } }
+    // calçada do fundo: quem passa e quem conversa
+    walkers(g, v, t, 1, yF, 0.82);
+    for (const [dx, lane, p1, p2] of VCHAT) if (lane === 1) chat(g, VB + dx, yF, t, p1, p2, 0.82, dx);
+    // kei-truck de entrega e ciclista na rua
+    if (G.Scale && G.Scale.keitruck) { const P = 46, u = (t % P) / P, x = X.vilaX0 - 400 + u * (X.vilaX1 - X.vilaX0 + 800); if (vis(x, 120)) G.Scale.keitruck.draw(g, x, R.y1 - 14, { face: 1, t }); }
+    { const P = 31, u = (t % P) / P, x = X.vilaX1 + 300 - u * (X.vilaX1 - X.vilaX0 + 700); if (vis(x, 60)) { bike(g, x, R.y0 + 30, '#3F78C8', -1, -t * 7); sh(g, x + 2, R.y0 + 2, 'sit', t, 'goma', -1, 0.8); } }
+    // mobília da calçada da frente
+    for (const [dx, col, f] of VBIKE) { const x = VB + dx; if (vis(x, 40)) bike(g, x, R.walk0 + 8, col, f, 0); }
+    if (ok) {
+      for (const dx of VLAMP) {
+        const x = VB + dx; if (!vis(x, 60)) continue;
+        art(g, 'vila_poste', x, 2, R.walk0 + 6, lit > 0.4 ? 'noite' : 'dia');
+        if (N && N.chochin) N.chochin(g, x + 10, -26, { t, lit, seed: dx });
+        glow(g, x + 10, -14, 40, lit); glow(g, x + 14, R.walk0 - 108, 30, lit * 0.8);
+      }
+      const xc = VB + 905; if (vis(xc, 30)) art(g, 'vila_correio', xc, 2, R.walk0 + 6);
+      const xv = VB + 2690; if (vis(xv, 120)) {   // duas máquinas de venda: um shiba compra, a latinha cai e ele comemora
+        art(g, 'prop_venda', xv, 2, R.walk0 + 6); art(g, 'vila_venda2', xv + 56, 2, R.walk0 + 6);
+        glow(g, xv + 28, R.walk0 - 40, 60, 0.4 + lit * 0.6, '#DDF2FF');
+        const u = t % 7; sh(g, xv + 6, yW + 2, u > 4.3 && u < 5.4 ? 'cheer' : 'stand', t, 'kuro', 1, 1);
+        if (u > 3.6 && u < 4.3) { g.fillStyle = '#5BA4D6'; g.fillRect(xv - 4, R.walk0 - 40 + (u - 3.6) * 40, 7, 9); }
+      }
+      const xb = VB + 3220; if (vis(xb, 120)) {   // ponto de ônibus: placa, banco e quem espera
+        art(g, 'vila_placa', xb + 58, 2, R.walk0 + 4); art(g, 'vila_banco', xb, 2, R.walk0 + 6);
+        sh(g, xb - 18, R.walk0 - 6, 'sit', t, 'shiro', 1, 0.9); sh(g, xb + 16, R.walk0 - 6, Math.sin(t * 0.4) > 0.7 ? 'yawn' : 'sit', t + 1, 'aka', -1, 0.9);
+        Draw.sign(g, xb + 22, R.walk0 - 136, 72, 22, 'ÔNIBUS', { col: '#3F78C8', ink: '#FFFAEE' });
+      }
+    }
+    if (N) for (const [dx, k] of [[150, 'azalea'], [1960, 'bush'], [2600, 'azalea'], [3380, 'bush']]) { const x = VB + dx; if (vis(x, 40)) N.bush(g, x, R.walk1 + 4, { kind: k, s: 0.9, seed: dx, t }); }
+    // calçada da frente: quem passa e quem conversa
+    walkers(g, v, t, 0, yW, 1);
+    for (const [dx, lane, p1, p2] of VCHAT) if (lane === 0) chat(g, VB + dx, yW, t, p1, p2, 1, dx);
+  }
+  function walkers(g, v, t, lane, y, k) {
+    const L = X.vilaX1 - X.vilaX0 + 600;
+    for (const [ph, sp, d, pal, ln, bag] of VWALK) {
+      if (ln !== lane) continue;
+      const u = ((ph + t * sp) % L + L) % L, x = d > 0 ? X.vilaX0 - 300 + u : X.vilaX1 + 300 - u;
+      if (x + 30 < v.x0 || x - 30 > v.x1) continue;
+      sh(g, x, y, 'walk', t * 1.1 + ph, pal, d, k);
+      if (bag) { const bx = x + d * 4 * k, by = y - 12 * k + Math.abs(Math.sin(t * 8 + ph)) * 1.5; Draw.box(g, bx - 4 * k, by, 8 * k, 8 * k, '#FFFAEE', { ol: 1 }); g.fillStyle = PAL.red; g.fillRect(bx - 2 * k, by + 3 * k, 4 * k, 2 * k); }
+    }
+  }
+  function chat(g, x, y, t, p1, p2, k, seed) {
+    const u = (t + seed) % 5, who = u < 2.5 ? 0 : 1;
+    sh(g, x - 16 * k, y, who === 0 ? 'wag' : 'stand', t + seed, p1, 1, k);
+    sh(g, x + 16 * k, y, who === 1 ? 'wag' : 'think', t + seed + 1, p2, -1, k);
+    if ((u % 2.5) < 1.9) {   // balãozinho com reticências de quem está falando
+      const bx = x + (who ? 16 : -16) * k, by = y - 46 * k;
+      Draw.box(g, bx - 13, by - 9, 26, 15, '#FFFAEE', { ol: 1.2 });
+      g.fillStyle = LINE; const n = 1 + Math.floor(((u % 2.5) / 1.9) * 3); for (let i = 0; i < n; i++) g.fillRect(bx - 7 + i * 6, by - 2, 3, 3);
+    }
+  }
   const sh8 = (g, x, y, pose, t, pal, face) => { shO.pal = pal; shO.face = face || 1; shO.scale = 1; E.drawShiba(g, x, y, pose, t, shO); };
   // drawYard(g, v, t, S): os dois bairros (atrás das máquinas e do Kome). Vila: casa, régua fofa, adereços. Cava: pátio industrial.
   function drawYard(g, v, t, S) {
     layout(S);
+    const vv = inVila(v);
+    if (vv) drawRoad(g, v, t);
     drawStreet(g, v);
+    if (vv) drawVilaBack(g, v, t, S);
     if (N && v.x1 > X.casa - 320 && v.x0 < X.casa + 320) {
       if (S.house > 0) N.house(g, X.casa, 0, { stage: S.house - 1, s: 1.5, t });
       else { Draw.box(g, X.casa - 2, -40, 4, 40, PAL.wood, { ol: 1 }); Draw.sign(g, X.casa - 34, -66, 68, 26, 'À VENDA', { col: PAL.cream, ink: PAL.red }); }
@@ -638,6 +808,7 @@
       if (p.x + r > v.x0 && p.x - r < v.x1) { const k = p.node ? popK(S, p.node) : 1; if (k === 1) p.draw(g, p.x, t, S); else popDraw(g, p.x, k, () => p.draw(g, p.x, t, S)); }
     }
     if (G.Scenery) G.Scenery.yard(g, v, t, S, X);   // enfeites da ilha (na vila) e estátua
+    if (vv) drawVilaFront(g, v, t, S);
     for (let i = 0; i < layers.back.length; i++) layers.back[i](g, v, t, S);
   }
 

@@ -11,6 +11,7 @@
 <script src="../engine/pix.js"></script>
 <script src="../engine/shiba.js"></script>
 <script src="../engine/fx.js"></script>
+<script src="../engine/audio.js"></script>
 <script src="../engine/terrain.js"></script>
 <script src="../engine/rig.js"></script>
 <script src="../game/portal.js"></script>
@@ -18,6 +19,7 @@
 /* Demo de game/portal.js (molde: demos/trembala.html).
    URL: ?mode=normal|chegada  &z=zoom (padrão: câmera sugerida m.cam)  &face=-1  &night=1  &t=segundos (avança e congela)
         &spd=speedMul  &dig=0  &debug=1  &cx=  &cy=  &horizon=1 (testa o desenho do horizonte do Pátio, &n=quantidade)
+        &mute=1 (sem som; tecla M liga/desliga; o 1º clique/tecla destrava o áudio) &kome=1 (câmera de perto no Kome do topo)
    Automação: __demo.step(seg) avança em passos fixos de 1/60; __demo.m = instância; __demo.cost() = ms por draw (média de 60).
    Um Kome de 44 px fica parado perto da máquina pra dar a escala. */
 (function () {
@@ -33,6 +35,8 @@
   const SOIL = '#C7A26A', SOIL_D = '#A8834F';
   const tool = G.Tools['portal'];
   const m = tool.create({ pilot: 'kome', mode: MODE });
+  if (E.Audio && q.get('mute') === '1') E.Audio.muted = true;
+  addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'M') && E.Audio) E.Audio.muted = !E.Audio.muted; });
   const parts = E.Particles(1400);
   const DOCK = 0;
   // montanha de arroz do lado +x (face) da máquina
@@ -53,6 +57,7 @@
     heap.relax(dt);
     parts.update(dt, () => 0);
     if (HOR) { cam.x = 0; cam.y = -200; cam.z = q.has('z') ? +q.get('z') : 0.5; }
+    else if (q.get('kome') === '1') { const st = tool.seat(m); cam.x = st.x + CX; cam.y = st.y - 20 + CY; cam.z = q.has('z') ? +q.get('z') : 4; }
     else { cam.x = m.cam.x + CX; cam.y = m.cam.y + CY; if (!q.has('z')) cam.z = m.cam.z; }
   }
   function sky(v) {
@@ -105,7 +110,7 @@
     g.restore(); Draw.lod(1);
     if (m.flash > 0) { g.fillStyle = 'rgba(255,255,255,' + (m.flash * 0.6).toFixed(3) + ')'; g.fillRect(0, 0, W, H); }
     Draw.text(g, 'Portal Onigiri (portal) · ' + m.mode, 12, 22, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
-    Draw.text(g, m.phase + '  enchido ' + Math.round((m.fill || 0) * 100) + '%  cavado ' + Math.round(dug) + ' px²  zoom ' + c.z.toFixed(2),
+    Draw.text(g, m.phase + '  enchido ' + Math.round((m.fill || 0) * 100) + '%  cavado ' + Math.round(dug) + ' px²  zoom ' + c.z.toFixed(2) + '  som ' + (E.Audio && E.Audio.muted ? 'mudo' : 'ligado') + ' (M)',
       12, 40, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
     if (logT > 0) Draw.text(g, log.join('  '), 12, 56, { size: 10.5, align: 'left', col: PAL.white, sw: 3, weight: 700 });
   }

@@ -32,8 +32,8 @@
   const CLOD = { shape: 'rect', c: [PAL.rice, PAL.riceS, PAL.press], land: true, w: [2.6, 4.6], life: 1.3, ol: true, speed: [60, 160], spread: 0.6, dir: -PI / 2, vr: 9 };
   const CHIP = { shape: 'rect', c: [PAL.press, PAL.pressD, PAL.rice, PAL.riceS], land: true, w: [1.6, 3.2], life: 0.9, ol: true, speed: [80, 220], spread: 1.1, dir: -PI / 2, vr: 14 };
   const DUST = { c: PAL.sand }, DUSTW = { c: PAL.cream };
-  const KO = { scale: 1, face: 1, pal: 'kome', rot: 0, squash: 0, shadow: false, eyes: null, mouth: null, hat: true, alpha: 1, smooth: false };
-  const AO = { hat: true, fast: false }, AT = { x: 0, y: 0 };
+  const KO = { scale: 1, face: 1, pal: 'kome', rot: 0, squash: 0, shadow: false, eyes: null, mouth: null, hat: true, alpha: 1, smooth: false, arm: null, arm2: null, lean: null };
+  const AO = { hat: true, fast: false, arm: null, arm2: null, lean: null }, AT = { x: 0, y: 0 };
   const T1 = { x: 0, y: 0 }, T2 = { x: 0, y: 0 }, T3 = { x: 0, y: 0 };
   const PD = { scale: 1 }, HATO = { ax: 9.5, ay: 1, rot: 0 };
   const C_NOHI = { hi: false }, C_FLAT = { hi: false, shade: false }, B_R3 = { r: 3 }, B_R1 = { r: 1 };
@@ -53,7 +53,7 @@
       id, sc: opts.scale || 1, pal: opts.pilot || 'kome', t: 0, ev: [],
       x: 0, y: 0, face: 1, turn: 1, off: 0, ph: 0, busy: false, wrap: false, load: 0, power: 1, boost: 0, idle: 0, n: 0,
       fl: null, gy: 0, parts: null, rate: 1, acc: 0, acc2: 0, lastX: NaN, vx: 0,
-      kt: opts.seed || 0, w: 0, sqk: 0, pose: 'stand', kx: 0, ky: 0, rot: 0, sq: 0, eyes: null, mouth: null,
+      kt: opts.seed || 0, w: 0, sqk: 0, pose: 'stand', kx: 0, ky: 0, rot: 0, sq: 0, eyes: null, mouth: null, arm: null, arm2: null, lean: null,
       px: 0, py: 0, ang: 0,
       biteO: { x: 0, y: 0, r: 0, active: false, phase: 0, w: 0, h: 0 }, dumpO: { x: 0, y: 0, active: false }, seatO: { x: 0, y: 0 },
       hasDump: true, floorF: null, update: null, drawFn: null,
@@ -104,14 +104,20 @@
     const c = Math.cos(rot), s = Math.sin(rot);
     out.x = kx + lx * c - ly * s; out.y = ky + lx * s + ly * c; return out;
   }
+  // poses de duas patas do shiba.js: braço (arm/arm2) e inclinação (lean) contínuos, vindos do estado da ferramenta
+  const TWOP = { hold2: 1, swing2: 1, lean: 1 };
+  function twoOpts(o, m, pose) {
+    const on = TWOP[pose] === 1;
+    o.arm = on ? m.arm : null; o.arm2 = on ? m.arm2 : null; o.lean = on ? m.lean : null;
+  }
   function anchor(m, pose, t, name, kx, ky, rot, sq, out) {
-    KO.pal = m.pal;
+    KO.pal = m.pal; twoOpts(KO, m, pose); twoOpts(AO, m, pose);
     E.shibaAnchor(pose, E.drawShiba.frameT(t, KO), name, AT, AO);
     return xf(AT.x, AT.y, kx, ky, rot, sq, out);
   }
   function kome(g, m, pose, t, kx, ky, rot, sq, eyes, mouth, hat, alpha) {
     KO.pal = m.pal; KO.rot = rot; KO.squash = sq; KO.eyes = eyes || null; KO.mouth = mouth || null; KO.hat = hat !== false;
-    KO.alpha = alpha === undefined ? 1 : alpha; KO.smooth = m.sc * (Draw.zoom || 1) < 0.75;
+    KO.alpha = alpha === undefined ? 1 : alpha; KO.smooth = m.sc * (Draw.zoom || 1) < 0.75; twoOpts(KO, m, pose);
     E.drawShiba(g, kx, ky, pose, t, KO);
   }
   const komeM = (g, m) => kome(g, m, m.pose, m.kt, m.kx, m.ky, m.rot, m.sq, m.eyes, m.mouth);
@@ -284,20 +290,23 @@
       const dig = begin(m, dt, inp), p0 = cycle(m, dt, dig, TG_T), u = m.ph;
       m.kt += dt * (m.busy ? 1.4 : 1);
       if (m.busy) {
-        m.rot = 0.06 + 0.46 * seg(u, 0, 0.28) - 0.8 * seg(u, 0.3, 0.55) + 0.34 * seg(u, 0.74, 1);
-        m.pose = u > 0.42 && u < 0.84 ? 'carry' : 'point';
+        // duas patas na tigela: desce e curva pra pegar, sobe arqueado por cima da cabeça, joga, volta (sem rodar o sprite)
+        m.pose = 'hold2'; m.rot = 0; m.arm2 = null;
+        m.arm = 0.25 + 0.65 * seg(u, 0.02, 0.24) - 3.05 * seg(u, 0.3, 0.52) + 2.4 * seg(u, 0.62, 0.98);
+        m.lean = 0.15 + 0.55 * seg(u, 0.02, 0.24) - 1.25 * seg(u, 0.3, 0.52) + 0.7 * seg(u, 0.62, 0.98);
         m.sq = m.sqk - 0.07 * seg(u, 0.44, 0.56) * (1 - seg(u, 0.6, 0.8));
         m.ba = 0.95 * (1 - seg(u, 0.12, 0.3)) - 2.1 * seg(u, 0.47, 0.57) + 3.05 * seg(u, 0.72, 0.98);
         m.eyes = u > 0.42 && u < 0.84 ? 'happy' : null; m.mouth = u > 0.42 && u < 0.84 ? 'open' : null;
-        anchor(m, m.pose, m.kt, m.pose === 'carry' ? 'paw' : 'hold', 0, 0, m.rot, m.sq, T1);
-        m.px = T1.x + (m.pose === 'carry' ? -1 : 2.5); m.py = T1.y + (m.pose === 'carry' ? -3 : 1.5);
+        anchor(m, 'hold2', m.kt, 'hold', 0, 0, 0, m.sq, T1);
+        anchor(m, 'hold2', m.kt, 'paw', 0, 0, 0, m.sq, T2); m.p1x = T2.x; m.p1y = T2.y;
+        m.px = T1.x + 1; m.py = T1.y - 2;
         if (crossed(m, p0, 0.3)) { m.fill = 1; m.sqk += 0.1; m.ev.push('scoop'); puff(m, WX(m, m.px + 3), WY(m, m.py + 3), 2, 4, DUSTW); spray(m, WX(m, m.px + 4), WY(m, m.py), 3, GRAIN, -PI / 2, 40, 90, 1); }
         if (crossed(m, p0, 0.55)) {
           m.fill = 0; m.ev.push('toss');
           spray(m, WX(m, m.px - 3), WY(m, m.py - 5), Math.round(9 + 9 * m.power + 8 * m.boost), GRAIN, backDir(m, 0.62), 150, 215, 0.2);
         }
       } else {
-        m.rot = 0; m.sq = 0; m.pose = 'sit'; m.eyes = null; m.mouth = null;
+        m.rot = 0; m.sq = 0; m.pose = 'sit'; m.eyes = null; m.mouth = null; m.arm = null; m.lean = null;
         m.px = 18; m.py = flo(m, 18) - TG_R - 1.6; m.ba = 0; m.fill = damp(m.fill, 0.45, 4, dt);
       }
       m.load = m.fill; m.kx = 0; m.ky = 0;
@@ -311,7 +320,7 @@
       if (!m.busy) shadow(g, m.px, m.py + TG_R + 1.8, 7);
       komeM(g, m);
       bowl(g, m.px, m.py, m.ba, TG_R, m.fill);
-      if (m.busy && m.pose === 'point') disc(g, m.px - 3.2, m.py + 0.5, 1.5, PAL.cream, 0.8);
+      if (m.busy && Math.sin(m.arm) > -0.5) disc(g, m.p1x, m.p1y - 0.5, 1.5, PAL.cream, 0.8);   // pata de perto agarrando a borda
       g.restore();
     };
     return m;
@@ -330,12 +339,14 @@
       m.kt += dt * (m.busy ? 1.2 : 1);
       m.wob.update(dt);
       if (m.busy) {
-        m.rot = -0.32 * seg(u, 0.02, 0.34) + 0.8 * strike(u) - 0.33 * seg(u, 0.52, 0.72) - 0.15 * seg(u, 0.76, 1);
         m.ang = PA_REST + (-2.55 - PA_REST) * seg(u, 0, 0.3) - 0.25 * seg(u, 0.28, 0.36) + 3.7 * strike(u) - 0.8 * seg(u, 0.52, 0.66) - 0.8 * seg(u, 0.62, 0.76) + 0.4 * seg(u, 0.8, 1);
-        m.pose = u > 0.05 && u < 0.4 ? 'carry' : 'point';
+        // duas patas no cabo: o braço segue a pá (arma por cima do ombro, desce no golpe); o corpo arqueia e curva pela pose
+        m.pose = 'hold2'; m.rot = 0; m.arm2 = null;
+        m.arm = clamp(m.ang, -2.45, 0.95);
+        m.lean = -0.55 * seg(u, 0.02, 0.34) + 1.35 * strike(u) - 0.5 * seg(u, 0.52, 0.72) - 0.3 * seg(u, 0.76, 1);
         m.sq = m.sqk - 0.08 * seg(u, 0.1, 0.34) * (1 - strike(u));
         m.eyes = 'squint'; m.mouth = u < 0.5 ? 'grit' : 'open';
-        anchor(m, m.pose, m.kt, m.pose === 'carry' ? 'paw' : 'hold', 0, 0, m.rot, m.sq, T1);
+        anchor(m, 'hold2', m.kt, 'hold', 0, 0, 0, m.sq, T1);
         m.px = T1.x; m.py = T1.y;
         if (u > 0.4 && m.ang > 0) {                                              // a lâmina morde, mas não some debaixo do chão
           const lim = flo(m, m.px + 22 * Math.cos(m.ang)) + 3.5 - m.py;
@@ -355,7 +366,7 @@
         }
       } else {
         if (m.pose !== 'proud') m.wob.kick(3);
-        m.pose = 'proud'; m.rot = 0; m.sq = 0; m.eyes = null; m.mouth = null; m.clod = 0;
+        m.pose = 'proud'; m.rot = 0; m.sq = 0; m.eyes = null; m.mouth = null; m.clod = 0; m.arm = null; m.lean = null;
         m.px = 17; m.py = flo(m, 17) - 15; m.ang = PI / 2 + m.wob.x * 0.3;
       }
       m.kx = 0; m.ky = 0; m.load = m.clod;
@@ -366,12 +377,12 @@
     m.drawFn = g => {
       enter(g, m); shadow(g, 1, 1, 11);
       boostFx(g, m, 2, -20, 26);
-      const u = m.ph, behind = m.busy && m.pose === 'carry';
+      const u = m.ph, behind = m.busy && Math.sin(m.arm) < -0.55 && Math.cos(m.arm) < 0.35;   // pá armada atrás da cabeça
       if (m.busy && u > 0.37 && u < 0.52) {                                      // rastro do golpe
         g.globalAlpha = 0.5 * (1 - (u - 0.37) / 0.15 * 0.5); g.strokeStyle = PAL.white; g.lineWidth = 4;
         g.beginPath(); g.arc(m.px, m.py, 18, m.ang - 1.5, m.ang - 0.15); g.stroke(); g.globalAlpha = 1;
       }
-      if (behind) shovel(g, m.px - 11, m.py - 2.5, m.ang, 9, 13, 8, false, 0);
+      if (behind) shovel(g, m.px, m.py, m.ang, 9, 13, 8, false, 0);
       komeM(g, m);
       if (!behind) {
         shovel(g, m.px, m.py, m.ang, 9, 13, 8, false, m.clod);
@@ -385,7 +396,7 @@
   /* ======================================================================
      5. DUAS PÁS — em pé, uma em cada pata, girando alternadas feito moinho; a cada 8 golpes um giro-helicóptero
      ====================================================================== */
-  const DP_T = 0.625, DP_HIT = 0.95;
+  const DP_T = 0.625, DP_HIT = 0.62, DP_LO = -0.95, DP_AMP = 1.25;   // braço: de −2.2 (pra cima, atrás) a 0.3 (frente)
   function makeDuasPas(opts) {
     const m = baseState('duaspas', opts);
     m.a1 = 0; m.a2 = 0; m.x2 = 0; m.y2 = 0; m.spin = 0; m.hits = 0;
@@ -394,25 +405,27 @@
       m.kt += dt * (m.busy ? 1.35 * m.rate : 1);
       m.spin = Math.max(0, m.spin - dt * m.rate / 0.42);
       if (m.busy) {
-        const th = TAU * (u + 0.035 * Math.sin(TAU * 2 * (u - 0.02))) + DP_HIT - TAU * 0.1;
-        m.a1 = th; m.a2 = th + PI;
-        m.pose = 'carry'; m.eyes = 'happy'; m.mouth = 'open';
-        m.rot = 0.3 + 0.06 * Math.sin(TAU * 2 * u + 0.6); m.sq = m.sqk - 0.03;
-        anchor(m, 'carry', m.kt, 'paw', 0, 0, m.rot, m.sq, T1); m.px = T1.x; m.py = T1.y;
-        E.shibaAnchor('carry', E.drawShiba.frameT(m.kt, KO), 'paw', AT, AO);
-        xf(AT.x - 23.5, AT.y + 1, 0, 0, m.rot, m.sq, T2); m.x2 = T2.x; m.y2 = T2.y;
+        // braços alternados feito moinho (pose de duas patas com arm/arm2): cada pá desce na sua vez (u = 0.1 e 0.6)
+        const w1 = Math.cos(TAU * (u - 0.1)), w2 = Math.cos(TAU * (u - 0.6));
+        m.arm = DP_LO + DP_AMP * w1; m.arm2 = DP_LO + DP_AMP * w2;
+        m.a1 = m.arm + DP_HIT - DP_LO - DP_AMP; m.a2 = m.arm2 + DP_HIT - DP_LO - DP_AMP;
+        m.lean = 0.35 + 0.12 * Math.max(w1, w2);
+        m.pose = 'hold2'; m.eyes = 'happy'; m.mouth = 'open';
+        m.rot = 0; m.sq = m.sqk - 0.03;
+        anchor(m, 'hold2', m.kt, 'paw', 0, 0, 0, m.sq, T1); m.px = T1.x; m.py = T1.y;
+        anchor(m, 'hold2', m.kt, 'paw2', 0, 0, 0, m.sq, T2); m.x2 = T2.x; m.y2 = T2.y;
         for (let i = 0; i < 2; i++) {
           if (!crossed(m, p0, i ? 0.6 : 0.1)) continue;
           m.hits++; m.sqk += 0.11; m.ev.push('hit');
           const big = m.hits % 8 === 0;
           if (big) { m.spin = 1; m.ev.push('spin'); }
-          const lx = (i ? m.x2 : m.px) + 26 * Math.cos(DP_HIT), hx = WX(m, lx), hy = Math.min(WY(m, (i ? m.y2 : m.py) + 26 * Math.sin(DP_HIT)), m.floorF(hx));
+          const lx = (i ? m.x2 : m.px) + 17 * Math.cos(DP_HIT), hx = WX(m, lx), hy = Math.min(WY(m, (i ? m.y2 : m.py) + 17 * Math.sin(DP_HIT)), m.floorF(hx));
           puff(m, hx, hy, big ? 7 : 4, big ? 10 : 7, DUSTW);
           spray(m, hx, hy - 3, Math.round((4 + 3 * m.power + 3 * m.boost) * (big ? 2 : 1)), CLOD, backDir(m, 0.45), 170, 270, 0.35);
           spray(m, hx, hy - 3, Math.round((7 + 7 * m.power) * (big ? 2 : 1)), GRAIN, backDir(m, 0.3), 110, 280, 0.7);
         }
       } else {
-        m.pose = 'proud'; m.rot = 0; m.sq = 0; m.eyes = null; m.mouth = null;
+        m.pose = 'proud'; m.rot = 0; m.sq = 0; m.eyes = null; m.mouth = null; m.arm = null; m.arm2 = null; m.lean = null;
         m.px = 17; m.py = flo(m, 17) - 16; m.x2 = 17; m.y2 = m.py;
         m.a1 = PI / 2 - 0.42 + 0.03 * Math.sin(m.t * 2); m.a2 = PI / 2 + 0.42;
       }
@@ -434,10 +447,10 @@
       if (m.busy) {
         if (m.spin > 0) { g.globalAlpha = 0.35; g.strokeStyle = PAL.white; g.lineWidth = 3; g.beginPath(); g.ellipse(4, -30, 36, 7, 0, 0, TAU); g.stroke(); g.globalAlpha = 1; }
         trail(g, m.x2, m.y2, m.a2, 0.3);
-        shovel(g, m.x2, m.y2, m.a2, 2, 17, 7.5, true, 0);
+        shovel(g, m.x2, m.y2, m.a2, 2, 12, 7.5, true, 0);
       } else shovel(g, m.x2 + 2, m.y2, m.a2, 2, 14, 7.5, true, 0);
       komeM(g, m);
-      if (m.busy) { trail(g, m.px, m.py, m.a1, 0.45); shovel(g, m.px, m.py, m.a1, 2, 17, 7.5, false, 0); disc(g, m.px, m.py, 1.6, PAL.cream, 0.8); }
+      if (m.busy) { trail(g, m.px, m.py, m.a1, 0.45); shovel(g, m.px, m.py, m.a1, 2, 12, 7.5, false, 0); disc(g, m.px, m.py, 1.6, PAL.cream, 0.8); }
       else shovel(g, m.px - 2, m.py, m.a1, 2, 14, 7.5, false, 0);
       g.restore();
     };
@@ -575,16 +588,17 @@
       const tat = Math.floor(m.hp) !== hp0;
       // Kome
       const vib = on * (0.75 + 0.3 * m.power + 0.3 * m.boost);
-      m.pose = 'point'; m.kx = BR_KX + Math.sin(m.t * 61) * 0.45 * vib; m.ky = clamp(flo(m, BR_KX), -6, 6) + par * 0.7 * vib;
-      m.rot = -0.07 * on + par * 0.022 * vib; m.sq = 0.05 * vib * par + m.sqk;
+      // duas patas no punho em T, curvado em cima da máquina (a inclinação é da pose, o sprite quase não roda)
+      m.pose = 'hold2'; m.arm = 0.2 + 0.05 * on; m.arm2 = null; m.lean = 0.2 + 0.4 * on; m.kx = BR_KX + Math.sin(m.t * 61) * 0.45 * vib; m.ky = clamp(flo(m, BR_KX), -6, 6) + par * 0.7 * vib;
+      m.rot = par * 0.015 * vib; m.sq = 0.05 * vib * par + m.sqk;
       m.eyes = on > 0.3 ? 'tight' : m.dizzy > 0 ? 'spiral' : null; m.mouth = on > 0.3 ? 'grit' : m.dizzy > 0 ? 'tongue' : 'smile';
-      anchor(m, 'point', m.kt, 'hold', m.kx, m.ky, m.rot, m.sq, T1);
+      anchor(m, 'hold2', m.kt, 'hold', m.kx, m.ky, m.rot, m.sq, T1);
       m.px = T1.x; m.py = T1.y;
-      m.jx = BR_KX + 20.5 + Math.sin(m.t * 53) * 0.3 * vib; m.jt = m.py - 1;
+      m.jx = m.px + 1 + Math.sin(m.t * 53) * 0.3 * vib; m.jt = m.py - 1;
       m.gy2 = flo(m, m.jx);
       m.tip = m.gy2 + 2.5 + (dig && (m.hp % 1) < 0.5 ? 2.2 : 0) - (dig ? 0 : 1.5);
       // chapéu: quica na cabeça com gravidade própria
-      anchor(m, 'point', m.kt, 'hatTop', m.kx, m.ky, m.rot, m.sq, T2);
+      anchor(m, 'hold2', m.kt, 'hatTop', m.kx, m.ky, m.rot, m.sq, T2);
       m.hx = T2.x; m.hty = T2.y;
       m.hv += 620 * dt; m.hy += m.hv * dt;
       if (m.hy >= 0) { m.hy = 0; m.hv = on > 0.3 ? -(34 + 44 * hash(m.fr)) * (0.7 + 0.3 * m.power) : (m.hv > 30 ? -m.hv * 0.35 : 0); }
@@ -648,15 +662,12 @@
         g.fillStyle = PAL.grayD; g.fillRect(wx + Math.cos(m.wr) * 1.9 - 0.4, -3 + Math.sin(m.wr) * 1.9 - 0.4, 0.8, 0.8);
       }
       g.restore();
-      // braço de trás até o punho da britadeira
-      xf(-2.5, -16.4, m.kx, m.ky, m.rot, m.sq, T3);
-      stick(g, T3.x + 3, T3.y + 1, m.jx - 2.4, m.jt, 1.9, PAL.furS);
       // Kome borrado de tanto tremer (bochecha, orelha e rabo "duplos") + ele mesmo, sem chapéu
       if (on > 0.25) {
-        kome(g, m, 'point', m.kt, m.kx - 0.8, m.ky - par * 1.5, m.rot, -m.sq, m.eyes, m.mouth, false, 0.3);
-        kome(g, m, 'point', m.kt, m.kx + 0.9, m.ky + par * 0.4, m.rot + 0.03, m.sq, m.eyes, m.mouth, false, 0.25);
+        kome(g, m, 'hold2', m.kt, m.kx - 0.8, m.ky - par * 1.5, m.rot, -m.sq, m.eyes, m.mouth, false, 0.3);
+        kome(g, m, 'hold2', m.kt, m.kx + 0.9, m.ky + par * 0.4, m.rot + 0.03, m.sq, m.eyes, m.mouth, false, 0.25);
       }
-      kome(g, m, 'point', m.kt, m.kx, m.ky, m.rot, m.sq, m.eyes, m.mouth, false);
+      kome(g, m, 'hold2', m.kt, m.kx, m.ky, m.rot, m.sq, m.eyes, m.mouth, false);
       HATO.rot = m.hr + m.rot;
       E.drawSprite(g, kasa(m.pal), m.hx + 0.5, m.hty + m.hy, HATO);
       if (m.hy < -2.5) { g.strokeStyle = LINE; g.lineWidth = 0.6; g.globalAlpha = 0.55; g.beginPath(); g.moveTo(m.hx - 5, m.hty + 9); g.lineTo(m.hx - 5, m.hty + 9 + m.hy * 0.5); g.moveTo(m.hx + 5, m.hty + 8.5); g.lineTo(m.hx + 5, m.hty + 8.5 + m.hy * 0.5); g.stroke(); g.globalAlpha = 1; }

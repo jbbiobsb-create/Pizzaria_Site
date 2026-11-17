@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Kome · Cidade (protótipo)</title>
+<link rel="stylesheet" href="../engine/pixxel.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #2a1a10; overflow: hidden; }
+</style>
+</head>
+<body>
+<!-- Protótipo jogável da Cidade (docs/design/cidade.md). Página solta, não mexe no jogo nem no save.
+     ?cena=pedido | escolha | festa | cheia (pra prints) · console: __cidade.step(seg), __cidade.deliver(i), __cidade.fest(),
+     __cidade.levelUp('momo'), __cidade.state -->
+<script src="../engine/core.js"></script>
+<script src="../engine/pix.js"></script>
+<script src="../engine/shiba.js"></script>
+<script src="../engine/fx.js"></script>
+<script src="../engine/audio.js"></script>
+<script src="../engine/ui.js"></script>
+<script src="../engine/nature.js"></script>
+<script src="../engine/assets.js"></script>
+<!-- arte por receita (conteudo/estrutura-cid_*.js → node tools/arte.js) -->
+<script src="../conteudo/arte/cid_casa_kiku.pixxel.js"></script>
+<script src="../conteudo/arte/cid_casa_taro.pixxel.js"></script>
+<script src="../conteudo/arte/cid_casa_hana.pixxel.js"></script>
+<script src="../conteudo/arte/cid_casa_genji.pixxel.js"></script>
+<script src="../conteudo/arte/cid_casa_yuki.pixxel.js"></script>
+<script src="../conteudo/arte/cid_casa_momo.pixxel.js"></script>
+<script src="../conteudo/arte/cid_casa_kuro.pixxel.js"></script>
+<script src="../conteudo/arte/cid_bentoya.pixxel.js"></script>
+<script src="../conteudo/arte/cid_chaya.pixxel.js"></script>
+<script src="../conteudo/arte/cid_sento.pixxel.js"></script>
+<script src="../conteudo/arte/cid_fliperama.pixxel.js"></script>
+<script src="../conteudo/arte/cid_templo.pixxel.js"></script>
+<script src="../conteudo/arte/cid_keitruck.pixxel.js"></script>
+<script src="../conteudo/arte/cid_banco.pixxel.js"></script>
+<script src="../conteudo/arte/cid_correio.pixxel.js"></script>
+<script src="../conteudo/arte/loja_mochiya.pixxel.js"></script>
+<script src="../conteudo/arte/loja_konbini.pixxel.js"></script>
+<script src="../conteudo/arte/lojinha_onigiri.pixxel.js"></script>
+<script src="../conteudo/arte/fabrica_kome_pack.pixxel.js"></script>
+<script src="../conteudo/arte/prop_venda.pixxel.js"></script>
+<script src="../conteudo/arte/prop_barril.pixxel.js"></script>
+<script src="../conteudo/arte/prop_caixote.pixxel.js"></script>
+<script src="../conteudo/arte/poste_de_luz.pixxel.js"></script>
+<script src="../conteudo/arte/gato_laranja.pixxel.js"></script>
+<script src="../conteudo/arte/tanuki.pixxel.js"></script>
+<script src="cidade-proto.js"></script>
+</body>
+</html>

@@ -8,6 +8,7 @@
 </head>
 <body>
 <script src="../engine/core.js"></script>
+<script src="../engine/audio.js"></script>
 <script src="../engine/pix.js"></script>
 <script src="../engine/shiba.js"></script>
 <script src="../engine/fx.js"></script>
@@ -17,7 +18,8 @@
 <script>
 /* Demo de game/foguete.js (molde: demos/trembala.html).
    URL: ?mode=normal|chegada  &z=zoom (padrão: câmera sugerida m.cam)  &face=-1  &night=1  &t=segundos (avança e congela)
-        &spd=speedMul  &dig=0  &debug=1  &cx=  &cy=  &horizon=1 (testa o desenho do horizonte do Pátio, &n=quantidade)
+        &spd=speedMul  &dig=0  &debug=1  &cx=  &cy=  &horizon=1 (testa o desenho do horizonte do Pátio, &n=quantidade)  &mute=1
+   Som: clique/tecla liga o áudio (o navegador exige um gesto); M = mudo.
    Automação: __demo.step(seg) avança em passos fixos de 1/60; __demo.m = instância; __demo.cost() = ms por draw (média de 60).
    Um Kome de 44 px fica parado perto da máquina pra dar a escala. */
 (function () {
@@ -33,6 +35,10 @@
   const SOIL = '#C7A26A', SOIL_D = '#A8834F';
   const tool = G.Tools['foguete'];
   const m = tool.create({ pilot: 'kome', mode: MODE });
+  const AU = E.Audio;
+  if (AU && q.get('mute') === '1') AU.muted = true;
+  const unlock = () => { if (AU) AU.unlock(); };
+  addEventListener('pointerdown', unlock); addEventListener('keydown', e => { unlock(); if (AU && (e.key === 'm' || e.key === 'M')) AU.muted = !AU.muted; });
   const parts = E.Particles(1400);
   const DOCK = 0;
   // montanha de arroz do lado +x (face) da máquina
@@ -107,6 +113,7 @@
     Draw.text(g, 'Foguete de Mochi (foguete) · ' + m.mode, 12, 22, { size: 16, align: 'left', col: PAL.cream, sw: 4 });
     Draw.text(g, m.phase + '  enchido ' + Math.round((m.fill || 0) * 100) + '%  cavado ' + Math.round(dug) + ' px²  zoom ' + c.z.toFixed(2),
       12, 40, { size: 10.5, align: 'left', col: PAL.goldL, sw: 3, weight: 700 });
+    if (AU) Draw.text(g, AU.muted ? 'som: MUDO (M)' : 'som: clique pra ligar · M = mudo', W - 12, 22, { size: 11, align: 'right', col: PAL.cream, sw: 3, weight: 700 });
     if (logT > 0) Draw.text(g, log.join('  '), 12, 56, { size: 10.5, align: 'left', col: PAL.white, sw: 3, weight: 700 });
   }
   let frozen = false;

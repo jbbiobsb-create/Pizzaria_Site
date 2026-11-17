@@ -55,39 +55,45 @@ Interface comum: `G.Tools[id] = {id,name,kind,w,h,meta:{zoom,shake,cycle},create
 
 ## trembala.js — trembala (Trem-Bala de Arroz, máquina absurda nº 17)
 - `G.Tools.trembala`: interface comum + `bites(m)`, `dig(m, heap, area)`, `horizon(g, o)`, `prebake(nível)`, `profile(mode, t)`.
-  meta `{zoom:.2, shake:.6, cycle:20, length:≈4040, height:540, wireY:-486, railY:-16, chutes:8, cars:10, chegadaT:11.6, platform, times}`.
+  meta `{zoom:.2, shake:.6, cycle:20, length:≈4040, height:540, wireY:-486, railY:-16, chutes:8, cars:10, chegadaT:13.4, accel:1.8, platform, times}`.
   Demo: `demos/trembala.html?mode=normal|chegada&z=&face=-1&night=1&t=&spd=&dig=0&debug=1&horizon=1&n=30&cam=cockpit`.
 - Não cava: encosta na estação no pé da montanha, 8 calhas descem da encosta e enchem os 8 vagões ao mesmo tempo, sai com estrondo e
   volta pelo OUTRO lado (deu a volta no Japão). Cabeça = shiba laranja com olho-farol e orelhas no teto; cauda = shiba preto;
   vagões alternam tanque-onigiri (boca-escotilha mostra o nível) e tremonha aberta (monte de arroz). Kome de quepe na cabine.
 - Espaço do modelo: origem no chão sob a PONTA DO NARIZ com o trem parado (a doca); +x = sentido da partida (`inp.face`).
   A máquina é dona da doca: `m.x` pega `inp.x` só no 1º update (escrever `m.x` pra mudar a estação). `m.y = inp.y`.
-  Plataforma em primeiro plano de dx −300 (à frente do nariz) a +1560 (pra trás), topo em y −30, com 5 shibas de 44 px.
+  Plataforma em primeiro plano de dx −300 (à frente do nariz) a +1560 (pra trás), topo em y −30, com 9 shibas em escala ~2 (chefe da
+  estação de quepe e bandeira verde→vermelha no apito; metade segura o chapéu no estrondo, a outra perde).
 - `inp.floor(x)` = y de mundo da superfície da montanha (o mesmo do Kome-Oh). Calha com montanha ≥150 px acima da boca do vagão
   vira tomada na encosta (mordida ativa); sem montanha, aparece uma torre-funil de carga (sem mordida, o vagão enche igual).
 - Montanha: o heap é mapa de alturas, então "perder uma faixa no pé" = cada calha tira do TOPO das colunas no x dela
   (`G.Tools.trembala.dig(m, heap, areaDoQuadro)` reparte `heap.dig(x, area/ativas, 70)` entre as calhas ativas). Ao longo das
   voltas a encosta baixa por igual em ~4.000 px (o comprimento do trem). Na demo: 1.400 px²/s por calha.
 - Ciclo (20 s / speedMul): 0 'arrive' · 0.8 'load' (bites ativos até 9.0) · 9.0 'full' · 9.4 'whistle' · 10.0 'depart' (`m.payload`
-  = enchimento) · 11.6 'boom' (`m.flash`, `m.shakeK`, `m.speed {on,dir,k}` pra ScreenFX; chapéus voam) · 16.4 'return' (PAGAR AQUI
+  = enchimento) · 11.6 'boom' (`m.flash`, `m.shakeK`, `m.speed {on,dir,k}` pra ScreenFX; chapéus voam) + 1,8 s de aceleração com
+  `m.cam` perseguindo o nariz e linhas de vento (some ≈ 13.9) · 16.4 'return' (PAGAR AQUI
   com `m.payload`) · 17.4 'brake' · 20 'arrive'. Também 'clank', 'spark' (≤2/s). `inp.digging === false` segura a CARGA parada
   (o resto do ciclo termina sozinho; não dá pra parar o trem no meio da volta ao Japão).
 - Modo `create({mode:'chegada'})` (11.6 s, cena de estreia quando destrava): shibas assentam trilho e postes com o trem colado atrás
   buzinando ('horn' 1.2/2.4), encosta ('arrive' 4.0), chefe corta a fita com tesoura gigante ('ribbon' 5.0, confete, título
-  `m.title`), 'whistle' 5.8, 'depart' 6.2, 'boom' 7.8, 'return' 8.6, e em 11.6 'arrive' + 'ready' e vira 'normal' (ct = 0).
+  `m.title`), 'whistle' 5.8, 'depart' 6.2, 'boom' 7.8, 'return' 10.4, e em 13.4 'arrive' + 'ready' e vira 'normal' (ct = 0).
   `m.cam {x,y,z}` sugere a câmera (segue a obra, fecha na fita, abre pra 0.2 no estrondo).
 - Ler: `m.phase` ('abrindo','carregando','fechando','partindo','fora','voltando','chegada'), `m.s`, `m.v`, `m.fill`, `m.lap`
   (tempo da volta, o painel mostra "VOLTA: 4,8 s · RECORDE PESSOAL!").
 - Âncoras: `bites(m)` (8 × {x,y,r:70,active}), `bite(m)` = calha do meio (ou 1ª ativa), `dump(m)` = boca do vagão do meio,
   `seat(m)` = cabine.
 - Horizonte do Pátio: `horizon(g, {x0,x1,y,k=.12,t,n,tint,haze,night})` desenha viaduto(s) com bocas de túnel e o trem pequenininho
-  fazendo o ciclo inteiro (encosta, enche, BUUUM com anel, volta). n≥10: 2 viadutos; n≥25: 3; n≥50: 2 trens por viaduto.
+  fazendo o ciclo inteiro (encosta, enche, BUUUM com anel, volta). n≥10: 2 viadutos (máx.; o de trás sem catenária); n≥50: 2º trem
+  no da frente. À noite: postes de luz no viaduto, janelas acesas e farol.
+- Som: `G.Tools.trembala.audio(m, ligado)` 1×/quadro DEPOIS do update (lê `m.ev`): 'trem-chime' (ding-dong no 'full'), 'trem-hiss',
+  'trem-apito' ('depart'/'horn'), 'trem-boom', 'trem-freio' ('brake'), 'trem-clank' e o loop 'trem-trilho' no regime de `m.v`.
+  ligado=false ou E.Audio.muted cala e solta o loop. Precisa de engine/audio.js carregado.
   JÁ LIGADO em `patio-arte.js` (`PA.ABSURD`, camada do meio do horizonte) quando `S.patio.trembala.n > 0`; teste
   `?dev&patio=caminhao:12,bagger:3,trembala:30` (ids das outras absurdas em PA.ABSURD são palpite: acertar com o data.js).
 - Custo (canvas de CPU, zoom 0.2, com efeitos): 0,3–0,7 ms por draw (dpr 1 e 2), igual ao Tatuzão. Carrocerias, trilho, poste e
   plataforma pré-renderizados em 4 níveis; `prebake()` evita o engasgo do 1º quadro (≈20 canvases por nível).
-- Pontos fracos: é vista lateral pura (calhas "atravessam" o fio da catenária); a mordida baixa o topo das colunas, não o pé
-  literal; chapéus/shibas da plataforma viram pontinhos em 0.2; sem som (só eventos); escala fixa 1 (sem opts.scale).
+- Pontos fracos: vista lateral pura (calhas passam por trás do fio, mas na frente do braço do poste); a mordida baixa o topo das
+  colunas, não o pé literal; escala fixa 1 (sem opts.scale); o jogo ainda não chama `audio()` (só a demo).
 
 ## foguete.js — foguete (Foguete de Mochi, máquina absurda nº 18)
 - `G.Tools.foguete`: interface comum + `bites(m)`, `dig(m, heap, area)`, `horizon(g, o)`, `prebake(nível)`.

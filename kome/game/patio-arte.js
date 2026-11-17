@@ -73,6 +73,12 @@
     return o;
   }
   const blit = (g, o, x, y) => g.drawImage(o.c, x, y, o.w, o.h);
+  // máquina pronta com âncora (ax,ay): em ilha espelhada desvira (a arte da máquina tem letreiro e lado certo); flip = virada de propósito
+  function drawM(g, c, x, y, ax, ay, w, h, flip) {
+    if (Draw.mirrored(g)) flip = !flip;
+    if (!flip) g.drawImage(c, x - ax, y - ay, w, h);
+    else { g.save(); g.translate(x, 0); g.scale(-1, 1); g.drawImage(c, -ax, y - ay, w, h); g.restore(); }
+  }
   // imagem com texto: em ilha espelhada o mundo vira; desvira só a placa pra continuar legível
   function blitText(g, o, x, y, s) {
     s = s || 1;
@@ -94,22 +100,30 @@
   const palKey = (id, i, uni) => uni ? id + 'u' + (i % FURS.length) : MIXED[(i + PA.HAND.indexOf(id) * 3) % MIXED.length];
 
   /* ---------- ferramentas na mão (pixel, mesma grade do shiba; contorno automático do E.sprite) ---------- */
+  // ferramentas GRANDES de propósito (cartum): na escala do pátio a silhueta tem que ler de longe, não 3 pixels
   const TOOL = {
-    pa: () => E.sprite('pt_pa', 10, 21, P => { P.rect(3, 1, 4, 1, PAL.woodD).rect(4, 1, 2, 12, PAL.wood).rect(5, 2, 1, 10, PAL.woodD).rrect(2, 12, 6, 7, 2, PAL.steel).rect(3, 13, 1, 4, PAL.steelL).rect(3, 18, 4, 1, PAL.steelD); }),
-    hashi: () => E.sprite('pt_hashi', 6, 16, P => { P.rect(1, 1, 1, 13, PAL.red).rect(3, 1, 1, 13, PAL.redD).set(1, 1, PAL.redL).rect(1, 13, 1, 1, PAL.woodL).rect(3, 13, 1, 1, PAL.woodL); }),
-    tigela: () => E.sprite('pt_tigela', 15, 10, P => { P.ell(7.5, 4, 5, 2.6, PAL.rice).set(6, 3, PAL.riceS).set(9, 4, PAL.riceS).rrect(2, 4, 11, 5, 2, PAL.bowl).rect(3, 4, 9, 1, PAL.bowlL).rect(5, 8, 5, 1, PAL.bowlL); }),
-    carrinho: () => E.sprite('pt_carr', 28, 16, P => {
-      P.line(1, 5, 8, 7, 1, PAL.woodD).poly([[6, 4], [22, 3], [19, 10], [9, 10]], PAL.red).rect(7, 4, 15, 1, PAL.redL).rect(10, 9, 9, 1, PAL.redD)
-        .ell(14, 4, 6, 2.2, PAL.rice).set(12, 3, PAL.riceS).set(16, 3, PAL.riceS).rect(10, 10, 1, 4, PAL.grayD).ell(21.5, 11.5, 3, 3, PAL.blk).set(21, 11, PAL.grayL);
+    pa: () => E.sprite('pt_pa2', 15, 31, P => { P.rect(3, 1, 9, 3, PAL.woodD).rect(4, 1, 7, 1, PAL.wood).rect(6, 3, 3, 17, PAL.wood).rect(8, 4, 1, 15, PAL.woodD).rect(6, 4, 1, 14, PAL.woodL)
+      .rect(5, 18, 5, 2, PAL.steelD).rrect(2, 19, 11, 11, 3, PAL.steel).rect(3, 20, 2, 7, PAL.steelL).rect(3, 28, 9, 1, PAL.steelD).rect(11, 21, 1, 6, PAL.steelD); }),
+    hashi: () => E.sprite('pt_hashi2', 10, 27, P => { P.rect(1, 1, 2, 21, PAL.red).rect(1, 1, 1, 18, PAL.redL).rect(6, 1, 2, 21, PAL.redD).rect(1, 3, 2, 1, PAL.gold).rect(6, 3, 2, 1, PAL.gold)
+      .rect(1, 21, 2, 3, PAL.woodL).rect(6, 21, 2, 3, PAL.woodL).ell(4.5, 24.5, 2.5, 1.8, PAL.rice).set(4, 24, PAL.riceS); }),
+    tigela: () => E.sprite('pt_tigela2', 23, 15, P => { P.ell(11.5, 5.5, 8, 4, PAL.rice).set(8, 4, PAL.riceS).set(13, 3, PAL.riceS).set(15, 6, PAL.riceS)
+      .rrect(2, 6, 19, 8, 3, PAL.bowl).rect(3, 6, 17, 1, PAL.bowlL).rect(4, 9, 15, 1, PAL.red).rect(8, 13, 7, 1, PAL.bowlL); }),
+    carrinho: () => E.sprite('pt_carr2', 38, 22, P => {
+      P.line(1, 7, 10, 9, 2, PAL.woodD).poly([[8, 5], [33, 4], [28, 14], [12, 14]], PAL.red).rect(9, 5, 24, 1, PAL.redL).rect(13, 13, 14, 1, PAL.redD)
+        .ell(20, 5, 9, 3.2, PAL.rice).set(16, 4, PAL.riceS).set(22, 3, PAL.riceS).set(25, 5, PAL.riceS).rect(13, 14, 2, 6, PAL.grayD).ell(29.5, 16.5, 4.5, 4.5, PAL.blk).ell(29.5, 16.5, 1.6, 1.6, PAL.grayL);
     }),
-    britadeira: () => E.sprite('pt_brit', 13, 22, P => { P.rect(1, 1, 11, 2, PAL.blk).rect(4, 3, 5, 9, PAL.yel).rect(4, 3, 1, 9, PAL.yelL).rect(4, 11, 5, 1, PAL.yelD).rect(5, 12, 3, 2, PAL.blkL).rect(6, 14, 1, 6, PAL.steel).set(6, 19, PAL.steelD); }),
+    britadeira: () => E.sprite('pt_brit2', 18, 31, P => { P.rect(1, 1, 16, 3, PAL.blk).rect(1, 1, 16, 1, PAL.blkL).rect(5, 4, 8, 13, PAL.yel).rect(5, 4, 2, 13, PAL.yelL).rect(5, 16, 8, 1, PAL.yelD)
+      .rect(5, 9, 8, 2, PAL.blk).rect(7, 17, 4, 3, PAL.blkL).rect(8, 20, 2, 9, PAL.steel).rect(8, 20, 1, 8, PAL.steelL).set(8, 29, PAL.steelD).set(9, 29, PAL.steelD); }),
+    // pata: luvona de pata (almofadinhas cor-de-rosa) na cor da turma
+    pata: () => E.sprite('pt_pata2', 14, 14, P => { P.ell(7, 8, 5.5, 5, PAL.red).ell(3, 3.5, 1.8, 1.8, PAL.red).ell(7, 2.5, 1.8, 1.8, PAL.red).ell(11, 3.5, 1.8, 1.8, PAL.red)
+      .ell(7, 9, 2.6, 2.2, '#FFD3D8').set(3, 3, '#FFD3D8').set(7, 2, '#FFD3D8').set(11, 3, '#FFD3D8').rect(4, 6, 2, 1, PAL.redL); }),
   };
   // quanto tempo dura um ciclo da turma (s) e qual pose
   const CREW = {
     pata: { pose: 'dig', cyc: 0.48 }, hashi: { pose: 'dig', cyc: 0.6 }, tigela: { pose: 'dig', cyc: 1.0 }, pa: { pose: 'dig', cyc: 0.8 },
     duaspas: { pose: 'dig', cyc: 0.62 }, carrinho: { pose: 'push', cyc: 0.7 }, britadeira: { pose: 'stand', cyc: 0.24 },
   };
-  const NF = 6, FW = 74, FH = 60, FAX = 37, FAY = 51;   // quadros de turma: 74x60 com os pés em (37,51)
+  const NF = 6, FW = 92, FH = 80, FAX = 46, FAY = 70;   // quadros de turma: 92x80 com os pés em (46,70) (folga pras ferramentas grandes)
   const AN = { x: 0, y: 0 };
   function rot(cg, spr, x, y, ax, ay, a) { cg.save(); cg.translate(Math.round(x), Math.round(y)); cg.rotate(a); cg.drawImage(spr, -ax, -ay); cg.restore(); }
   // crewFrames(id, i, uni) -> [NF canvases]: o shiba da turma com a ferramenta, já pronto (1 drawImage por figura)
@@ -124,12 +138,13 @@
       E.drawShiba(cg, FAX, FAY, pose, tp, { pal, face: 1, scale: 1, smooth: false });
       E.shibaAnchor(pose, tp, 'hold', AN);
       const hx = FAX + AN.x, hy = FAY + AN.y, sw = Math.sin(u * TAU);
-      if (id === 'pa') rot(cg, TOOL.pa(), hx, hy, 5, 3, -0.35 - 0.75 * sw);
-      else if (id === 'duaspas') { rot(cg, TOOL.pa(), hx - 3, hy, 5, 3, 0.2 + 0.6 * sw); rot(cg, TOOL.pa(), hx + 1, hy + 1, 5, 3, -0.4 - 0.7 * sw); }
-      else if (id === 'hashi') { const p = 0.1 + 0.08 * (f % 2); rot(cg, TOOL.hashi(), hx, hy, 2, 2, -0.75 - 0.2 * sw); cg.globalAlpha = 0.999; rot(cg, TOOL.hashi(), hx + 1, hy, 2, 2, -0.75 - 0.2 * sw + p); }
-      else if (id === 'tigela') { const s = TOOL.tigela(); if (tigUp) cg.drawImage(s, Math.round(hx - 7), Math.round(hy - 9)); else cg.drawImage(s, Math.round(hx - 4), Math.round(hy - 6)); }
-      else if (id === 'carrinho') { const s = TOOL.carrinho(); cg.drawImage(s, Math.round(hx - 2), FAY - 15); }
-      else if (id === 'britadeira') { const s = TOOL.britadeira(), j = f % 2; cg.drawImage(s, Math.round(hx - 3 + j), FAY - 21 + j); }
+      if (id === 'pa') rot(cg, TOOL.pa(), hx, hy, 7, 4, -0.35 - 0.75 * sw);
+      else if (id === 'pata') rot(cg, TOOL.pata(), hx + 1, hy, 7, 9, -0.3 - 0.6 * sw);
+      else if (id === 'duaspas') { rot(cg, TOOL.pa(), hx - 4, hy, 7, 4, 0.2 + 0.6 * sw); rot(cg, TOOL.pa(), hx + 2, hy + 1, 7, 4, -0.4 - 0.7 * sw); }
+      else if (id === 'hashi') rot(cg, TOOL.hashi(), hx, hy, 4, 3, -0.75 - 0.25 * sw + 0.08 * (f % 2));
+      else if (id === 'tigela') { const s = TOOL.tigela(); if (tigUp) cg.drawImage(s, Math.round(hx - 11), Math.round(hy - 14)); else cg.drawImage(s, Math.round(hx - 6), Math.round(hy - 9)); }
+      else if (id === 'carrinho') { const s = TOOL.carrinho(); cg.drawImage(s, Math.round(hx - 3), FAY - 21); }
+      else if (id === 'britadeira') { const s = TOOL.britadeira(), j = f % 2; cg.drawImage(s, Math.round(hx - 5 + j), FAY - 29 + j); }
       // grãos voando da pata / da pá
       if ((id === 'pata' || id === 'pa' || id === 'duaspas') && f >= 2 && f <= 4) {
         cg.fillStyle = PAL.rice; const q = f - 2;
@@ -177,13 +192,14 @@
 
   /* ---------- placas "×N" ---------- */
   function signImg(id, shown, marcos, tier, klass) {
-    const big = klass === 'mid', w = big ? 66 : 46, h = big ? 36 : 26, k = 3;
-    const key = 'sg|' + id + '|' + shown + '|' + (marcos | 0) + '|' + Math.min(tier, 4) + '|' + klass;
+    const big = klass === 'mid', w = big ? 70 : 62, h = big ? 38 : 34, k = 3;
+    const key = 'sg|' + id + '|' + shown + '|' + (marcos | 0) + '|' + (tier >= T500 ? 9 : Math.min(tier, 4)) + '|' + klass;
     return cached(key, w + 8, h + 10, k, cg => {
-      const frame = tier >= T100 ? PAL.gold : tier >= T10 ? (PA.COLORS[id] || PAL.wood) : PAL.wood;
+      const frame = tier >= T100 ? PAL.gold : tier >= T10 ? (PA.COLORS[id] || PAL.wood) : PAL.wood, gold = tier >= T500;
       Draw.box(cg, 2, 2, w + 4, h + 4, frame, { r: 4, ol: 1.4 });
-      Draw.box(cg, 5, 5, w - 2, h - 2, shown ? PAL.cream : '#D9D2C2', { r: 3, ol: 0.8 });
-      const ic = G.Props && G.Props.icon ? G.Props.icon(id) : null, is = big ? 1.5 : 1.1;
+      Draw.box(cg, 5, 5, w - 2, h - 2, gold ? '#FFF1BE' : shown ? PAL.cream : '#D9D2C2', { r: 3, ol: 0.8 });
+      if (gold) { cg.fillStyle = PAL.goldL; cg.fillRect(4, 3, w + 1, 1.4); cg.fillStyle = PAL.goldD; cg.fillRect(4, h + 4, w + 1, 1.2); }
+      const ic = G.Props && G.Props.icon ? G.Props.icon(id) : null, is = big ? 1.8 : 1.65;
       if (ic) { cg.imageSmoothingEnabled = false; if (!shown) cg.globalAlpha = 0.45; cg.drawImage(ic, 7, 4 + (h - 16 * is) / 2 + 2, 16 * is, 16 * is); cg.globalAlpha = 1; }
       const tx = 7 + 16 * is + (w - 4 - 16 * is) / 2, txt = shown ? '×' + fmtN(shown) : 'vaga';
       cg.font = '900 ' + (big ? 15 : 11) + 'px system-ui, sans-serif'; const tw = cg.measureText(txt).width, sz = Math.min(big ? 15 : 11, (big ? 15 : 11) * (w - 10 - 16 * is) / Math.max(1, tw));
@@ -218,6 +234,69 @@
     return cached('ban|' + id + '|' + w, w, 18, 3, cg => {
       Draw.box(cg, 1, 2, w - 2, 13, PA.COLORS[id], { r: 2, ol: 1 });
       Draw.text(cg, PA.NAMES[id] || id, w / 2, 9, { size: Math.min(9, (w - 10) / Math.max(1, (PA.NAMES[id] || id).length) * 1.7), col: PAL.cream, sw: 0 });
+    });
+  }
+  // brilho dourado: estrelinhas de 4 pontas piscando num retângulo (patamar de ouro, 500+)
+  function sparkle(g, x, y, w, h, t, n, seed) {
+    for (let i = 0; i < n; i++) {
+      const ph = (t * 0.9 + rnd(i * 5.3 + seed)) % 1, a = Math.sin(ph * Math.PI); if (a < 0.15) continue;
+      const cyc = Math.floor(t * 0.9 + rnd(i * 5.3 + seed)), sx = x + rnd(i * 11.7 + cyc * 3.1 + seed) * w, sy = y + rnd(i * 7.9 + cyc * 1.3 + seed) * h, r = 2 + 4 * a;
+      g.fillStyle = a > 0.7 ? '#FFFFFF' : PAL.goldL; g.globalAlpha = a;
+      g.fillRect(sx - r, sy - 0.8, r * 2, 1.6); g.fillRect(sx - 0.8, sy - r, 1.6, r * 2); g.fillRect(sx - 1.4, sy - 1.4, 2.8, 2.8);
+    }
+    g.globalAlpha = 1;
+  }
+  // placa de ouro (500+): moldura dourada em 3 tons, estrelas e o título
+  function goldPlateImg(txt, w) {
+    return cached('gpl|' + txt + '|' + w, w, 30, 3, cg => {
+      Draw.box(cg, 1, 2, w - 2, 26, PAL.goldD, { r: 5, ol: 1.4 }); Draw.box(cg, 4, 4, w - 8, 21, PAL.gold, { r: 4, ol: 0.8 });
+      cg.fillStyle = PAL.goldL; cg.fillRect(7, 5.5, w - 14, 2.2); cg.fillStyle = mix(PAL.goldD, PAL.gold, 0.4); cg.fillRect(7, 21, w - 14, 2);
+      for (const sx of [13, w - 13]) { Draw.poly(cg, [[sx, 8], [sx + 2.2, 13], [sx + 6, 14], [sx + 2.5, 16.5], [sx + 3.5, 21], [sx, 18.5], [sx - 3.5, 21], [sx - 2.5, 16.5], [sx - 6, 14], [sx - 2.2, 13]], '#FFF1BE', { ol: 0.8 }); }
+      Draw.text(cg, txt, w / 2, 14.5, { size: Math.min(11, (w - 44) / Math.max(1, txt.length) * 1.75), col: '#6B4512', sw: 0 });
+    });
+  }
+  // QG da turma (100+): pagode de madeira na cor da turma, 1 andar a cada patamar (cresce junto com os estacionamentos das máquinas)
+  const PG_FH = 62;
+  function pagodaImg(id, lv, gold) {
+    const W0 = 236, H0 = lv * PG_FH + 92;
+    return cached('pgd|' + id + '|' + lv + '|' + (gold ? 1 : 0), W0, H0, 2, cg => {
+      const c = PA.COLORS[id], roof = gold ? PAL.gold : mix(c, '#3B2818', 0.18), roofL = gold ? PAL.goldL : mix(c, '#FFFFFF', 0.25), roofD = gold ? PAL.goldD : mix(c, '#3B2818', 0.45), cx = W0 / 2;
+      Draw.box(cg, cx - 100, H0 - 14, 200, 13, '#CFC8B6', { ol: 1.3, top: '#E3DDD0' });
+      for (let f = 0; f < lv; f++) {
+        const ww = 168 - f * 12, yb = H0 - 14 - f * PG_FH, yt = yb - PG_FH + 16;
+        Draw.box(cg, cx - ww / 2, yt, ww, yb - yt, '#EFE3C6', { ol: 1.2 });
+        cg.fillStyle = '#7A5228'; cg.fillRect(cx - ww / 2 + 1, yb - 5, ww - 2, 4);
+        for (const px of [cx - ww / 2 + 3, cx + ww / 2 - 7]) { cg.fillStyle = '#7A5228'; cg.fillRect(px, yt + 1, 4, yb - yt - 2); }
+        const nwin = Math.max(2, Math.floor(ww / 40));
+        for (let i = 0; i < nwin; i++) {
+          const wx = cx - ww / 2 + 14 + i * (ww - 28) / nwin + ((ww - 28) / nwin - 20) / 2, wy = yt + 8;
+          Draw.box(cg, wx, wy, 20, 22, '#FFD98A', { ol: 1 });
+          if ((i + f) % 2 === 0) {   // carinha de shiba espiando na janela
+            const fx = wx + 10, fy = wy + 17, fur = ['#E2914A', '#FFFAEE', '#4A3A32'][(i + f * 2) % 3];
+            cg.fillStyle = LINE; cg.beginPath(); cg.arc(fx, fy, 6.4, Math.PI, 0); cg.fill(); cg.fillRect(fx - 6.4, fy, 12.8, 5);
+            cg.beginPath(); cg.moveTo(fx - 6.5, fy - 1); cg.lineTo(fx - 4.5, fy - 10); cg.lineTo(fx - 1, fy - 4); cg.moveTo(fx + 6.5, fy - 1); cg.lineTo(fx + 4.5, fy - 10); cg.lineTo(fx + 1, fy - 4); cg.fill();
+            cg.fillStyle = fur; cg.beginPath(); cg.arc(fx, fy, 5.2, Math.PI, 0); cg.fill(); cg.fillRect(fx - 5.2, fy, 10.4, 4.6);
+            cg.beginPath(); cg.moveTo(fx - 5.2, fy - 1.5); cg.lineTo(fx - 4.3, fy - 8); cg.lineTo(fx - 1.6, fy - 4); cg.moveTo(fx + 5.2, fy - 1.5); cg.lineTo(fx + 4.3, fy - 8); cg.lineTo(fx + 1.6, fy - 4); cg.fill();
+            cg.fillStyle = LINE; cg.fillRect(fx - 3, fy - 1, 1.6, 1.6); cg.fillRect(fx + 1.6, fy - 1, 1.6, 1.6); cg.fillRect(fx - 0.8, fy + 1.2, 1.6, 1.2);
+          } else { cg.fillStyle = '#E8B95A'; cg.fillRect(wx + 9.3, wy + 1, 1.4, 20); cg.fillRect(wx + 1, wy + 10.3, 18, 1.4); }
+          cg.fillStyle = LINE; cg.fillRect(wx - 1, wy + 21, 22, 2.2);
+        }
+        // telhado com beiral curvo
+        const rw = ww / 2 + 22, ry = yt + 2;
+        Draw.poly(cg, [[cx - rw, ry + 2], [cx - rw + 10, ry - 6], [cx - ww / 2 + 6, ry - 12], [cx + ww / 2 - 6, ry - 12], [cx + rw - 10, ry - 6], [cx + rw, ry + 2], [cx + rw - 16, ry - 1], [cx - rw + 16, ry - 1]], roof, { ol: 1.3 });
+        cg.fillStyle = roofL; cg.fillRect(cx - ww / 2 + 6, ry - 11, ww - 12, 2.2); cg.fillStyle = roofD; cg.fillRect(cx - rw + 16, ry - 2.6, rw * 2 - 32, 1.8);
+        if (gold) { cg.fillStyle = '#FFF6D0'; cg.fillRect(cx - rw + 2, ry, 3, 2); cg.fillRect(cx + rw - 5, ry, 3, 2); }
+      }
+      // telhado de cima + medalhão gigante da ferramenta + sorin (pináculo)
+      const tw = 168 - lv * 12, ty = H0 - 14 - lv * PG_FH + 16;
+      Draw.poly(cg, [[cx - tw / 2 - 18, ty + 2], [cx, ty - 26], [cx + tw / 2 + 18, ty + 2]], roof, { ol: 1.3 });
+      cg.fillStyle = roofL; cg.beginPath(); cg.moveTo(cx - tw / 2 - 8, ty - 2); cg.lineTo(cx, ty - 22); cg.lineTo(cx + 6, ty - 20); cg.lineTo(cx - tw / 2, ty - 1); cg.fill();
+      cg.fillStyle = LINE; cg.fillRect(cx - 2.2, ty - 60, 4.4, 36); cg.fillStyle = PAL.gold; cg.fillRect(cx - 1, ty - 60, 2, 35);
+      for (let r = 0; r < 4; r++) Draw.box(cg, cx - 6 + r, ty - 32 - r * 7, 12 - r * 2, 3.4, PAL.gold, { ol: 0.8 });
+      Draw.circle(cg, cx, ty - 66, 4, PAL.goldL, { ol: 1 });
+      const ic = G.Props && G.Props.icon ? G.Props.icon(id) : null, my = ty - 6;
+      Draw.circle(cg, cx, my, 19, gold ? PAL.goldL : PAL.cream, { ol: 1.4 }); Draw.circle(cg, cx, my, 15.5, gold ? PAL.gold : c, { ol: 0.8 });
+      if (ic) { cg.imageSmoothingEnabled = false; cg.drawImage(ic, cx - 12, my - 12, 24, 24); }
     });
   }
   function bleachImg(id, f) {   // arquibancada com torcida (100+), 2 quadros: degraus de trás pra frente, torcida sentada em cada um
@@ -320,7 +399,9 @@
       const z0 = Draw.zoom, m0 = Draw.minPx; Draw.lod(Math.max(0.6, k), 0.6);
       cg.setTransform(k, 0, 0, k, w * k * 0.5, (h - 24) * k); cg.lineJoin = 'round'; cg.lineCap = 'round';
       T0.draw(cg, m); Draw.lod(z0, m0);
-      if (variant === 'gold') { cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-atop'; cg.fillStyle = 'rgba(243,190,60,.46)'; cg.fillRect(0, 0, c.width, c.height); cg.globalCompositeOperation = 'source-over'; }
+      if (variant === 'gold') { cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-atop';
+        const gr = cg.createLinearGradient(0, 0, 0, c.height); gr.addColorStop(0, 'rgba(255,236,150,.55)'); gr.addColorStop(0.55, 'rgba(243,190,60,.5)'); gr.addColorStop(1, 'rgba(160,110,30,.5)');
+        cg.fillStyle = gr; cg.fillRect(0, 0, c.width, c.height); cg.globalCompositeOperation = 'source-over'; }
     } catch (e) { /* rig que não sabe desenhar fora do jogo: fica sem imagem */ }
     o = { c, w, h, ax: w * 0.5, ay: h - 24 }; MACH.set(key, o);
     return o;
@@ -348,7 +429,7 @@
     poucos: { pata: 5, hashi: 4, tigela: 3, pa: 3, duaspas: 2, carrinho: 2, britadeira: 1, trator: 3, empilhadeira: 2, colheita: 1, escav: 1, caminhao: 2, pacabo: 1, bagger: 1 },
     medio: { pata: 25, hashi: 22, tigela: 18, pa: 14, duaspas: 12, carrinho: 10, britadeira: 10, trator: 25, empilhadeira: 15, colheita: 12, escav: 10, caminhao: 10, pacabo: 6, bagger: 3 },
     cheio: { pata: 100, hashi: 100, tigela: 90, pa: 75, duaspas: 60, carrinho: 55, britadeira: 50, trator: 100, empilhadeira: 80, colheita: 60, escav: 50, caminhao: 40, pacabo: 25, bagger: 12 },
-    absurdo: { pata: 500, hashi: 450, tigela: 400, pa: 350, duaspas: 300, carrinho: 260, britadeira: 220, trator: 400, empilhadeira: 300, colheita: 250, escav: 200, caminhao: 150, pacabo: 100, bagger: 50, trembala: 30 },
+    absurdo: { pata: 500, hashi: 450, tigela: 400, pa: 350, duaspas: 300, carrinho: 260, britadeira: 220, trator: 500, empilhadeira: 300, colheita: 250, escav: 200, caminhao: 150, pacabo: 100, bagger: 50, trembala: 30, foguete: 12, fuji: 3, portal: 30 },
   };
   let FAKE = null, PATIO = {};
   function milestones(n) { const M = [1, 5, 25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]; let k = 0; while (k < M.length && n >= M[k]) k++; return k; }
@@ -391,11 +472,11 @@
   function frameIdx(id, i, t) { return Math.floor((t / CREW[id].cyc + i * 0.37) * NF) % NF; }
   // imagem de grupo do canteiro (zoom aberto / acima do teto de figuras): os 8 numa imagem só, 2 quadros
   function crewGroup(id, nw, uni, f, k) {
-    return cached('cg|' + id + '|' + nw + '|' + (uni ? 1 : 0) + '|' + f, HPW, 70, k, cg => {
+    return cached('cg2|' + id + '|' + nw + '|' + (uni ? 1 : 0) + '|' + f, HPW, 96, k, cg => {
       cg.imageSmoothingEnabled = k < 1;
       for (let pass = 0; pass < 2; pass++) for (let i = 0; i < nw; i++) {
         const s = SLOT[i]; if (s[1] !== pass) continue;
-        const fr = crewFrames(id, i, uni)[(f * 3 + i) % NF], kk = s[1] ? K_FRONT : K_BACK, y = (s[1] ? Y_FRONT : Y_BACK) + 20;
+        const fr = crewFrames(id, i, uni)[(f * 3 + i) % NF], kk = s[1] ? K_FRONT : K_BACK, y = (s[1] ? Y_FRONT : Y_BACK) + 46;
         if (s[2] < 0) { cg.save(); cg.translate(s[0], 0); cg.scale(-1, 1); cg.drawImage(fr, -FAX * kk, y - FAY * kk, FW * kk, FH * kk); cg.restore(); }
         else cg.drawImage(fr, s[0] - FAX * kk, y - FAY * kk, FW * kk, FH * kk);
       }
@@ -423,41 +504,49 @@
   function drawHand(g, id, t, z, useGroup, nightK) {
     const Lg = L.hand[id], s = st(id), n = s.n | 0, tier = tierOf(n), x0 = Lg.px0, uni = tier >= T10, c = PA.COLORS[id];
     const nw = Math.min(PA.CREW_MAX, n);
-    // --- fundo da turma (patamares) ---
+    // --- fundo da turma (patamares) --- (escala pensada pra ficar à altura dos estacionamentos de andares das máquinas)
+    const gold = tier >= T500;
+    if (tier >= T100) {   // QG da turma: pagode que ganha andar a cada patamar
+      const lv = Math.min(6, 2 + Math.floor((n - 100) / 50)), o = pagodaImg(id, lv, gold);
+      blitText(g, o, x0 + HPW / 2 - o.w / 2, -4 - o.h);
+      if (gold) sparkle(g, x0 + 10, -4 - o.h, HPW - 20, o.h - 20, t, 7, PA.HAND.indexOf(id) * 17);
+    }
     if (tier >= T150) {   // 2º andar: deck sobre palafitas com mais uma turma
-      const dy = -92;
+      const dy = -128;
       g.fillStyle = LINE; for (const px of [50, 120, 196]) g.fillRect(x0 + px - 2.5, dy, 5, -dy); g.fillStyle = PAL.woodD; for (const px of [50, 120, 196]) g.fillRect(x0 + px - 1.2, dy, 2.4, -dy);
-      Draw.box(g, x0 + 36, dy - 20, 176, 22, '#C49A66', { ol: 1.2, top: '#D9B07A' }); Draw.box(g, x0 + 36, dy + 2, 176, 7, PAL.woodD, { ol: 1.2 });
+      Draw.box(g, x0 + 36, dy - 20, 176, 22, gold ? '#E9C76A' : '#C49A66', { ol: 1.2, top: gold ? PAL.goldL : '#D9B07A' }); Draw.box(g, x0 + 36, dy + 2, 176, 7, gold ? PAL.goldD : PAL.woodD, { ol: 1.2 });
       const f = Math.floor(t * 4) % 2, o = crewGroup(id, 4, true, f, 1);
-      mound(g, x0 + 36 + MOUND_X * 0.7, dy - 6, t, tier >= T500, 9);
-      g.drawImage(o.c, x0 + 36, dy + 4 - 52 * 0.7, HPW * 0.7, 70 * 0.7);
+      mound(g, x0 + 36 + MOUND_X * 0.7, dy - 6, t, gold, 9);
+      g.drawImage(o.c, x0 + 36, dy + 4 - 78 * 0.7, HPW * 0.7, 96 * 0.7);
       stats.groupSpr++;
     }
-    if (tier >= T100) { const o = bleachImg(id, Math.floor(t * 3) % 2); blit(g, o, x0 + 58, -62); }
+    if (tier >= T100) { const o = bleachImg(id, Math.floor(t * 3) % 2); g.drawImage(o.c, x0 + 51, -95, o.w * 1.5, o.h * 1.5); }
     if (tier >= T25) {
-      blit(g, shedImg(id), x0 - 6, -56);
-      if (E.Nature && E.Nature.nobori) E.Nature.nobori(g, x0 + HPW - 10, 2, { t: t + PA.HAND.indexOf(id), col: c, h: 74 });
+      const o = shedImg(id); blitText(g, o, x0 - 14, -80, 1.4);
+      if (E.Nature && E.Nature.nobori) E.Nature.nobori(g, x0 + HPW - 10, 2, { t: t + PA.HAND.indexOf(id), col: c, h: tier >= T100 ? 120 : 84, s: tier >= T100 ? 1.3 : 1 });
     }
     if (tier >= T50) {
-      const by = tier >= T100 ? -82 : -60, o = bannerImg(id, 150); g.fillStyle = LINE; g.fillRect(x0 + 49, by, 3.4, 2 - by); g.fillRect(x0 + 191, by, 3.4, 2 - by); g.fillStyle = PAL.woodL; g.fillRect(x0 + 50, by, 1.4, 2 - by); g.fillRect(x0 + 192, by, 1.4, 2 - by); blit(g, o, x0 + 46, by);
+      const by = tier >= T100 ? -112 : -70, o = bannerImg(id, 150), bx0 = x0 + 14, bx1 = x0 + 226;
+      g.fillStyle = LINE; g.fillRect(bx0 - 2, by, 4.4, 2 - by); g.fillRect(bx1 - 2, by, 4.4, 2 - by); g.fillStyle = gold ? PAL.gold : PAL.woodL; g.fillRect(bx0 - 0.8, by, 2, 2 - by); g.fillRect(bx1 - 0.8, by, 2, 2 - by);
+      blitText(g, o, bx0 + 2, by - 4, (bx1 - bx0 - 4) / o.w);
+      if (gold) { const gp = goldPlateImg('TURMA LENDÁRIA', 150); blitText(g, gp, x0 + HPW / 2 - 75, by - 40); }
       if (E.Nature && E.Nature.stall) E.Nature.stall(g, x0 + 190, 0, { s: 0.62, col: c, t, lit: nightK > 0.3 });
     }
     if (tier >= T100) {   // holofote
-      const px = x0 + 6; g.fillStyle = LINE; g.fillRect(px - 2.5, -150, 5, 152); g.fillStyle = PAL.steelD; g.fillRect(px - 1.2, -150, 2.4, 150);
-      Draw.box(g, px - 10, -160, 20, 10, '#5C6672', { ol: 1 });
-      if (nightK > 0.2) { g.globalAlpha = 0.18 * nightK; g.fillStyle = '#FFF3C4'; g.beginPath(); g.moveTo(px - 8, -151); g.lineTo(px + 8, -151); g.lineTo(px + 140, 40); g.lineTo(px + 20, 40); g.closePath(); g.fill(); g.globalAlpha = 1; }
-      Draw.light(g, px, -153, 3.2, '#FFE9A0', nightK > 0.2 ? 1 : 0.25, { halo: 3 });
+      const px = x0 + 6, top = -236; g.fillStyle = LINE; g.fillRect(px - 2.5, top, 5, 2 - top); g.fillStyle = PAL.steelD; g.fillRect(px - 1.2, top, 2.4, -top);
+      Draw.box(g, px - 10, top - 10, 20, 10, '#5C6672', { ol: 1 });
+      if (nightK > 0.2) { g.globalAlpha = 0.18 * nightK; g.fillStyle = '#FFF3C4'; g.beginPath(); g.moveTo(px - 8, top - 1); g.lineTo(px + 8, top - 1); g.lineTo(px + 160, 40); g.lineTo(px + 20, 40); g.closePath(); g.fill(); g.globalAlpha = 1; }
+      Draw.light(g, px, top - 3, 3.2, '#FFE9A0', nightK > 0.2 ? 1 : 0.25, { halo: 3 });
     }
     // --- canteiro ---
     blit(g, plotFloor(id, tier), x0, -8);
-    const gold = tier >= T500;
     // sacos prontos ao lado do galpão (25+): pilha arrumada que cresce
     if (tier >= T25 && G.Props && G.Props.sack) { const sk = G.Props.sack(gold ? 'golden' : 'plain'), np = Math.min(6, 2 + tier); g.imageSmoothingEnabled = false; for (let i = 0; i < np; i++) { const r = i < 3 ? 0 : i < 5 ? 1 : 2, j = r === 0 ? i : r === 1 ? i - 3 : 0; g.drawImage(sk.cv, x0 + 14 + j * 11 + r * 5.5, 8 - r * 11 - sk.cv.height, sk.cv.width, sk.cv.height); } }
     const arrivals = s.arr;
     if (nw > 0) {
       if (useGroup) {
         const o = crewGroup(id, nw, uni, Math.floor(t * 4) % 2, z < 0.45 ? 0.5 : 1);
-        g.drawImage(o.c, x0, -20, HPW, 70); stats.groupSpr++;
+        g.drawImage(o.c, x0, -46, HPW, 96); stats.groupSpr++;
         mound(g, x0 + MOUND_X, 20, t, gold, PA.HAND.indexOf(id));
       } else {
         // troca de turno (50+): de 8 em 8 s alguém vai pra barraca e alguém volta
@@ -503,8 +592,9 @@
       if (rnd(Math.floor(t * 20) + a) > 0.5) { g.globalAlpha = 0.4 * (1 - u); g.fillStyle = '#E6D8B8'; g.beginPath(); g.arc(lerp(sx, p[0], e) + 12, p[1] - 2, 4, 0, TAU); g.fill(); g.globalAlpha = 1; }
     }
     // frente: estátua dourada (250+), telão (200+)
-    if (tier >= T250) blit(g, statueImg(id), Lg.sx - 22, -88 - 2);
+    if (tier >= T250) blitText(g, statueImg(id), Lg.sx - 22, -88 - 2);
     if (tier >= T200) { const o = screenImg(id, n); blitText(g, o, x0 + 140, -150 - (tier >= T150 ? 46 : 0)); }
+    if (gold && !useGroup) sparkle(g, x0 + 20, -30, HPW - 40, 60, t, 6, PA.HAND.indexOf(id) * 31 + 5);
     if (n === 0) { g.globalAlpha = 0.5; mound(g, x0 + MOUND_X, 20, t, false, 0); g.globalAlpha = 1; }
   }
 
@@ -518,9 +608,9 @@
     const o = machImg(id, Math.floor(t * 1.5 + i) % 2, k, gold ? 'gold' : variant); if (!o) return;
     const sc = MK[id], bob = Math.sin(t * 9 + i * 2) * 0.5;
     Draw.shadow(g, x, y + 1, MW[id] * 0.45 * sc, 4 * sc, 0.16);
-    g.drawImage(o.c, x - o.ax * sc, y - o.ay * sc + bob, o.w * sc, o.h * sc); stats.mach++;
+    drawM(g, o.c, x, y + bob, o.ax * sc, o.ay * sc, o.w * sc, o.h * sc, false); stats.mach++;
     if (dust > 0) for (let d = 0; d < 4; d++) { g.globalAlpha = 0.35 * dust; g.fillStyle = '#E6D8B8'; g.beginPath(); g.arc(x + MW[id] * 0.5 * sc + d * 14, y - 4 - d * 3, 6 + d * 3, 0, TAU); g.fill(); g.globalAlpha = 1; }
-    if (gold && Math.sin(t * 4 + i) > 0.7) { g.fillStyle = '#FFFFFF'; g.fillRect(x - 20 + Math.sin(t * 2) * 30, y - hh * 0.6, 3, 3); }
+    if (gold) sparkle(g, x - MW[id] * 0.45 * sc, y - hh, MW[id] * 0.9 * sc, hh * 0.9, t, 4, i * 13 + PA.MID.indexOf(id) * 7);
   }
   function drawMid(g, id, t, z, nightK) {
     const B = L.mid[id], s = st(id), n = s.n | 0, tier = tierOf(n), c = PA.COLORS[id], mk = MK[id];
@@ -529,9 +619,10 @@
     if (tier >= T100) {
       const lv = Math.min(6, 2 + Math.floor((n - 100) / 50)), mi = machImg(id, 0, 0.5, variant);
       const o = parkingImg(id, lv, mi ? { c: mi.c, w: mi.w, h: mi.h, s: 0.4 * mk } : null, k < 0.75 ? 0.5 : 0.75);
-      blit(g, o, B.bx0, Y_BACK - 8 - o.h);
-    } else if (tier >= T50) { const o = garageImg(id, gw, hh * 1.3, 4, k); blit(g, o, B.bx0, Y_BACK - 8 - o.h); }
-    else if (tier >= T25) { const o = garageImg(id, B.w * 1.25, hh * 1.25, 1, k); blit(g, o, B.bx0 + 4, Y_BACK - 8 - o.h); }
+      blitText(g, o, B.bx0, Y_BACK - 8 - o.h);
+      if (tier >= T500) { const gp = goldPlateImg('FROTA LENDÁRIA', 190); blitText(g, gp, (B.bx0 + B.bx1) / 2 - gp.w * 0.75, Y_BACK - 8 - o.h - 50, 1.5); sparkle(g, B.bx0, Y_BACK - 8 - o.h, gw, o.h, t, 10, PA.MID.indexOf(id) * 23); }
+    } else if (tier >= T50) { const o = garageImg(id, gw, hh * 1.3, 4, k); blitText(g, o, B.bx0, Y_BACK - 8 - o.h); }
+    else if (tier >= T25) { const o = garageImg(id, B.w * 1.25, hh * 1.25, 1, k); blitText(g, o, B.bx0 + 4, Y_BACK - 8 - o.h); }
     // piso das vagas: faixas pintadas (10+), douradas (100+), número da vaga
     if (n > 0 && tier >= T10) {
       g.fillStyle = tier >= T100 ? PAL.gold : '#F3C94A'; const pw = B.w * PITCH;
@@ -559,7 +650,7 @@
         const x = B.bx1 + B.w * 0.5 - ((t * spd + j * sp) % span), y = 64, sc = 0.66 * mk;
         const o = machImg(id, Math.floor(t * 2 + j) % 2, k, variant); if (!o) break;
         Draw.shadow(g, x, y + 1, MW[id] * 0.4 * sc, 3, 0.16);
-        g.save(); g.translate(x, 0); g.scale(-1, 1); g.drawImage(o.c, -o.ax * sc, y - o.ay * sc + Math.sin(t * 11 + j) * 0.6, o.w * sc, o.h * sc); g.restore(); stats.mach++;
+        drawM(g, o.c, x, y + Math.sin(t * 11 + j) * 0.6, o.ax * sc, o.ay * sc, o.w * sc, o.h * sc, true); stats.mach++;
         const dn = tier >= T25 ? 4 : 2;
         for (let d = 0; d < dn; d++) { const q = (t * 1.3 + d / dn + j * 0.3) % 1; g.globalAlpha = 0.3 * (1 - q); g.fillStyle = '#E6D8B8'; g.beginPath(); g.arc(x + MW[id] * 0.42 * sc + q * 30, y - 3 - q * 10, 4 + q * 9, 0, TAU); g.fill(); }
         g.globalAlpha = 1;
@@ -606,8 +697,8 @@
           if (x + o.w < v.x0 || x - o.w > v.x1) continue;
           const gold = layer === 0 && i === 0 && tierOf(n) >= T250, img = gold ? giantImg(id, 0, tint[0], true) : o, face = rnd(i * 7 + layer * 3) > 0.5 ? 1 : -1;
           const y = BASE[layer] + Math.sin(t * 0.4 + i) * 0.5;
-          if (face < 0) { g.save(); g.translate(x, 0); g.scale(-1, 1); g.drawImage(img.c, -img.ax, y - img.ay, img.w, img.h); g.restore(); }
-          else g.drawImage(img.c, x - img.ax, y - img.ay, img.w, img.h);
+          drawM(g, img.c, x, y, img.ax, img.ay, img.w, img.h, face < 0);
+          if (gold) sparkle(g, x - img.w * 0.4, y - img.ay, img.w * 0.8, img.ay, t, 3, i * 9 + layer);
           if (nightK > 0.3 && layer < 2) { const on = Math.sin(t * 3 + i * 1.7) > 0; g.fillStyle = on ? '#FF6B5E' : '#FFE3A0'; g.fillRect(x - 1.5, y - img.ay * 0.85, 3, 3); g.fillStyle = '#FFE3A0'; g.fillRect(x + img.w * 0.2 * face, y - img.ay * 0.4, 2, 2); }
         }
         // número discreto, na névoa
@@ -635,12 +726,28 @@
     g.restore();
   }
 
-  // máquinas absurdas no horizonte do meio (Trem-Bala: viadutos com o trem fazendo o ciclo inteiro lá longe)
+  // máquinas absurdas no horizonte do meio: SKYLINE arrumado — cada uma ganha o seu lote (largura por peso, na ordem de PA.ABSURD),
+  // em cima de um platô de névoa contínuo; nada se sobrepõe. horizon(g, {x0,x1,…}) de cada uma desenha dentro do lote.
+  const ABS_W = { tatus: 0.8, komeohs: 0.9, trembala: 1.5, foguete: 0.8, fuji: 1.2, portal: 0.8 };
+  const absList = [];
   function drawAbsurd(g, t, nightK, tint, base) {
+    absList.length = 0; let tw = 0;
     for (const id of PA.ABSURD) {
       const p = PATIO[id], n = p ? p.n | 0 : 0, T0 = G.Tools && G.Tools[id];
       if (n <= 0 || !T0 || !T0.horizon) continue;
-      try { T0.horizon(g, { x0: L.L + 60, x1: L.R - 90, y: base - 6, k: 0.12, t, n, tint, haze: 0.5, night: nightK }); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
+      absList.push(id); tw += ABS_W[id] || 1;
+    }
+    if (!absList.length) return;
+    const X0 = L.L + 80, X1 = L.R - 120, gap = 50, span = X1 - X0 - gap * (absList.length - 1);
+    // platô de névoa: base reta comum a todas (lê como uma linha de horizonte só)
+    const py = base - 6;
+    g.globalAlpha = 0.55; g.fillStyle = mix(tint, '#FFFFFF', 0.25); g.fillRect(X0 - 30, py, X1 - X0 + 60, 12);
+    g.globalAlpha = 0.7; g.fillStyle = mix(tint, '#FFFFFF', 0.5); g.fillRect(X0 - 30, py, X1 - X0 + 60, 1.6); g.globalAlpha = 1;
+    let x = X0;
+    for (const id of absList) {
+      const w = span * (ABS_W[id] || 1) / tw, n = PATIO[id].n | 0;
+      try { G.Tools[id].horizon(g, { x0: x, x1: x + w, y: py, k: 0.12, t, n, tint, haze: 0.5, night: nightK }); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
+      x += w + gap;
     }
   }
 
@@ -659,6 +766,78 @@
       g.fillStyle = '#6F747C'; g.fillRect(ma, 47, mb - ma, 20); g.fillStyle = '#5E636B'; g.fillRect(ma, 64, mb - ma, 3);
       g.fillStyle = '#E8E2D2'; for (let x = Math.ceil(ma / 60) * 60; x < mb; x += 60) g.fillRect(x, 56, 28, 2.5);
     }
+  }
+
+  /* ---------- FAIXA DA FRENTE: rua, calçada, cerquinhas, caixotes, arrozal, poças, placas (enche o chão até o HUD) ----------
+     Tudo numa imagem pronta por pedaço (FG_W de largura, 3 variações); por cima, só uns shibas andando na calçada e a poça brilhando.
+     Reaproveita arte que já existe: Nature (cerca, arrozal, moita, árvore, pedra, flor, capim) e as fichas prop_* (caixote, cone, barril…). */
+  const FG_Y = 66, FG_W = 720, FG_H = 820;
+  const FG_SIGNS = ['DEVAGAR · SHIBAS TRABALHANDO', '347 DIAS SEM DERRUBAR ARROZ', 'PROIBIDO COCHILAR NA PÁ', 'VAGA DO CARRINHO DE MÃO', 'BUZINE SE GOSTA DE ONIGIRI', 'CUIDADO: PATAS NA PISTA'];
+  const PROPS = ['prop_caixote', 'prop_cone', 'prop_barril', 'prop_lixeira', 'prop_venda'];
+  function fgTile(vi, k) {
+    const A = E.Assets, rd = A && A.ready ? PROPS.filter(id => A.ready(id)).length : 0;
+    return cached('fg|' + vi + '|' + rd, FG_W, FG_H, k, cg => {
+      const N = E.Nature, R = i => rnd(i * 3.7 + vi * 91.3), W = FG_W;
+      // meio-fio + rua (asfalto, faixa tracejada, bordas)
+      Draw.box(cg, -4, 0, W + 8, 9, '#B7AFA2', { ol: 1.2, top: '#D3CCC0' });
+      cg.fillStyle = '#6F747C'; cg.fillRect(0, 9, W, 76); cg.fillStyle = '#5E636B'; cg.fillRect(0, 9, W, 4); cg.fillStyle = '#7C818A'; for (let i = 0; i < 14; i++) cg.fillRect(R(i) * W, 20 + R(i + 40) * 58, 6 + R(i + 9) * 10, 1.6);
+      cg.fillStyle = '#D9D4C6'; cg.fillRect(0, 17, W, 2); cg.fillRect(0, 78, W, 2);
+      cg.fillStyle = '#F3C94A'; for (let x = 10; x < W; x += 90) cg.fillRect(x, 46, 46, 3.4);
+      // meio-fio + calçada de lajotas
+      Draw.box(cg, -4, 85, W + 8, 10, '#B7AFA2', { ol: 1.2, top: '#D3CCC0' });
+      cg.fillStyle = '#DCCFB4'; cg.fillRect(0, 95, W, 30); cg.fillStyle = '#C7B898'; for (let x = 0; x < W; x += 30) cg.fillRect(x, 95, 1.6, 30); cg.fillRect(0, 109, W, 1.4); cg.fillStyle = '#EDE3CC'; cg.fillRect(0, 95, W, 2);
+      // gramado (o resto até embaixo)
+      if (N && N.ground) N.ground(cg, -2, W + 2, 125, { depth: FG_H - 125, t: 0, seed: vi * 7 + 3, tufts: true });
+      else { cg.fillStyle = PAL.grass; cg.fillRect(0, 125, W, FG_H - 125); }
+      // escurece pro fundo (lê como "mais perto da câmera")
+      const gr = cg.createLinearGradient(0, 360, 0, FG_H); gr.addColorStop(0, 'rgba(40,60,20,0)'); gr.addColorStop(1, 'rgba(40,60,20,.38)'); cg.fillStyle = gr; cg.fillRect(0, 360, W, FG_H - 360);
+      // fileira 1 (logo atrás da calçada): cerca de madeira em lances, caixotes, cones, placas, moitas
+      const y1 = 176;
+      if (N && N.fence) { N.fence(cg, 20 + R(1) * 40, 250 + R(2) * 40, y1 - 4, { kind: 'wood' }); N.fence(cg, 430 + R(3) * 30, 690, y1 - 4, { kind: 'wood' }); }
+      const art = (id, x, y, sc) => { if (A && A.ready && A.ready(id)) A.draw(cg, id, 0, Math.round(x), Math.round(y), { scale: sc }); };
+      if (N && N.bush) { N.bush(cg, 300 + R(4) * 30, y1 + 4, { s: 1.2, seed: vi + 1 }); N.bush(cg, 380 + R(5) * 20, y1 + 6, { kind: 'azalea', s: 1, seed: vi + 2 }); }
+      art('prop_caixote', 120 + R(6) * 60, y1 + 4, 2); art('prop_caixote', 150 + R(6) * 60, y1 + 4, 2); art('prop_caixote', 135 + R(6) * 60, y1 + 4 - 28, 2);
+      art('prop_cone', 40 + R(7) * 30, y1 + 8, 1.6); art('prop_cone', 74 + R(7) * 30, y1 + 8, 1.6);
+      art(PROPS[2 + (vi % 3)], 560 + R(8) * 60, y1 + 6, 2);
+      { const sx = 470 + R(9) * 40, txt = FG_SIGNS[(vi * 2) % FG_SIGNS.length];
+        cg.fillStyle = LINE; cg.fillRect(sx + 18, y1 - 30, 4.4, 34); cg.fillRect(sx + 90, y1 - 30, 4.4, 34); cg.fillStyle = PAL.woodL; cg.fillRect(sx + 19.2, y1 - 30, 2, 33); cg.fillRect(sx + 91.2, y1 - 30, 2, 33);
+        Draw.sign(cg, sx, y1 - 62, 112, 34, txt, { col: vi % 2 ? '#2F4670' : '#C8423A', ink: PAL.cream }); }
+      // arrozal (2 lances) com taipa
+      if (N && N.paddy) { N.paddy(cg, 18 + R(10) * 20, 236, 320, 44, { t: 0, seed: vi * 3 + 1 }); N.paddy(cg, 380 + R(11) * 20, 240, 310, 40, { t: 0, seed: vi * 3 + 2 }); }
+      // fileira 2: poças que refletem o céu, pedras, flores, sacos
+      for (let i = 0; i < 2; i++) {
+        const px = 90 + i * 330 + R(12 + i) * 120, py = 344 + R(14 + i) * 30, pw = 38 + R(16 + i) * 26;
+        cg.fillStyle = LINE; cg.beginPath(); cg.ellipse(px, py, pw + 1.4, pw * 0.26 + 1.4, 0, 0, TAU); cg.fill();
+        cg.fillStyle = '#9FC6E0'; cg.beginPath(); cg.ellipse(px, py, pw, pw * 0.26, 0, 0, TAU); cg.fill();
+        cg.fillStyle = '#CFE6F4'; cg.fillRect(px - pw * 0.5, py - 2, pw * 0.45, 1.6); cg.fillRect(px + pw * 0.1, py + 2, pw * 0.3, 1.4);
+      }
+      if (N && N.rock) { N.rock(cg, 260 + R(18) * 40, 360, { w: 26, h: 15, seed: vi + 4, moss: true }); N.rock(cg, 640 + R(19) * 40, 372, { w: 20, h: 12, seed: vi + 5 }); }
+      if (N && N.flower) for (let i = 0; i < 9; i++) N.flower(cg, R(20 + i) * W, 400 + R(30 + i) * 40, { kind: ['tanpopo', 'daisy', 'tulip', 'ajisai'][(i + vi) % 4], seed: i + vi * 9, t: 0 });
+      if (G.Props && G.Props.sack) { const sk = G.Props.sack('plain').cv; cg.imageSmoothingEnabled = false; for (let i = 0; i < 3; i++) cg.drawImage(sk, 200 + R(40) * 200 + i * 13 - (i === 2 ? 19 : 0), 386 - sk.height - (i === 2 ? 12 : 0)); }
+      // fileira 3: cerca de bambu + árvores e moitas maiores (mais perto)
+      if (N && N.fence) N.fence(cg, -4, W + 4, 492, { kind: 'bamboo' });
+      if (N && N.tree) { N.tree(cg, 130 + R(41) * 120, 520, { kind: ['round', 'pine', 'maple'][vi % 3], s: 1.1, seed: vi + 7 }); N.tree(cg, 520 + R(42) * 120, 526, { kind: ['pine', 'sakura', 'round'][vi % 3], s: 1.25, seed: vi + 8 }); }
+      if (N && N.bush) for (let i = 0; i < 3; i++) N.bush(cg, 40 + i * 240 + R(43 + i) * 60, 540, { s: 1.4, seed: vi * 5 + i, kind: i === 1 ? 'azalea' : 'bush' });
+      if (N && N.paddy) N.paddy(cg, 60 + R(47) * 30, 600, 600, 56, { t: 0, seed: vi * 3 + 9 });
+      if (N && N.grassTuft) for (let i = 0; i < 16; i++) N.grassTuft(cg, R(50 + i) * W, 300 + R(70 + i) * 480, { seed: i + vi * 13, t: 0, s: 1 + R(90 + i) * 0.8 });
+    });
+  }
+  function drawFront(g, v, t, z) {
+    const a = Math.max(L.L - 20, v.x0 - 10), b = Math.min(L.R + 10, v.x1 + 10); if (b <= a || v.y1 < FG_Y) return;
+    const k = z < 0.32 ? 0.35 : z < 0.62 ? 0.6 : 1;
+    g.save(); g.beginPath(); g.rect(L.L - 20, FG_Y - 2, L.R - L.L + 30, FG_H + 4); g.clip();
+    const i0 = Math.floor((a - L.L) / FG_W), i1 = Math.floor((b - L.L) / FG_W);
+    for (let i = i0; i <= i1; i++) { const o = fgTile(Math.floor(rnd(i * 5.1 + 2) * 3), k); blitText(g, o, L.L + i * FG_W, FG_Y); }
+    // vivo: shibas indo e vindo na calçada (com saco ou não), um a cada ~700 de pátio
+    const yS = FG_Y + 112, sp = 700, n = Math.ceil((L.R - L.L) / sp);
+    for (let j = 0; j < n; j++) {
+      const dir = j % 2 ? 1 : -1, u = ((t * 22 * (0.8 + rnd(j) * 0.4) * dir + j * 260) % sp + sp) % sp, x = L.L + j * sp + u;
+      if (x < v.x0 - 40 || x > v.x1 + 40) continue;
+      const carry = j % 3 === 0;
+      E.drawShiba(g, x, yS + (j % 2) * 6, carry ? 'carry' : 'walk', t + j, { pal: MIXED[j % MIXED.length], face: dir, scale: 0.8 }); figs++;
+      if (carry && G.Props && G.Props.sack) { const sk = G.Props.sack('plain').cv; g.imageSmoothingEnabled = false; g.drawImage(sk, x - 6, yS + (j % 2) * 6 - 44, 12, 13); }
+    }
+    g.restore();
   }
 
   /* ---------- quadro ---------- */
@@ -687,6 +866,7 @@
     const dt = lastT === null ? 0 : clamp(t - lastT, 0, 0.1); lastT = t;
     drawGiants(g, v, t, nk);
     drawGround(g, v);
+    drawFront(g, v, t, z);
     // turmas de mão: as mais perto do centro da tela ganham figuras soltas; o resto (ou zoom aberto) vai em imagem de grupo
     const cx = (v.x0 + v.x1) / 2, vis = [];
     for (const id of PA.HAND) { const H = L.hand[id]; if (H.x1 + 60 < v.x0 || H.x0 - 120 > v.x1) continue; vis.push(id); }
@@ -735,7 +915,7 @@
     for (const id of PA.MID) groups.push({ id, kind: 'mid', x0: L.mid[id].x0, x1: L.mid[id].x1 });
     for (const id of PA.GIANT) groups.push({ id, kind: 'giant', x0: L.band[id][0], x1: L.band[id][1] });
     return {
-      x0: L.L, x1: L.R, y0: -420, y1: 70, gate: L.gate, groups,
+      x0: L.L, x1: L.R, y0: -620, y1: FG_Y + FG_H, gate: L.gate, groups,
       cam: { x: (L.L + L.R) / 2, y: -220, z: 0.2 },
       camHand: { x: (L.handL + L.R) / 2, y: -100, z: 0.48 },
       camMid: { x: (L.midL + L.midR) / 2, y: -170, z: 0.34 },
