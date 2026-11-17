@@ -185,10 +185,11 @@
   // drawFactory(g, t, x, y, k, nível): desenha a fábrica em qualquer lugar (o jogo usa AX/K; demos e prints usam o que quiserem)
   function drawFactory(g, t, ax, ay, kk, L) {
     g.save(); g.translate(ax, ay); g.scale(kk, kk); const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
-    for (let i = 0; i < 5; i++) { const q = (t * 0.35 + i / 5) % 1, rr = 2 + Math.round(q * (3 + Math.min(4, L / 2))); g.globalAlpha = 0.85 * (1 - q); blitAt(g, fumaca(rr), -168 + q * 14 + Math.sin(t + i) * 2 - rr, -104 - q * 40 + rr); }
+    const artOk = !!(E.Assets && E.Assets.ready && E.Assets.ready('fabrica_kome_pack'));   // galpão gerado já tem chaminé e fumaça
+    if (!artOk) for (let i = 0; i < 5; i++) { const q = (t * 0.35 + i / 5) % 1, rr = 2 + Math.round(q * (3 + Math.min(4, L / 2))); g.globalAlpha = 0.85 * (1 - q); blitAt(g, fumaca(rr), -168 + q * 14 + Math.sin(t + i) * 2 - rr, -104 - q * 40 + rr); }
     g.globalAlpha = 1;
-    blitAt(g, chamine(), -174, -58);
-    blitAt(g, galpao(S.tod > 0.62), -268, 0);
+    if (!artOk) blitAt(g, chamine(), -174, -58);
+    if (!(E.Assets && E.Assets.ready && E.Assets.ready('fabrica_kome_pack') && (E.Assets.draw(g, 'fabrica_kome_pack', S.tod > 0.62 ? E.Assets.get('fabrica_kome_pack').anims.noite.from : E.Assets.get('fabrica_kome_pack').anims.fumaca.from + (Math.floor(t * 6) % 6), -206, 2, { scale: 1 }), true))) blitAt(g, galpao(S.tod > 0.62), -268, 0);
     const pile = 2 + Math.min(10, L * 2);
     for (let i = 0; i < pile; i++) blitAt(g, saco(), -142 + (i % 2) * 9 - (i >> 2) * 2, -Math.floor(i / 4) * 8 - ((i >> 1) % 2) * 4);
     const nK = L >= 2 ? Math.min(3, L - 1) : 0;
@@ -211,6 +212,7 @@
 
   G.Ind = {
     init(a) { api = a; S = G.S; },
+    sim: { cost, pay, run },   // tools/longo.js
     paintFilter: () => TWIN_PAINT[G.twinPaint || run().paint || 'kawaii'],
     showTwin: () => api.visit && api.visit(lastRX - 300, 0.24, -420, 3.8),   // câmera vai até a gêmea (compra de peça e testes)
     applyStats, fillPanel, tick, drawBack, drawFront, drawFactory, zoomK, specChoice, speedK, run,

@@ -249,6 +249,7 @@
 
   G.Islands = {
     init(a) { api = a; S = G.S; },
+    sim: { seedCost, buy, gain },   // tools/longo.js
     // chegada numa ilha nova: game.js chama depois do boot (cutscene se não for teste, senão só o aviso)
     arrival() { if (!S.stats.arrive) return null; S.stats.arrive = 0; return isl(); },
     applyStats, priceMul, matsFor, makeSave, fill, island: isl, index: idx, next: () => D.ISLANDS[nextIdx()], lap, gain, travel, buy, seedCost, lvl,

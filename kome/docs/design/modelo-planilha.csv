@@ -1,0 +1,5 @@
+tipo;nome;desc;preco;x;y;escala;receita
+bicho;Raposinha de Lenço;passeia pelo quintal;110;0.55;36;2;gerador=bicho; especie=raposa; acessorio=lenco
+bicho;Coelho Branco;pula na grama;80;0.25;38;2;gerador=bicho; especie=coelho; cores.pelo=#F6F1E4
+enfeite;Poste de luz;acende à noite;40;0.15;8;2;gerador=props; modelo=Poste
+evento;Festival da Lua;;;;;;

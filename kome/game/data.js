@@ -86,6 +86,39 @@
     { id: 'koshi', name: 'Núcleo Koshihikari', ellipse: { cx: 4900, cy: 0, rx: 1150, ry: 900 }, hard: 24, val: 6, slope: 12, col: '#E8B93A', tex: 'gold' },
   ];
   D.POCKETS = { n: 28, r: [35, 90], mult: 8, minDepth: 60 };
+  // ITENS (fase 0 do PLANO-100H; game/items.js): cada material da montanha vira um item no Armazém. 1 saco = ITEM_AREA px².
+  // Material de ilha sem item aqui vira item automático. Produtos da fábrica (onigiri, mochi...) entram aqui na fase 1.
+  D.ITEM_AREA = 100;
+  D.ITEMS = [
+    { id: 'arroz', n: 'Arroz solto', d: 'o de todo dia', val: 1, mat: 'solto', icon: 'rice' },
+    { id: 'integral', n: 'Arroz integral', d: 'prensado, mais firme', val: 1.6, mat: 'prensado', icon: 'rice' },
+    { id: 'negro', n: 'Arroz negro', d: 'do fundo da montanha', val: 3.5, mat: 'mochi', icon: 'rice' },
+    { id: 'koshi', n: 'Koshihikari', d: 'o núcleo dourado', val: 6, mat: 'koshi', icon: 'star' },
+    // produtos da Fábrica (Cardápio): entram no Armazém como contador quando a fábrica faz
+    { id: 'cozido', n: 'Arroz Cozido', d: 'fofinho, ainda soltando vapor', val: 2, icon: 'rice', fab: true },
+    { id: 'onigiri', n: 'Onigiri', d: 'o triângulo que move o Japão', val: 4, icon: 'onigiri', fab: true },
+    { id: 'mochi', n: 'Mochi', d: "batido no pilão com muito esforço e um 'yoisho!'", val: 12, icon: 'star', fab: true },
+    { id: 'mochi_dourado', n: 'Mochi Dourado', d: 'dizem que dá sorte. dizem que dá MUITA sorte', val: 48, icon: 'star', fab: true },
+  ];
+
+  /* ---------------- FÁBRICA (docs/design/fabrica.md, aprovada; game/fabrica.js) ----------------
+     Valores em "× 1 item cru". Cada item que a Doca puxa vale (renda de cavar/s × pct) / (itens/s da doca): assim a fábrica
+     acompanha o jogo do começo ao fim. O cru já foi pago ao cavar: vender paga só o que o produto vale A MAIS (val - base).
+     Preços em segundos de renda (G.priceIps). */
+  D.FAB = {
+    beltSpeed: 2, priceK: 3.0,   // priceK: calibrado no tools/fabrica-sim.js (a tabela abaixo é a da spec)
+    dock: { pct0: 0.025, pctLvl: 0.035, pctMax: 0.25, items0: 1, itemsGrow: 1.4, price: 30 },   // items0 1 = a Panela grátis dá conta sozinha
+    lvl: { speed: 0.25, cost: 1.6, max: 10 },
+    unlock: { pilao: 600, dourado: 20 },
+    items: { raw: { val: 1, base: 1 }, gold: { val: 6, base: 6 }, cozido: { val: 2, base: 1 }, onigiri: { val: 4, base: 1 },
+      mochi: { val: 12, base: 2 }, mochid: { val: 48, base: 8 } },
+    machines: {
+      panela: { len: 1, price: 40, recipes: [{ in: { raw: 1 }, out: 'cozido', time: 1.0 }] },
+      moldadora: { len: 1, price: 45, recipes: [{ in: { cozido: 1 }, out: 'onigiri', time: 1.0 }] },
+      pilao: { len: 2, price: 240, recipes: [{ in: { cozido: 2 }, out: 'mochi', time: 3.5 }, { in: { cozido: 2, gold: 1 }, out: 'mochid', time: 4.5 }] },
+      divisor: { len: 1, price: 0, recipes: [] },
+    },
+  };
 
   /* ---------------- combo, sacos, onigiri ---------------- */
   D.COMBO = { max: 30, cap: 1.5, gain: 2.5, idle: 0.45, decay: 12, furiaHold: 10, furiaSec: 5, furiaMult: 2 };

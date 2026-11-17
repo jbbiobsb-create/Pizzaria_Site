@@ -43,6 +43,9 @@
     H('Volta ao Japão (ilhas)');
     (D.ISLANDS || []).forEach((I, i) => btn('ir pra ' + I.n.replace('Ilha Flutuante de ', ''), () => { K.setIsland(i); }));
     btn('evento da ilha', () => K.islandEvent && K.islandEvent(true));
+    btn('FÁBRICA', () => { S.ended = true; if (G.Fab) { G.Fab.unlock(); G.Fab.open(); } });
+    btn('fábrica: tudo liberado', () => { S.ended = true; if (G.Fab) { G.Fab.unlock(); G.Fab.unlockAll(); G.Fab.skipTut(); K.addMoney(1e15); G.Fab.open(); } });
+    btn('tela de cima (E.Board)', () => { if (G.Topo) G.Topo.open(); });
     btn('mapa das ilhas', () => { S.ended = true; if (G.IslandsUI) G.IslandsUI.open(); });
     btn('cutscene Volta ao Japão', () => K.play && K.play('ilhas'));
     btn('tutorial das ilhas', () => { S.ended = true; if (G.IslandsUI) G.IslandsUI.tour(); });

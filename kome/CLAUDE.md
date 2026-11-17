@@ -16,6 +16,12 @@ Duas metades com o mesmo peso: o jogo (`game/`) e a engine Pixxel, reaproveitáv
   (letras = cores, ver topo de tools/content.js); `node tools/content.js` gera game/content.js; `node tools/galeria.js`
   mostra todos os desenhos numa imagem. Painel `index.html?dev` pra ajustar números jogando.
 
+## Pedido de ARTE (bicho, casa, loja, máquina pequena, objeto de rua): NÃO desenhar pixel à mão. Escrever ficha com
+`receita: { gerador: 'bicho'|'casa'|'maquina'|'props', ... }` em conteudo/, rodar `node tools/arte.js --galeria` (usa os
+geradores do Pixxel Estúdio em estudio-pro/, sem abrir janela; sai animado) e olhar %TEMP%/kome-arte.png.
+`node tools/arte.js --opcoes` lista espécies, modelos e ajustes. Várias receitas numa mensagem = arte quase de graça.
+Máquinas GRANDES do jogo continuam vetoriais (bagger.js etc.).
+
 ## Ferramentas (tools/, usam o Chrome/Edge do PC via playwright-core em tools/node_modules)
 - `node tools/check.js` — erros de página, sobreposição/fora da tela/botão pequeno/texto miúdo em desktop, celular deitado
   e em pé, + resumo do playtest. Código 1 se falhar.
@@ -24,6 +30,10 @@ Duas metades com o mesmo peso: o jogo (`game/`) e a engine Pixxel, reaproveitáv
   entregar qualquer coisa visual e OLHAR as 3 folhas (3 imagens = barato).
 - `node tools/monkey.js [--celular] [--partidas N]` — robô apertando tudo aleatório; só imprime problemas.
 - `node tools/playtest.js --auto` (balanço) · `--rungs` (14 ferramentas) · `--verbose`.
+- `node tools/longo.js --horas 10` — SIMULADOR DE HORAS: campanha → infinito → ilhas com jogador guloso; mostra duração das
+  fases e TRECHOS CHATOS (>10 min sem novidade). Rodar depois de mexer em balanço do pós-final/ilhas.
+- `node tools/planilha.js arq.csv [--substituir]` — planilha (tipo;nome;desc;preco;x;y;escala;receita) vira fichas + arte.
+- `node tools/alicerce.js` — itens, save antigo migrando, E.Sim/offline. Rodar sempre que mexer em save ou em camada nova.
 - `node tools/shot.js index.html out.png --query "?fresh&nointro" --eval "js" --size 844x390`.
 - Ganchos no console: `__kome` (S, addMoney, buyTool, buyNode, buyHouse, setTool, step, hold, aim, play, newMountain, dbg).
 - Se `tools/node_modules` sumir: `cd tools && npm i`.

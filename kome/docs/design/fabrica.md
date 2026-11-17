@@ -1,5 +1,5 @@
 # Fábrica (MVP)
-status: rascunho
+status: aprovado
 camada: 3 · Fábrica   ·   depende de: alicerce (itens tipados, Armazém, E.Sim/offline, save com migração), belts.js
 
 ## Em uma frase
@@ -181,3 +181,26 @@ Também ficou como regra (era improviso do protótipo): máquina recebe por trá
 
 ## Perguntas do programador
 (o programador escreve aqui; o designer responde embaixo de cada uma)
+
+**P1 · Offline.** O jogo ainda NÃO tem ganho offline (ajudantes não cavam com o jogo fechado). Proposta: nesta versão a
+fábrica offline só termina o que já estava nas esteiras/máquinas (pouco, mas honesto) e a carta mostra isso. Ganho offline
+de verdade (ajudantes cavando fora) vira um item separado, com spec própria, porque mexe no balanço do jogo inteiro.
+
+**P2 · Valor em ¥.** "1 saco cru" no jogo varia com o material e com os multiplicadores (árvore, combo, Oficina, ilha).
+Proposta: o produto vale `val do item × valor que aquele mesmo saco teria vendido cru NAQUELE momento`. Assim a fábrica
+acompanha a progressão sozinha e a meta "10% / 30% / teto 50%" fica estável do começo ao fim.
+
+**P3 · Armazém.** Hoje o Armazém conta todo saco cavado (que já foi vendido). Proposta: ele continua sendo contador/coleção;
+a Doca de Entrada desvia X% do valor cavado ANTES de vender (como a spec diz) e o produto pronto entra no Armazém só como
+contador do Cardápio. Nada é pago duas vezes.
+
+**P4 · Onde abre.** "Abre no final da campanha": depois de aberta uma vez, fica disponível em todas as ilhas desde o
+minuto 1 (só rende o que você cava)? Proposta: sim.
+
+**P5 · Arroz Dourado.** No jogo é o material do Núcleo Koshihikari (item `koshi`). Bolsão dourado multiplica valor, não
+vira material. Proposta: só o koshi conta como Arroz Dourado pro pilão.
+
+**P6 · Montanha por trás.** A tela de cima hoje pausa a montanha. Proposta (seguindo a spec): com a fábrica aberta, o Kome
+para mas ajudantes, frota, Goma e eventos continuam.
+
+Se ninguém mudar nada, o programador segue as propostas acima.

@@ -329,6 +329,21 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - Dá pra PILOTAR a Bagger Gêmea (Menu › Trocar ferramenta, depois das 4 peças): a Bagger do jogador vira a Gêmea
   (m.k = 1,5 no bagger.js escala geometria e desenho; duas rodas; pintura; cava 2x; câmera abre) e o Goma leva a 293 pro
   outro lado da montanha (faturando). Atalho no admin: "pilotar a Gêmea".
+- FÁBRICA DE ARTE POR RECEITA: Pixxel Estúdio completo em estudio-pro/ (fonte src/ + build.py + HTML). engine/assets.js
+  (Pixxel.Assets/Pixxel.Anim) entrou na engine. Ficha com `receita:` -> `node tools/arte.js` gera conteudo/arte/<id>.pixxel.js
+  (spritesheet + animações) com os geradores do Estúdio em headless; content.js embute; a Casa toca a animação
+  (bicho anda, enfeite parado). Exemplos: gato laranja de laço (9 animações), lojinha de onigiri.
+  Licença: pacotes Ironblossom/Lantern Street dentro do Estúdio podem ser usados/modificados em jogo, NÃO redistribuídos
+  como assets nem usados pra treinar IA; Lantern Street pede crédito "Background art by KATO".
+- Construções trocadas por arte gerada (conteudo/estrutura-*.js, tipo 'estrutura'; desenhadas por art() em game-world.js,
+  com versão de noite): prédio da onigiri, sobrado da vila, oficina, barraca de ekiben, galpão KOME PACK (com fumaça), e a
+  cidade do fundo (machiya, lojas, sobrados, prédios, templo e castelo, com névoa). Se a arte não carregar, cai no desenho antigo.
+
+## Laboratório da expansão 100 h (17/11)
+- `tools/longo.js`: simula horas de jogo (3 h em ~50 s). 1ª rodada achou: ilha 2 (Kyushu) acaba em ~4 min (sementes fortes
+  demais); ~18 min sem novidade logo depois do final da campanha; Oficina/Gêmea quase não são compradas no infinito (caro).
+  NÃO mexido: o endgame está sendo refeito pelo designer. Rodar de novo quando a spec chegar.
+- `tools/planilha.js`: CSV → fichas + arte animada. Testado com raposinha, coelho, poste de luz, Festival da Lua.
 
 ## 16/11 (noite) — A VOLTA AO JAPÃO (fim de jogo)
 - Cutscene `ilhas` (cutscenes.js) toca depois do cartão do final (ou 2,5 s depois de carregar um save antigo que já terminou);
@@ -356,3 +371,25 @@ Testes: python+playwright com ?fresh&nointro; ganchos window.__kome (play, newMo
 - Viagem de verdade: sem ?nointro a chegada toca a cutscene `chegada`; com ?nointro (testes) só o aviso.
 - NÃO TESTADO nesta rodada (o dono testa): playtest --auto (campanha e --island 1/2: os eventos de ilha aceleram um pouco as
   ilhas), monkey.js, sweep.js (telas de celular do mapa/tutorial), música das ilhas de ouvido, Volta 2 inteira.
+
+## Fase 0 do PLANO-100H (alicerce) — FEITA
+- Itens tipados: game/items.js (G.Items) + D.ITEMS/D.ITEM_AREA (data.js). Cavar (Kome, ajudantes, frota, esteira) enche
+  S.stats.inv/got por tipo; o ¥ continua igual (balanço não mudou: --auto 63 min). Aba "Armazém" na Casa.
+- engine/sim.js: E.Sim (tick por tempo + catchUp offline em passos). G.Sim criado no boot; G.Sim.tick no update;
+  no load roda catchUp do tempo fora (até 8 h) e guarda em S.away (nenhum sistema tem offline ainda: fábrica é o 1º).
+- Save versionado: SAVE_V=5 + MIGR no topo do game.js (v4 -> 5 cria o armazém). tools/alicerce.js testa tudo isso.
+- Ficou pra fase 1 (de propósito): carta de ganho offline, 2ª tela vista de cima, tipos novos de ficha (receita, maquina...).
+- Endgame "A Volta ao Japão" (designer) entrou por merge; shisas viraram arte gerada (estrutura-shisa), estátua do Kome-Oh
+  maior, cartão da casa com nome curto. longo.js diz Kyushu em 4 min mas playtest --island 2 --seeds dá 68 min: suspeita
+  de bug no longo.js (não no jogo) — investigar antes de mexer em balanço de ilha.
+
+## Enquanto a spec da Fábrica não chega (17/11)
+- longo.js estava CERTO: sementes maximizam rápido (ganho = sqrt(earned) inclui o modo infinito). Ilhas com sementes no
+  máximo: 4 / 2,8 / 7,3 / 12,9 min. Relatório e opções em docs/design/ACHADO-sementes.md (decisão do designer).
+- engine/board.js (E.Board) + game/topo.js: tela de cima 8×6 "Fábrica · em obras", esteira de teste por arraste, pausa a
+  montanha. Atalho no ?dev: "tela de cima (fábrica)". Testada no celular deitado (célula 42 px).
+- Casa com vida: cerebrinho (anda até um ponto, para fazendo algo) pros bichos de ficha, shibas amigos e o Kome.
+- Enfeites das ilhas saíram de trás do silo (pátio esticado: vão livre 1420-1470).
+- Bichos novos por planilha: Ursinho, Lobinho, Panda; Tanuki virou arte gerada (mesmo id).
+
+## Fábrica (fase 1) — feita e no jogo (17/11). Estado e o que falta: docs/PASSAGEM-fabrica.md

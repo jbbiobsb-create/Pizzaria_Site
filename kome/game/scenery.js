@@ -175,7 +175,20 @@
     P.rect(7, 6, 2, 2, '#2A1A10').rect(12, 6, 2, 2, '#2A1A10');
     if (open) P.rect(8, 10, 5, 2, '#7A2A1A').rect(8, 10, 1, 1, '#FFFFFF').rect(12, 10, 1, 1, '#FFFFFF'); else P.rect(8, 10, 5, 1, d);
   });
-  function shisas(g, x) {
+  function shisas(g, x, t) {
+    // arte gerada (conteudo/estrutura-shisa.js): par de guardiões sentados num pedestal, um de frente pro outro
+    const A = E.Assets;
+    if (A && A.ready && A.ready('shisa')) {
+      const a = A.get('shisa'), r = (a.anims || {}).sentar || { from: 0, to: 0 }, n = r.to - r.from + 1;
+      for (const s of [-1, 1]) {
+        const px = x + s * 120;
+        Draw.box(g, px - 34, -16, 68, 16, '#B7AFA2', { r: 2 }); Draw.box(g, px - 38, -20, 76, 6, '#D6CFC4', { r: 2 });
+        g.save(); g.translate(px, 0); g.scale(-s, 1);
+        A.draw(g, 'shisa', r.from + (Math.floor(((t || 0) + (s > 0 ? 0.7 : 0)) * 4) % n), -Math.round(a.w * 1.2), -20 - Math.round(a.h * 2.4) + 4, { scale: 2.4 });
+        g.restore();
+      }
+      return;
+    }
     const k = 3, sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
     for (const s of [-1, 1]) { const cv = sShisa(s > 0); g.save(); g.translate(x + s * 120, 0); g.scale(-s, 1); g.drawImage(cv, -cv.width * k / 2, -cv.height * k + k, cv.width * k, cv.height * k); g.restore(); }
     g.imageSmoothingEnabled = sm;
@@ -202,12 +215,13 @@
     g.strokeStyle = '#B98A5A'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, -96); g.stroke();
     ['#A9CB8A', '#FFF6F4', '#F6B6C8'].forEach((c, i) => Draw.circle(g, x, -40 - i * 20, 11, c, { ol: 2 }));
   }
-  // enfeites por ilha (x de mundo no pátio, longe dos prédios da régua)
+  // enfeites por ilha (x de mundo no pátio, longe dos prédios da régua). O pátio é esticado (game-world SP): o silo fica
+  // em ~1520-1600 e a casinha em ~1360-1410, então o vão livre da direita é 1420-1470
   const YARD = {
-    neve(g, v, t) { if (N) { N.tree(g, 720, 0, { kind: 'pine', s: 1.4, seed: 2, t }); N.tree(g, 1130, 0, { kind: 'pine', s: 1.2, seed: 5, t }); } snowman(g, 1500, t); snowman(g, 930, t + 1); },
-    vulcao(g, v, t) { steamRocks(g, 1500, t); lavaRock(g, 930, t); if (N) N.tree(g, 1130, 0, { kind: 'maple', s: 1.1, seed: 3, t }); },
-    praia(g, v, t, S, X) { shisas(g, X.torii); umbrella(g, 1500, t); palm(g, 1130, 0, 1.1, t); palm(g, 700, 0, 1.25, t + 2); },
-    mochi(g, v, t) { giantMochi(g, 690, t, '#FFF6F4', 0); giantMochi(g, 930, t, '#F6C6D2', 1); giantMochi(g, 1520, t, '#A9CB8A', 2); dango(g, 1130, t); },
+    neve(g, v, t) { if (N) { N.tree(g, 720, 0, { kind: 'pine', s: 1.4, seed: 2, t }); N.tree(g, 1130, 0, { kind: 'pine', s: 1.2, seed: 5, t }); } snowman(g, 1442, t); snowman(g, 930, t + 1); },
+    vulcao(g, v, t) { steamRocks(g, 1442, t); lavaRock(g, 930, t); if (N) N.tree(g, 1130, 0, { kind: 'maple', s: 1.1, seed: 3, t }); },
+    praia(g, v, t, S, X) { shisas(g, X.torii, t); umbrella(g, 1425, t); palm(g, 1130, 0, 1.1, t); palm(g, 700, 0, 1.25, t + 2); },
+    mochi(g, v, t) { giantMochi(g, 690, t, '#FFF6F4', 0); giantMochi(g, 930, t, '#F6C6D2', 1); giantMochi(g, 1442, t, '#A9CB8A', 2); dango(g, 1130, t); },
   };
 
   // estátua do KOME-OH no pátio depois do Grande Final (desenhada uma vez numa imagem e reaproveitada)
@@ -220,15 +234,15 @@
       try {
         const m = T.create({ mode: 'normal', x: 0, pilot: (S.look && S.look.pal) || 'kome' }), INP = { x: 0, y: 0, floor: () => 0, face: 1, digging: false };
         for (let i = 0; i < 90; i++) T.update(m, 1 / 60, INP);
-        const k = 0.3, c = document.createElement('canvas'); c.width = 900 * k; c.height = 1180 * k;
+        const k = 0.5, c = document.createElement('canvas'); c.width = 900 * k; c.height = 1180 * k;
         const cg = c.getContext('2d'); cg.translate(c.width / 2, c.height - 6); cg.scale(k, k); T.draw(cg, m);
         statue = { c, k };
       } catch (e) { statue = { c: null }; }
     }
-    Draw.box(g, x - 120, -34, 240, 34, '#B7AFA2', { r: 3 }); Draw.box(g, x - 132, -44, 264, 12, '#D6CFC4', { r: 3 });
+    Draw.box(g, x - 160, -34, 320, 34, '#B7AFA2', { r: 3 }); Draw.box(g, x - 172, -44, 344, 12, '#D6CFC4', { r: 3 });
     Draw.sign(g, x - 60, -30, 120, 22, 'KOME-OH', { col: '#F3C94A', ink: LINE });
     if (statue.c) g.drawImage(statue.c, x - statue.c.width / 2, -44 - statue.c.height + 6);
-    for (let i = 0; i < 3; i++) { const a = t * 1.2 + i * 2.1; g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 4 + i); Draw.circle(g, x + Math.cos(a) * 130, -220 + Math.sin(a) * 60, 4, '#FFF3B0', { ol: 0 }); } g.globalAlpha = 1;
+    for (let i = 0; i < 3; i++) { const a = t * 1.2 + i * 2.1; g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 4 + i); Draw.circle(g, x + Math.cos(a) * 170, -340 + Math.sin(a) * 90, 4, '#FFF3B0', { ol: 0 }); } g.globalAlpha = 1;
   }
   function yard(g, v, t, S, X) {
     legendStatue(g, v, t, S); const sc = prof(); if (sc && YARD[sc.yard] && v.x0 < 1900) YARD[sc.yard](g, v, t, S, X); }

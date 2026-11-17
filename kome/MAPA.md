@@ -7,6 +7,16 @@ Leia isto ANTES de procurar no código. Use os nomes de função com `grep -n "f
 |---|---|---|
 | Roupinha (acessório desenhado), enfeite da Casa, bichinho, evento, loja | `node tools/novo.js <tipo> "Nome"` cria a ficha; editar o desenho em texto; `node tools/content.js` | `conteudo/*.js` → gera `game/content.js` |
 | Cor nova do Kome (paleta) | entrada em `PALS` + ficha `roupa` com `cor:` | `engine/shiba.js`, `conteudo/` |
+| Arte animada por receita (bicho, casa, loja, objeto) | ficha com `receita:` + `node tools/arte.js --galeria` (geradores do Pixxel Estúdio) | `conteudo/` → `conteudo/arte/*.pixxel.js` |
+| Conteúdo em massa (planilha CSV → fichas + arte) | `node tools/planilha.js conteudo.csv` (modelo em `docs/design/modelo-planilha.csv`) | `conteudo/` |
+| Medir 10–100 h de jogo (onde fica chato) | `node tools/longo.js --horas 10` (3 h simuladas ≈ 50 s) | ganchos `sim` em infinite/industry/home/islands |
+| Itens / Armazém (arroz por tipo) | `G.Items` (add, has, take, put, list, fill) · dados `D.ITEMS`, `D.ITEM_AREA` | `game/items.js`, aba Armazém da Casa |
+| Sistema que roda por tempo / offline | `G.Sim = E.Sim()`; `G.Sim.add(id, {tick, offline})`; resultado do tempo fora em `S.away` | `engine/sim.js`, boot em `game.js` |
+| Save novo de camada | sobe `SAVE_V` e põe 1 função em `MIGR` (topo do game.js); testar com `node tools/alicerce.js` | `game/game.js` |
+| Segunda tela vista de cima (grid, toque, arrastar caminho, barra de ferramentas) | `E.Board({cols, rows, tools, drawCell, onTap, onDrag})` | `engine/board.js` |
+| Tela da Fábrica (em obras; só no ?dev) | `G.Topo.open()`; esteira de teste na memória | `game/topo.js` |
+| FÁBRICA (grid, máquinas, doca, divisor, save, offline) | `G.Fab` (open, place, belt, state, persist) · números `D.FAB` · metas `node tools/fabrica-sim.js` | `game/fabrica.js` (ver docs/PASSAGEM-fabrica.md) |
+| Vida no quintal da Casa (bichos andam/param) | `brain()`/`think()` | `game/home.js` |
 | Ver todos os desenhos | `node tools/galeria.js` → 1 imagem | `%TEMP%/kome-galeria.png` |
 | Ajustar números jogando | abrir o jogo com `?dev` (painel de desenvolvedor) | `game/dev.js` |
 

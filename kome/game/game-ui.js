@@ -268,7 +268,9 @@
     } else toolBtn.set(S.ended ? { title: 'Oficina', sub: 'melhorar as máquinas', progress: 1, state: '' } : { title: 'Bagger 293', sub: 'a maior máquina do mundo', progress: 1, state: '' });
     const h = D.HOUSE[S.house];
     if (h) {
-      const c = api.houseCost(h), lock = S.tool + 1 < h.tier ? 'precisa: ' + D.TOOLS[h.tier - 1].name : null;
+      // nome curto pro cartão não vazar ("Escavadeira Hidráulica" -> "Escavadeira")
+      const tn = D.TOOLS[h.tier - 1].name, sn = tn.length <= 12 ? tn : tn.startsWith('Pá ') ? 'Pá Elétrica' : tn.split(' ')[0];
+      const c = api.houseCost(h), lock = S.tool + 1 < h.tier ? 'precisa: ' + sn : null;
       const teaser = h.teaser && S.house < 2 ? h.teaser : c;
       flyer.set({ title: h.n, sub: lock || (S.money >= c ? yen(c) + ' · pagar!' : 'faltam ' + yen(c - S.money)), progress: 0.12 + 0.88 * U.clamp(S.money / teaser, 0, 1), state: lock ? 'off' : S.money >= c ? 'can' : '' });
     } else flyer.set({ title: 'Casa pronta', sub: 'onsen quentinho', progress: 1, state: '' });

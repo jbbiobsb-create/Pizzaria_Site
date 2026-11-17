@@ -37,6 +37,8 @@ const SCENES = [
   ['pátio', `__kome.step(7); __kome.playAs(1); __kome.P.x=900; __kome.S.camX=900; __kome.step(0.5);`],
   ['oficina', `${CLOSE} __kome.playAs(13); __kome.S.ended=true; __kome.addMoney(1e12); KomeGame.Inf.open();`],
   ['Bagger Gêmea', `${CLOSE} const r=KomeGame.Ind.run(); r.giant=4; r.fab=6; __kome.step(1); KomeGame.Ind.showTwin();`],
+  ['fábrica', `${CLOSE} KomeGame.Fab.unlock(); KomeGame.Fab.unlockAll(); KomeGame.Fab.skipTut(); KomeGame.Fab.place('moldadora',4,2,0,true); KomeGame.Fab.belt([[0,4],[1,4],[2,4],[3,4],[4,4],[5,4],[6,4],[7,4]],0); KomeGame.Fab.place('panela',1,4,0,true); KomeGame.Fab.place('pilao',3,4,0,true); KomeGame.Fab.place('divisor',6,4,0,true); for(let i=0;i<200;i++){const a=__kome.aim();__kome.hold(a.x,a.y,true);__kome.step(0.1);} KomeGame.Fab.open();`],
+  ['fábrica tutorial', `KomeGame.Fab.close(); KomeGame.Fab.open(); KomeGame.Fab.tut(0);`],
 ];
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });

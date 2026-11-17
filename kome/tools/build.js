@@ -4,7 +4,7 @@
    Um projeto novo só precisa de <link href="pixxel.css"> + <script src="pixxel.js">. */
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..'), ENG = path.join(ROOT, 'engine');
-const ORDER = ['core', 'pix', 'shiba', 'fx', 'terrain', 'rig', 'audio', 'nature', 'ui'];
+const ORDER = ['core', 'pix', 'assets', 'shiba', 'fx', 'terrain', 'rig', 'audio', 'nature', 'ui'];
 const extra = fs.readdirSync(ENG).filter(f => f.endsWith('.js') && ORDER.indexOf(f.slice(0, -3)) < 0).map(f => f.slice(0, -3)).sort();
 const files = ORDER.concat(extra).filter(n => fs.existsSync(path.join(ENG, n + '.js')));
 const stamp = new Date().toISOString().slice(0, 10);

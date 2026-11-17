@@ -54,9 +54,18 @@
   // avisos ficam quietos durante cutscene e com o cartão final aberto
   const ui = fn => { if (!FAST && UI && HUD.ready && !cs && !S.endOpen) { try { fn(); } catch (e) { console.warn('[kome] ui', e); } } };
 
+  /* SAVE VERSIONADO (fase 0 do PLANO-100H): cada camada nova sobe SAVE_V e põe UMA migração aqui. Save antigo nunca quebra:
+     E.Save chama migrate(d, versãoAntiga) e roda todas as migrações que faltam, em ordem. */
+  const SAVE_V = 5;
+  const MIGR = {
+    5: d => { d.stats = d.stats || {}; d.stats.inv = d.stats.inv || {}; d.stats.got = d.stats.got || {}; },   // armazém de itens
+  };
+  function migrate(d, v) { for (let k = (v | 0) + 1; k <= SAVE_V; k++) if (MIGR[k]) MIGR[k](d); return d; }
+
   function saveNow() {
     if (!save) return;
     if (slideFX) slideFX.flush();   // arroz que está rolando volta pro mapa antes de gravar
+    if (G.Fab && G.Fab.persist) G.Fab.persist();   // layout da fábrica vai junto
     const d = save.data || save.load();
     d.v = 4; d.tv = 3; d.mount = S.mount; d.island = S.island | 0; d.shape = S.shape; d.mountT = S.mountT; d.closet = S.closet; d.look = S.look; d.home = S.homeData; d.day = S.day; d.dayT = S.dayT; d.dayEarn = S.dayEarn; d.money = S.money; d.earned = S.earned; d.tool = S.tool; d.tree = Object.keys(S.own); d.house = S.house; d.time = S.time; d.dug = S.dug;
     d.ended = S.ended; d.bagX = S.bagX; d.px = P.x; d.stats = S.stats; d.opts = S.opts; d.h = heap.serialize();
@@ -286,6 +295,7 @@
     if (res.got > 0) {
       S.dug += res.got; S.lastDigX = x; S.digT = 0; S.win.got += res.got; S.win.val += res.val;
       S.pend += res.val * yenK();
+      if (G.Items) G.Items.add(res.byMat);   // armazém: o saco também vira item do seu tipo
       if (!FAST && res.gold > 0 && parts) parts.sparkle(x, y, 2, GOLD_SPK);
       if (nListen) em.emit('dug', res, x, y);
     }
@@ -353,6 +363,7 @@
   function credit(v, kind, crit) {
     if (!smallShow && G.Inf) v *= G.Inf.evMult();   // evento do modo infinito (rush, veio, festival)
     if (!smallShow && G.Islands) v *= G.Islands.evMult();   // evento da ilha (nevasca, erupção, maré, gravidade fofa)
+    if (G.Fab && kind !== 2 && !smallShow) G.Fab.dig(v);   // fábrica: ritmo de cavar (a Doca puxa uma % disso)
     S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind !== 1) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma) S.col.pulse = 1; S.win.inc[kind] += v;
     if (nListen && !smallShow) em.emit('pay', v, kind);
     if (FAST) return;
@@ -490,7 +501,7 @@
       digO.pow = cur.pow * st.powMul;
       const x = helpBase() + U.rnd(-6, 6) * Math.min(cur.r, 30);
       const res = heap.dig(x, st.help * EC.HR * A * st.hm * d, Math.max(18, r), digO);
-      if (res.got > 0) { S.dug += res.got; pay(res.val * kHV, x, heap.surf(x), 1); }
+      if (res.got > 0) { S.dug += res.got; pay(res.val * kHV, x, heap.surf(x), 1); if (G.Items) G.Items.add(res.byMat); }
     }
     for (let i = 0; i < S.fleet.length; i++) {
       const f = S.fleet[i]; if (!st.pilots[f.id]) continue;
@@ -498,7 +509,7 @@
       digO.pow = t.pow * (G.Inf ? G.Inf.powK(f.id) : 1);
       const x = f.biteX ? f.biteX : S.footX + 30 + ((i * 97 + (S.time * 13 | 0) * 53) % 260);   // cava onde a máquina está, se ela estiver cavando
       const res = heap.dig(x, EC.PR * t.A * st.pm * d, t.r * 1.5, digO);
-      if (res.got > 0) { S.dug += res.got; pay(res.val * kHV * wk, x, heap.surf(x), 1); }
+      if (res.got > 0) { S.dug += res.got; pay(res.val * kHV * wk, x, heap.surf(x), 1); if (G.Items) G.Items.add(res.byMat); }
     }
     // o Kome trocou pra uma ferramenta antiga: o Goma pilota a melhor máquina e ela continua faturando (a renda não cai)
     if ((S.play >= 0 && TOOLS[S.tool] !== cur) || S.twinPlay) {
@@ -730,7 +741,7 @@
     // as esteiras alisam o arroz embaixo delas
     digO.pow = 99;
     const fl = heap.digRect(m.x - 330, Math.min(m.x + 330, fx0 - 12), 160 * dt, digO);
-    if (fl.got > 0) { S.dug += fl.got; S.pend += fl.val * yenK(); }
+    if (fl.got > 0) { S.dug += fl.got; S.pend += fl.val * yenK(); if (G.Items) G.Items.add(fl.byMat); }
     payStep(m, T, dt, payNow, 1);
   }
 
@@ -969,10 +980,12 @@
   const PORTRAIT = () => MOBILE && innerHeight > innerWidth * 1.1;   // celular em pé: aviso de virar cobre tudo e o jogo pausa
   let rotDrawn = false;
   function update(dt) {
+    if (G.Sim && !cs && !PORTRAIT()) G.Sim.tick(dt);   // sistemas por tempo (E.Sim): rodam mesmo com a Casa ou o mapa abertos
     if (PORTRAIT()) { if (!rotDrawn) { const c = document.getElementById('k-rot-cv'); if (c) { const cg = c.getContext('2d'); cg.imageSmoothingEnabled = false; E.drawShiba(cg, 48, 74, 'wag', 1, { scale: 2, pal: (S.look && S.look.pal) || 'kome' }); rotDrawn = true; } } return; }
     if (cs) { csTick(dt); return; }
     if (G.Home && G.Home.isOpen()) { G.Home.tick(dt); return; }
-    if (G.IslandsUI && G.IslandsUI.isOpen() && !FAST) return;   // mapa das ilhas aberto: o jogo espera
+    if (G.IslandsUI && G.IslandsUI.isOpen() && !FAST) return;
+    if (G.Topo && G.Topo.isOpen() && !FAST) return;   // tela de cima aberta: a montanha espera (G.Sim continua)   // mapa das ilhas aberto: o jogo espera
     if (S.quake > 0) S.quake = Math.max(0, S.quake - dt * 1.4);
     S.time += dt;
     E.Exhaust.tint = S.own.cB ? DIESEL_TINT : null;   // cB Diesel Premium: fumaça azul
@@ -1853,12 +1866,17 @@
     g = stage.g; input = E.Input(stage);
     cam = E.Camera(W, H); parts = E.Particles(1600); floaters = E.Floaters(120); fx = E.ScreenFX(stage);
     G.cam = cam;
-    save = E.Save(window.KOME_DEV || /[?&]dev\b/.test(location.search) ? 'kome-admin-v4' : 'kome-no-japao-v4', { version: 4, defaults: () => ({}) });   // admin tem save separado (não estraga o progresso de verdade)
+    save = E.Save(window.KOME_DEV || /[?&]dev\b/.test(location.search) ? 'kome-admin-v4' : 'kome-no-japao-v4', { version: SAVE_V, migrate, defaults: () => ({}) });   // admin tem save separado (não estraga o progresso de verdade)
+    // sistemas por tempo (fase 0 do PLANO-100H): cada camada nova registra aqui o seu tick/offline
+    G.Sim = E.Sim ? E.Sim() : null;
+    if (G.Sim && G.Items) G.Sim.add('itens', G.Items.sim);
     if (!/fresh/.test(location.search)) { try { const pre = save.load(); S.mount = (pre && pre.mount | 0) || 1; S.island = (pre && pre.island) | 0; S.shape = (pre && pre.shape) || ''; } catch (e) { /* */ } }
     buildWorld();
     computeStats();
     let had = false;
     if (/fresh/.test(location.search)) save.clear(); else had = loadState();   // ?fresh = começa do zero (testes)
+    // tempo fora: sistemas com offline(dt) andam até 8 h (nenhum ainda; a fábrica da fase 1 é o primeiro). Resultado em S.away
+    if (had && G.Sim) { const sec = Math.min(8 * 3600, save.offlineAtLoad || 0); S.away = { sec, res: G.Sim.catchUp(sec) }; }
     S.heapArea = heap.area; S.footX = scanFoot();
     cur = TOOLS[S.tool];
     setTool(S.tool);
@@ -1872,6 +1890,10 @@
     if (UI) UI.sound = !S.opts.mute;
     if (G.Ind) G.Ind.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
       visit: (x, z, y, dur) => { visit = { x, t: 0, dur: dur || 3.5, z, y, far: true }; } });   // câmera vai mostrar a Bagger gêmea do outro lado
+    if (G.Topo) G.Topo.init({ sfx });
+    if (G.Fab) G.Fab.init({ save: () => saveNow(),
+      banner: () => { sfx('fanfare'); ui(() => UI.banner('O galpão KOME PACK abriu!', 'toque em Fábrica, no topo da tela', { icon: 'star', tone: 'gold', dur: 4 })); },
+      toast: (t, sub) => ui(() => UI.toast(t, { icon: 'yen', tone: 'gold', sub })) });
     if (G.Islands) G.Islands.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), fast: () => FAST, gift: giftSacks,
       busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()),
       onEvent: e => { if (!FAST && e.erupt) quake(0.5); if (!FAST && e.frost) sfx('whoosh'); },

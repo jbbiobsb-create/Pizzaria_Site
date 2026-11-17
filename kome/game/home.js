@@ -50,6 +50,27 @@
     fallDraw(g);
   }
 
+  /* ---- VIDA NO QUINTAL: cada bicho tem um cerebrinho (anda até um ponto, para fazendo alguma coisa, anda de novo) ----
+     posição em fração da largura visível (o quintal se ajeita quando o painel abre). */
+  const brains = {};
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  function brain(id, home, range, idles, spd) {
+    let b = brains[id];
+    if (!b) b = brains[id] = { f: home + (Math.random() * 2 - 1) * range * 0.5, tf: home, st: 'idle', T: Math.random() * 3, face: Math.random() < 0.5 ? -1 : 1, idle: idles[0], home, range, idles, spd };
+    b.home = home; b.range = range; b.idles = idles; return b;
+  }
+  function think(dt) {
+    for (const id in brains) {
+      const b = brains[id]; b.T -= dt;
+      if (b.st === 'walk') {
+        const d = b.tf - b.f, s = b.spd * dt; b.face = d < 0 ? -1 : 1;
+        if (Math.abs(d) <= s) { b.f = b.tf; b.st = 'idle'; b.idle = pick(b.idles); b.T = 2.5 + Math.random() * (b.idle === 'dormir' || b.idle === 'sleep' || b.idle === 'lie' ? 7 : 4); }
+        else b.f += Math.sign(d) * s;
+      } else if (b.T <= 0) { b.st = 'walk'; b.tf = b.home + (Math.random() * 2 - 1) * b.range; if (Math.abs(b.tf - b.f) < 0.03) b.tf = b.home + (b.f > b.home ? -1 : 1) * b.range * 0.7; }
+    }
+  }
+  const PET_IDLE = ['parado', 'sentar', 'abanar', 'comer', 'feliz', 'parado', 'dormir', 'pular'];
+
   /* ---- cena do quintal ---- */
   function scene(g, t, W, H) {
     const N = E.Nature, th = D.themeById[H0().theme] || D.THEMES[0];
@@ -89,21 +110,34 @@
     }
     // enfeites e bichinhos vindos das fichas (conteudo/): pixel em texto, posição e escala da ficha
     for (const it of D.DECOR) {
-      if (!it.fromCard || !has(it.id) || !it.sprite) continue;
+      if (!it.fromCard || !has(it.id)) continue;
+      if (it.anim && E.Anim && E.Assets && E.Assets.ready && E.Assets.ready(it.anim)) {   // arte animada (Pixxel Estúdio)
+        const A = it._a || (it._a = E.Anim(it.anim, 'parado')), anda = it.kind === 'pet', hx0 = it.onde.x !== undefined ? it.onde.x : 0.5;
+        const an = (E.Assets.get(it.anim) || {}).anims || {};
+        const b = anda ? brain(it.id, hx0, 0.16, PET_IDLE.filter(n => an[n]), 0.05) : null;
+        A.play(!anda ? (it.tagParado || 'parado') : b.st === 'walk' ? (it.tagAnda || 'andar') : b.idle); if (b) A.flip = b.face < 0; A.update(1 / 60);
+        const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
+        A.draw(g, Math.round(X(b ? b.f : hx0)), Math.round(GY + (it.onde.y || 0)), { scale: Math.max(1, Math.round((it.escala || 2) * k)) });
+        g.imageSmoothingEnabled = sm; continue;
+      }
+      if (!it.sprite) continue;
       const cv = it.sprite(); if (!cv) continue;
-      const sc = Math.max(1, Math.round((it.escala || 2) * k)), ox = X(it.onde.x !== undefined ? it.onde.x : 0.5), oy = GY + (it.onde.y || 0) + (it.anda ? -Math.abs(Math.sin(t * 3 + ox)) * 3 : 0);
-      const px = it.anda ? ox + Math.sin(t * 0.4 + ox) * 30 : ox, sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
+      const hx1 = it.onde.x !== undefined ? it.onde.x : 0.5, bb = it.anda ? brain(it.id, hx1, 0.14, ['parado'], 0.05) : null, ox = X(bb ? bb.f : hx1);
+      const sc = Math.max(1, Math.round((it.escala || 2) * k)), oy = GY + (it.onde.y || 0) + (bb && bb.st === 'walk' ? -Math.abs(Math.sin(t * 9 + hx1 * 7)) * 3 : 0);
+      const px = ox, sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
       g.drawImage(cv, Math.round(px - cv.width * sc / 2), Math.round(oy - cv.height * sc), cv.width * sc, cv.height * sc); g.imageSmoothingEnabled = sm;
     }
     // amigos shiba (cada um no seu canto, trocando de pose) e o Kome na frente da casa
-    const spots = [[0.17, 64], [0.31, 84], [0.6, 40]], poses = ['sit', 'wag', 'lie', 'sleep', 'sniff'];
+    const spots = [[0.17, 64], [0.31, 84], [0.6, 40]], poses = ['sit', 'wag', 'lie', 'sleep', 'sniff', 'scratch', 'stretch', 'yawn', 'eat', 'dance'];
     D.DECOR.filter(x => x.pal && has(x.id)).forEach((f, i) => {
-      const sp = spots[i % spots.length], pose = poses[Math.floor(t / 4 + i * 1.7) % poses.length];
-      E.drawShiba(g, X(sp[0]), GY + sp[1], pose, t + i, { scale: 1.8 * k, pal: f.pal, flip: i % 2 === 1 });
+      const sp = spots[i % spots.length], b = brain('shiba_' + f.id, sp[0], 0.12, poses, 0.06);
+      const pose = b.st === 'walk' ? 'walk' : b.idle;
+      E.drawShiba(g, X(b.f), GY + sp[1], pose, t + i, { scale: 1.8 * k, pal: f.pal, flip: b.face < 0 });
     });
-    { const pose = Math.floor(t / 5) % 3 === 2 ? 'wag' : 'sit', kx = X(0.47), ky = GY + 62, ks = 2.1 * k;
-      E.drawShiba(g, kx, ky, pose, t, { scale: ks, pal: S.look.pal || 'kome' });
-      if (S.look.acc && G.drawAccAt && E.shibaAnchor) { const hd = E.shibaAnchor(pose, t, 'head'); G.drawAccAt(g, t, { x: kx + hd.x * ks, y: ky + hd.y * ks, f: 1, sc: ks, a: 0 }, S.look.acc); } }
+    { const kb = brain('kome', 0.47, 0.08, ['sit', 'wag', 'sit', 'stretch', 'yawn', 'dance', 'sniff'], 0.05);
+      const pose = kb.st === 'walk' ? 'walk' : kb.idle, kx = X(kb.f), ky = GY + 62, ks = 2.1 * k;
+      E.drawShiba(g, kx, ky, pose, t, { scale: ks, pal: S.look.pal || 'kome', flip: kb.face < 0 });
+      if (S.look.acc && G.drawAccAt && E.shibaAnchor) { const hd = E.shibaAnchor(pose, t, 'head'), fl = kb.face < 0 ? -1 : 1; G.drawAccAt(g, t, { x: kx + hd.x * ks * fl, y: ky + hd.y * ks, f: fl, sc: ks, a: 0 }, S.look.acc); } }
     if (has('borboletas') && bf) bf.draw(g);
     if (has('vagalumes') && ff) ff.draw(g, 0.9);
     if (th.tint) { g.fillStyle = th.tint; g.fillRect(0, 0, W, H); }
@@ -116,7 +150,7 @@
   /* ---- painel ---- */
   function buildPanel() {
     panel = UI.panel({ title: 'Casa do Kome', icon: 'house', side: 'right', dim: false, onClose: () => { if (open) close(true); },
-      tabs: [{ id: 'jardim', label: 'Jardim', icon: 'tree' }, { id: 'bichos', label: 'Bichinhos', icon: 'paw' }, { id: 'roupa', label: 'Roupas', icon: 'hat' }, { id: 'tema', label: 'Tema', icon: 'star' }, { id: 'caderno', label: 'Caderno', icon: 'book' }, { id: 'ilhas', label: 'Ilhas', icon: 'star' }] });
+      tabs: [{ id: 'jardim', label: 'Jardim', icon: 'tree' }, { id: 'bichos', label: 'Bichinhos', icon: 'paw' }, { id: 'roupa', label: 'Roupas', icon: 'hat' }, { id: 'tema', label: 'Tema', icon: 'star' }, { id: 'caderno', label: 'Caderno', icon: 'book' }, { id: 'ilhas', label: 'Ilhas', icon: 'star' }, { id: 'armazem', label: 'Armazém', icon: 'rice' }] });
     panel.el.classList.add('k-homepanel');
     const back = UI.button(panel.body, { title: 'Voltar a cavar', icon: 'rice', size: 'sm', tone: 'red', onClick: () => close() });
     panel.body.insertBefore(back.el || back, panel.body.firstChild);
@@ -157,6 +191,7 @@
     const T = panel.tabs, own = H0().own;
     if (G.Goals && T.pane('caderno') && !T.pane('caderno').firstChild) G.Goals.mountIn(T.pane('caderno'));
     if (G.Islands && T.pane('ilhas')) G.Islands.fill(T.pane('ilhas'));
+    if (G.Items && T.pane('armazem')) G.Items.fill(T.pane('armazem'));
     const st = it => own[it.id] ? { on: !H0().hide[it.id], sub: H0().hide[it.id] ? 'guardado · toque pra pôr' : 'no quintal · toque pra guardar' }
       : { on: false, dim: S.money < cost(it) || (it.needs && !own[it.needs]), sub: '¥ ' + U.fmt(cost(it)) };
     const pick = it => { if (own[it.id]) { if (H0().hide[it.id]) delete H0().hide[it.id]; else H0().hide[it.id] = 1; api.save(); } else buy(it); };
@@ -205,6 +240,7 @@
     const W = api.W(), H = api.H(), th = D.themeById[H0().theme] || D.THEMES[0];
     if (pond && has('lago')) { pond.update(dt); if (koi && has('carpas')) koi.update(dt); }
     if (bf) bf.update(dt); if (ff) ff.update(dt); if (birds) birds.update(dt);
+    think(dt);
     fallTick(dt, W, H, th.fall, 1);
     if (Math.floor(t0 * 2) !== Math.floor((t0 - dt) * 2) && panel && panel.isOpen) refreshPrices();
   }
@@ -224,6 +260,7 @@
 
   G.Home = {
     init(a) { api = a; S = G.S; badge(); },
+    sim: { cost, buy },   // tools/longo.js
     open: openHome, close, tick, draw, worldFX, clothFound, noteNew,
     isOpen: () => open,
     data: H0,

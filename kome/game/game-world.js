@@ -60,55 +60,20 @@
   })();
   const CIT = { wall: ['#F3EBDB', '#E4D6BE', '#D6C3A3'], wood: ['#9A6A44', '#7A5034', '#5E3C26'], roof: ['#5C6672', '#46505C', '#343C46'], red: ['#D8574E', '#B8423B', '#93302A'],
     flat: [['#E8B27A', '#D19A63'], ['#9EC1D8', '#7FA5BF'], ['#E8D58A', '#CDB86A'], ['#B9C9A0', '#9DB083']] };
+  const CITY_ART = ['cid_machiya', 'cid_loja', 'cid_sobrado', 'cid_predio', 'cid_loja_azul', 'cid_templo', 'cid_predio2', 'cid_machiya', 'cid_loja', 'cid_sobrado', 'cid_predio2', 'cid_loja_azul', 'cid_predio'];
   function drawCity(g, y, t, S, cam) {
     const shops = S.stats && S.stats.run && S.stats.run.shops ? Object.values(S.stats.run.shops).reduce((a, b) => a + (b | 0), 0) : 0;
-    const n = Math.min(CITY.length, Math.max(0, S.tool - 3) * 2 + S.house * 2 + ((S.mount || 1) - 1) * 4 + shops + (S.island | 0) * 3);
-    if (n <= 0) return;
-    const L = N && N.light ? N.light(S.tod || 0.4) : { night: 0 }, night = L.night || 0, haze = 0.32;
-    const H3 = c => mix(c, PAL.sky, haze), ink = mix(PAL.line, PAL.sky, 0.45);
-    const off = cam.x * 0.18, span = CITY.length * 58;
-    const idx = CITY.map((c, i) => i).sort((a, b) => Math.abs(a - 13) - Math.abs(b - 13)).slice(0, n).sort((a, b) => CITY[a].h - CITY[b].h);
-    g.save(); g.lineJoin = 'round'; g.lineWidth = 1; g.strokeStyle = ink;
-    const box = (x, yy, w, h, c3) => { g.fillStyle = H3(c3[0]); g.fillRect(x, yy, w, h); g.fillStyle = H3(c3[1]); g.fillRect(x + w - 3, yy, 3, h); g.strokeRect(x + 0.5, yy + 0.5, w - 1, h - 1); };
-    const roof = (x, yy, w, lip, hgt, c3) => {   // telhado de kawara com beiral curvo
-      g.fillStyle = H3(c3[1]); g.beginPath(); g.moveTo(x - lip, yy); g.quadraticCurveTo(x + w * 0.2, yy - hgt * 0.35, x + w * 0.3, yy - hgt); g.lineTo(x + w * 0.7, yy - hgt); g.quadraticCurveTo(x + w * 0.8, yy - hgt * 0.35, x + w + lip, yy); g.closePath(); g.fill(); g.stroke();
-      g.fillStyle = H3(c3[0]); g.fillRect(x + w * 0.3, yy - hgt, w * 0.4, 2);
-    };
-    const win = (x, yy, w, h, lit) => { g.fillStyle = lit ? 'rgba(255,214,120,' + (0.6 + 0.35 * night) + ')' : H3('#8FB0C8'); g.fillRect(x, yy, w, h); };
+    const n = Math.min(26, Math.max(0, S.tool - 3) * 2 + S.house * 2 + ((S.mount || 1) - 1) * 4 + shops + (S.island | 0) * 3);
+    if (n <= 0 || !E.Assets || !E.Assets.ready || !E.Assets.ready('cid_machiya')) return;
+    const span = 26 * 46, off = cam.x * 0.18;
+    // ordem de crescimento: do meio pra fora; o castelo aparece no centro quando a cidade fica grande
+    const idx = Array.from({ length: 26 }, (_, i) => i).sort((a, b) => Math.abs(a - 13) - Math.abs(b - 13)).slice(0, n).sort((a, b) => (a * 7) % 5 - (b * 7) % 5);
+    g.save();
+    try { g.filter = 'saturate(0.75) brightness(1.06) contrast(0.85)'; } catch (e) { /* névoa de distância */ }
     for (const i of idx) {
-      const c = CITY[i]; let x = Math.round(((c.x - off) % span + span) % span - 60);
-      if (x > W + 70 || x < -80) continue;
-      const lit = k => night > 0.15 && ((c.seed + k * 37) % 7) < 5;
-      if (c.k === 'machiya') {
-        box(x, y - c.h, c.w, c.h, CIT.wall);
-        g.fillStyle = H3(CIT.wood[1]); for (let k = x + 4; k < x + c.w - 4; k += 5) g.fillRect(k, y - c.h + 6, 2, c.h - 10);   // treliça de madeira
-        roof(x, y - c.h, c.w, 4, 9, CIT.roof);
-      } else if (c.k === 'loja') {
-        box(x, y - c.h, c.w, c.h, CIT.wall);
-        const nc = c.c < 0.5 ? CIT.red : [ '#3F6FA8', '#335C8C', '#284A72' ];
-        g.fillStyle = H3(nc[0]); g.fillRect(x + 3, y - c.h + 6, c.w - 6, 8); g.strokeRect(x + 3.5, y - c.h + 6.5, c.w - 7, 7);   // noren
-        g.fillStyle = H3(nc[2]); for (let k = x + 8; k < x + c.w - 4; k += 7) g.fillRect(k, y - c.h + 6, 1, 8);
-        win(x + 5, y - c.h + 16, c.w - 10, 6, lit(1));
-        roof(x, y - c.h, c.w, 3, 7, CIT.roof);
-        const sw = Math.sin(t * 2 + c.seed) * 1.2;   // lanterna vermelha balançando
-        g.fillStyle = H3(night > 0.15 ? '#FF8A5C' : CIT.red[0]); g.beginPath(); g.ellipse(x + c.w + 2 + sw, y - c.h + 12, 2.5, 3.5, 0, 0, 6.3); g.fill(); g.stroke();
-      } else if (c.k === 'predio') {
-        const fc = CIT.flat[c.seed % 4];
-        box(x, y - c.h, c.w, c.h, [fc[0], fc[1]]);
-        for (let wy = y - c.h + 5, row = 0; wy < y - 8; wy += 9, row++) {
-          for (let wx = x + 4, k = 0; wx < x + c.w - 6; wx += 8, k++) win(wx, wy, 4, 4, lit(row * 5 + k));
-          g.fillStyle = H3('#EDE7DA'); g.fillRect(x + 2, wy + 5, c.w - 4, 1);   // varandinha
-        }
-        g.fillStyle = H3(CIT.roof[2]); g.fillRect(x - 1, y - c.h - 2, c.w + 2, 3);
-        if (c.seed % 3 === 0) { g.fillStyle = H3('#FFFFFF'); g.fillRect(x + c.w - 9, y - c.h - 9, 5, 7); g.strokeRect(x + c.w - 8.5, y - c.h - 8.5, 4, 6); }   // caixa d'água
-      } else if (c.k === 'pagode') {
-        for (let f = 0; f < 4; f++) { const fw = 26 - f * 4, fx = x + f * 2, fy = y - f * 13; box(fx, fy - 9, fw, 9, CIT.red); roof(fx, fy - 9, fw, 5, 5, CIT.roof); }
-        g.fillStyle = H3('#C8A23A'); g.fillRect(x + 12, y - 70, 2, 14);
-      } else if (c.k === 'castelo') {
-        box(x - 6, y - 14, 46, 14, ['#B7AFA2', '#9E968A']);   // base de pedra
-        for (let f = 0; f < 3; f++) { const fw = 36 - f * 9, fx = x - 1 + f * 4.5, fy = y - 14 - f * 14; box(fx, fy - 10, fw, 10, CIT.wall); roof(fx, fy - 10, fw, 5, 6, CIT.roof); win(fx + fw / 2 - 2, fy - 7, 4, 3, lit(f)); }
-        g.fillStyle = H3('#D9B34A'); g.fillRect(x + 12, y - 62, 2, 3); g.fillRect(x + 20, y - 62, 2, 3);   // shachihoko dourados
-      }
+      const x = ((i * 46 - off) % span + span) % span - 60; if (x > W + 80 || x < -90) continue;
+      const id = i === 13 && n > 14 ? 'cid_castelo' : CITY_ART[(i * 5) % CITY_ART.length];
+      art(g, id, x, 0.55, y);
     }
     g.restore();
   }
@@ -275,6 +240,15 @@
     const cv = sTerreno(), sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false;
     g.drawImage(cv, Math.round(x - cv.width * k / 2), Math.round(y - cv.height * k + 2 * k), cv.width * k, cv.height * k); g.imageSmoothingEnabled = sm;
   }
+  // ARTE GERADA (tools/arte.js, conteudo/estrutura-*.js): construções no traço do Kome, versão de dia e de noite
+  function isNight() { return N && N.light && G.S ? N.light(G.S.tod || 0.4).night > 0.25 : false; }
+  function art(g, id, x, k, y, tag) {
+    const A = E.Assets; if (!A || !A.ready || !A.ready(id)) return false;
+    const a = A.get(id), an = a.anims || {}, tg = tag || (isNight() && an.noite ? 'noite' : 'dia'), r = an[tg] || an.dia || { from: 0, to: 0 };
+    const f = r.from === r.to ? r.from : r.from + (Math.floor((G.S ? G.S.time : 0) * 6) % (r.to - r.from + 1));
+    A.draw(g, id, f, Math.round(x), Math.round(y === undefined ? 2 * k : y), { scale: k });
+    return true;
+  }
   function casinha(g, x) { pblit(g, sCasinha(), x + 6, SPK); }
   function poste(g, x, t) {
     pblit(g, sPoste(), x + 4, SPK);
@@ -283,16 +257,16 @@
     const lit = N && N.light ? N.light(G.S && G.S.tod || 0.4).night : 0;
     if (lit > 0.2) { g.globalAlpha = lit * 0.5; Draw.circle(g, x + 28, -170, 16, '#FFE7A0', { ol: 0 }); g.globalAlpha = 1; }
   }
-  function vila(g, x) { pblit(g, sVila(), x, SPK); }
+  function vila(g, x) { if (!art(g, 'sobrado_vila', x, 2)) pblit(g, sVila(), x, SPK); }
   function torre(g, x) {
     pblit(g, sTorre(), x, SPK);
     Draw.cable(g, [x - 108, -496], [x - 700, -420], { sag: 60, lw: 1.5 });
   }
   function fabrica(g, x, t, S) {
     const on = !!S.own.m5;
-    pblit(g, sFabrica(on), x, SPK + 1);
+    if (!art(g, 'predio_onigiri', x, 3)) pblit(g, sFabrica(on), x, SPK + 1);
     if (on) for (let i = 0; i < 3; i++) {                       // baforadas em forma de onigiri
-      const u = (t * 0.22 + i / 3) % 1, px = x + 113 + Math.sin(u * 5 + i) * 14, py = -720 - u * 170, s = 10 + u * 18;
+      const u = (t * 0.22 + i / 3) % 1, px = x + 113 + Math.sin(u * 5 + i) * 14, py = -270 - u * 170, s = 10 + u * 18;
       g.globalAlpha = 0.85 * (1 - u);
       g.fillStyle = PAL.white; g.beginPath(); g.moveTo(px, py - s); g.lineTo(px + s, py + s * 0.7); g.lineTo(px - s, py + s * 0.7); g.closePath(); g.fill();
       g.globalAlpha = 1;
@@ -332,7 +306,7 @@
     { node: 'm1', x: X.barraca, draw(g, x, t, S) { const n = S.own.m_b ? 5 : 3; for (let i = 0; i < n; i++) sh(g, x - 60 - i * 26, 6, i % 2 ? 'sit' : 'wag', t + i, ['shiro', 'kuro', 'goma', 'cha', 'aka'][i], 1); } },
     { node: 'm_a', x: X.barraca, draw(g, x, t) { pblit(g, sBalanca(Math.sin(t * 3) > 0 ? 1 : 0), x + 46, SPK); } },
     { node: 'm_c', x: 1250, draw(g, x, t) { if (N && N.nobori) for (let i = 0; i < 5; i++) N.nobori(g, 1000 + i * 150, 0, { t: t + i, col: i % 2 ? PAL.red : '#2F4670' }); } },
-    { node: 'm_e', x: 640, draw(g, x) { pblit(g, sEkiben(), x, SPK); Draw.text(g, 'EKIBEN', x, -73, { size: 11, col: PAL.cream, sw: 0, weight: 900 }); } },
+    { node: 'm_e', x: 640, draw(g, x) { if (!art(g, 'ekiben', x, 2)) pblit(g, sEkiben(), x, SPK); Draw.text(g, 'EKIBEN', x, -73, { size: 11, col: PAL.cream, sw: 0, weight: 900 }); } },
     { node: 'm_f', x: 330, draw(g, x) { pblit(g, sCaixotes(), x, SPK); } },
     { node: 'm9', x: 1010, draw(g, x) { pblit(g, sSake(), x - 8, SPK); } },
     { node: 'm10', x: 620, draw(g, x, t) { pblit(g, sOutdoor(), x, SPK + 1); sh(g, x - 70, -326, 'proud', t, 'kome', 1, 2); Draw.text(g, 'KOME', x + 40, -390, { size: 30, col: PAL.red, sw: 5 }); Draw.text(g, 'no Japão', x + 40, -358, { size: 15, col: PAL.red, sw: 0 }); } },
@@ -341,7 +315,7 @@
     { node: 'a9', x: 1700, draw() { /* a esteira agora é desenhada pelo belts.js (E.Conveyor de verdade) */ } },
     { node: 'e3', x: 1610, draw(g, x, t) { sh(g, x, 8, 'point', t, 'cha', 1); } },
     { node: 'e5', x: 1380, draw(g, x, t) { pblit(g, sAntena(Math.sin(t * 4) > 0 ? 1 : 0), x, SPK); } },
-    { node: 'e2a', x: 860, draw(g, x) { pblit(g, sOficina(), x, SPK); Draw.text(g, 'OFICINA', x, -91, { size: 13, col: PAL.ink, sw: 0, weight: 900 }); } },
+    { node: 'e2a', x: 860, draw(g, x) { if (!art(g, 'oficina', x, 2)) pblit(g, sOficina(), x, SPK); Draw.text(g, 'OFICINA', x, -91, { size: 13, col: PAL.ink, sw: 0, weight: 900 }); } },
     { node: 'e2b', x: 1120, draw(g, x, t) { for (let i = 0; i < 2; i++) pblit(g, sLuz(), x + i * 420, SPK); } },
     { node: 's6', x: 1270, draw(g, x) { pblit(g, sMural(), x, SPK); } },
     { node: 's11', x: 1385, draw(g, x, t) { pblit(g, sMesinha(), x, SPK); } },

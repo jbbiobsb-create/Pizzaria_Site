@@ -83,6 +83,7 @@
 
   G.Inf = {
     init(a) { api = a; S = G.S; },
+    sim: { cost, up },   // tools/longo.js (simulador de horas) compra sem abrir a tela
     addEvent: e => { if (!EVENTS.some(x => x.id === e.id)) EVENTS.push(e); },   // fichas de conteudo/ (tipo evento)
     mult, powK, evMult, tick, open, event: () => ev,
     levels: lv,

@@ -96,3 +96,4 @@
 - Terreno da Casa em pixel art, e a cena do fim do dia sem a barra por cima do título.
 - Novidades vindas das fichas: lanterninhas de papel e tanuki na Casa, boné azul, evento "chuva de onigiri" e a loja de ramen.
 - Agora dá pra **pilotar a Bagger Gêmea** (Menu › Trocar ferramenta): ela é 50% maior, tem duas rodas e cava o dobro. O Goma leva a 293 pro outro lado da montanha.
+- Todas as construções no traço do Kome: prédio da onigiri, sobrado, oficina, ekiben, fábrica KOME PACK e a cidade inteira do fundo (com janelas acesas à noite).

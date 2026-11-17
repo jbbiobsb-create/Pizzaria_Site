@@ -33,11 +33,14 @@ const API = `/* GERADO por tools/content.js a partir de conteudo/*.js — não e
     try {
       const id = String(f.id || f.nome).toLowerCase().replace(/[^a-z0-9_]+/g, '_');
       const spr = () => (f.desenho ? E.spriteText('ficha/' + id, f.desenho) : null);
-      const base = { id, n: f.nome, d: f.desc || '', fromCard: true, sprite: spr, onde: f.onde || {}, escala: f.escala };
+      // receita (tools/arte.js) = arte animada do Pixxel Estúdio, tocada com Pixxel.Anim; senão, desenho em texto
+      const base = { id, n: f.nome, d: f.desc || '', fromCard: true, sprite: spr, onde: f.onde || {}, escala: f.escala, anim: f.receita ? id : null, tagAnda: f.anda, tagParado: f.parado };
       if (f.tipo === 'enfeite' || f.tipo === 'bicho') {
         if (D.decorById && D.decorById[id]) return;
         const it = Object.assign(base, { kind: f.tipo === 'bicho' ? 'pet' : 'decor', sec: f.preco || 60, anda: f.tipo === 'bicho' });
         D.DECOR.push(it); if (D.decorById) D.decorById[id] = it;
+      } else if (f.tipo === 'estrutura') {
+        // construção do cenário (pátio, cidade): só a arte; o game-world.js desenha pelo id
       } else if (f.tipo === 'roupa') {
         if (D.CLOSET.some(c => c.id === id)) return;
         D.CLOSET.push(Object.assign(base, { kind: 'acc', island: f.ilha }));
@@ -52,7 +55,10 @@ const API = `/* GERADO por tools/content.js a partir de conteudo/*.js — não e
 `;
 const files = fs.existsSync(DIR) ? fs.readdirSync(DIR).filter(f => f.endsWith('.js')).sort() : [];
 let out = API;
+// pacotes de arte animada gerados pelo tools/arte.js (conteudo/arte/*.pixxel.js)
+const ART = path.join(DIR, 'arte'), packs = fs.existsSync(ART) ? fs.readdirSync(ART).filter(f => f.endsWith('.pixxel.js')).sort() : [];
+for (const f of packs) out += '\n  /* ===== conteudo/arte/' + f + ' ===== */\n  if (window.Pixxel && Pixxel.Assets) ' + fs.readFileSync(path.join(ART, f), 'utf8').replace(/^\/\*.*\*\/\n/, '') + '\n';
 for (const f of files) out += '\n  /* ===== conteudo/' + f + ' ===== */\n' + fs.readFileSync(path.join(DIR, f), 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n') + '\n';
 out += '})();\n';
 fs.writeFileSync(OUT, out);
-console.log('game/content.js: ' + files.length + ' fichas');
+console.log('game/content.js: ' + files.length + ' fichas, ' + packs.length + ' artes animadas');
