@@ -14,9 +14,9 @@
   const U = E.U, C = E.PAL, D = E.Draw, TAU = Math.PI * 2, INK = '#3B2818';
   const W = 960, H = 540, PX = 2;
   const geo = {
-    W, H, GW: 8, GH: 6, CW: 80, CH: 58, GX: 160, GY: 120, WALL: 112,
+    W, H, GW: 8, GH: 6, CW: 80, CH: 57, GX: 160, GY: 130, WALL: 124,
     BH: 15, BV: 20, BT: 6,                                  // meia-largura da esteira deitada / em pé e a altura do "corpo"
-    doorIn: { x: 12, y: 44, w: 138, h: 68 }, doorOut: { x: 810, y: 44, w: 138, h: 68 },
+    doorIn: { x: 12, y: 44, w: 138, h: 80 }, doorOut: { x: 810, y: 44, w: 138, h: 80 },
     feedX: 128, collX: 832,                                 // centro das esteiras das docas (entrada desce, venda sobe)
   };
   const { GW, GH, CW, CH, GX, GY, WALL, BH, BV, BT } = geo;
@@ -159,9 +159,9 @@
   const tierOf = lvl => (lvl >= 10 ? 3 : lvl >= 6 ? 2 : lvl >= 3 ? 1 : 0);
   // fogão de tijolo (kamado) da Panela
   const stove = t => SP('stove' + t, 40, 60, P => {
-    const cx = 20, by = 58, w = 13 + (t >= 2 ? 2 : 0), top = by - 17 - (t >= 2 ? 1 : 0);
+    const cx = 20, by = 58, w = 13 + [0, 1, 3, 4][t], top = by - 17 - [0, 1, 3, 5][t];
     if (t >= 1) {                                             // chaminé de lata atrás
-      const ch = 20 + t * 6, x = cx + w - 6;
+      const ch = 16 + t * 4, x = cx + w - 6;
       P.rect(x, top - ch, 5, ch + 2, K.steel); P.rect(x, top - ch, 1, ch + 2, K.steelL); P.rect(x + 4, top - ch, 1, ch + 2, K.steelD);
       P.rect(x - 1, top - ch - 2, 7, 3, K.steelD); P.rect(x, top - ch + 6, 5, 2, t >= 3 ? K.gold : K.red);
       if (t >= 2) { P.rect(x - 1, top - ch - 5, 7, 1, K.steelDD); P.rect(x + 1, top - ch - 4, 3, 2, K.steelD); P.rect(x - 2, top - ch - 6, 9, 1, K.steel); }
@@ -179,8 +179,8 @@
     if (t >= 2) { P.ell(cx - w + 4, top + 5, 2.5, 2.5, K.cream); P.set(cx - w + 4, top + 5, K.red); P.set(cx - w + 5, top + 4, K.blk); }   // reloginho de pressão
     if (t >= 3) { P.rect(cx - w, by - 4, 2 * w, 1, K.gold); }
   });
-  const pot = t => SP('pot' + t, 34, 18, P => {             // donabe
-    const cx = 17, w = 12 + (t >= 2 ? 2 : 0);
+  const pot = t => SP('pot' + t, 40, 18, P => {             // donabe
+    const cx = 20, w = 12 + [0, 1, 3, 4][t];
     P.rrect(cx - w, 3, 2 * w, 13, 5, K.clay); P.rect(cx - w + 1, 2, 2 * w - 2, 2, K.clayL);
     P.rect(cx - w + 1, 6, 2 * w - 2, 2, K.clayL); P.rect(cx - w + 2, 13, 2 * w - 4, 2, K.clayD); P.rect(cx + w - 3, 5, 2, 9, K.clayD);
     P.rect(cx - w - 2, 6, 2, 3, K.clayD); P.rect(cx + w, 6, 2, 3, K.clayD);
@@ -188,7 +188,7 @@
     if (t >= 2) { P.rect(cx - w + 1, 4, 2 * w - 2, 1, t >= 3 ? K.goldL : K.copperL); }
   });
   const lid = t => SP('lid' + t, 30, 12, P => {
-    const cx = 15, w = 10 + (t >= 2 ? 2 : 0);
+    const cx = 15, w = 10 + [0, 1, 3, 4][t];
     P.poly([[cx - w, 10], [cx - w + 2, 5], [cx - 4, 3], [cx + 4, 3], [cx + w - 2, 5], [cx + w, 10]], K.clayL);
     P.rect(cx - w + 3, 6, 2 * w - 6, 1, K.cream); P.rect(cx - w + 1, 9, 2 * w - 2, 1, K.clay); P.rect(cx + w - 4, 5, 2, 4, K.clay);
     P.rect(cx - 2, 1, 4, 3, t >= 3 ? K.gold : t >= 2 ? K.copper : K.clayD); P.rect(cx - 2, 1, 4, 1, t >= 3 ? K.goldL : t >= 2 ? K.copperL : K.clay);
@@ -200,38 +200,39 @@
   const paddle = SP('paddle', 7, 22, P => { P.rect(3, 6, 1, 15, K.woodL); P.rrect(1, 1, 5, 7, 2, K.woodL); P.rect(4, 2, 1, 5, K.wood); });
 
   // prensa da Moldadora
-  const press = t => SP('press' + t, 44, 66, P => {
-    const cx = 22, by = 64;
+  const press = t => SP('press' + t, 44, 58, P => {
+    const cx = 22, by = 56;
     P.rect(cx - 15, by - 2, 30, 2, K.woodDD);
-    P.rect(cx - 14, by - 14, 28, 12, K.wood); P.rect(cx - 14, by - 14, 28, 2, K.woodL); P.rect(cx - 14, by - 4, 28, 2, K.woodD); P.rect(cx + 11, by - 12, 3, 9, K.woodD);
-    P.rect(cx - 6, by - 12, 1, 8, K.woodD); P.rect(cx + 6, by - 12, 1, 8, K.woodD);
-    P.rect(cx - 5, by - 11, 10, 6, K.dark); P.rect(cx - 6, by - 5, 12, 2, K.steelD); P.rect(cx - 6, by - 5, 12, 1, K.steel);          // boca de saída + bandeja
-    P.ell(cx - 10, by - 8, 2, 2, K.red); P.ell(cx + 10, by - 8, 2, 2, K.red);
-    P.rect(cx - 16, by - 17, 32, 3, K.steel); P.rect(cx - 16, by - 17, 32, 1, K.steelL); P.rect(cx - 16, by - 15, 32, 1, K.steelD);   // mesa de aço
-    for (const x of [cx - 14, cx + 11]) { P.rect(x, by - 42, 3, 25, K.steelD); P.rect(x, by - 42, 1, 25, K.steel); }                   // colunas
-    P.rect(cx - 16, by - 47, 32, 6, t >= 3 ? K.gold : K.red); P.rect(cx - 16, by - 47, 32, 1, t >= 3 ? K.goldL : K.redL); P.rect(cx - 16, by - 42, 32, 1, t >= 3 ? K.goldD : K.redD);
-    for (const x of [cx - 14, cx - 2, cx + 1, cx + 13]) P.set(x, by - 45, K.cream);
-    const hw = 8 + (t >= 2 ? 2 : 0), hh = 8 + (t >= 2 ? 2 : 0);                                                                        // funil de arroz
-    P.poly([[cx - hw, by - 47 - hh], [cx + hw, by - 47 - hh], [cx + 4, by - 47], [cx - 4, by - 47]], K.steel);
-    P.rect(cx - hw - 1, by - 48 - hh, 2 * hw + 2, 2, K.steelD); P.rect(cx - hw + 1, by - 47 - hh, 2 * hw - 2, 2, K.rice); P.rect(cx - hw + 2, by - 46 - hh, 4, 1, K.white);
-    P.rect(cx + 2, by - 45 - hh + 3, 2, hh - 4, K.steelD);
+    P.rect(cx - 14, by - 11, 28, 9, K.wood); P.rect(cx - 14, by - 11, 28, 2, K.woodL); P.rect(cx - 14, by - 4, 28, 2, K.woodD); P.rect(cx + 11, by - 9, 3, 6, K.woodD);
+    P.rect(cx - 6, by - 9, 1, 6, K.woodD); P.rect(cx + 6, by - 9, 1, 6, K.woodD);
+    P.rect(cx - 5, by - 9, 10, 5, K.dark); P.rect(cx - 6, by - 4, 12, 2, K.steelD); P.rect(cx - 6, by - 4, 12, 1, K.steel);          // boca de saída + bandeja
+    P.ell(cx - 10, by - 7, 2, 2, K.red); P.ell(cx + 10, by - 7, 2, 2, K.red);
+    P.rect(cx - 16, by - 14, 32, 3, K.steel); P.rect(cx - 16, by - 14, 32, 1, K.steelL); P.rect(cx - 16, by - 12, 32, 1, K.steelD);   // mesa de aço
+    for (const x of [cx - 14, cx + 11]) { P.rect(x, by - 35, 3, 21, K.steelD); P.rect(x, by - 35, 1, 21, K.steel); }                   // colunas
+    P.rect(cx - 16, by - 40, 32, 6, t >= 3 ? K.gold : K.red); P.rect(cx - 16, by - 40, 32, 1, t >= 3 ? K.goldL : K.redL); P.rect(cx - 16, by - 35, 32, 1, t >= 3 ? K.goldD : K.redD);
+    for (const x of [cx - 14, cx - 2, cx + 1, cx + 13]) P.set(x, by - 38, K.cream);
+    const hw = 8 + [0, 1, 3, 4][t], hh = 7 + [0, 1, 3, 5][t];                                                                          // funil de arroz
+    P.poly([[cx - hw, by - 40 - hh], [cx + hw, by - 40 - hh], [cx + 4, by - 40], [cx - 4, by - 40]], K.steel);
+    P.rect(cx - hw - 1, by - 41 - hh, 2 * hw + 2, 2, K.steelD); P.rect(cx - hw + 1, by - 40 - hh, 2 * hw - 2, 2, K.rice); P.rect(cx - hw + 2, by - 39 - hh, 4, 1, K.white);
+    P.rect(cx + 2, by - 38 - hh + 3, 2, Math.max(1, hh - 4), K.steelD);
     if (t >= 1) {                                                                                                                      // cano de cobre + volante
-      P.rect(cx + 14, by - 44, 2, 28, K.copper); P.rect(cx + 14, by - 44, 1, 28, K.copperL); P.rect(cx + 13, by - 32, 4, 2, K.copperD); P.rect(cx + 13, by - 22, 4, 2, K.copperD);
-      P.ring(cx - 17, by - 30, 4, 1.4, K.copper); P.set(cx - 17, by - 30, K.copperD);
+      P.rect(cx + 14, by - 38, 2, 25, K.copper); P.rect(cx + 14, by - 38, 1, 25, K.copperL); P.rect(cx + 13, by - 28, 4, 2, K.copperD); P.rect(cx + 13, by - 19, 4, 2, K.copperD);
+      P.ring(cx - 17, by - 25, 4, 1.4, K.copper); P.set(cx - 17, by - 25, K.copperD);
     }
-    if (t >= 2) { P.ell(cx - 9, by - 51, 3, 3, K.cream); P.set(cx - 9, by - 51, K.red); P.set(cx - 8, by - 52, K.blk); P.rect(cx + 8, by - 50, 3, 3, K.goldL); P.rect(cx + 8, by - 47, 3, 1, K.steelD); }
-    if (t >= 3) { P.rect(cx - 16, by - 17, 32, 1, K.goldL); P.rect(cx - 14, by - 14, 28, 1, K.gold); P.rect(cx + 15, by - 52, 3, 9, K.steel); P.rect(cx + 14, by - 54, 5, 2, K.steelD); }
+    if (t >= 2) { P.ell(cx - 10, by - 44, 3, 3, K.cream); P.set(cx - 10, by - 44, K.red); P.set(cx - 9, by - 45, K.blk); P.rect(cx + 9, by - 43, 3, 3, K.goldL); P.rect(cx + 9, by - 40, 3, 1, K.steelD); }
+    if (t >= 3) { P.rect(cx - 16, by - 14, 32, 1, K.goldL); P.rect(cx - 14, by - 11, 28, 1, K.gold); P.rect(cx + 16, by - 47, 3, 9, K.steel); P.rect(cx + 15, by - 49, 5, 2, K.steelD); }
   });
   const pressHead = SP('presshead', 18, 9, P => { P.rect(1, 1, 16, 4, K.steelD); P.rect(1, 1, 16, 1, K.steel); P.poly([[3, 5], [15, 5], [12, 8], [6, 8]], K.steel); P.rect(7, 2, 4, 2, K.red); });
 
   // usu (pilão de madeira) e baldinho
-  const usu = t => SP('usu' + t, 44, 40, P => {
-    const cx = 22, by = 38, w = 14 + (t >= 2 ? 2 : 0), h = 24 + (t >= 2 ? 2 : 0);
+  const usu = t => SP('usu' + t, 44, 44, P => {
+    const cx = 22, by = 42, w = 14 + [0, 1, 3, 4][t], h = 24 + [0, 1, 3, 5][t];
     if (t >= 2) { P.rect(cx - w - 2, by - 3, 2 * w + 4, 3, K.stoneD); P.rect(cx - w - 2, by - 3, 2 * w + 4, 1, K.stoneL); }
     const b0 = t >= 2 ? by - 3 : by;
     P.poly([[cx - w, b0 - h + 2], [cx + w, b0 - h + 2], [cx + w - 3, b0 - 10], [cx + w - 1, b0], [cx - w + 1, b0], [cx - w + 3, b0 - 10]], K.wood);
     for (const dx of [-8, -2, 5, 10]) P.rect(cx + dx, b0 - h + 6, 1, h - 8, K.woodD);
     P.rect(cx + w - 5, b0 - h + 6, 2, h - 7, K.woodD); P.rect(cx - w + 3, b0 - h + 6, 2, h - 8, K.woodL);
+    P.rect(cx - w + 1, b0 - h + 7, 2 * w - 2, 2, t >= 3 ? K.gold : K.blkL); P.rect(cx - w + 2, b0 - h + 7, 5, 1, t >= 3 ? K.goldL : '#7A7068'); P.rect(cx - w + 2, b0 - 4, 2 * w - 4, 2, t >= 3 ? K.gold : K.blkL);
     P.ell(cx, b0 - h + 2, w, 4, K.woodL); P.ell(cx, b0 - h + 2, w - 3, 2.5, K.woodDD);
     if (t >= 1) {                                                                         // corda sagrada com papeizinhos
       P.rect(cx - w + 2, b0 - 12, 2 * w - 4, 2, t >= 3 ? K.gold : K.sack); P.rect(cx - w + 2, b0 - 11, 2 * w - 4, 1, t >= 3 ? K.goldD : K.sackD);
@@ -318,14 +319,7 @@
       ........Y
       ...YYYYY.`),
     coin: SP('coin', 11, 11, P => { P.ell(5, 5, 4.5, 4.5, K.gold); P.ell(5, 5, 3, 3, K.goldL); P.rect(5, 3, 1, 5, K.goldD); P.rect(4, 4, 3, 1, K.goldD); P.rect(4, 6, 3, 1, K.goldD); }),
-    up: ST('up', `
-      ...G...
-      ..GGG..
-      .GGGGG.
-      GGGGGGG
-      ..GGG..
-      ..GGG..
-      ..ggg..`),
+    up: SP('up', 13, 13, P => { P.ell(6, 6, 5.5, 5.5, K.green); P.ell(6, 5, 4.5, 4, K.greenL); P.ell(6, 6, 4.5, 4.5, '#6FAE4E'); P.poly([[6, 2], [10, 6], [2, 6]], K.white); P.rect(5, 6, 3, 4, K.white); }),
   };
 
   /* ======================================================================
@@ -359,24 +353,24 @@
     for (let x = -4; x < 480; x += 22) { R(x + 8, 0, 6, 18, '#4C311E'); R(x + 8, 0, 1, 18, '#5E3E26'); R(x + 13, 0, 1, 18, '#2E1C10'); }
     R(0, 16, 480, 6, '#7A5228'); R(0, 16, 480, 1, '#A47440'); R(0, 21, 480, 1, '#4A2E18');
     for (let x = 14; x < 480; x += 44) { R(x, 18, 2, 2, '#4A2E18'); }
-    R(0, 22, 480, 24, '#EDDFBF');
-    for (let i = 0; i < 90; i++) R(Math.floor(rng() * 478), 23 + Math.floor(rng() * 22), 2 + Math.floor(rng() * 4), 1, rng() < 0.5 ? '#E4D3AE' : '#F4E9CE');
+    R(0, 22, 480, 28, '#EDDFBF');
+    for (let i = 0; i < 110; i++) R(Math.floor(rng() * 478), 23 + Math.floor(rng() * 26), 2 + Math.floor(rng() * 4), 1, rng() < 0.5 ? '#E4D3AE' : '#F4E9CE');
     R(0, 22, 480, 2, '#D2BE98'); R(0, 24, 480, 1, '#E0CFAB');
-    R(0, 44, 480, 12, '#A9763F');
-    for (let x = 0; x < 480; x += 8) { R(x, 45, 1, 11, '#8E6232'); R(x + 1, 45, 1, 11, '#BA8548'); }
-    R(0, 44, 480, 1, '#D2A262'); R(0, 45, 480, 1, '#7A5228'); R(0, 54, 480, 2, '#5E3E1E');
-    for (const px of [123, 159, 202, 274, 319, 355]) { R(px, 22, 4, 34, '#7A5228'); R(px, 22, 1, 34, '#9A6C38'); R(px + 3, 22, 1, 34, '#5E3E1E'); }
+    R(0, 50, 480, 12, '#A9763F');
+    for (let x = 0; x < 480; x += 8) { R(x, 51, 1, 11, '#8E6232'); R(x + 1, 51, 1, 11, '#BA8548'); }
+    R(0, 50, 480, 1, '#D2A262'); R(0, 51, 480, 1, '#7A5228'); R(0, 60, 480, 2, '#5E3E1E');
+    for (const px of [123, 159, 202, 274, 319, 355]) { R(px, 22, 4, 40, '#7A5228'); R(px, 22, 1, 40, '#9A6C38'); R(px + 3, 22, 1, 40, '#5E3E1E'); }
     // ---- janelas shoji (papel + treliça) com parapeito
     for (const wxS of WIN) {
       const x = Math.round(wxS / 2) - 16;
-      R(x - 2, 25, 36, 21, '#5E3E1E'); R(x - 1, 26, 34, 19, '#8E6232');
-      R(x, 27, 32, 17, K.paper); R(x, 27, 32, 6, K.paperL); R(x, 40, 32, 4, '#F6E3AE');
-      for (const dx of [7, 15, 16, 24]) R(x + dx, 27, 1, 17, '#B98A4A');
-      for (const dy of [5, 11]) R(x, 27 + dy, 32, 1, '#B98A4A');
-      R(x - 3, 46, 38, 2, '#C99458'); R(x - 3, 48, 38, 1, '#7A5228');
+      R(x - 2, 25, 36, 25, '#5E3E1E'); R(x - 1, 26, 34, 23, '#8E6232');
+      R(x, 27, 32, 21, K.paper); R(x, 27, 32, 7, K.paperL); R(x, 43, 32, 5, '#F6E3AE');
+      for (const dx of [7, 15, 16, 24]) R(x + dx, 27, 1, 21, '#B98A4A');
+      for (const dy of [6, 13]) R(x, 27 + dy, 32, 1, '#B98A4A');
+      R(x - 3, 50, 38, 2, '#C99458'); R(x - 3, 52, 38, 1, '#7A5228');
     }
     // ---- prateleira de parede (os potes e sacos entram depois, em sprite)
-    R(324, 38, 30, 2, '#7A5228'); R(324, 38, 30, 1, '#A47440'); R(326, 40, 2, 3, '#5E3E1E'); R(350, 40, 2, 3, '#5E3E1E');
+    R(324, 42, 30, 2, '#7A5228'); R(324, 42, 30, 1, '#A47440'); R(326, 44, 2, 3, '#5E3E1E'); R(350, 44, 2, 3, '#5E3E1E');
     // ---- portas das docas: batente grosso e soleira de pedra (o buraco é recortado depois)
     for (const d of [geo.doorIn, geo.doorOut]) {
       const x = d.x / 2, w = d.w / 2, y = d.y / 2;
@@ -387,7 +381,7 @@
     bgCv = mk(); const g = bgCv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(lo, 0, 0, W, H);
     for (const d of [geo.doorIn, geo.doorOut]) g.clearRect(d.x, d.y, d.w, d.h);
     // coisas nas prateleiras, vasos e caixas encostados na parede
-    blit(g, item.sack, 666, 76); blit(g, item.box, 694, 76);
+    blit(g, item.sack, 666, 84); blit(g, item.box, 694, 84);
     // sombra de contato: parede/chão, cantos e a frente do palco (dá o volume do galpão)
     let gr = g.createLinearGradient(0, WALL, 0, WALL + 34); gr.addColorStop(0, 'rgba(58,30,10,.42)'); gr.addColorStop(1, 'rgba(58,30,10,0)'); g.fillStyle = gr; g.fillRect(0, WALL, W, 34);
     gr = g.createLinearGradient(0, 0, 46, 0); gr.addColorStop(0, 'rgba(58,30,10,.30)'); gr.addColorStop(1, 'rgba(58,30,10,0)'); g.fillStyle = gr; g.fillRect(0, WALL, 46, H - WALL);
@@ -414,8 +408,8 @@
     sunCv = mk(); const g = sunCv.getContext('2d');
     for (const wx of WIN) {
       for (let p = 0; p < 3; p++) {                          // três folhas de papel = três faixas de luz
-        const a = wx - 30 + p * 21, top = 146, bot = 300, sk = 0.62;
-        const gr = g.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, 'rgba(255,240,180,.30)'); gr.addColorStop(1, 'rgba(255,240,180,0)');
+        const a = wx - 30 + p * 21, top = WALL + 30, bot = WALL + 200, sk = 0.62;
+        const gr = g.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, 'rgba(255,240,180,.42)'); gr.addColorStop(1, 'rgba(255,240,180,0)');
         g.fillStyle = gr; g.beginPath(); g.moveTo(a + 26, top); g.lineTo(a + 44, top); g.lineTo(a + 44 + (bot - top) * sk + 8, bot); g.lineTo(a + 26 + (bot - top) * sk - 8, bot); g.closePath(); g.fill();
       }
     }
@@ -428,7 +422,7 @@
   function paintDusk() {
     duskCv = mk(); const g = duskCv.getContext('2d');
     for (const lx of LAMPS.concat([geo.doorIn.x + 20, geo.doorOut.x + geo.doorOut.w - 20])) {
-      let gr = g.createRadialGradient(lx, 70, 4, lx, 70, 120); gr.addColorStop(0, 'rgba(255,200,110,.55)'); gr.addColorStop(1, 'rgba(255,200,110,0)');
+      let gr = g.createRadialGradient(lx, 74, 4, lx, 74, 120); gr.addColorStop(0, 'rgba(255,200,110,.55)'); gr.addColorStop(1, 'rgba(255,200,110,0)');
       g.fillStyle = gr; g.fillRect(lx - 120, 0, 240, 200);
       g.save(); g.translate(lx, 250); g.scale(1, 0.55); gr = g.createRadialGradient(0, 0, 10, 0, 0, 170); gr.addColorStop(0, 'rgba(255,196,110,.34)'); gr.addColorStop(1, 'rgba(255,196,110,0)');
       g.fillStyle = gr; g.fillRect(-170, -170, 340, 340); g.restore();
@@ -522,16 +516,18 @@
   A.beltPrep = function (c) { c.curve = curveOf(c); c.sides = c.ins.concat(c.outs); if (c.speed === undefined) c.speed = 2; if (c.moving === undefined) c.moving = true; return c; };
   A.belts = function (g, list, t) {
     if (!list.length) return;
+    g.save(); g.beginPath(); g.rect(0, WALL + 2, W, H); g.clip();     // as esteiras das docas nascem na soleira da porta
     pass(g, list, 3, 0, BT + 4, 'rgba(46,26,10,.24)');          // sombra no chão
     pass(g, list, 2, 0, BT, INK); pass(g, list, 2, 0, 0, INK);    // contorno (tampo + saia)
     pass(g, list, 0, 0, BT, '#59626E'); pass(g, list, 0, 0, BT / 2, '#6E7884');   // saia de aço (o corpo da esteira)
     pass(g, list, 0, 0, 0, K.steel);                               // trilhos
-    pass(g, list, 0, 3, 0, '#4E4842');                             // borracha
-    g.strokeStyle = 'rgba(255,246,225,.20)'; g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round';
+    pass(g, list, 0, 3, 0, '#5C554E');                             // borracha
+    g.strokeStyle = 'rgba(255,246,225,.26)'; g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath(); for (let i = 0; i < list.length; i++) chevrons(g, list[i], t); g.stroke();
     g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath();           // brilho fino no trilho de cima das retas deitadas
     for (let i = 0; i < list.length; i++) { const c = list[i]; if (c.curve) continue; for (let j = 0; j < c.sides.length; j++) { const s = c.sides[j]; if (s === 0) g.rect(c.cx, c.cy - BH, HW, 1); else if (s === 2) g.rect(c.cx - HW, c.cy - BH, HW, 1); } }
     g.fill();
+    g.restore();
   };
   /* itemAt(c, de, p, out) -> posição de um item na célula (p 0..1; de = lado por onde entrou; out = direção de saída) */
   A.itemAt = function (c, from, p, outDir, o) {
@@ -568,7 +564,7 @@
 
   // PANELA: donabe num fogão de tijolo, fogo piscando, tampa batendo, shiba de touca mexendo
   A.panela = function (g, m, cx, by, t, o) {
-    const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, top = by - (tr >= 2 ? 40 : 38);
+    const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, mx = cx - 9, top = by - 38 - [0, 2, 6, 10][tr];
     shadow(g, mx, by + 2, 36, 8);
     if (working && !o.ghost) fx(g, mx, by + 5, '#FFB040', 0.16 + 0.08 * Math.sin(t * 17 + m.id));
     blit(g, P.stove(tr), mx, by + BASE);
@@ -582,7 +578,7 @@
     if (working) blit(g, P.paddle, cx + 16, by - 16, 2, { rot: -0.75 + Math.sin(m.anim * 7) * 0.3 });
     A.worker(g, cx + 26, by + 4, pose, t + m.id * 0.7, { pal, face: -1, hat: 'toque' });
   };
-  A.panelaTop = (m, cx, by) => ({ x: cx - 9, y: by - (A.tierOf(m.lvl) >= 2 ? 40 : 38) - 34 });
+  A.panelaTop = (m, cx, by) => ({ x: cx - 9, y: by - 38 - [0, 2, 6, 10][A.tierOf(m.lvl)] - 34 });
 
   // MOLDADORA: prensa com pistão, funil de arroz, alavanca e o onigiri pulando pra fora
   A.moldadora = function (g, m, cx, by, t, o) {
@@ -591,15 +587,15 @@
     if (working) { if (k < 0.4) d = -0.12 * Math.sin(k / 0.4 * Math.PI); else if (k < 0.6) d = U.ease.in((k - 0.4) / 0.2); else d = 1 - U.ease.out((k - 0.6) / 0.4); }
     shadow(g, mx, by + 2, 38, 8);
     blit(g, P.press(tr), mx, by + BASE);
-    const hb = by - 62 + d * 24;                                // base da cabeça do pistão
-    g.fillStyle = INK; g.fillRect(mx - 5, by - 84, 10, hb - 14 - (by - 84) + 2);
-    g.fillStyle = K.steel; g.fillRect(mx - 3, by - 84, 6, hb - 14 - (by - 84)); g.fillStyle = K.steelL; g.fillRect(mx - 3, by - 84, 2, hb - 14 - (by - 84)); g.fillStyle = K.steelD; g.fillRect(mx + 1, by - 84, 2, hb - 14 - (by - 84));
-    if (m.work) blit(g, k > 0.58 ? item.onigiri : item.cozido, mx, by - 32 + (k > 0.58 ? 0 : 2), 2, { sx: 1 + sq * 0.3, sy: 1 - sq * 0.3 });
+    const hb = by - 52 + d * 20, rt = by - 70, rl = Math.max(0, hb - 14 - rt);   // base da cabeça do pistão; haste
+    g.fillStyle = INK; g.fillRect(mx - 5, rt, 10, rl + 2);
+    g.fillStyle = K.steel; g.fillRect(mx - 3, rt, 6, rl); g.fillStyle = K.steelL; g.fillRect(mx - 3, rt, 2, rl); g.fillStyle = K.steelD; g.fillRect(mx + 1, rt, 2, rl);
+    if (m.work) blit(g, k > 0.58 ? item.onigiri : item.cozido, mx, by - 26 + (k > 0.58 ? 0 : 2), 2, { sx: 1 + sq * 0.3, sy: 1 - sq * 0.3 });
     blit(g, P.pressHead, mx, hb + 2);
-    if (tr >= 1) { const a = (working ? m.anim * 5 : 0); g.strokeStyle = K.copperD; g.lineWidth = 2; g.beginPath(); g.moveTo(mx - 34 + Math.cos(a) * 7, by - 56 + Math.sin(a) * 7); g.lineTo(mx - 34 - Math.cos(a) * 7, by - 56 - Math.sin(a) * 7); g.moveTo(mx - 34 + Math.cos(a + 1.57) * 7, by - 56 + Math.sin(a + 1.57) * 7); g.lineTo(mx - 34 - Math.cos(a + 1.57) * 7, by - 56 - Math.sin(a + 1.57) * 7); g.stroke(); }
+    if (tr >= 1) { const a = (working ? m.anim * 5 : 0); g.strokeStyle = K.copperD; g.lineWidth = 2; g.beginPath(); g.moveTo(mx - 34 + Math.cos(a) * 7, by - 46 + Math.sin(a) * 7); g.lineTo(mx - 34 - Math.cos(a) * 7, by - 46 - Math.sin(a) * 7); g.moveTo(mx - 34 + Math.cos(a + 1.57) * 7, by - 46 + Math.sin(a + 1.57) * 7); g.lineTo(mx - 34 - Math.cos(a + 1.57) * 7, by - 46 - Math.sin(a + 1.57) * 7); g.stroke(); }
     if (o.ghost) return;
     // alavanca (o operador puxa junto com o pistão)
-    const pvx = mx + 30, pvy = by - 30, la = -1.95 + Math.max(0, d) * 0.9, lx = pvx + Math.cos(la) * 24, ly = pvy + Math.sin(la) * 24;
+    const pvx = mx + 30, pvy = by - 24, la = -1.95 + Math.max(0, d) * 0.9, lx = pvx + Math.cos(la) * 24, ly = pvy + Math.sin(la) * 24;
     g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 6; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(lx, ly); g.stroke();
     g.strokeStyle = K.steel; g.lineWidth = 3; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(lx, ly); g.stroke();
     g.fillStyle = INK; g.beginPath(); g.arc(lx, ly, 5.5, 0, TAU); g.fill(); g.fillStyle = K.red; g.beginPath(); g.arc(lx, ly, 4, 0, TAU); g.fill(); g.fillStyle = K.redL; g.fillRect(lx - 2, ly - 3, 2, 2);
@@ -607,7 +603,7 @@
     const pal = PALS_MOLD[m.id % PALS_MOLD.length];
     A.worker(g, cx + 28, by + 4, working ? (d > 0.35 ? 'push' : 'stand') : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id * 0.9, { pal, face: -1, hat: 'bone' });
     if (m.pop > 0) {                                            // onigiri pronto pula da boca pra saída
-      const u = 1 - m.pop, px = mx + (o.dx || 0) * 34 * u, py = by - 12 + (o.dy || 0) * 20 * u - Math.sin(u * Math.PI) * 20;
+      const u = 1 - m.pop, px = mx + (o.dx || 0) * 34 * u, py = by - 8 + (o.dy || 0) * 20 * u - Math.sin(u * Math.PI) * 20;
       blit(g, item.onigiri, px, py, 2, { rot: (o.dx || 1) * u * 1.2 });
     }
   };
@@ -615,7 +611,7 @@
   // PILÃO: usu grandão, um shiba bate com o kine (antecipa, desce, amassa) e o outro vira o mochi entre as batidas
   A.pilao = function (g, m, cx, by, t, o) {
     const tr = A.tierOf(m.lvl), working = m.work && m.prog < 1, sq = m.sq || 0, vert = !!o.vert, gold = m.rec === 1;
-    const rim = by - (tr >= 2 ? 54 : 44), rw = tr >= 2 ? 26 : 22, sx = vert ? 36 : 50;
+    const rim = by - 44 - [0, 2, 12, 16][tr], rw = 22 + [0, 2, 6, 8][tr], sx = vert ? 36 : 50 + [0, 0, 4, 6][tr];
     shadow(g, cx, by + 2, vert ? 44 : 62, 9);
     blit(g, P.usu(tr), cx, by + BASE);
     if (m.work || m.inB.cozido > 0) {                           // a massa
@@ -643,7 +639,7 @@
     if (!vert) blit(g, P.bucket, cx + 30, by + 8);
     A.worker(g, tx, hy, working ? (turning ? 'push' : 'wag') : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id * 1.3, { pal: pal2, face: -1, hat: 'faixa' });
     // o martelão (kine)
-    const ex = pvx + Math.cos(Aang) * L * stretch, ey = pvy + Math.sin(Aang) * L * stretch, hw = tr >= 2 ? 15 : 12, hh = tr >= 2 ? 9 : 7.5;
+    const ex = pvx + Math.cos(Aang) * L * stretch, ey = pvy + Math.sin(Aang) * L * stretch, hw = 12 + [0, 1, 4, 6][tr], hh = 7.5 + [0, 0.5, 2, 3][tr];
     g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 7; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(ex, ey); g.stroke();
     g.strokeStyle = K.woodL; g.lineWidth = 4; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(ex, ey); g.stroke();
     g.save(); g.translate(ex, ey); g.rotate(Aang + Math.PI / 2);
@@ -653,19 +649,21 @@
     if (tr >= 1) { g.fillStyle = tr >= 3 ? K.gold : K.copper; g.fillRect(-hw + 3, -hh, 3, hh * 2); g.fillRect(hw - 6, -hh, 3, hh * 2); }
     g.restore();
   };
-  A.pilaoRim = (m, cx, by) => ({ x: cx, y: by - (A.tierOf(m.lvl) >= 2 ? 54 : 44) });
+  A.pilaoRim = (m, cx, by) => ({ x: cx, y: by - 44 - [0, 2, 12, 16][A.tierOf(m.lvl)] });
 
   // DIVISOR: mesa giratória com cancela que troca de lado e bandeirinha apontando
   A.divisor = function (g, m, cx, cy, t, o) {
     shadow(g, cx, cy + 14, 30, 8);
     blit(g, P.turn, cx, cy + 16);
-    const vx = o.vx || 0, vy = o.vy || 0, hx = cx, hy = cy - 6, ex = hx + vx * 24, ey = hy + vy * 13;
-    g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 9; g.beginPath(); g.moveTo(hx, hy); g.lineTo(ex, ey); g.stroke();
-    g.strokeStyle = K.red; g.lineWidth = 5.5; g.beginPath(); g.moveTo(hx, hy); g.lineTo(ex, ey); g.stroke();
-    g.strokeStyle = K.cream; g.lineWidth = 5.5; g.setLineDash([5, 7]); g.beginPath(); g.moveTo(hx, hy); g.lineTo(ex, ey); g.stroke(); g.setLineDash([]);
-    if (o.item) A.drawItem(g, o.item, cx, cy - 4, t, m.id, 0);
-    g.fillStyle = INK; g.fillRect(cx - 3, cy - 30, 6, 26); g.fillStyle = K.woodL; g.fillRect(cx - 1.5, cy - 29, 3, 24);
-    blit(g, P.flag, cx + (vx >= 0 ? 9 : -9), cy - 20, 2, { flip: vx < 0 || (vx === 0 && vy < 0) });
+    const vx = o.vx || 0, vy = o.vy || 0, hx = cx, hy = cy - 6, ex = hx + vx * 26, ey = hy + vy * 15;
+    if (o.item) A.drawItem(g, o.item, cx - vx * 8, cy - 2 - vy * 4, t, m.id, 0);
+    g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 10; g.beginPath(); g.moveTo(hx, hy); g.lineTo(ex, ey); g.stroke();
+    g.strokeStyle = K.red; g.lineWidth = 6; g.beginPath(); g.moveTo(hx, hy); g.lineTo(ex, ey); g.stroke();
+    g.strokeStyle = K.cream; g.lineWidth = 6; g.lineCap = 'butt'; g.setLineDash([5, 6]); g.lineDashOffset = -3; g.beginPath(); g.moveTo(hx, hy); g.lineTo(ex, ey); g.stroke(); g.setLineDash([]);
+    g.fillStyle = INK; g.fillRect(cx - 4, cy - 34, 8, 30); g.fillStyle = K.woodL; g.fillRect(cx - 2, cy - 32, 4, 26); g.fillStyle = K.wood; g.fillRect(cx + 0.5, cy - 32, 1.5, 26);
+    g.fillStyle = INK; g.beginPath(); g.arc(cx, cy - 6, 5, 0, TAU); g.fill(); g.fillStyle = K.gold; g.beginPath(); g.arc(cx, cy - 6, 3.2, 0, TAU); g.fill();
+    const left = vx < -0.15 || (Math.abs(vx) <= 0.15 && vy < 0);
+    blit(g, P.flag, cx + (left ? -12 : 12), cy - 20, 2, { flip: left });
   };
 
   /* ---------- ÍCONES DA BARRA (a própria máquina montada, pequena) ---------- */
@@ -675,15 +673,16 @@
     const c = document.createElement('canvas'); c.width = 48; c.height = 44; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
     const d = (cv, x, y) => g.drawImage(cv, Math.round(x - cv.width / 2), Math.round(y - cv.height));
     if (id === 'panela') { d(P.stove(0), 24, 46); d(P.pot(0), 24, 27); d(P.lid(0), 24, 14); d(P.flame(0), 24, 41); }
-    else if (id === 'moldadora') { g.drawImage(P.press(0), 0, 14, 44, 52, 2, -6, 44, 52); d(P.pressHead, 24, 22); }
+    else if (id === 'moldadora') { g.drawImage(P.press(0), 0, 13, 44, 44, 2, 0, 44, 44); d(P.pressHead, 24, 21); }
     else if (id === 'pilao') {
       d(P.usu(0), 22, 46); g.fillStyle = INK; g.beginPath(); g.ellipse(22, 22, 11, 4, 0, 0, TAU); g.fill(); g.fillStyle = K.mochi; g.beginPath(); g.ellipse(22, 22, 9.5, 3, 0, 0, TAU); g.fill();
       g.save(); g.translate(34, 10); g.rotate(0.6); g.fillStyle = INK; g.fillRect(-2, -1, 4, 22); g.fillStyle = K.woodL; g.fillRect(-1, 0, 2, 20); g.fillStyle = INK; g.fillRect(-7, -6, 14, 9); g.fillStyle = K.wood; g.fillRect(-6, -5, 12, 7); g.fillStyle = K.woodL; g.fillRect(-6, -5, 12, 2); g.restore();
     } else if (id === 'divisor') { d(P.turn, 24, 40); g.fillStyle = INK; g.fillRect(22, 8, 4, 18); g.fillStyle = K.woodL; g.fillRect(23, 9, 2, 16); d(P.flag, 30, 18); }
     else if (id === 'esteira') {
-      g.translate(-56, -7);
-      const cs = [A.beltPrep({ cx: 80, cy: 29, ins: [2], outs: [0], speed: 0 })];
-      g.scale(1, 1); g.save(); g.beginPath(); g.rect(58, 6, 44, 44); g.clip(); A.belts(g, cs, 0); g.restore();
+      g.fillStyle = INK; g.fillRect(3, 11, 42, 26); g.fillStyle = '#59626E'; g.fillRect(5, 29, 38, 6); g.fillStyle = K.steel; g.fillRect(5, 13, 38, 16); g.fillStyle = K.steelL; g.fillRect(5, 13, 38, 1);
+      g.fillStyle = '#5C554E'; g.fillRect(5, 16, 38, 10);
+      g.strokeStyle = 'rgba(255,246,225,.45)'; g.lineWidth = 2.5; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath();
+      for (const x of [13, 24, 35]) { g.moveTo(x - 3, 18); g.lineTo(x + 2, 21); g.lineTo(x - 3, 24); } g.stroke();
     }
     return (icons[id] = c);
   };
@@ -739,25 +738,25 @@
     const nx = 480, ny = 46, nw = 128, n = 5, fw = nw / n;
     g.fillStyle = INK; g.fillRect(nx - nw / 2 - 8, ny - 3, nw + 16, 6); g.fillStyle = K.woodL; g.fillRect(nx - nw / 2 - 7, ny - 2, nw + 14, 3);
     for (let i = 0; i < n; i++) {
-      const x = nx - nw / 2 + i * fw, sw = Math.sin(t * 1.5 + i * 0.9) * 1.6, hgt = 38 + sw;
+      const x = nx - nw / 2 + i * fw, sw = Math.sin(t * 1.5 + i * 0.9) * 1.6, hgt = 46 + sw;
       g.fillStyle = INK; g.fillRect(x - 1, ny + 2, fw + 2, hgt + 3);
       g.fillStyle = K.red; g.fillRect(x + 1, ny + 3, fw - 2, hgt); g.fillStyle = K.redL; g.fillRect(x + 1, ny + 3, fw - 2, 3); g.fillStyle = K.redD; g.fillRect(x + fw - 4, ny + 6, 3, hgt - 3); g.fillRect(x + 1, ny + hgt, fw - 2, 3);
     }
-    D.text(g, 'KOME PACK', nx, ny + 18, { size: 17, col: K.cream, sw: 0, weight: 900 });
-    g.fillStyle = K.cream; g.beginPath(); g.ellipse(nx - 9, ny + 33, 4, 2.6, -0.5, 0, TAU); g.ellipse(nx + 1, ny + 32, 4, 2.6, 0.3, 0, TAU); g.ellipse(nx + 10, ny + 34, 4, 2.6, -0.2, 0, TAU); g.fill();
+    D.text(g, 'KOME PACK', nx, ny + 20, { size: 18, col: K.cream, sw: 0, weight: 900 });
+    g.fillStyle = K.cream; g.beginPath(); g.ellipse(nx - 9, ny + 38, 4, 2.6, -0.5, 0, TAU); g.fill(); g.beginPath(); g.ellipse(nx + 1, ny + 37, 4, 2.6, 0.3, 0, TAU); g.fill(); g.beginPath(); g.ellipse(nx + 10, ny + 39, 4, 2.6, -0.2, 0, TAU); g.fill();
     // placas penduradas nas portas
-    plate(g, A.geo.doorIn.x + A.geo.doorIn.w - 44, 44, 76, 'ENTRADA', K.green, K.greenD, Math.sin(t * 1.3) * 0.03);
-    plate(g, A.geo.doorOut.x + 42, 44, 64, 'VENDA', K.red, K.redD, Math.sin(t * 1.3 + 2) * 0.03);
+    plate(g, A.geo.doorIn.x + 44, 45, 74, 'ENTRADA', K.green, K.greenD, Math.sin(t * 1.3) * 0.03);
+    plate(g, A.geo.doorOut.x + 36, 45, 60, 'VENDA', K.red, K.redD, Math.sin(t * 1.3 + 2) * 0.03);
     // relógio (o ponteiro grande dá uma volta por dia do jogo)
-    blit(g, spr.clock, 282, 82);
+    blit(g, spr.clock, 282, 90);
     const tod = o.tod || 0, a1 = tod * TAU * 2 - Math.PI / 2, a2 = tod * TAU * 24 - Math.PI / 2;
-    g.strokeStyle = INK; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.moveTo(282, 66); g.lineTo(282 + Math.cos(a1) * 5, 66 + Math.sin(a1) * 5); g.moveTo(282, 66); g.lineTo(282 + Math.cos(a2) * 8, 66 + Math.sin(a2) * 8); g.stroke();
-    g.fillStyle = K.red; g.fillRect(281, 65, 2, 2);
+    g.strokeStyle = INK; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.moveTo(282, 74); g.lineTo(282 + Math.cos(a1) * 5, 74 + Math.sin(a1) * 5); g.moveTo(282, 74); g.lineTo(282 + Math.cos(a2) * 8, 74 + Math.sin(a2) * 8); g.stroke();
+    g.fillStyle = K.red; g.fillRect(281, 73, 2, 2);
     // lanternas: acendem no fim da tarde
     for (let i = 0; i < A.LAMPS.length; i++) {
       const lx = A.LAMPS[i], sw = Math.sin(t * 1.1 + i * 1.7) * 0.04;
-      blit(g, spr.lantern, lx, 84, 2, { rot: sw });
-      if (o.dusk > 0.05) { g.fillStyle = 'rgba(255,214,120,' + (o.dusk * 0.55).toFixed(2) + ')'; g.beginPath(); g.ellipse(lx, 66, 9, 11, 0, 0, TAU); g.fill(); }
+      blit(g, spr.lantern, lx, 86, 2, { rot: sw });
+      if (o.dusk > 0.05) { g.fillStyle = 'rgba(255,214,120,' + (o.dusk * 0.55).toFixed(2) + ')'; g.beginPath(); g.ellipse(lx, 68, 9, 11, 0, 0, TAU); g.fill(); }
     }
   };
   // cantinho do gato (embaixo, à esquerda): caixas, vaso e o gato dormindo em cima

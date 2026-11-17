@@ -13,7 +13,9 @@
   const E = window.Pixxel, G = (window.KomeGame = window.KomeGame || {});
   const U = E.U, C = E.PAL, D = E.Draw, DATA = G.Data, F = DATA.FAB;
   const W = 960, H = 540, INK = '#3B2818', TAU = Math.PI * 2;
-  const GW = 8, GH = 6, CELL = 52, GX = 272, GY = 104;
+  const A = G.FabArt, GEO = A.geo, K = A.K;                 // arte e medidas do palco (fabrica-arte.js)
+  const GW = GEO.GW, GH = GEO.GH, CW = GEO.CW, CH = GEO.CH, GX = GEO.GX, GY = GEO.GY, GR = GX + GW * CW;
+  const cellX = x => GX + x * CW + CW / 2, cellY = y => GY + y * CH + CH / 2;
   const BELT_SPEED = F.beltSpeed, SP = 0.25;
   const LVL_SPEED = F.lvl.speed, LVL_COST = F.lvl.cost, MAX_LVL = F.lvl.max;
   const UNLOCK = F.unlock;   // lido ao vivo (painel ?dev e fabrica-sim --set)
@@ -86,7 +88,7 @@
   function mrect(type, x, y, rot) {
     const cs = mcells(type, x, y, rot); let x0 = 99, y0 = 99, x1 = -1, y1 = -1;
     for (const [a, b] of cs) { x0 = Math.min(x0, a); y0 = Math.min(y0, b); x1 = Math.max(x1, a); y1 = Math.max(y1, b); }
-    return { x: GX + x0 * CELL, y: GY + y0 * CELL, w: (x1 - x0 + 1) * CELL, h: (y1 - y0 + 1) * CELL };
+    return { x: GX + x0 * CW, y: GY + y0 * CH, w: (x1 - x0 + 1) * CW, h: (y1 - y0 + 1) * CH };
   }
   function canPlace(type, x, y, rot, ignore) {
     for (const [a, b] of mcells(type, x, y, rot)) {
@@ -106,7 +108,7 @@
   }
   function clearBelt(x, y) {
     const c = cellAt(x, y); if (!c || c.k !== 'b') return;
-    for (const it of c.items) sellLoose(it, GX + x * CELL + 26, GY + y * CELL + 20);
+    for (const it of c.items) sellLoose(it, cellX(x), cellY(y) - 8);
     grid[y][x] = null;
   }
   function setBelt(x, y, dir) {
@@ -120,7 +122,7 @@
   function makeMachine(type, x, y, rot, o) {
     o = o || {};
     const m = { id: o.id || nextId++, type, x, y, rot, lvl: o.lvl || 1, rec: o.rec || 0, paid: o.paid || 0, spent: o.spent || 0,
-      inB: { raw: 0, gold: 0, cozido: 0 }, out: [], work: false, prog: 0, busy: 0, anim: 0, idle: 0, hitN: 0, sq: 0, blocked: false, full: 0, side: 0 };
+      inB: { raw: 0, gold: 0, cozido: 0 }, out: [], work: false, prog: 0, busy: 0, anim: 0, idle: 0, hitN: 0, sq: 0, blocked: false, full: 0, side: 0, pop: 0 };
     if (m.id >= nextId) nextId = m.id + 1;
     occupy(m);
     machines.push(m);
@@ -179,29 +181,26 @@
   function hasAll(m) { const need = recipeOf(m).in; for (const k in need) if (m.inB[k] < need[k]) return false; return true; }
 
   /* ---------- venda na doca ---------- */
-  const pend = []; for (let i = 0; i < GH; i++) pend.push({ v: 0, best: 0, t: 0 });
-  let saleAnim = 0;
+  const pend = { v: 0, best: 0, t: 0, n: 0 };
   function sell(item, row) {
     const it = ITEMS[item.t], v = (it.val - it.base) * unitV();
     pay(v); S.facAcc += v; S.sold[item.t] = (S.sold[item.t] || 0) + 1;
     if (S.firstSale < 0 && item.t !== 'raw' && item.t !== 'gold') S.firstSale = S.timeOpen;
-    const p = pend[row]; p.v += v; p.best = Math.max(p.best, it.val);
-    saleAnim = 1;
+    pend.v += v; pend.best = Math.max(pend.best, it.val); pend.n++;
+    if (!S.fast && ship.length < 26) ship.push({ t: item.t, x: GR - 6, y: cellY(row), st: 0, u: 0 });   // sobe a esteira até o kei-truck
   }
   function flushSales(dt) {
-    for (let r = 0; r < GH; r++) {
-      const p = pend[r]; p.t -= dt;
-      if (p.v > 0 && p.t <= 0) {
-        if (!S.fast) {
-          const size = 11 + Math.log2(p.best + 1) * 3.2;
-          const c = p.best >= 40 ? C.goldL : p.best >= 10 ? C.sakura : p.best >= 4 ? C.yelL : C.cream;
-          fl.add(GX + GW * CELL + 44 + U.rnd(-6, 6), GY + r * CELL + 18, '+¥' + U.fmt(p.v), { size, c, life: 1.1 + p.best / 60, pop: 1 + p.best / 30, shake: p.best >= 40 ? 1.2 : 0 });
-          if (p.best >= 40) ps.burst(GX + GW * CELL + 44, GY + r * CELL + 20, 10, { c: [C.gold, C.goldL], shape: 'star', speed: [60, 160], life: 0.7, up: 80 });
-          sfx('kaching', { pitch: 0.8 + Math.min(1.2, Math.log2(p.best + 1) * 0.18), vol: 0.5 });
-        }
-        p.v = 0; p.best = 0; p.t = 0.35;
-      }
+    pend.t -= dt;
+    if (!(pend.v > 0) || pend.t > 0) return;
+    if (!S.fast && pend.v >= 1) {
+      const b = pend.best, size = 12 + Math.log2(b + 1) * 2.6, x = GEO.collX + 34, y = GEO.WALL + 26;
+      const c = b >= 40 ? C.goldL : b >= 10 ? C.sakura : b >= 4 ? C.yelL : C.cream;
+      fl.add(x + U.rnd(-8, 8), y, '+¥' + U.fmt(pend.v), { size, c, life: 1.1 + b / 60, pop: 1 + b / 30, shake: b >= 40 ? 1.2 : 0 });
+      if (b >= 40) ps.burst(x, y, 10, { c: [C.gold, C.goldL], shape: 'star', speed: [60, 160], life: 0.7, up: 80 });
+      coinFly(x, y, b >= 40 ? 4 : b >= 10 ? 3 : b >= 4 ? 2 : 1); saleFlash = 1;
+      sfx('fab-caixa', { pitch: 0.82 + Math.min(1.1, Math.log2(b + 1) * 0.17), vol: 0.5 });   // produto mais caro = sininho mais agudo
     }
+    pend.v = 0; pend.best = 0; pend.n = 0; pend.t = 0.5;
   }
 
   /* ---------- passo da simulação ---------- */
@@ -238,7 +237,7 @@
           const ds = sideDirs(m);
           for (let k = 0; k < 2; k++) { const d = ds[(m.side + k) % 2]; if (tryPush(m.x, m.y, d, m.out[0])) { m.out.shift(); m.side = (m.side + k + 1) % 2; break; } }
         }
-        m.busy += ((m.out.length ? 1 : 0) - m.busy) * Math.min(1, dt / 6); continue;
+        m.busy += ((m.out.length ? 1 : 0) - m.busy) * Math.min(1, dt / 6); m.sq = Math.max(0, m.sq - dt * 5); continue;
       }
       const R = recipeOf(m);
       if (m.out.length) { const f = front(m); if (tryPush(f[0], f[1], m.rot, m.out[0])) m.out.shift(); }
@@ -251,7 +250,7 @@
         if (m.prog < 1) { m.prog = Math.min(1, m.prog + dt * speedOf(m) / R.time); m.anim += dt * speedOf(m); }
         machineFx(m, R);
         if (m.prog >= 1) {
-          if (m.out.length < 2) { m.out.push({ t: R.out }); m.work = false; S.made[R.out]++; m.idle = 0; madeFx(m, R); if (G.Items && G.Items.count) G.Items.count(CARD_ID[R.out], 1); }
+          if (m.out.length < 2) { m.out.push({ t: R.out }); m.work = false; S.made[R.out]++; m.idle = 0; madeFx(m, R); if (S.made[R.out] === 1 && R.out !== 'cozido') { if (S.fast) pendingFirst.push(R.out); else firstMade(R.out); } if (G.Items && G.Items.count) G.Items.count(CARD_ID[R.out], 1); }
           else m.blocked = true;
         }
       }
@@ -259,7 +258,7 @@
       m.busy += ((working ? 1 : 0) - m.busy) * Math.min(1, dt / 6);
       if (!working) m.idle += dt; else m.idle = 0;
       m.full = Math.max(0, m.full - dt);
-      m.sq = Math.max(0, m.sq - dt * 5);
+      m.sq = Math.max(0, m.sq - dt * 5); m.pop = Math.max(0, (m.pop || 0) - dt * 2.8);
     }
     // 3) esteiras
     for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
@@ -295,43 +294,66 @@
 
   function celebrate(t, sub) {
     if (S.fast) { pendingBanners.push([t, sub]); return; }
-    banner = { t, sub, life: 3.2 };
+    banner = { t, sub, life: 3.2 }; chipPop[/Dourado/.test(t) ? 1 : 0] = 3;
     sfx('fanfare'); sfx('chirin');
+    ps.burst(/Dourado/.test(t) ? 896 : 778, 30, 18, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [80, 220], life: 0.9 });
     ps.burst(W / 2, 200, 40, { c: [C.gold, C.sakura, C.goldL, C.cream], shape: 'star', speed: [120, 360], life: 1.2 });
   }
-  const pendingBanners = [];
+  const pendingBanners = [], pendingFirst = [];
   let banner = null;
 
   /* ---------- efeitos das máquinas ---------- */
   function mcenter(m) { const r = mrect(m.type, m.x, m.y, m.rot); return { x: r.x + r.w / 2, y: r.y + r.h / 2, r }; }
   function machineFx(m, R) {
     if (S.fast) return;
-    const c = mcenter(m);
-    if (m.type === 'panela') {
-      if (Math.random() < 0.12) ps.add({ x: c.x + 6 + U.rnd(-6, 6), y: c.y - 16, vx: U.rnd(-8, 8), vy: U.rnd(-40, -25), shape: 'puff', c: C.rice, w: U.rnd(2.5, 4), life: U.rnd(0.5, 0.8), drag: 1 });
-      if (Math.random() < 0.01) sfx('drip', { vol: 0.35, pitch: U.rnd(0.7, 1) });
+    const r = mrect(m.type, m.x, m.y, m.rot), b = mbase(m, r);
+    if (m.type === 'panela') {            // vapor em plumas + borbulho (o borbulho é um loop só: bubbleLoop)
+      if (Math.random() < 0.2) { const p = A.panelaTop(m, b.cx, b.by); ps.add({ x: p.x + U.rnd(-12, 12), y: p.y + U.rnd(0, 8), vx: U.rnd(-10, 10), vy: U.rnd(-58, -30), shape: 'puff', c: Math.random() < 0.5 ? '#FFFFFF' : '#F3EEE2', w: U.rnd(4, 8), life: U.rnd(0.7, 1.2), drag: 0.8 }); }
     } else if (m.type === 'moldadora') {
-      const n = Math.floor(m.prog * 1.0 + 0.4);   // 1 carimbada por onigiri, em 60%
-      if (n > m.hitN) { m.hitN = n; m.sq = 1; ps.puff(c.x + 6, c.y + 10, 4, 5, { c: C.rice }); sfx('click', { pitch: 0.6, vol: 0.6 }); sfx('hanko', { vol: 0.3, pitch: 1.4 }); }
+      const n = Math.floor(m.prog + 0.4);   // 1 carimbada por onigiri, em 60%
+      if (n > m.hitN) { m.hitN = n; m.sq = 0.8; ps.puff(b.cx - 9, b.by - 28, 5, 6, { c: C.rice }); sfx('fab-ploc', { pitch: U.rnd(0.94, 1.08), vol: 0.6 }); }
     } else if (m.type === 'pilao') {
-      const n = Math.floor(m.prog * 4 + 0.2);     // 4 marteladas por mochi
+      const n = Math.floor(m.prog * 4 + 0.4);     // 4 marteladas por mochi (o kine encosta em 80% de cada ciclo)
       if (n > m.hitN) {
         m.hitN = n; m.sq = 1;
-        const mx = c.x + (m.rot % 2 === 0 ? 2 : 0), my = c.r.y + c.r.h - 34;
-        ps.burst(mx, my, 6, { c: [C.rice, C.cream], shape: 'dot', speed: [30, 90], life: 0.5, up: 60, w: 2 });
-        sfx('thud', { vol: 0.45, pitch: 1.2 }); sfx('boing', { vol: 0.25 });
-        if (Math.random() < 0.25) sfx('yip', { vol: 0.35 });
+        const p = A.pilaoRim(m, b.cx, b.by);
+        ps.burst(p.x, p.y - 2, 9, { c: [C.rice, C.cream, '#FFFFFF'], shape: 'dot', speed: [40, 120], life: 0.55, up: 80, w: 2.5 });
+        ps.puff(p.x, p.y, 4, 7, { c: C.rice });
+        sfx('fab-pon', { vol: 0.6, pitch: U.rnd(0.92, 1.08) });
+        if (n % 2 === 0 || Math.random() < 0.2) fl.add(p.x + U.rnd(-10, 10), p.y - 30, 'PON!', { size: 15, c: C.cream, life: 0.55, pop: 1.5, vy: -30, rot: U.rnd(-0.2, 0.2) });
+        if (Math.random() < 0.3) sfx('yip', { vol: 0.3, pitch: U.rnd(1.05, 1.3) });   // "yoisho!" de shiba
       }
     }
   }
   function madeFx(m, R) {
     if (S.fast) return;
-    if (m.type === 'pilao') { sfx('hanko', { vol: 0.5, pitch: 0.8 }); }
+    if (m.type === 'moldadora') m.pop = 1;
+    else if (m.type === 'pilao') { const r = mrect(m.type, m.x, m.y, m.rot), b = mbase(m, r), p = A.pilaoRim(m, b.cx, b.by); ps.sparkle(p.x, p.y - 6, m.rec === 1 ? 8 : 4, { c: m.rec === 1 ? [C.gold, C.goldL] : [C.cream, '#FFFFFF'], r: 16 }); sfx('hanko', { vol: 0.4, pitch: 0.8 }); }
   }
 
   /* ======================================================================
      Som (Sfx da engine, com mudo e trava pra não virar barulheira)
      ====================================================================== */
+  if (E.Sfx && E.Sfx.define) {
+    // "ploc" da moldadora: batida oca de madeira + estalinho
+    E.Sfx.define('fab-ploc', { gate: 0.07, max: 3, peak: 0.42, jit: 0.8, render: Dk => { const b = Dk.buf(0.16); Dk.osc(b, { f: 520, f1: 190, d: 0.07, vol: 0.7 }); Dk.noise(b, { d: 0.02, vol: 0.35, bp: 2400, q: 1.5 }); Dk.modal(b, 330, [1, 2.4], [0.5, 0.2], [0.09, 0.05], { at: 0.004 }); return b; } });
+    // "PON!" do pilão: pancada grave de madeira na massa (o latidinho 'yip' entra por fora, de vez em quando)
+    E.Sfx.define('fab-pon', { gate: 0.1, max: 3, peak: 0.5, jit: 0.6, render: Dk => { const b = Dk.buf(0.34); Dk.osc(b, { f: 150, f1: 62, d: 0.2, vol: 0.9 }); Dk.noise(b, { color: 'brown', d: 0.04, vol: 0.5, lp: 1400 }); Dk.noise(b, { d: 0.05, vol: 0.22, bp: 900, q: 0.8, at: 0.005 }); Dk.modal(b, 210, [1, 1.9, 3.1], [0.4, 0.2, 0.1], [0.16, 0.1, 0.05]); return b; } });
+    // caixa registradora da doca: "ka" + sininho (quem chama passa pitch mais alto pra produto mais caro)
+    E.Sfx.define('fab-caixa', { gate: 0.12, max: 3, peak: 0.36, jit: 0.2, rev: 0.15, render: Dk => { const b = Dk.buf(0.55); Dk.noise(b, { d: 0.02, vol: 0.4, bp: 2600, q: 1.4 }); Dk.osc(b, { f: 240, f1: 150, d: 0.04, vol: 0.3 }); Dk.modal(b, 1760, [1, 2.01, 3.3], [0.5, 0.22, 0.08], [0.42, 0.3, 0.12], { at: 0.05 }); Dk.modal(b, 2637, [1, 2.0], [0.32, 0.12], [0.36, 0.2], { at: 0.12 }); return b; } });
+    // "pop" de pôr máquina no chão
+    E.Sfx.define('fab-pop', { gate: 0.08, max: 2, peak: 0.42, jit: 0.5, render: Dk => { const b = Dk.buf(0.22); Dk.osc(b, { f: 240, f1: 620, d: 0.06, vol: 0.7 }); Dk.osc(b, { f: 90, f1: 55, d: 0.12, vol: 0.6, at: 0.03 }); Dk.noise(b, { d: 0.05, vol: 0.2, lp: 900, at: 0.03 }); return b; } });
+    // jingle de subir de nível (máquina e doca)
+    E.Sfx.define('fab-jingle', a => { const n = [5, 7, 9, 12]; for (let i = 0; i < n.length; i++) a.note(a.deg(n[i]), { inst: 'marimba', vel: 0.5 + i * 0.07, delay: i * 0.07 }); a.note(a.deg(14), { inst: 'marimba', vel: 0.65, delay: 0.32 }); a.drum('ten', { vel: 0.4, delay: 0.32 }); });
+  }
+  if (E.Loops && E.Loops.define) {
+    // borbulho da panela (loop de 4 s: fervura grave + bolhas subindo de tom)
+    E.Loops.define('fab-borbulho', { vol: 0.8, rate: [0.9, 1.15], lp: [1800, 4200], gain: [0.5, 1], render: Dk => {
+      const n = Math.floor(4 * Dk.sr), out = E.Loops.bed(Dk, n, { color: 'brown', vol: 0.16, lp: 700 }), blip = Dk.buf(0.09);
+      for (let i = 0; i < 46; i++) { blip.fill(0); const f = Dk.rr(140, 420); Dk.osc(blip, { f, f1: f * Dk.rr(1.5, 2.3), a: 0.006, d: Dk.rr(0.03, 0.07), vol: Dk.rr(0.12, 0.35) }); Dk.wrap(out, blip, Dk.rr(0, 4), 1); }
+      return out;
+    } });
+  }
   const sfxLast = {};
   function sfx(name, o) {
     if (S.fast || (GS() && GS().opts && GS().opts.mute) || !E.Sfx || !E.Sfx.has || !E.Sfx.has(name)) return;
@@ -363,10 +385,10 @@
     }
     for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
       const o = old[y][x];
-      if (o && o.k === 'b' && !(grid[y][x] && grid[y][x].k === 'b')) for (const it of o.items) sellLoose(it, GX + x * CELL + 26, GY + y * CELL + 20);
+      if (o && o.k === 'b' && !(grid[y][x] && grid[y][x].k === 'b')) for (const it of o.items) sellLoose(it, cellX(x), cellY(y) - 8);
     }
     S.dockLvl = sn.dock;
-    if (S.sel && S.sel !== 'dock' && machines.indexOf(S.sel) < 0) S.sel = null;
+    if (S.sel && typeof S.sel === 'object' && machines.indexOf(S.sel) < 0) S.sel = null;
   }
   function beginAction() { return { snap: snapshot(), cost: 0 }; }
   function commit(a) { undo.push(a); if (undo.length > 60) undo.shift(); persist(); }
@@ -387,14 +409,15 @@
     if (price) spend(price); a.cost = price;
     const m = makeMachine(type, at[0], at[1], rot, { paid: price });
     commit(a);
-    if (!S.fast) { const c = mcenter(m); ps.puff(c.x, c.y + 14, 10, 9, { c: C.sand }); sfx('stomp', { vol: 0.35 }); sfx('buy', { vol: 0.5 }); }
+    m.sq = 1;
+    if (!S.fast) { const c = mcenter(m); ps.puff(c.x - 20, c.y + 18, 6, 9, { c: C.sand }); ps.puff(c.x + 20, c.y + 18, 6, 9, { c: C.sand }); sfx('fab-pop', { vol: 0.7 }); if (price) sfx('buy', { vol: 0.4 }); }
     return m;
   }
   function eraseAt(x, y, a) {
     const c = cellAt(x, y); if (!c) return false;
     if (c.k === 'b') { clearBelt(x, y); sfx('click'); return true; }
     const ref = removeMachine(c.m); GS().money += ref; a.cost -= ref;
-    if (!S.fast) { ps.puff(GX + x * CELL + 26, GY + y * CELL + 40, 8, 8, { c: C.sand }); if (ref > 0) fl.add(GX + x * CELL + 26, GY + y * CELL + 10, 'devolveu ¥' + U.fmt(ref), { size: 12, c: C.goldL }); sfx('pop', { vol: 0.4 }); }
+    if (!S.fast) { ps.puff(cellX(x), cellY(y) + 12, 8, 8, { c: C.sand }); if (ref > 0) fl.add(cellX(x), cellY(y) - 18, 'devolveu ¥' + U.fmt(ref), { size: 13, c: C.goldL }); sfx('pop', { vol: 0.4 }); }
     return true;
   }
   function rotateMachine(m) {
@@ -417,8 +440,12 @@
     const p = levelPrice(m);
     if (money() < p) { toast('Falta ¥' + U.fmt(p - money())); sfx('error'); return; }
     const a = beginAction(); spend(p); a.cost = p; m.spent += p; m.lvl++; commit(a);
-    m.sq = 1; sfx('levelup', { vol: 0.5 }); const c = mcenter(m);
-    if (!S.fast) { ps.burst(c.x, c.y, 14, { c: [C.gold, C.goldL], shape: 'star', speed: [60, 180], life: 0.7 }); fl.add(c.x, c.y - 24, 'Nv. ' + m.lvl + '!', { size: 16, c: C.goldL }); }
+    m.sq = 1; sfx('fab-jingle', { vol: 0.8 }); const c = mcenter(m), tierUp = m.lvl === 3 || m.lvl === 6 || m.lvl === 10;
+    if (!S.fast) {
+      ps.burst(c.x, c.y - 20, tierUp ? 30 : 16, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [80, tierUp ? 280 : 200], life: 0.8 }); ps.sparkle(c.x, c.y - 24, 8, { c: [C.goldL, '#FFFFFF'], r: 34 });
+      fl.add(c.x, c.y - 50, 'Nv. ' + m.lvl + '!', { size: tierUp ? 20 : 16, c: C.goldL, pop: 1.4 });
+      if (tierUp) { fl.add(c.x, c.y - 74, 'visual novo!', { size: 13, c: C.cream, delay: 0.25 }); sfx('fanfare', { vol: 0.5 }); }
+    }
   }
   function setRecipe(m, i) {
     if (m.rec === i) return;
@@ -433,209 +460,34 @@
     const p = dockPrice();
     if (money() < p) { toast('Falta ¥' + U.fmt(p - money())); sfx('error'); return; }
     const a = beginAction(); spend(p); a.cost = p; S.dockLvl++; commit(a);
-    sfx('levelup', { vol: 0.5 });
-    if (!S.fast) ps.burst(GX - 40, GY + 156, 16, { c: [C.gold, C.goldL], shape: 'star', speed: [60, 200], life: 0.8 });
+    sfx('fab-jingle', { vol: 0.8 });
+    if (!S.fast) { ps.burst(GEO.feedX, 180, 22, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [60, 220], life: 0.8 }); fl.add(GEO.feedX, 150, 'Doca Nv. ' + S.dockLvl + '!', { size: 16, c: C.goldL, pop: 1.4 }); }
   }
 
   /* ======================================================================
-     Sprites (pixel em texto: contorno e luz/sombra automáticos)
+     TELA (arte em fabrica-arte.js: G.FabArt). Daqui pra baixo é só apresentação: nada muda regra nem save.
      ====================================================================== */
-  const XP = { Q: C.mochi, q: C.mochiD, Z: '#4A2E1A', X: C.goldL, F: '#FFE9A8' };
-  const sp = (name, txt) => E.spriteText('fab-' + name, txt, { pal: XP });
-  const ICON = {
-    raw: sp('raw', `
-      ..AAA..
-      .AAAAa.
-      AAAAAaa`),
-    gold: sp('gold', `
-      ..YXY..
-      .YYYYy.
-      YYYYYyy`),
-    cozido: sp('cozido', `
-      .AAAAA.
-      AAAAAAa
-      BBBBBBB
-      .bBBBb.`),
-    onigiri: sp('onigiri', `
-      ...A...
-      ..AAA..
-      .AAAAA.
-      AAANAAa
-      AANNNaa`),
-    mochi: sp('mochi', `
-      .QQQQ.
-      QQWQQQ
-      QQQQQq
-      .qqqq.`),
-    mochid: sp('mochid', `
-      .YYYY.
-      YYWYYY
-      YYYYYy
-      .yyyy.`),
-    sack: sp('sack', `
-      ..tt..
-      .TTTT.
-      TTTTTT
-      TTTTTt
-      .tttt.`),
-  };
-  const SPR = {
-    panLid: sp('panlid', `
-      .....oOOo.....
-      ...oOOOOOOo...
-      ..OOOOOOOOOO..
-      .NNNNNNNNNNNN.`),
-    panBody: sp('panbody', `
-      .oKKKKKKKKKKo.
-      oKKAKKKKKKAKKo
-      okkkkkkkkkkkko
-      .okkkkkkkkkko.`),
-    stove0: sp('stove0', `
-      ..MMMMMMMMMM..
-      .MRYRRYRRYRRM.
-      .MMMMMMMMMMMM.`),
-    stove1: sp('stove1', `
-      ..MMMMMMMMMM..
-      .MYRRYXRYRRYM.
-      .MMMMMMMMMMMM.`),
-    moldBase: sp('moldbase', `
-      .SS..........SS.
-      .Ss..........Ss.
-      .Ss..........Ss.
-      .Ss..........Ss.
-      .Ss..........Ss.
-      .Ss..........Ss.
-      .Ss..........Ss.
-      SSSSSSSSSSSSSSSS
-      SBBBBBBBBBBBBBBS
-      SBbbbbbbbbbbbbBS
-      SSSSSSSSSSSSSSSS
-      .NN..........NN.`),
-    moldTop: sp('moldtop', `
-      RRRRRRRRRRRRRRRR
-      RrrrrrrrrrrrrrrR`),
-    moldHead: sp('moldhead', `
-      .SSSSSS.
-      SSSSSSSS
-      .ssssss.`),
-    usu: sp('usu', `
-      .KKKKKKKKKKKK.
-      KkZZZZZZZZZZkK
-      .KKKKKKKKKKKK.
-      .KkkkkkkkkkkK.
-      ..KKKKKKKKKK..
-      ..KkkkkkkkkK..
-      ...KKKKKKKK...
-      ..KKKKKKKKKK..`),
-    register: sp('register', `
-      ..NNNN..
-      .NWWWWN.
-      SSSSSSSS
-      SYsYsYsS
-      SSSSSSSS
-      SssssssS`),
-    lock: sp('lock', `
-      ..SSS..
-      .S...S.
-      .S...S.
-      YYYYYYY
-      YYYNYYY
-      YYYNYYy
-      yyyyyyy`),
-    eraser: sp('eraser', `
-      ....PPP
-      ...PPPP
-      ..WPPP.
-      .WWWP..
-      WWWW...
-      WWW....`),
-    undo: sp('undo', `
-      ..Y.....
-      .YY.....
-      YYYYYYY.
-      .YY....Y
-      ..Y....Y
-      .......Y
-      ..YYYYY.`),
-    split: sp('split', `
-      ...YY...
-      ..YYYY..
-      .YY..YY.
-      YY....YY
-      ...NN...
-      ...NN...`),
-    belt: sp('beltico', `
-      NNNNNNNN
-      NWNNWNNW
-      NNNNNNNN
-      S.S..S.S`),
-  };
-  function blit(cv, x, y, s, o) {     // x = centro, y = base
-    const sx = (o && o.sx) || 1, sy = (o && o.sy) || 1, w = cv.width * s * sx, h = cv.height * s * sy;
-    g.imageSmoothingEnabled = false;
-    if (o && o.alpha !== undefined) { const a = g.globalAlpha; g.globalAlpha = a * o.alpha; g.drawImage(cv, Math.round(x - w / 2), Math.round(y - h), Math.round(w), Math.round(h)); g.globalAlpha = a; }
-    else g.drawImage(cv, Math.round(x - w / 2), Math.round(y - h), Math.round(w), Math.round(h));
-  }
+  const blit = (cv, x, y, s, o) => A.blit(g, cv, x, y, s, o);
+  const ICON = A.item, SPR = A.spr;
   const txt = (s, x, y, o) => D.text(g, s, x, y, o);
   const T = (size, col, align, extra) => Object.assign({ size, col: col || INK, sw: 0, align: align || 'center', weight: 900 }, extra || {});
+  const fmt1 = v => (Math.round(v * 10) / 10).toLocaleString('pt-BR');
+  const BAY_IN = { x: 4, y: 40, w: 150, h: 430 }, BAY_OUT = { x: 806, y: 40, w: 150, h: 430 }, YEN = { x: 152, y: 25 };
+  const PHRASE = { cozido: 'fofinho, ainda soltando vapor', onigiri: 'o triângulo que move o Japão', mochi: "batido no pilão com muito esforço e um 'yoisho!'", mochid: 'dizem que dá sorte. dizem que dá MUITA sorte' };
+
+  /* ---- overlay da fábrica: stage próprio (960×540) por cima do jogo ---- */
+  const root = document.createElement('div'); root.className = 'k-fab';
+  document.body.appendChild(root);
+  const css = document.createElement('style');
+  css.textContent = '.k-fab{position:fixed;inset:0;z-index:55;background:#2a1a10;display:none}.k-fab.k-fab-open{display:block}.k-fabchip{background:#FFE0C2}';
+  document.head.appendChild(css);
+  const stage = E.Stage({ parent: root, width: W, height: H, bg: '#2a1a10' });
+  const g = stage.g;
+  const input = E.Input(stage);
+  let toastMsg = null;
 
   /* ======================================================================
-     Cenário fixo (galpão) em cache
-     ====================================================================== */
-  const bgCv = document.createElement('canvas'); bgCv.width = W; bgCv.height = H;
-  (function paintBg() {
-    const b = bgCv.getContext('2d');
-    b.fillStyle = '#4A3020'; b.fillRect(0, 0, W, H);
-    // tábuas de fora (escuras)
-    for (let y = 0; y < H; y += 18) { b.fillStyle = (y / 18) % 2 ? '#523522' : '#47301F'; b.fillRect(0, y, W, 17); }
-    // chão do galpão
-    const fx = 188, fy = 60, fw = 584, fh = 392;
-    b.fillStyle = INK; b.fillRect(fx - 4, fy - 4, fw + 8, fh + 8);
-    const R = E.RNG(3);
-    for (let y = fy, i = 0; y < fy + fh; y += 13, i++) {
-      let x = fx - (i % 3) * 37;
-      while (x < fx + fw) {
-        const len = 70 + Math.floor(R() * 80), tone = R();
-        b.fillStyle = tone < 0.33 ? C.woodL : tone < 0.7 ? '#C4925A' : '#BB8850';
-        const x0 = Math.max(fx, x), x1 = Math.min(fx + fw, x + len);
-        b.fillRect(x0, y, x1 - x0, 12);
-        b.fillStyle = 'rgba(255,250,230,.18)'; b.fillRect(x0, y, x1 - x0, 2);
-        b.fillStyle = '#8E6236'; b.fillRect(x1 - 1, y, 1, 12);
-        if (R() < 0.5) { b.fillStyle = '#7A5228'; b.fillRect(x0 + 4, y + 5, 2, 2); b.fillRect(x1 - 7, y + 5, 2, 2); }
-        x += len;
-      }
-      b.fillStyle = '#8E6236'; b.fillRect(fx, y + 12, fw, 1);
-    }
-    // parede de cima com janelinhas
-    b.fillStyle = INK; b.fillRect(fx - 4, fy - 4, fw + 8, 26);
-    b.fillStyle = C.woodD; b.fillRect(fx, fy, fw, 18);
-    b.fillStyle = '#6A4520'; for (let x = fx; x < fx + fw; x += 24) b.fillRect(x, fy, 2, 18);
-    for (let i = 0; i < 5; i++) {
-      const wx = fx + 70 + i * 112;
-      b.fillStyle = INK; b.fillRect(wx - 2, fy + 1, 48, 16);
-      b.fillStyle = '#FFE9A8'; b.fillRect(wx, fy + 3, 44, 12);
-      b.fillStyle = '#FFF6D0'; b.fillRect(wx + 2, fy + 4, 18, 4);
-      b.fillStyle = INK; b.fillRect(wx + 21, fy + 3, 2, 12); b.fillRect(wx, fy + 8, 44, 2);
-      // raio de luz no chão
-      b.fillStyle = 'rgba(255,233,168,.13)';
-      b.beginPath(); b.moveTo(wx, fy + 18); b.lineTo(wx + 44, fy + 18); b.lineTo(wx + 104, fy + 300); b.lineTo(wx + 40, fy + 300); b.closePath(); b.fill();
-    }
-    // vigas
-    b.fillStyle = INK; b.fillRect(fx - 4, fy + fh - 4, fw + 8, 8);
-    // grid marcado no chão (fita no chão)
-    b.strokeStyle = 'rgba(59,40,24,.18)'; b.lineWidth = 1;
-    for (let i = 0; i <= GW; i++) { b.beginPath(); b.moveTo(GX + i * CELL + .5, GY); b.lineTo(GX + i * CELL + .5, GY + GH * CELL); b.stroke(); }
-    for (let j = 0; j <= GH; j++) { b.beginPath(); b.moveTo(GX, GY + j * CELL + .5); b.lineTo(GX + GW * CELL, GY + j * CELL + .5); b.stroke(); }
-    b.strokeStyle = 'rgba(237,185,58,.55)'; b.lineWidth = 3; b.setLineDash([10, 6]);
-    b.strokeRect(GX - 2, GY - 2, GW * CELL + 4, GH * CELL + 4); b.setLineDash([]);
-    // placa do galpão
-    b.fillStyle = INK; b.fillRect(W / 2 - 74, fy + 22, 148, 20);
-    b.fillStyle = C.red; b.fillRect(W / 2 - 72, fy + 24, 144, 16);
-    D.text(b, 'GALPÃO KOME PACK', W / 2, fy + 32.5, { size: 11, col: C.cream, sw: 0, weight: 900 });
-  })();
-
-  /* ======================================================================
-     Desenho: esteiras
+     Esteiras: lista de células pra arte (refeita só quando o layout muda)
      ====================================================================== */
   function feeds(x, y, s) {             // a casa vizinha do lado s empurra pra dentro de (x,y)?
     const nx = x + DX[s], ny = y + DY[s];
@@ -650,400 +502,448 @@
     if (!ins.length) ins.push((c.dir + 2) % 4);
     return ins;
   }
-  const BW = 26;
-  function seg(cx, cy, d, x0, x1, fn) { g.save(); g.translate(cx, cy); g.rotate(ang(d)); fn(x0, x1); g.restore(); }
-  function drawBelts(t) {
-    const list = [];
-    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; if (c && c.k === 'b') list.push([c, x, y, beltSides(c, x, y)]); }
-    const half = CELL / 2;
-    // passes: contorno, moldura, borracha, faixas
-    const pass = (fn) => { for (const [c, x, y, ins] of list) { const cx = GX + x * CELL + half, cy = GY + y * CELL + half; for (const s of ins) seg(cx, cy, (s + 2) % 4, -half, 0, fn); seg(cx, cy, c.dir, 0, half, fn); } };
-    g.fillStyle = 'rgba(59,40,24,.25)'; pass((a, b) => g.fillRect(a - 2, -BW / 2 + 3, b - a + 4, BW + 2));
-    g.fillStyle = INK; pass((a, b) => g.fillRect(a - BW / 2 * (a === 0 ? 1 : 0) - 1, -BW / 2 - 2, b - a + 2 + (a === 0 ? BW / 2 : 0) + (b === 0 ? BW / 2 : 0), BW + 4));
-    g.fillStyle = C.steelD; pass((a, b) => g.fillRect(a - (a === 0 ? BW / 2 - 1 : 0), -BW / 2, b - a + (a === 0 ? BW / 2 - 1 : 0) + (b === 0 ? BW / 2 - 1 : 0), BW));
-    g.fillStyle = C.steel; pass((a, b) => g.fillRect(a - (a === 0 ? BW / 2 - 1 : 0), -BW / 2, b - a + (a === 0 ? BW / 2 - 1 : 0) + (b === 0 ? BW / 2 - 1 : 0), 3));
-    g.fillStyle = C.blk; pass((a, b) => g.fillRect(a - (a === 0 ? BW / 2 - 4 : 0), -BW / 2 + 4, b - a + (a === 0 ? BW / 2 - 4 : 0) + (b === 0 ? BW / 2 - 4 : 0), BW - 8));
-    const off = (t * BELT_SPEED * CELL) % 13;
-    for (const [c, x, y, ins] of list) {
-      const cx = GX + x * CELL + half, cy = GY + y * CELL + half, moving = !(c.jam > 0.3);
-      const o = moving ? off : 0;
-      g.fillStyle = C.blkL;
-      const stripes = (a, b) => { for (let p = a - 13 + o; p < b; p += 13) { const q = Math.max(a, p); if (p + 4 > a && q < b) { g.beginPath(); g.moveTo(q, -BW / 2 + 5); g.lineTo(Math.min(b, q + 4), 0); g.lineTo(q, BW / 2 - 5); g.lineTo(Math.max(a, q - 3), BW / 2 - 5); g.lineTo(Math.max(a, q + 1 - 3), 0); g.lineTo(Math.max(a, q - 3), -BW / 2 + 5); g.closePath(); g.fill(); } } };
-      for (const s of ins) seg(cx, cy, (s + 2) % 4, -half, 0, stripes);
-      seg(cx, cy, c.dir, 0, half, stripes);
-      // setinha da direção
-      seg(cx, cy, c.dir, 0, half, () => { g.fillStyle = 'rgba(243,201,74,.75)'; g.beginPath(); g.moveTo(14, -4); g.lineTo(20, 0); g.lineTo(14, 4); g.closePath(); g.fill(); });
-    }
-    // montinhos de engarrafamento (gargalo) embaixo dos itens
-    for (const [c, x, y] of list) if (c.jam > 0.4) {
-      const cx = GX + x * CELL + half, cy = GY + y * CELL + half, k = Math.min(1, c.jam / 3);
-      g.fillStyle = INK; g.beginPath(); g.ellipse(cx, cy + 4, 14 + 6 * k, 7 + 3 * k, 0, 0, TAU); g.fill();
-      g.fillStyle = C.riceD; g.beginPath(); g.ellipse(cx, cy + 3, 12 + 6 * k, 5.5 + 3 * k, 0, 0, TAU); g.fill();
-      g.fillStyle = C.riceS; g.beginPath(); g.ellipse(cx - 2, cy + 1, 8 + 4 * k, 3.5 + 2 * k, 0, 0, TAU); g.fill();
-    }
-    // itens
-    for (const [c, x, y] of list) {
-      const cx = GX + x * CELL + half, cy = GY + y * CELL + half;
-      const jam = c.jam > 0.4;
-      for (let i = 0; i < c.items.length; i++) {
-        const it = c.items[i], p = it.p;
-        let px, py;
-        if (p < 0.5) { const k = p / 0.5; px = cx + DX[it.from] * half * (1 - k); py = cy + DY[it.from] * half * (1 - k); }
-        else { const k = (p - 0.5) / 0.5; px = cx + DX[c.dir] * half * k; py = cy + DY[c.dir] * half * k; }
-        let lift = 0, sc = 2;
-        if (jam) { lift = (i % 2) * 5 + Math.min(4, c.jam); sc = 2; px += ((i * 37) % 7) - 3; }
-        else lift = Math.abs(Math.sin(t * 9 + i)) * 0.8;
-        blit(ICON[it.t], px, py + 6 - lift, sc);
+  function canFeedRow(r) { const c = cellAt(0, r); if (!c) return false; if (c.k === 'b') return c.dir !== 2; if (c.m.type === 'divisor') return c.m.rot === 0; const o = outTarget(c.m); return !(o[0] === -1 && o[1] === r); }
+  function rowSells(r) { const c = cellAt(GW - 1, r); if (!c) return false; if (c.k === 'b') return c.dir === 0; return outsOf(c.m).some(o => o[0] === GW && o[1] === r); }
+  let bview = [], bcell = [], bsig = '', feedV = [], collV = [];
+  function layoutSig() {
+    let s = '';
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; s += !c ? '.' : c.k === 'b' ? c.dir : c.m.type === 'divisor' ? 'd' + c.m.rot : 'm' + c.m.rot; }
+    return s;
+  }
+  function rebuildBelts() {
+    bview = []; bcell = []; feedV = []; collV = [];
+    for (let y = 0; y < GH; y++) {
+      bcell.push(new Array(GW).fill(null));
+      for (let x = 0; x < GW; x++) {
+        const c = grid[y][x]; if (!c) continue;
+        let v = null;
+        if (c.k === 'b') v = A.beltPrep({ cx: cellX(x), cy: cellY(y), ins: beltSides(c, x, y), outs: [c.dir], speed: BELT_SPEED, cell: c });
+        else if (c.m.type === 'divisor') v = A.beltPrep({ cx: cellX(x), cy: cellY(y), ins: [(c.m.rot + 2) % 4], outs: sideDirs(c.m), speed: BELT_SPEED, cell: null });
+        if (v) { bview.push(v); bcell[y][x] = v; }
       }
+    }
+    for (let r = -1; r < GH; r++) {       // esteiras fixas das docas: a de entrada desce da porta, a de venda sobe até ela
+      const f = A.beltPrep({ cx: GEO.feedX, cy: cellY(r), ins: [3], outs: (r < GH - 1 ? [1] : []).concat(r >= 0 && canFeedRow(r) ? [0] : []), speed: BELT_SPEED });
+      const k = A.beltPrep({ cx: GEO.collX, cy: cellY(r), ins: (r < GH - 1 ? [1] : []).concat(r >= 0 && rowSells(r) ? [2] : []), outs: [3], speed: BELT_SPEED });
+      f.curve = k.curve = null; feedV.push(f); collV.push(k); bview.push(f, k);
+    }
+  }
+  const IP = { x: 0, y: 0 };
+  function drawBeltItems(t) {
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+      const c = grid[y][x]; if (!c || c.k !== 'b' || !c.items.length) continue;
+      const v = bcell[y] && bcell[y][x]; if (!v) continue;
+      const jam = c.jam > 0.4;
+      for (let i = c.items.length - 1; i >= 0; i--) {
+        const it = c.items[i];
+        A.itemAt(v, it.from === undefined ? (c.dir + 2) % 4 : it.from, it.p, c.dir, IP);
+        if (jam) A.drawItem(g, it.t, IP.x + ((i * 37) % 7) - 3, IP.y - (i % 2) * 6, t, i + x * 3 + y * 5, Math.min(3, c.jam) + (i % 2) * 2);
+        else A.drawItem(g, it.t, IP.x, IP.y, t, i + x * 3 + y * 5);
+      }
+      if (c.jam > 2.2) { const n = cellAt(x + DX[c.dir], y + DY[c.dir]), end = x + DX[c.dir] >= GW ? false : !n; if (end) bubble(v.cx + 18, v.cy - 26, '!', C.ora, t); }   // só o beco sem saída avisa (máquina cheia tem o balão dela)
     }
   }
 
   /* ======================================================================
-     Desenho: máquinas
+     Docas vivas: sacos entrando, itens subindo pro caminhão, kei-truck, moedas
      ====================================================================== */
-  const shiba = (x, y, pose, t, o) => E.drawShiba(g, x, y, pose, t, Object.assign({ scale: 0.6, shadow: true }, o || {}));
+  const dockRowAnim = new Array(GH).fill(0);
+  const ship = [];                                       // itens vendidos subindo a esteira da venda (só enfeite)
+  const truck = { st: 'in', dx: 0, n: 0, t: 0, bump: 0, pile: 0, pt: 0, trips: 0 };
+  const coins = []; for (let i = 0; i < 14; i++) coins.push({ on: false, x: 0, y: 0, t: 0, d: 0 });
+  let yenBump = 0, saleFlash = 0;
+  function coinFly(x, y, n) {
+    for (const c of coins) { if (n <= 0) break; if (c.on) continue; c.on = true; c.x = x + U.rnd(-8, 8); c.y = y + U.rnd(-6, 6); c.t = -n * 0.07; c.d = U.rnd(0.5, 0.7); n--; }
+  }
+  function baysTick(dt) {
+    for (let r = 0; r < GH; r++) dockRowAnim[r] = Math.max(0, dockRowAnim[r] - dt * 3.2);
+    saleFlash = Math.max(0, saleFlash - dt * 2.5); yenBump = Math.max(0, yenBump - dt * 4); truck.bump = Math.max(0, truck.bump - dt * 6);
+    const topY = GEO.WALL + 14, sp = BELT_SPEED * CH;
+    for (let i = ship.length - 1; i >= 0; i--) {
+      const s = ship[i];
+      if (s.st === 0) { s.x = Math.min(GEO.collX, s.x + 220 * dt); if (s.x >= GEO.collX) { s.y -= sp * dt; if (s.y <= topY) { s.st = 1; s.u = 0; } } }
+      else { s.u += dt / 0.38; if (s.u >= 1) { ship.splice(i, 1); if (truck.st === 'in' && truck.n < 9) { truck.n++; truck.bump = 1; } else truck.pile = Math.min(12, truck.pile + 1); } }
+    }
+    truck.t += dt;
+    if (truck.st === 'in') {
+      truck.dx = 0;
+      if (truck.pile > 0 && truck.n < 9 && (truck.pt -= dt) <= 0) { truck.pile--; truck.n++; truck.bump = 1; truck.pt = 0.14; }
+      if (truck.n >= 9 && truck.t > 0.6) { truck.st = 'out'; truck.t = 0; sfx('horn', { vol: 0.25, pitch: 1.5 }); }
+    } else if (truck.st === 'out') {
+      truck.dx = U.ease.in(Math.min(1, truck.t / 1.1)) * 200;
+      if (truck.t >= 1.1) { truck.st = 'away'; truck.t = 0; truck.n = 0; truck.trips++; fl.add(GEO.doorOut.x + 70, GEO.doorOut.y + 64, 'carga entregue!', { size: 14, c: C.goldL, life: 1.3 }); }
+    } else if (truck.st === 'away') { truck.dx = 200; if (truck.t >= 1.5) { truck.st = 'back'; truck.t = 0; } }
+    else { truck.dx = (1 - U.ease.out(Math.min(1, truck.t / 1.0))) * 200; if (truck.t >= 1.0) { truck.st = 'in'; truck.t = 0; truck.dx = 0; } }
+    for (const c of coins) { if (!c.on) continue; c.t += dt; if (c.t >= c.d) { c.on = false; yenBump = 1; } }
+  }
+  function drawBays(t) {
+    // ENTRADA: palete de sacos (cresce com o nível da doca) e o shiba que joga os sacos na esteira
+    const lv = S.dockLvl, piles = Math.min(3, 1 + Math.floor(lv / 3));
+    for (let p = 0; p < piles; p++) {
+      const px = 50, py = 210 + p * 78;
+      A.shadow(g, px, py + 2, 44, 8); blit(SPR.pallet, px, py + 4);
+      const n = Math.min(7, 3 + Math.floor((lv + p) / 2));
+      for (let i = 0; i < n; i++) { const row = i < 3 ? 0 : i < 5 ? 1 : 2, k = i < 3 ? i : i < 5 ? i - 3 : 0, w = row === 0 ? 3 : row === 1 ? 2 : 1; blit(ICON.sack, px + (k - (w - 1) / 2) * 26, py - 4 - row * 20); }
+    }
+    const dig = S.digRate > 0, ph = (t * 1.6) % 1;
+    A.worker(g, 84, 160, dig ? (ph < 0.5 ? 'carry' : 'push') : 'sit', t, { pal: 'cha', face: 1, hat: 'palha' });
+    if (dig && ph < 0.5) blit(ICON.raw, 94, 140 - Math.sin(ph * 2 * Math.PI) * 4);
+    // cortina de tiras onde a esteira entra/sai pela porta
+    for (const bx of [GEO.feedX, GEO.collX]) { g.fillStyle = INK; g.fillRect(bx - 24, GEO.WALL - 8, 48, 12); for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#5A524A' : '#6E665E'; g.fillRect(bx - 22 + i * 7.4, GEO.WALL - 6, 6.4, 8 + Math.sin(t * 5 + i * 1.3 + bx) * (S.digRate > 0 || bx > 400 ? 1.5 : 0)); } }
+    // sacos descendo a esteira da entrada (mais sacos = doca mais usada) e o que entra em cada linha
+    const use = U.clamp(S.dockUse / Math.max(0.01, dockCap()), 0, 1), cnt = dig ? Math.max(1, Math.round(1 + use * 5)) : 0, L = cellY(GH - 1) - GEO.WALL - 16;
+    for (let i = 0; i < cnt; i++) { const y = GEO.WALL + 16 + ((t * BELT_SPEED * CH * 0.6 + i * L / cnt) % L); A.drawItem(g, i % 4 === 3 && S.goldMix > 0.02 ? 'gold' : 'raw', GEO.feedX, y, t, i); }
+    for (let r = 0; r < GH; r++) if (dockRowAnim[r] > 0) { const a = 1 - dockRowAnim[r]; A.drawItem(g, 'raw', GEO.feedX + a * (GX - GEO.feedX + 6), cellY(r), t, r, 0); }
+    // plaquinha de nível da doca
+    A.levelBadge(g, GEO.feedX - 34, 142, lv);
+
+    // VENDA: itens subindo, mesa de embalar, pilha esperando o caminhão
+    for (let i = 0; i < ship.length; i++) {
+      const s = ship[i];
+      if (s.st === 0) A.drawItem(g, s.t, s.x, s.y, t, i);
+      else { const u = s.u, tx = truck.st === 'in' ? GEO.doorOut.x + 46 : 908, ty = truck.st === 'in' ? 92 : 226, x = U.lerp(GEO.collX, tx, u), y = U.lerp(GEO.WALL + 14, ty, u) - Math.sin(u * Math.PI) * 26; blit(ICON.box, x, y + 8, 2, { rot: u * 3 }); }
+    }
+    A.shadow(g, 908, 250, 46, 8); blit(SPR.pallet, 908, 252);
+    for (let i = 0; i < truck.pile; i++) blit(ICON.box, 884 + (i % 3) * 24, 242 - Math.floor(i / 3) * 18);
+    const busy = ship.length > 0 || truck.pile > 0;
+    A.worker(g, 878, 166, saleFlash > 0.3 ? 'cheer' : busy ? 'carry' : (truck.st === 'in' ? 'wag' : 'sit'), t + 3, { pal: 'kin', face: truck.st === 'in' ? -1 : 1, hat: 'bone' });
+    A.shadow(g, 918, 320, 44, 7); blit(SPR.table, 918, 320); blit(SPR.scale, 906, 288); blit(ICON.box, 932, 290);
+    blit(SPR.crate, 842, 526); blit(SPR.crate, 806, 532); blit(ICON.box, 824, 494); blit(SPR.plant, 772, 534);
+  }
+
+  /* ======================================================================
+     Máquinas
+     ====================================================================== */
+  const mbase = (m, r) => (m.type === 'pilao' && m.rot % 2 === 1 ? { cx: r.x + r.w / 2, by: r.y + CH + 30 } : m.type === 'divisor' ? { cx: r.x + r.w / 2, by: r.y + r.h / 2 } : { cx: r.x + r.w / 2, by: r.y + r.h - 12 });
+  const MO = { ghost: false, vert: false, dx: 0, dy: 0, vx: 0, vy: 0, item: null };
   function drawMachine(m, t, ghost) {
-    const r = mrect(m.type, m.x, m.y, m.rot), cx = r.x + r.w / 2, by = r.y + r.h - 7;
-    const working = m.work && m.prog < 1, a = m.anim, sq = m.sq;
+    const r = mrect(m.type, m.x, m.y, m.rot), b = mbase(m, r), cx = b.cx, by = b.by;
+    MO.ghost = !!ghost; MO.vert = m.rot % 2 === 1; MO.dx = DX[m.rot]; MO.dy = DY[m.rot];
     g.save();
     if (ghost) g.globalAlpha = ghost;
-    // pé no chão
-    g.fillStyle = 'rgba(59,40,24,.22)'; g.beginPath(); g.ellipse(cx, by, r.w * 0.42, 6, 0, 0, TAU); g.fill();
-    // nível: plaquinha dourada embaixo
-    if (m.type === 'panela') {
-      const px = cx + 6;
-      blit(Math.floor(t * 8) % 2 && working ? SPR.stove1 : SPR.stove0, px, by, 3);
-      if (working) { g.fillStyle = 'rgba(255,200,80,.25)'; g.beginPath(); g.ellipse(px, by - 6, 22, 6, 0, 0, TAU); g.fill(); }
-      blit(SPR.panBody, px, by - 9 + sq * 2, 3, { sx: 1 + sq * 0.08, sy: 1 - sq * 0.08 });
-      const lid = working ? -Math.abs(Math.sin(a * 11)) * 3 : 0;
-      blit(SPR.panLid, px, by - 21 + lid + sq * 2, 3);
-      shiba(r.x + 10, by + 2, working ? 'wag' : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id, { pal: 'kome' });
-    } else if (m.type === 'moldadora') {
-      const px = cx + 5;
-      blit(SPR.moldBase, px, by, 3);
-      const k = m.prog;                      // pistão desce em ~60% e volta
-      let d = 0;
-      if (working) { if (k < 0.45) d = U.ease.inOut(k / 0.45) * 0.25; else if (k < 0.6) d = 0.25 + 0.75 * U.ease.quadIn((k - 0.45) / 0.15); else d = 1 - U.ease.out((k - 0.6) / 0.4); }
-      const topY = by - 38, headY = topY + 4 + d * 11;
-      g.fillStyle = INK; g.fillRect(px - 3, topY - 1, 6, headY - topY + 2);
-      g.fillStyle = C.steelL; g.fillRect(px - 2, topY, 2, headY - topY); g.fillStyle = C.steel; g.fillRect(px, topY, 2, headY - topY);
-      // arroz/onigiri no prato
-      if (m.work) blit(k > 0.6 ? ICON.onigiri : ICON.cozido, px, by - 12, 2, { sx: 1 + sq * 0.35, sy: 1 - sq * 0.3 });
-      blit(SPR.moldHead, px, headY + 9, 3);
-      blit(SPR.moldTop, px, topY + 2, 3);
-      shiba(r.x + 44, by + 2, working ? (d > 0.5 ? 'push' : 'stand') : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id * 0.7, { pal: 'goma', face: -1 });
-    } else if (m.type === 'pilao') {
-      const horiz = m.rot % 2 === 0;
-      const mx = cx + (horiz ? 4 : 2), my = by - 4;
-      blit(SPR.usu, mx, my, 3);
-      // mochi dentro do usu
-      const doura = m.rec === 1;
-      if (m.work || m.inB.cozido > 0) {
-        const rx = 13 + sq * 5, ry = 5 - sq * 1.8;
-        g.fillStyle = INK; g.beginPath(); g.ellipse(mx, my - 24, rx + 2, ry + 2, 0, 0, TAU); g.fill();
-        g.fillStyle = doura ? C.gold : C.mochi; g.beginPath(); g.ellipse(mx, my - 24, rx, ry, 0, 0, TAU); g.fill();
-        g.fillStyle = doura ? C.goldL : C.white; g.beginPath(); g.ellipse(mx - 4, my - 25.5, rx * 0.45, ry * 0.4, 0, 0, TAU); g.fill();
-      }
-      // shiba do martelão (kine)
-      const hx = mx - (horiz ? 34 : 18), hy = by + 1;
-      const ph = working ? (m.prog * 4 + 0.2) % 1 : 0.9;
-      const up = -2.25, hit = -0.45;
-      let A;
-      if (ph < 0.6) A = U.lerp(hit, up, U.ease.out(ph / 0.6));
-      else if (ph < 0.8) A = U.lerp(up, hit, U.ease.quadIn((ph - 0.6) / 0.2));
-      else A = hit - Math.sin((ph - 0.8) / 0.2 * Math.PI) * 0.12;
-      if (!working) A = -1.2;
-      const pvx = hx + 6, pvy = hy - 16, L = horiz ? 30 : 22;
-      shiba(hx, hy, working ? (ph < 0.6 ? 'carry' : 'push') : (m.idle > 6 ? 'sleep' : 'stand'), t + m.id, { pal: 'kuro' });
-      const ex = pvx + Math.cos(A) * L, ey = pvy + Math.sin(A) * L;
-      g.lineCap = 'round';
-      g.strokeStyle = INK; g.lineWidth = 5; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(ex, ey); g.stroke();
-      g.strokeStyle = C.woodL; g.lineWidth = 2.5; g.beginPath(); g.moveTo(pvx, pvy); g.lineTo(ex, ey); g.stroke();
-      g.save(); g.translate(ex, ey); g.rotate(A + Math.PI / 2);
-      g.fillStyle = INK; D.rrect(g, -9, -6, 18, 12, 3); g.fill();
-      g.fillStyle = C.wood; D.rrect(g, -7.5, -4.5, 15, 9, 2); g.fill();
-      g.fillStyle = C.woodL; g.fillRect(-7, -4, 14, 3); g.fillStyle = C.woodD; g.fillRect(-7, 2, 14, 2);
-      g.restore();
-      // shiba que vira o mochi
-      const tx = mx + (horiz ? 32 : 17);
-      shiba(tx, by + 1, working ? (ph > 0.15 && ph < 0.5 ? 'push' : 'wag') : (m.idle > 6 ? 'sleep' : 'sit'), t + m.id * 1.3, { pal: 'shiro', face: -1 });
-      // cozidos esperando
-      for (let i = 0; i < m.inB.cozido; i++) blit(ICON.cozido, r.x + 9 + (i % 2) * 11, r.y + 13 + Math.floor(i / 2) * 7, 1.5);
-      if (m.inB.gold) blit(ICON.gold, r.x + 31, r.y + 13, 1.5);
-    }
-    if (m.type === 'divisor') {   // caixinha de madeira com o Y dourado; a seta gira com a peça
-      g.fillStyle = INK; D.rrect(g, r.x + 9, r.y + 9, r.w - 18, r.h - 18, 6); g.fill();
-      g.fillStyle = C.wood; D.rrect(g, r.x + 11, r.y + 11, r.w - 22, r.h - 22, 5); g.fill();
-      g.fillStyle = C.woodL; g.fillRect(r.x + 13, r.y + 13, r.w - 26, 4);
-      g.save(); g.translate(cx, r.y + r.h / 2); g.rotate(ang(m.rot) - Math.PI / 2);
-      g.strokeStyle = C.gold; g.lineWidth = 4; g.lineCap = 'round';
-      g.beginPath(); g.moveTo(0, 10); g.lineTo(0, 0); g.lineTo(-9, -8); g.moveTo(0, 0); g.lineTo(9, -8); g.stroke();
-      g.restore();
-      if (m.out.length) blit(ICON[m.out[0].t], cx, r.y + r.h / 2 + 6, 1.5);
+    const pop = m.sq || 0;                                   // pulinho ao pôr / subir de nível
+    if (pop > 0 && !ghost) { g.translate(cx, by); g.scale(1 + pop * 0.06, 1 - pop * 0.06); g.translate(-cx, -by); }
+    if (m.type === 'panela') A.panela(g, m, cx, by, t, MO);
+    else if (m.type === 'moldadora') A.moldadora(g, m, cx, by, t, MO);
+    else if (m.type === 'pilao') A.pilao(g, m, cx, by, t, MO);
+    else {
+      const ds = sideDirs(m), k = m.flip === undefined ? m.side : m.flip;   // m.flip segue m.side com molinha
+      MO.vx = U.lerp(DX[ds[0]], DX[ds[1]], k) + DX[m.rot] * 0.55 * (1 - Math.abs(k * 2 - 1)); MO.vy = U.lerp(DY[ds[0]], DY[ds[1]], k) + DY[m.rot] * 0.55 * (1 - Math.abs(k * 2 - 1));
+      MO.item = m.out.length ? m.out[0].t : null;
+      A.divisor(g, m, cx, by, t, MO);
     }
     g.restore();
     if (ghost) return;
-    drawPorts(m, r);
-    if (m.type === 'divisor') { if (S.sel === m) { g.strokeStyle = C.goldL; g.lineWidth = 2; g.setLineDash([6, 4]); g.lineDashOffset = -t * 20; g.strokeRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4); g.setLineDash([]); } return; }
-    // barra "ocupada %"
-    const bw = Math.min(40, r.w - 12), bx = cx - bw / 2, bY = r.y + r.h - 6;
-    g.fillStyle = INK; g.fillRect(bx - 1, bY - 1, bw + 2, 5);
-    g.fillStyle = '#5a4030'; g.fillRect(bx, bY, bw, 3);
-    g.fillStyle = m.busy > 0.85 ? C.ora : m.busy > 0.4 ? C.gold : C.grassL; g.fillRect(bx, bY, bw * U.clamp(m.busy, 0, 1), 3);
-    // nível
-    if (m.lvl > 1) { for (let i = 0; i < Math.min(m.lvl - 1, 9); i++) { g.fillStyle = INK; g.fillRect(r.x + 4 + i * 4, r.y + 3, 4, 4); g.fillStyle = C.gold; g.fillRect(r.x + 5 + i * 4, r.y + 4, 2, 2); } }
+    if (m.type === 'divisor') return;
+    // barrinha "ocupada %" e plaquinha de nível, no pé da máquina
+    const bw = 34, bx = cx - bw / 2 + (m.type === 'pilao' ? 0 : -9), bY = by + 9;
+    g.fillStyle = INK; D.rrect(g, bx - 2, bY - 2, bw + 4, 8, 3); g.fill();
+    g.fillStyle = '#5a4030'; g.fillRect(bx, bY, bw, 4);
+    g.fillStyle = m.busy > 0.85 ? C.ora : m.busy > 0.4 ? C.gold : C.grassL; g.fillRect(bx, bY, bw * U.clamp(m.busy, 0, 1), 4);
+    A.levelBadge(g, bx - 14, bY + 1, m.lvl);
     // balõezinhos de estado
-    if (m.blocked) bubble(r.x + r.w - 10, r.y + 8, '!', C.red, t);
-    else if (m.full > 0 && m.busy > 0.8) bubble(r.x + r.w - 10, r.y + 8, '!', C.ora, t);
-    else if (!m.work && m.idle > 3 && !m.out.length) txt('z', r.x + 20 + Math.sin(t * 2) * 2, r.y + 10 - (t * 6 % 6), { size: 10, col: C.cream, sw: 3 });
-    if (S.sel === m) { g.strokeStyle = C.goldL; g.lineWidth = 2; g.setLineDash([6, 4]); g.lineDashOffset = -t * 20; g.strokeRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4); g.setLineDash([]); }
+    const topY = m.type === 'moldadora' ? by - 92 : m.type === 'pilao' ? by - 84 : by - 80;
+    if (m.blocked) bubble(cx + 22, topY, '!', C.red, t);
+    else if (m.full > 0 && m.busy > 0.8) bubble(cx + 22, topY, '!', C.ora, t);
+    else if (!m.work && m.idle > 6 && !m.out.length) { const u = (t * 0.6 + m.id * 0.3) % 1; txt('z', cx + 34 + u * 8, by - 40 - u * 16, { size: 10 + u * 5, col: C.cream, sw: 3, alpha: 1 - u }); }
+    else if (S.tut < 0 && !S.tool && m.lvl < MAX_LVL && money() >= levelPrice(m) && S.sel !== m) blit(SPR.up, cx + 24, topY + 12 + Math.sin(t * 5 + m.id) * 2.5, 2);
   }
   function bubble(x, y, s, col, t) {
-    const b = Math.sin(t * 6) * 1.5;
-    g.fillStyle = INK; g.beginPath(); g.arc(x, y + b, 8, 0, TAU); g.fill();
-    g.fillStyle = col; g.beginPath(); g.arc(x, y + b, 6.5, 0, TAU); g.fill();
-    txt(s, x, y + b + 0.5, { size: 11, col: C.cream, sw: 0 });
+    const b = Math.sin(t * 6) * 2;
+    g.fillStyle = INK; g.beginPath(); g.arc(x, y + b, 11, 0, TAU); g.fill(); g.beginPath(); g.moveTo(x - 5, y + b + 8); g.lineTo(x - 9, y + b + 17); g.lineTo(x + 2, y + b + 10); g.fill();
+    g.fillStyle = col; g.beginPath(); g.arc(x, y + b, 9, 0, TAU); g.fill();
+    txt(s, x, y + b + 0.5, { size: 14, col: C.cream, sw: 0, weight: 900 });
   }
-  function drawPorts(m, r) {
-    if (m.type === 'divisor') {   // duas saídas (lados) e a entrada (trás)
-      for (const d of sideDirs(m)) { g.save(); g.translate(GX + m.x * CELL + 26 + DX[d] * 22, GY + m.y * CELL + 26 + DY[d] * 22); g.rotate(ang(d)); g.fillStyle = INK; g.beginPath(); g.moveTo(-5, -7); g.lineTo(3, 0); g.lineTo(-5, 7); g.closePath(); g.fill(); g.fillStyle = C.gold; g.beginPath(); g.moveTo(-4, -5); g.lineTo(1, 0); g.lineTo(-4, 5); g.closePath(); g.fill(); g.restore(); }
-      const bx0 = GX + m.x * CELL + 26 - DX[m.rot] * 22, by0 = GY + m.y * CELL + 26 - DY[m.rot] * 22; g.save(); g.translate(bx0, by0); g.rotate(ang(m.rot)); g.fillStyle = INK; g.beginPath(); g.moveTo(-3, -7); g.lineTo(5, 0); g.lineTo(-3, 7); g.closePath(); g.fill(); g.fillStyle = C.cream; g.beginPath(); g.moveTo(-2, -5); g.lineTo(3, 0); g.lineTo(-2, 5); g.closePath(); g.fill(); g.restore();
-      return;
+  function arrow(x, y, d, col, k) {
+    g.save(); g.translate(x, y); g.scale(1, CH / CW * 1.15); g.rotate(ang(d)); g.scale(k || 1, k || 1);
+    g.fillStyle = INK; g.beginPath(); g.moveTo(-7, -10); g.lineTo(6, 0); g.lineTo(-7, 10); g.closePath(); g.fill();
+    g.fillStyle = col; g.beginPath(); g.moveTo(-5, -6.5); g.lineTo(2.5, 0); g.lineTo(-5, 6.5); g.closePath(); g.fill();
+    g.restore();
+  }
+  // setas no chão: saída sem esteira pisca (falta ligar); selecionada mostra todas as bocas
+  function drawPorts(m, t, all) {
+    const outs = outsOf(m);
+    for (const o of outs) {
+      const tc = o[0] >= GW ? 1 : cellAt(o[0], o[1]), linked = !!tc;
+      if (linked && !all) continue;
+      const f = m.type === 'divisor' ? [m.x, m.y] : front(m), dx = Math.sign(o[0] - f[0]), dy = Math.sign(o[1] - f[1]), d = dx > 0 ? 0 : dx < 0 ? 2 : dy > 0 ? 1 : 3;
+      arrow(cellX(f[0]) + dx * (CW / 2 + 4), cellY(f[1]) + dy * (CH / 2 + 3), d, C.gold, linked ? 1 : 1 + 0.18 * Math.sin(t * 7));
     }
-    // saída: seta dourada na borda da frente ; entrada: entalhe creme na borda de trás
-    const f = front(m), fx = GX + f[0] * CELL + 26 + DX[m.rot] * 24, fy = GY + f[1] * CELL + 26 + DY[m.rot] * 24;
-    g.save(); g.translate(fx, fy); g.rotate(ang(m.rot));
-    g.fillStyle = INK; g.beginPath(); g.moveTo(-5, -7); g.lineTo(3, 0); g.lineTo(-5, 7); g.closePath(); g.fill();
-    g.fillStyle = C.gold; g.beginPath(); g.moveTo(-4, -5); g.lineTo(1, 0); g.lineTo(-4, 5); g.closePath(); g.fill();
-    g.restore();
-    const bx = GX + m.x * CELL + 26 - DX[m.rot] * 24, byy = GY + m.y * CELL + 26 - DY[m.rot] * 24;
-    g.save(); g.translate(bx, byy); g.rotate(ang(m.rot));
-    g.fillStyle = INK; g.beginPath(); g.moveTo(-3, -7); g.lineTo(5, 0); g.lineTo(-3, 7); g.closePath(); g.fill();
-    g.fillStyle = C.cream; g.beginPath(); g.moveTo(-2, -5); g.lineTo(3, 0); g.lineTo(-2, 5); g.closePath(); g.fill();
-    g.restore();
+    if (!all) return;
+    const ins = m.type === 'divisor' ? [(m.rot + 2) % 4] : [(m.rot + 2) % 4, (m.rot + 1) % 4, (m.rot + 3) % 4];
+    const back = [m.x, m.y];
+    for (let i = 0; i < ins.length; i++) { if (i > 0 && m.type === 'pilao') continue; const s = ins[i]; arrow(cellX(back[0]) + DX[s] * (CW / 2 + 4), cellY(back[1]) + DY[s] * (CH / 2 + 3), (s + 2) % 4, C.cream, 0.85); }
+  }
+  function selRing(m, t) {
+    const r = mrect(m.type, m.x, m.y, m.rot);
+    g.strokeStyle = INK; g.lineWidth = 5; g.setLineDash([10, 7]); g.lineDashOffset = -t * 24; D.rrect(g, r.x + 3, r.y + 3, r.w - 6, r.h - 6, 10); g.stroke();
+    g.strokeStyle = C.goldL; g.lineWidth = 2.5; D.rrect(g, r.x + 3, r.y + 3, r.w - 6, r.h - 6, 10); g.stroke(); g.setLineDash([]);
   }
 
   /* ======================================================================
-     Desenho: docas
-     ====================================================================== */
-  const dockRowAnim = new Array(GH).fill(0);
-  const DOCK_IN = { x: GX - 78, y: GY - 14, w: 72, h: GH * CELL + 28 };
-  const DOCK_OUT = { x: GX + GW * CELL + 6, y: GY - 14, w: 72, h: GH * CELL + 28 };
-  function woodBox(x, y, w, h, c1, c2, c3) {
-    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 4, 6); g.fill();
-    g.fillStyle = c1; D.rrect(g, x, y, w, h, 5); g.fill();
-    g.fillStyle = c3; g.fillRect(x + 3, y + 2, w - 6, 3);
-    g.fillStyle = c2; g.fillRect(x + 3, y + h - 5, w - 6, 3);
-  }
-  function drawDocks(t) {
-    // ENTRADA
-    const A = DOCK_IN;
-    woodBox(A.x, A.y, A.w, A.h, C.woodD, '#5E3E1E', C.wood);
-    for (let y = A.y + 30; y < A.y + A.h - 8; y += 10) { g.fillStyle = '#6A4520'; g.fillRect(A.x + 4, y, A.w - 8, 1); }
-    woodBox(A.x + 6, A.y - 10, A.w - 12, 24, C.grass, C.grassD, C.grassL);
-    txt('ENTRADA', A.x + A.w / 2, A.y + 2, { size: 11, col: C.cream, sw: 3 });
-    // pilha de sacos
-    for (let i = 0; i < 6; i++) blit(ICON.sack, A.x + 14 + (i % 3) * 11, A.y + A.h - 4 - Math.floor(i / 3) * 12, 2);
-    // bocas por linha
-    for (let r = 0; r < GH; r++) {
-      const yy = GY + r * CELL + 26, open = canFeedRow(r);
-      dockRowAnim[r] = Math.max(0, dockRowAnim[r] - 0.05);
-      g.fillStyle = INK; g.fillRect(A.x + A.w - 18, yy - 12, 20, 24);
-      g.fillStyle = open ? '#2A1A10' : '#5E3E1E'; g.fillRect(A.x + A.w - 16, yy - 10, 18, 20);
-      if (open) {
-        g.fillStyle = C.gold; g.beginPath(); g.moveTo(A.x + A.w - 13, yy - 5); g.lineTo(A.x + A.w - 5, yy); g.lineTo(A.x + A.w - 13, yy + 5); g.closePath(); g.fill();
-        if (dockRowAnim[r] > 0) blit(ICON.raw, A.x + A.w - 26, yy + 6, 2, { alpha: dockRowAnim[r] });
-      }
-    }
-    // shiba carregando saco
-    const walk = (t * 0.6) % 2, wy = A.y + 60 + (walk < 1 ? walk : 2 - walk) * (A.h - 130);
-    shiba(A.x + 22, wy, 'carry', t, { pal: 'cha', face: 1 });
-    blit(ICON.sack, A.x + 24, wy - 18, 2);
-    txt(fmt1(Math.min(S.dockUse, dockCap())) + ' de ' + fmt1(dockCap()) + '/s', A.x + A.w / 2, A.y + A.h + 10, { size: 11, col: C.cream, sw: 3 });
-
-    // VENDA
-    const B = DOCK_OUT;
-    woodBox(B.x, B.y, B.w, B.h, C.woodD, '#5E3E1E', C.wood);
-    for (let y = B.y + 30; y < B.y + B.h - 8; y += 10) { g.fillStyle = '#6A4520'; g.fillRect(B.x + 4, y, B.w - 8, 1); }
-    // noren vermelho
-    woodBox(B.x + 6, B.y - 10, B.w - 12, 24, C.red, C.redD, C.redL);
-    txt('VENDA', B.x + B.w / 2, B.y + 2, { size: 11, col: C.cream, sw: 3 });
-    for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? C.red : C.redD; g.fillRect(B.x + 8 + i * 14, B.y + 14, 12, 12 + Math.sin(t * 2 + i) * 1.5); }
-    for (let r = 0; r < GH; r++) {
-      const yy = GY + r * CELL + 26, open = rowSells(r);
-      g.fillStyle = INK; g.fillRect(B.x - 2, yy - 12, 20, 24);
-      g.fillStyle = open ? '#2A1A10' : '#5E3E1E'; g.fillRect(B.x - 2, yy - 10, 18, 20);
-      if (open) { g.fillStyle = C.gold; g.beginPath(); g.moveTo(B.x + 3, yy - 5); g.lineTo(B.x + 11, yy); g.lineTo(B.x + 3, yy + 5); g.closePath(); g.fill(); }
-    }
-    saleAnim = Math.max(0, saleAnim - 0.04);
-    blit(SPR.register, B.x + 46, B.y + B.h - 34 - saleAnim * 2, 3);
-    shiba(B.x + 46, B.y + B.h - 6, saleAnim > 0.3 ? 'cheer' : 'wag', t, { pal: 'goma', face: -1 });
-  }
-  function canFeedRow(r) { const c = cellAt(0, r); if (!c) return false; if (c.k === 'b') return c.dir !== 2; const o = outTarget(c.m); return !(o[0] === -1 && o[1] === r); }
-  function rowSells(r) { const c = cellAt(GW - 1, r); if (!c) return false; if (c.k === 'b') return c.dir === 0; const o = outTarget(c.m); return o[0] === GW && o[1] === r; }
-  const fmt1 = v => (Math.round(v * 10) / 10).toLocaleString('pt-BR');
-
-  /* ======================================================================
-     HUD em canvas (botões imediatos)
+     HUD em canvas (botões imediatos, jeito de jogo: pílulas creme com contorno e sombra)
      ====================================================================== */
   let btns = [];
   function hit(x, y, w, h, fn, o) { btns.push({ x, y, w, h, fn, o }); }
-  function card(x, y, w, h, fill) {
-    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 6, 10); g.fill();
-    g.fillStyle = fill || C.cream; D.rrect(g, x, y, w, h, 8); g.fill();
+  function pill(x, y, w, h, fill, r) {
+    r = r === undefined ? 10 : r;
+    g.fillStyle = 'rgba(40,22,8,.30)'; D.rrect(g, x - 2, y + 2, w + 4, h + 6, r + 2); g.fill();
+    g.fillStyle = INK; D.rrect(g, x - 2.5, y - 2.5, w + 5, h + 7.5, r + 2); g.fill();
+    g.fillStyle = fill || C.cream; D.rrect(g, x, y, w, h, r); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.5)'; D.rrect(g, x + 4, y + 2.5, w - 8, 3, 1.5); g.fill();
   }
   function button(x, y, w, h, label, fn, o) {
     o = o || {};
-    const on = o.on, off = o.off, pressed = pressBtn && pressBtn.x === x && pressBtn.y === y;
-    const dy = pressed ? 2 : 0;
-    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 6, 9); g.fill();
-    g.fillStyle = on ? C.gold : off ? '#E8DCC0' : (o.fill || C.cream); D.rrect(g, x, y + dy, w, h, 7); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.45)'; D.rrect(g, x + 3, y + 2 + dy, w - 6, 4, 2); g.fill();
-    if (o.icon) blit(o.icon, x + (o.iconX || 22), y + h / 2 + (o.iconY || 8) + dy, o.iconS || 2, { alpha: off ? 0.5 : 1 });
-    const tx = o.icon ? x + (o.textX || 44) : x + w / 2;
+    const on = o.on, off = o.off, pressed = pressBtn && pressBtn.x === x && pressBtn.y === y, dy = pressed ? 2 : 0;
+    g.fillStyle = 'rgba(40,22,8,.30)'; D.rrect(g, x - 2, y + 2, w + 4, h + 6, 11); g.fill();
+    g.fillStyle = INK; D.rrect(g, x - 2.5, y - 2.5, w + 5, h + 7.5, 11); g.fill();
+    g.fillStyle = on ? C.gold : off ? '#E0D4BA' : (o.fill || C.cream); D.rrect(g, x, y + dy, w, h, 9); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.5)'; D.rrect(g, x + 4, y + 2.5 + dy, w - 8, 3, 1.5); g.fill();
+    const cx = x + w / 2;
     if (o.sub) {
-      txt(label, tx, y + h / 2 - 7 + dy, T(o.size || 13, off ? '#8a7a66' : INK, o.icon ? 'left' : 'center'));
-      txt(o.sub, tx, y + h / 2 + 9 + dy, T(o.subSize || 11, o.subCol || (off ? '#8a7a66' : '#6B4A2E'), o.icon ? 'left' : 'center'));
-    } else txt(label, tx, y + h / 2 + 1 + dy, T(o.size || 13, off ? '#8a7a66' : INK, o.icon ? 'left' : 'center'));
+      txt(label, cx, y + h / 2 - 8 + dy, T(o.size || 14, off ? '#8a7a66' : INK));
+      txt(o.sub, cx, y + h / 2 + 9 + dy, T(o.subSize || 12, o.subCol || (off ? '#8a7a66' : '#6B4A2E')));
+    } else txt(label, cx, y + h / 2 + 1 + dy, T(o.size || 14, off ? '#8a7a66' : INK));
     hit(x, y, w, h, fn, { x, y });
   }
-
-
-  /* ---- overlay da fábrica: stage próprio (960×540) por cima do jogo ---- */
-  const root = document.createElement('div'); root.className = 'k-fab';
-  document.body.appendChild(root);
-  const css = document.createElement('style');
-  css.textContent = '.k-fab{position:fixed;inset:0;z-index:55;background:#2a1a10;display:none}.k-fab.k-fab-open{display:block}.k-fabchip{background:#FFE0C2}';
-  document.head.appendChild(css);
-  const stage = E.Stage({ parent: root, width: W, height: H, bg: '#2a1a10' });
-  const g = stage.g;
-  const input = E.Input(stage);
-  let toastMsg = null;
-
-  function drawRightPanel(t) {
-    card(782, 62, 170, 392, '#FFF3D6');
-    const X = 867;
-    if (S.sel && S.sel !== 'dock') return drawCard(S.sel, t);
-    if (S.sel === 'dock') { txt('Doca de Entrada', X, 80, T(14)); txt('puxa ' + fmt1(dockCap()) + ' sacos/s', X, 100, T(12, '#6B4A2E')); txt('veja à esquerda', X, 118, T(11, '#8A6A4A')); }
-    txt('Metas da fábrica', X, 80, T(14));
-    goal(796, 98, 'Pilão', S.made.onigiri, UNLOCK.pilao, 'onigiris', S.unlocked.pilao, ICON.onigiri);
-    goal(796, 160, 'Mochi Dourado', S.made.mochi, UNLOCK.dourado, 'mochis', S.unlocked.mochid, ICON.mochid);
-    txt('Como jogar', X, 236, T(13));
-    const tips = ['toque o botão e a casa', 'pra pôr máquina', 'arraste pra mover', 'toque 2× pra girar', 'Esteira: arraste o dedo', 'toque numa esteira: gira', 'toque na máquina:', 'cartão com nível'];
-    tips.forEach((s, i) => txt(s, X, 256 + i * 16, T(11, i % 2 ? '#8A6A4A' : '#6B4A2E')));
-    txt('valor × saco cru', X, 398, T(11, '#6B4A2E'));
-    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], 798 + i * 38, 430, 2); txt(ITEMS[k].val + '×', 809 + i * 38, 424, T(11, INK, 'left')); });
+  function meter(x, y, w, h, k, col) {
+    g.fillStyle = INK; D.rrect(g, x - 1.5, y - 1.5, w + 3, h + 3, h / 2 + 1); g.fill();
+    g.fillStyle = '#E6DCC4'; D.rrect(g, x, y, w, h, h / 2); g.fill();
+    if (k > 0.02) { g.fillStyle = col; D.rrect(g, x, y, Math.max(h, w * U.clamp(k, 0, 1)), h, h / 2); g.fill(); }
   }
-  function goal(x, y, name, n, need, unit, done, icon) {
-    card(x, y, 142, 50, done ? '#E8F2D0' : C.cream);
-    blit(done ? icon : SPR.lock, x + 16, y + 30, 2);
-    txt(name, x + 30, y + 14, T(12, INK, 'left'));
-    txt(done ? 'liberado!' : Math.min(n, need) + '/' + need + ' ' + unit, x + 30, y + 30, T(11, done ? C.grassD : '#6B4A2E', 'left'));
-    g.fillStyle = INK; g.fillRect(x + 30, y + 38, 104, 6); g.fillStyle = C.riceS; g.fillRect(x + 31, y + 39, 102, 4);
-    g.fillStyle = done ? C.grass : C.gold; g.fillRect(x + 31, y + 39, 102 * Math.min(1, n / need), 4);
+  function check(x, y, col) { g.strokeStyle = INK; g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x - 1, y + 5); g.lineTo(x + 7, y - 5); g.stroke(); g.strokeStyle = col; g.lineWidth = 3; g.stroke(); }
+
+  const chipPop = [0, 0];
+  function goalChip(i, x, name, n, need, done, icon) {
+    const p = chipPop[i], y = 6 - Math.sin(Math.min(1, p) * Math.PI) * 4;
+    pill(x, y, 112, 38, done ? '#DDF0C2' : C.cream);
+    blit(done ? icon : SPR.lock, x + 19, y + 30, 2, done ? null : { alpha: 0.9 });
+    txt(name, x + 36, y + 12, T(13, INK, 'left'));
+    if (done) { txt('liberado', x + 36, y + 27, T(12, C.grassD, 'left')); check(x + 98, y + 25, C.grass); }
+    else { meter(x + 36, y + 22, 44, 7, n / need, C.gold); txt(need >= 1000 ? Math.floor(Math.min(n, need) / need * 100) + '%' : Math.min(n, need) + '/' + need, x + 84, y + 26, T(12, '#6B4A2E', 'left')); }
+    hit(x, y, 112, 38, () => { toast(done ? name + ': liberado!' : i === 0 ? 'Pilão: faça ' + UNLOCK.pilao + ' onigiris (' + S.made.onigiri + ' até agora)' : 'Mochi Dourado: ' + UNLOCK.dourado + ' mochis e Arroz Dourado no Armazém'); sfx('click'); });
   }
-  function drawCard(m, t) {
-    if (m.type === 'divisor') return drawDivCard(m, t);
-    const X = 867, def = MDEF[m.type], R = recipeOf(m);
-    txt(def.name, 796, 80, T(15, INK, 'left'));
-    txt('Nv. ' + m.lvl, 938, 80, T(13, C.goldD, 'right'));
-    txt(def.desc, X, 98, T(def.desc.length > 26 ? 10 : 11, '#8A6A4A'));
-    // receita
-    card(794, 108, 146, 40, C.cream);
-    let x = 806; for (const k in R.in) { for (let i = 0; i < R.in[k]; i++) { blit(ICON[k], x, 136, 2); x += 16; } }
-    txt('→', x + 4, 128, T(14)); blit(ICON[R.out], x + 22, 136, 2.4);
-    txt(ITEMS[R.out].val + '×', x + 36, 128, T(12, C.goldD, 'left'));
-    let y = 166;
-    if (def.recipes.length > 1) {
-      def.recipes.forEach((rc, i) => {
-        const lock = i === 1 && !S.unlocked.mochid;
-        button(794 + i * 75, 156, 71, 44, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, size: 12, sub: lock ? UNLOCK.dourado + ' mochis' : (rc.time + ' s'), subSize: 11 });
-      });
-      y = 214;
-    }
-    const tm = R.time / speedOf(m);
-    txt('tempo: ' + fmt1(tm) + ' s  (×' + fmt1(speedOf(m)) + ')', X, y, T(11, '#6B4A2E'));
-    txt('ocupada ' + Math.round(m.busy * 100) + '%', 796, y + 18, T(12, INK, 'left'));
-    g.fillStyle = INK; g.fillRect(898, y + 13, 44, 10); g.fillStyle = C.riceS; g.fillRect(899, y + 14, 42, 8);
-    g.fillStyle = m.busy > 0.85 ? C.ora : C.gold; g.fillRect(899, y + 14, 42 * U.clamp(m.busy, 0, 1), 8);
-    const st = m.blocked ? ['saída travada', C.redD] : (m.full > 0 && m.busy > 0.8) ? ['fila cheia: gargalo aqui!', C.oraD] : (m.work && m.prog < 1) ? ['trabalhando', C.grassD] : ['esperando ingrediente', '#8A6A4A'];
-    txt(st[0], X, y + 38, T(11, st[1]));
-    const p = levelPrice(m), max = m.lvl >= MAX_LVL;
-    button(794, y + 54, 146, 48, max ? 'Nível máximo' : 'Subir nível', () => levelUp(m), { off: max || money() < p, sub: max ? '' : '¥' + U.fmt(p) + '  (+25%)', subCol: money() >= p ? C.grassD : C.redD });
-    button(794, y + 112, 70, 44, 'Girar', () => rotateMachine(m), { size: 12 });
-    button(870, y + 112, 70, 44, 'Tirar', () => { const a = beginAction(); const c = mcenter(m); const ref = removeMachine(m); GS().money += ref; a.cost = -ref; commit(a); sfx('pop'); if (ref) fl.add(c.x, c.y, 'devolveu ¥' + U.fmt(ref), { size: 12, c: C.goldL }); }, { size: 12, sub: m.paid + m.spent > 0 ? '+¥' + U.fmt(m.paid + m.spent) : 'grátis', subSize: 11 });
+  function drawTopBar(t) {
+    button(8, 6, 116, 38, '← Montanha', close, { fill: '#F6B6B0', size: 14 });
+    // dinheiro (as moedas da venda voam pra cá)
+    const bump = Math.sin(Math.min(1, yenBump) * Math.PI) * 0.12;
+    pill(132, 6, 150, 38);
+    blit(SPR.coin, YEN.x, 36 - bump * 20, 2 + bump * 2);
+    txt(U.fmt(Math.floor(money())), YEN.x + 18, 26, T(18, INK, 'left'));
+    // produção: ¥/s da fábrica, fatia da renda e os 4 produtos
+    const rt = rates(), tot = rt.raw + rt.fac, sh = tot > 0 ? rt.fac / tot : 0;
+    pill(290, 6, 426, 38);
+    txt('Fábrica', 302, 15, T(12, '#8A6A4A', 'left'));
+    txt('¥' + U.fmt(rt.fac) + '/s', 302, 31, T(16, INK, 'left'));
+    meter(396, 12, 72, 8, sh, C.ora);
+    txt(Math.round(sh * 100) + '% da renda', 432, 31, T(12, C.oraD));
+    g.fillStyle = 'rgba(59,40,24,.18)'; g.fillRect(478, 11, 2, 28);
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => {
+      const x = 486 + i * 58, locked = (k === 'mochi' && !S.unlocked.pilao) || (k === 'mochid' && !S.unlocked.mochid);
+      blit(ICON[k], x + 14, 37, 2, { alpha: locked ? 0.3 : 1 });
+      txt(locked ? '?' : U.fmt(S.made[k]), x + 30, 26, T(14, locked ? '#9a8a76' : INK, 'left'));
+    });
+    goalChip(0, 722, 'Pilão', S.made.onigiri, UNLOCK.pilao, S.unlocked.pilao, ICON.mochi);
+    goalChip(1, 840, 'Dourado', S.made.mochi, UNLOCK.dourado, S.unlocked.mochid, ICON.mochid);
   }
 
   const TOOLS = [
-    { id: 'panela', name: 'Panela' }, { id: 'moldadora', name: 'Moldadora' }, { id: 'pilao', name: 'Pilão' },
-    { id: 'esteira', name: 'Esteira' }, { id: 'divisor', name: 'Divisor' }, { id: 'borracha', name: 'Borracha' }, { id: 'undo', name: 'Desfazer' },
+    { id: 'panela', name: 'Panela', hint: 'toque numa casa pra pôr' }, { id: 'moldadora', name: 'Moldadora', hint: 'toque numa casa pra pôr' }, { id: 'pilao', name: 'Pilão', hint: 'ocupa 2 casas' },
+    { id: 'esteira', name: 'Esteira', hint: 'arraste pelas casas' }, { id: 'divisor', name: 'Divisor', hint: 'um pra cada lado' }, { id: 'borracha', name: 'Borracha', hint: 'devolve 100%' }, { id: 'undo', name: 'Desfazer', hint: '' },
   ];
-  const toolIcon = id => ({ panela: ICON.cozido, moldadora: ICON.onigiri, pilao: ICON.mochi, esteira: SPR.belt, divisor: SPR.split, borracha: SPR.eraser, undo: SPR.undo })[id];
-  function drawBottomBar() {
-    g.fillStyle = INK; g.fillRect(0, 460, W, 80);
-    g.fillStyle = '#4A3020'; g.fillRect(0, 463, W, 77);
-    const w = 128, gap = 6, x0 = (W - (w * 7 + gap * 6)) / 2;
+  const BAR = { w: 68, h: 62, gap: 6, y: 474 }; BAR.x = (W - (BAR.w * 7 + BAR.gap * 6)) / 2;
+  let toolT = 0, hoverTool = -1;
+  function drawBottomBar(t) {
+    g.fillStyle = 'rgba(40,22,8,.42)'; D.rrect(g, BAR.x - 10, BAR.y - 8, BAR.w * 7 + BAR.gap * 6 + 20, 90, 16); g.fill();
     TOOLS.forEach((tl, i) => {
-      const x = x0 + i * (w + gap), y = 472;
-      let sub = '', off = false, subCol;
-      if (MDEF[tl.id] && tl.id !== 'divisor') {
-        const p = machinePrice(tl.id);
-        if (tl.id === 'pilao' && !S.unlocked.pilao) { sub = S.made.onigiri + '/' + UNLOCK.pilao + ' onigiris'; off = true; }
-        else { sub = '¥' + U.fmt(p); subCol = money() >= p ? C.grassD : C.redD; }
-      } else if (tl.id === 'esteira' || tl.id === 'divisor') sub = 'grátis';
-      else if (tl.id === 'borracha') sub = 'devolve 100%';
-      else sub = undo.length ? undo.length + ' ação(ões)' : '—';
-      const icon = tl.id === 'pilao' && !S.unlocked.pilao ? SPR.lock : toolIcon(tl.id);
-      button(x, y, w, 56, tl.name, () => {
+      const x = BAR.x + i * (BAR.w + BAR.gap), on = S.tool === tl.id, y = BAR.y - (on ? 5 + Math.sin(t * 6) * 1.5 : 0);
+      const lockP = tl.id === 'pilao' && !S.unlocked.pilao, isM = MDEF[tl.id] && tl.id !== 'divisor', p = isM ? machinePrice(tl.id) : 0, can = !isM || money() >= p;
+      const pressed = pressBtn && pressBtn.x === x && pressBtn.y === BAR.y, dy = pressed ? 2 : 0;
+      g.fillStyle = 'rgba(40,22,8,.30)'; D.rrect(g, x - 2, y + 2, BAR.w + 4, BAR.h + 6, 12); g.fill();
+      g.fillStyle = INK; D.rrect(g, x - 2.5, y - 2.5, BAR.w + 5, BAR.h + 7.5, 12); g.fill();
+      g.fillStyle = on ? C.gold : lockP ? '#D8CCB4' : C.cream; D.rrect(g, x, y + dy, BAR.w, BAR.h, 10); g.fill();
+      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, x + 4, y + 4 + dy, BAR.w - 8, 38, 7); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.55)'; D.rrect(g, x + 5, y + 2.5 + dy, BAR.w - 10, 3, 1.5); g.fill();
+      const ix = x + BAR.w / 2, iy = y + dy;
+      g.imageSmoothingEnabled = false;
+      if (lockP) { g.globalAlpha = 0.35; g.drawImage(A.icon('pilao'), ix - 24, iy + 1); g.globalAlpha = 1; blit(SPR.lock, ix, iy + 34, 3); }
+      else if (tl.id === 'borracha') blit(SPR.eraser, ix, iy + 37, 3);
+      else if (tl.id === 'undo') blit(SPR.undo, ix, iy + 37, 3, { alpha: undo.length ? 1 : 0.4 });
+      else g.drawImage(A.icon(tl.id), ix - 24, iy + 1);
+      let sub, col = '#6B4A2E';
+      if (lockP) { sub = Math.floor(Math.min(1, S.made.onigiri / UNLOCK.pilao) * 100) + '%'; meter(x + 8, y + 49, BAR.w - 16, 6, S.made.onigiri / UNLOCK.pilao, C.gold); sub = null; }
+      else if (isM) { sub = p > 0 ? '¥' + U.fmt(p) : 'grátis'; col = can ? C.grassD : C.redD; }
+      else if (tl.id === 'esteira' || tl.id === 'divisor') sub = 'grátis';
+      else if (tl.id === 'borracha') sub = 'apagar';
+      else sub = undo.length ? 'voltar ' + undo.length : 'voltar';
+      if (sub) txt(sub, ix, y + 52 + dy, T(sub.length > 7 ? 12 : 14, col));
+      hit(x, BAR.y - 6, BAR.w, BAR.h + 8, () => {
         if (tl.id === 'undo') return doUndo();
-        if (off) { toast('O Pilão abre com ' + UNLOCK.pilao + ' onigiris'); sfx('error'); return; }
-        S.tool = S.tool === tl.id ? null : tl.id; S.sel = null; sfx('click');
-      }, { on: S.tool === tl.id, off, sub, subCol, icon, iconS: tl.id === 'esteira' || tl.id === 'divisor' || tl.id === 'borracha' || tl.id === 'undo' ? 2.4 : 3, iconX: 26, iconY: 10, textX: 48, size: 13 });
+        if (lockP) { toast('O Pilão abre com ' + UNLOCK.pilao + ' onigiris (você fez ' + S.made.onigiri + ')'); sfx('error'); return; }
+        S.tool = S.tool === tl.id ? null : tl.id; S.sel = null; toolT = 0; sfx('click');
+      }, { x, y: BAR.y });
+      // etiqueta com o nome (some sozinha; volta se passar o mouse)
+      const show = (on && toolT < 2.6) || hoverTool === i;
+      if (show) {
+        const label = tl.name + (on && tl.hint ? ' · ' + tl.hint : ''), tw = Math.max(70, label.length * 7.9 + 22), lx = U.clamp(ix - tw / 2, 6, W - tw - 6), a = on ? U.clamp((2.6 - toolT) * 3, 0, 1) : 1;
+        g.globalAlpha = hoverTool === i ? 1 : a;
+        g.fillStyle = INK; D.rrect(g, lx, y - 30, tw, 22, 8); g.fill(); g.beginPath(); g.moveTo(ix - 6, y - 9); g.lineTo(ix, y - 3); g.lineTo(ix + 6, y - 9); g.fill();
+        txt(label, lx + tw / 2, y - 18.5, T(13, C.cream)); g.globalAlpha = 1;
+      }
     });
+    // ajuda
+    button(890, 476, 62, 58, '?', () => { helpOpen = !helpOpen; sfx('click'); }, { size: 26, on: helpOpen });
   }
 
+  /* ---- cartões flutuantes (máquina, divisor, docas): pequenos, presos ao lado do que foi tocado ---- */
+  function floatCard(ax, ay, w, h, side) {       // devolve o canto (x, y) do cartão; a setinha aponta pra (ax, ay)
+    let x = side > 0 ? ax + 16 : ax - 16 - w;
+    if (x + w > W - 8) x = ax - 16 - w; if (x < 8) x = ax + 16;
+    x = U.clamp(x, 8, W - w - 8);
+    const y = U.clamp(ay - h / 2, 52, 462 - h), left = x > ax;
+    g.fillStyle = 'rgba(40,22,8,.30)'; D.rrect(g, x - 2, y + 3, w + 4, h + 6, 14); g.fill();
+    g.fillStyle = INK; D.rrect(g, x - 3, y - 3, w + 6, h + 8, 14); g.fill();
+    const py = U.clamp(ay, y + 16, y + h - 16);
+    g.beginPath(); if (left) { g.moveTo(x - 2, py - 10); g.lineTo(x - 13, py); g.lineTo(x - 2, py + 10); } else { g.moveTo(x + w + 2, py - 10); g.lineTo(x + w + 13, py); g.lineTo(x + w + 2, py + 10); } g.fill();
+    g.fillStyle = '#FFF6DE'; D.rrect(g, x, y, w, h, 11); g.fill();
+    g.fillStyle = '#FFF6DE'; g.beginPath(); if (left) { g.moveTo(x + 1, py - 6); g.lineTo(x - 8, py); g.lineTo(x + 1, py + 6); } else { g.moveTo(x + w - 1, py - 6); g.lineTo(x + w + 8, py); g.lineTo(x + w - 1, py + 6); } g.fill();
+    hit(x - 4, y - 4, w + 8, h + 10, () => {}, null);
+    return { x, y };
+  }
+  function removeBtn(m, x, y, w) {
+    button(x, y, w, 44, 'Tirar', () => { const a = beginAction(); const c = mcenter(m); const ref = removeMachine(m); GS().money += ref; a.cost = -ref; commit(a); sfx('pop'); if (!S.fast) { ps.puff(c.x, c.y + 10, 10, 9, { c: C.sand }); if (ref) fl.add(c.x, c.y - 10, 'devolveu ¥' + U.fmt(ref), { size: 13, c: C.goldL }); } },
+      { size: 13, sub: m.paid + m.spent > 0 ? '+¥' + U.fmt(m.paid + m.spent) : 'grátis', subSize: 12, subCol: C.grassD });
+  }
+  function drawCard(m, t) {
+    const r = mrect(m.type, m.x, m.y, m.rot), ax = r.x + r.w, ay = r.y + r.h / 2 - 10, def = MDEF[m.type], w = 236;
+    if (m.type === 'divisor') {
+      const c = floatCard(ax - 6, ay + 10, w, 132, 1), x = c.x + 10, y = c.y;
+      txt('Divisor', x, y + 18, T(15, INK, 'left'));
+      txt('entra por trás e sai', c.x + w / 2, y + 42, T(13, '#6B4A2E')); txt('um pra cada lado', c.x + w / 2, y + 58, T(13, '#6B4A2E'));
+      button(x, y + 76, 104, 44, 'Girar', () => rotateMachine(m), { size: 14 }); removeBtn(m, x + 112, y + 76, 104);
+      return;
+    }
+    const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 270 : 222, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1), x = c.x + 10;
+    let y = c.y;
+    txt(def.name, x, y + 18, T(16, INK, 'left'));
+    g.fillStyle = INK; D.rrect(g, c.x + w - 64, y + 7, 54, 22, 8); g.fill(); g.fillStyle = [C.cream, '#DDE6EE', K.copperL, C.goldL][A.tierOf(m.lvl)]; D.rrect(g, c.x + w - 62, y + 9, 50, 18, 6); g.fill();
+    txt('Nv. ' + m.lvl, c.x + w - 37, y + 18.5, T(14, INK));
+    // receita: o que entra → o que sai e quanto vale
+    g.fillStyle = '#F1E4C2'; D.rrect(g, x, y + 34, w - 20, 36, 8); g.fill();
+    let ix = x + 18; for (const k in R.in) for (let i = 0; i < R.in[k]; i++) { blit(ICON[k], ix, y + 64, 2); ix += 22; }
+    g.fillStyle = INK; g.beginPath(); g.moveTo(ix - 4, y + 46); g.lineTo(ix + 6, y + 52); g.lineTo(ix - 4, y + 58); g.fill();
+    blit(ICON[R.out], ix + 26, y + 64, 2);
+    txt('vale ' + ITEMS[R.out].val + '×', c.x + w - 16, y + 52.5, T(14, C.goldD, 'right'));
+    y += 78;
+    if (two) {
+      def.recipes.forEach((rc, i) => {
+        const lock = i === 1 && !S.unlocked.mochid;
+        button(x + i * 110, y, 106, 40, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, size: 14, sub: lock ? UNLOCK.dourado + ' mochis' : fmt1(rc.time / speedOf(m)) + ' s', subSize: 13 });
+      });
+      y += 48;
+    }
+    const st = m.blocked ? ['saída travada', C.redD] : (m.full > 0 && m.busy > 0.8) ? ['fila cheia: gargalo aqui!', C.oraD] : (m.work && m.prog < 1) ? ['trabalhando · ' + fmt1(R.time / speedOf(m)) + ' s cada', C.grassD] : ['esperando ingrediente', '#8A6A4A'];
+    txt('ocupada', x, y + 7, T(13, '#6B4A2E', 'left')); meter(x + 62, y + 2, 104, 9, m.busy, m.busy > 0.85 ? C.ora : C.gold);
+    txt(Math.round(m.busy * 100) + '%', c.x + w - 10, y + 7, T(13, INK, 'right'));
+    txt(st[0], c.x + w / 2, y + 25, T(13, st[1]));
+    y += 38;
+    const p = levelPrice(m), max = m.lvl >= MAX_LVL, nextT = m.lvl < 3 ? 3 : m.lvl < 6 ? 6 : 10;
+    button(x, y, w - 20, 46, max ? 'Nível máximo' : 'Subir nível', () => levelUp(m), { off: max || money() < p, fill: '#DDF0C2', sub: max ? 'tudo dourado!' : '¥' + U.fmt(p) + ' · +25% rápida', subCol: max ? C.goldD : money() >= p ? C.grassD : C.redD, size: 14 });
+    if (!max) txt(m.lvl + 1 === nextT ? 'o próximo nível muda o visual!' : 'visual novo no Nv. ' + nextT, c.x + w / 2, y + 59, T(12, m.lvl + 1 === nextT ? C.oraD : '#8A6A4A'));
+    y += 70;
+    button(x, y, 104, 44, 'Girar', () => rotateMachine(m), { size: 14 }); removeBtn(m, x + 112, y, 104);
+  }
+  function drawDockCard(t) {
+    const w = 256, h = 190, c = floatCard(BAY_IN.x + BAY_IN.w - 10, 230, w, h, 1), x = c.x + 10, y = c.y, cap = dockCap(), use = Math.min(S.dockUse, cap), max = dockMax(), p = dockPrice();
+    txt('Doca de Entrada', x, y + 18, T(15, INK, 'left'));
+    g.fillStyle = INK; D.rrect(g, c.x + w - 64, y + 7, 54, 22, 8); g.fill(); g.fillStyle = C.cream; D.rrect(g, c.x + w - 62, y + 9, 50, 18, 6); g.fill(); txt('Nv. ' + S.dockLvl, c.x + w - 37, y + 18.5, T(14, INK));
+    txt('puxa ' + fmt1(dockPct() * 100) + '% do arroz que você cava', c.x + w / 2, y + 44, T(13, '#6B4A2E'));
+    meter(x, y + 58, w - 20, 9, use / Math.max(0.01, cap), C.grass);
+    txt('usando ' + fmt1(use) + ' de ' + fmt1(cap) + ' sacos/s', c.x + w / 2, y + 80, T(13, '#6B4A2E'));
+    txt('1 saco na esteira = ¥' + U.fmt(unitV()), c.x + w / 2, y + 98, T(13, C.goldD));
+    button(x, y + 110, w - 20, 46, max ? 'Doca no máximo' : 'Subir doca', dockUp, { off: max || money() < p, fill: '#DDF0C2', size: 14, sub: max ? '' : '¥' + U.fmt(p) + ' · puxa mais arroz', subCol: money() >= p ? C.grassD : C.redD });
+    txt(S.digRate > 0 ? 'o resto vende cru: nada se perde' : 'cave na montanha pra fábrica andar!', c.x + w / 2, y + 172, T(12, S.digRate > 0 ? '#8A6A4A' : C.redD));
+  }
+  function drawSaleCard(t) {
+    const w = 236, h = 120, c = floatCard(BAY_OUT.x + 10, 230, w, h, -1), x = c.x + 10, y = c.y;
+    txt('Doca de Venda', x, y + 18, T(15, INK, 'left'));
+    txt('o que chega aqui vende sozinho', c.x + w / 2, y + 42, T(13, '#6B4A2E'));
+    txt('e o kei-truck leva embora', c.x + w / 2, y + 58, T(13, '#6B4A2E'));
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 14 + i * 54, y + 106, 2); txt(ITEMS[k].val + '×', x + 29 + i * 54, y + 94, T(13, C.goldD, 'left')); });
+  }
+  let helpOpen = false;
+  function drawHelp() {
+    g.fillStyle = 'rgba(30,18,10,.55)'; g.fillRect(0, 0, W, H);
+    const w = 520, h = 300, x = (W - w) / 2, y = 110;
+    pill(x, y, w, h, '#FFF6DE', 14);
+    E.drawShibaHead(g, x + 52, y + 50, performance.now() / 1000, { scale: 1.1, expr: 'happy' });
+    txt('Como montar a fábrica', x + 100, y + 34, T(18, INK, 'left'));
+    txt('o arroz entra pela ENTRADA e tem que chegar na VENDA', x + 100, y + 58, T(12, '#6B4A2E', 'left'));
+    const tips = ['Pôr máquina: toque no botão e depois numa casa', 'Mover: arraste a máquina · Girar: toque duas vezes', 'Esteira: escolha Esteira e arraste o dedo pelas casas', 'Toque numa esteira pra virar a direção dela', 'Toque numa máquina: nível, receita, girar e tirar', 'Divisor: reparte os itens, um pra cada lado'];
+    tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 96 + i * 24, 4, 0, TAU); g.fill(); txt(s, x + 48, y + 97 + i * 24, T(13, INK, 'left')); });
+    txt('quanto vale cada coisa (× o saco cru):', x + 30, y + 250, T(12, '#6B4A2E', 'left'));
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 50 + i * 110, y + 286, 2); txt(ITEMS[k].val + '×', x + 68 + i * 110, y + 273, T(14, C.goldD, 'left')); });
+    hit(0, 0, W, H, () => { helpOpen = false; sfx('click'); });
+  }
+
+  /* ---- tutorial: 4 passos com o Kome ---- */
   const TUT = [
-    { r: () => DOCK_IN, t: 'Esta é a Doca de Entrada.', s: ['Ela puxa uma parte do arroz que você cava', '(10% no começo). O resto vende cru, como sempre.'] },
-    { r: () => { const m = machines.find(q => q.type === 'panela'); return m ? mrect(m.type, m.x, m.y, m.rot) : { x: GX, y: GY, w: 52, h: 52 }; }, t: 'A Panela cozinha o arroz.', s: ['1 saco vira 1 arroz cozido em 1 s,', 'e o cozido vale 2× o cru. Essa é grátis!'] },
-    { r: () => DOCK_OUT, t: 'Doca de Venda.', s: ['Tudo que chega aqui vende sozinho.', 'Se a esteira encher, nada se perde.'] },
-    { r: () => ({ x: 14, y: 466, w: 932, h: 70 }), t: 'Pronto, veja o +¥ subindo!', s: ['Agora compre uma Moldadora, ligue com Esteira', 'e transforme o cozido em onigiri (4×).'] },
+    { r: () => BAY_IN, t: 'Esta é a Doca de Entrada.', s: ['Ela puxa uma parte do arroz que você cava', 'lá fora. O resto vende cru, como sempre.'] },
+    { r: () => { const m = machines.find(q => q.type === 'panela'); if (!m) return { x: GX, y: GY, w: CW, h: CH }; const r = mrect(m.type, m.x, m.y, m.rot); return { x: r.x, y: r.y - 36, w: r.w, h: r.h + 36 }; }, t: 'A Panela cozinha o arroz.', s: ['1 saco vira 1 arroz cozido,', 'e o cozido vale 2× o cru. Essa é grátis!'] },
+    { r: () => BAY_OUT, t: 'Doca de Venda.', s: ['Tudo que chega aqui vende sozinho', 'e o kei-truck leva. Nada se perde.'] },
+    { r: () => ({ x: BAR.x - 8, y: BAR.y - 8, w: BAR.w * 7 + BAR.gap * 6 + 16, h: BAR.h + 18 }), t: 'Pronto, veja o +¥ subindo!', s: ['Agora compre uma Moldadora, ligue com Esteira', 'e transforme o cozido em onigiri (4×).'] },
   ];
   function drawTutorial(t) {
     const st = TUT[S.tut], r = st.r(), pad = 6;
     g.save();
-    g.fillStyle = 'rgba(30,18,10,.62)';
-    g.beginPath(); g.rect(0, 0, W, H); g.rect(r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2); g.fill('evenodd');
-    g.strokeStyle = C.goldL; g.lineWidth = 3; g.setLineDash([8, 5]); g.lineDashOffset = -t * 30;
-    g.strokeRect(r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2); g.setLineDash([]);
+    g.fillStyle = 'rgba(30,18,10,.6)';
+    g.beginPath(); g.rect(0, 0, W, H); D.rrect(g, r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2, 12); g.fill('evenodd');
+    g.strokeStyle = C.goldL; g.lineWidth = 3; g.setLineDash([9, 6]); g.lineDashOffset = -t * 30;
+    D.rrect(g, r.x - pad, r.y - pad, r.w + pad * 2, r.h + pad * 2, 12); g.stroke(); g.setLineDash([]);
     g.restore();
-    const bw = 400, bh = 132;
-    let bx = U.clamp(r.x + r.w / 2 - bw / 2, 20, W - bw - 20), by = r.y + r.h + 18;
-    if (by + bh > H - 10) by = r.y - bh - 18;
-    if (S.tut === 0) { bx = r.x + r.w + 30; by = 290; }
-    if (S.tut === 2) { bx = r.x - bw - 30; by = 290; }
-    card(bx, by, bw, bh, C.cream);
-    E.drawShibaHead(g, bx + 44, by + 52, t, { scale: 1.1, expr: 'happy' });
-    txt((S.tut + 1) + '/4', bx + bw - 14, by + 16, T(11, '#8A6A4A', 'right'));
-    txt(st.t, bx + 86, by + 26, T(16, INK, 'left'));
-    st.s.forEach((s, i) => txt(s, bx + 86, by + 50 + i * 18, T(12, '#6B4A2E', 'left')));
-    button(bx + bw - 136, by + bh - 52, 122, 44, S.tut === 3 ? 'Começar!' : 'Próximo', () => { S.tut++; sfx('click'); if (S.tut >= TUT.length) endTut(); }, { on: true, size: 14 });
-    button(bx + 86, by + bh - 52, 140, 44, 'Pular tutorial', endTut, { size: 12 });
+    const bw = 446, bh = 140;
+    let bx = U.clamp(r.x + r.w / 2 - bw / 2, 20, W - bw - 20), by = r.y + r.h + 20;
+    if (by + bh > H - 10) by = r.y - bh - 22;
+    if (S.tut === 0) { bx = r.x + r.w + 26; by = 200; }
+    if (S.tut === 2) { bx = r.x - bw - 26; by = 200; }
+    hit(0, 0, W, H, () => {}, null);      // o tutorial segura o toque: só os botões dele respondem
+    pill(bx, by, bw, bh, '#FFF6DE', 14);
+    E.drawShibaHead(g, bx + 46, by + 54, t, { scale: 1.15, expr: 'happy', pal: (GS().look && GS().look.pal) || 'kome' });
+    for (let i = 0; i < 4; i++) { g.fillStyle = i === S.tut ? C.gold : i < S.tut ? C.grass : '#D8CCB4'; g.beginPath(); g.arc(bx + bw - 62 + i * 14, by + 18, 4, 0, TAU); g.fill(); }
+    txt(st.t, bx + 92, by + 26, T(18, INK, 'left'));
+    st.s.forEach((s, i) => txt(s, bx + 92, by + 52 + i * 20, T(14, '#6B4A2E', 'left')));
+    button(bx + bw - 140, by + bh - 54, 126, 44, S.tut === 3 ? 'Começar!' : 'Próximo', () => { S.tut++; sfx('click'); if (S.tut >= TUT.length) endTut(); }, { on: true, size: 15 });
+    button(bx + 92, by + bh - 54, 150, 44, 'Pular tutorial', endTut, { size: 13 });
   }
   function endTut() { S.tut = -1; S.tutDone = true; persist(); }
 
   /* ======================================================================
      Entrada (mouse e toque)
      ====================================================================== */
-  let drag = null, hover = null, pressBtn = null, lastTap = { t: 0, m: null };
-  const toCell = (x, y) => { const cx = Math.floor((x - GX) / CELL), cy = Math.floor((y - GY) / CELL); return inGrid(cx, cy) ? [cx, cy] : null; };
+  let drag = null, hover = null, pressBtn = null, lastTap = { t: 0, m: null }, hoverXY = null;
+  const toCell = (x, y) => { const cx = Math.floor((x - GX) / CW), cy = Math.floor((y - GY) / CH); return inGrid(cx, cy) ? [cx, cy] : null; };
   const inRect = (x, y, r) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
+  // máquina é mais alta que a casa: tocar no "corpo" dela (que cobre a casa de trás) também pega a máquina
+  function pickMachine(x, y) {
+    let best = null;
+    for (const m of machines) {
+      if (m.type === 'divisor') continue;
+      const r = mrect(m.type, m.x, m.y, m.rot);
+      if (x >= r.x + 10 && x < r.x + r.w - 10 && y >= r.y - 30 && y < r.y) { const up = cellAt(Math.floor((x - GX) / CW), Math.floor((y - GY) / CH)); if (!up || up.k !== 'm') best = m; }
+    }
+    return best;
+  }
   input.on('down', (x, y) => {
     for (let i = btns.length - 1; i >= 0; i--) { const b = btns[i]; if (x >= b.x - 3 && y >= b.y - 3 && x < b.x + b.w + 3 && y < b.y + b.h + 6) { pressBtn = b.o; b.fn(); return; } }
     if (S.tut >= 0) return;
+    if (firstCard) { firstCard.life = Math.min(firstCard.life, 0.3); }
     const c = toCell(x, y);
     if (!c) {
-      if (inRect(x, y, DOCK_IN)) { S.sel = 'dock'; S.tool = null; return; }
-      if (y > 56 && y < 456 && x > 182 && x < 778) { S.sel = null; }
+      const pm = !S.tool && pickMachine(x, y);
+      if (pm) { drag = { mode: 'move', m: pm, start: [pm.x, pm.y], last: [pm.x, pm.y], moved: false, off: [0, 0] }; return; }
+      if (inRect(x, y, BAY_IN)) { S.sel = S.sel === 'dock' ? null : 'dock'; S.tool = null; sfx('click', { pitch: 1.1 }); return; }
+      if (inRect(x, y, BAY_OUT)) { S.sel = S.sel === 'sale' ? null : 'sale'; S.tool = null; sfx('click', { pitch: 1.1 }); return; }
+      S.sel = null;
       return;
     }
     const cell = cellAt(c[0], c[1]);
@@ -1056,14 +956,17 @@
     } else if (MDEF[S.tool]) {
       drag = { mode: 'place', last: c };
     } else {
-      if (cell && cell.k === 'm') drag = { mode: 'move', m: cell.m, start: c, last: c, moved: false, off: [cell.m.x - c[0], cell.m.y - c[1]] };
-      else if (cell && cell.k === 'b') drag = { mode: 'beltTap', last: c };
+      const pm = (!cell || cell.k !== 'm') && pickMachine(x, y);
+      if (pm) drag = { mode: 'move', m: pm, start: c, last: c, moved: false, off: [pm.x - c[0], pm.y - c[1]], tall: true };
+      else if (cell && cell.k === 'm') drag = { mode: 'move', m: cell.m, start: c, last: c, moved: false, off: [cell.m.x - c[0], cell.m.y - c[1]] };
+      else if (cell && cell.k === 'b') { drag = { mode: 'beltTap', last: c }; S.sel = null; }
       else { S.sel = null; }
     }
   });
   let lastBeltDir = 0;
   input.on('move', (x, y) => {
-    hover = toCell(x, y);
+    hover = toCell(x, y); hoverXY = [x, y];
+    hoverTool = -1; if (y >= BAR.y - 6 && y < BAR.y + BAR.h + 8) { const i = Math.floor((x - BAR.x) / (BAR.w + BAR.gap)); if (i >= 0 && i < TOOLS.length && x - BAR.x - i * (BAR.w + BAR.gap) < BAR.w) hoverTool = i; }
     if (!drag) return;
     const c = toCell(x, y); if (!c) return;
     if (drag.mode === 'belt') {
@@ -1101,7 +1004,7 @@
       else {
         const now = performance.now();
         if (lastTap.m === d.m && now - lastTap.t < 380) { rotateMachine(d.m); lastTap.m = null; }
-        else { lastTap = { t: now, m: d.m }; S.sel = d.m; sfx('click', { pitch: 1.1 }); }
+        else { lastTap = { t: now, m: d.m }; S.sel = S.sel === d.m ? null : d.m; sfx('click', { pitch: 1.1 }); }
       }
     } else if (d.mode === 'beltTap') {
       const cell = cellAt(c[0], c[1]);
@@ -1110,142 +1013,148 @@
   });
   addEventListener('keydown', e => {
     if (!isOpen()) return;
+    if (e.key === 'Escape' && helpOpen) { helpOpen = false; return; }
     if (e.key === 'Escape' && !S.tool && !S.sel) { close(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') { doUndo(); e.preventDefault(); }
     if (e.key === 'Escape') { S.tool = null; S.sel = null; }
-    if (e.key === 'r' && S.sel && S.sel !== 'dock') rotateMachine(S.sel);
+    if (e.key === 'r' && S.sel && typeof S.sel === 'object') rotateMachine(S.sel);
   });
 
   /* ======================================================================
-     Fantasma (prévia de pôr / mover)
+     Fantasma (prévia de pôr / mover) e realce das casas
      ====================================================================== */
+  const GHOST = { type: '', x: 0, y: 0, rot: 0, lvl: 1, rec: 0, inB: { raw: 0, gold: 0, cozido: 0 }, out: [], work: false, prog: 0, anim: 0, sq: 0, idle: 0, id: 0, side: 0, pop: 0, busy: 0 };
+  function cellGlow(a, b, col, t) {
+    const x = GX + a * CW, y = GY + b * CH;
+    g.fillStyle = col; D.rrect(g, x + 4, y + 4, CW - 8, CH - 8, 9); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 2; g.setLineDash([8, 6]); g.lineDashOffset = -t * 20; D.rrect(g, x + 4, y + 4, CW - 8, CH - 8, 9); g.stroke(); g.setLineDash([]);
+  }
   function drawGhost(t) {
     let type, x, y, rot, ignore;
     if (drag && drag.mode === 'move' && drag.moved) { type = drag.m.type; x = drag.last[0] + drag.off[0]; y = drag.last[1] + drag.off[1]; rot = drag.m.rot; ignore = drag.m; }
     else if (MDEF[S.tool] && (hover || (drag && drag.last))) { const c = (drag && drag.last) || hover; const at = fitAnchor(S.tool, c[0], c[1], 0); type = S.tool; rot = 0; if (at) { x = at[0]; y = at[1]; } else { x = c[0]; y = c[1]; } }
+    else if ((S.tool === 'esteira' || S.tool === 'borracha') && hover && !drag) { cellGlow(hover[0], hover[1], S.tool === 'borracha' ? 'rgba(200,66,58,.30)' : 'rgba(243,201,74,.28)', t); return; }
     else return;
     const ok = canPlace(type, x, y, rot, ignore);
-    for (const [a, b] of mcells(type, x, y, rot)) if (inGrid(a, b)) {
-      g.fillStyle = ok ? 'rgba(156,199,107,.35)' : 'rgba(200,66,58,.35)'; g.fillRect(GX + a * CELL + 2, GY + b * CELL + 2, CELL - 4, CELL - 4);
-    }
-    if (ok) drawMachine({ type, x, y, rot, lvl: 1, rec: 0, inB: { cozido: 0 }, out: [], work: false, prog: 0, anim: 0, sq: 0, idle: 0, id: 0 }, t, 0.6);
+    for (const [a, b] of mcells(type, x, y, rot)) if (inGrid(a, b)) cellGlow(a, b, ok ? 'rgba(127,190,92,.42)' : 'rgba(200,66,58,.42)', t);
+    if (ok) { GHOST.type = type; GHOST.x = x; GHOST.y = y; GHOST.rot = rot; GHOST.lvl = ignore ? ignore.lvl : 1; GHOST.rec = ignore ? ignore.rec : 0; drawMachine(GHOST, t, 0.62); drawPorts(GHOST, t, true); }
   }
 
   /* ======================================================================
-     Barra de cima e painel da doca (versão do jogo)
+     Avisos por cima: faixa de desbloqueio, produto novo, recado
      ====================================================================== */
-  function drawTopBar() {
-    g.fillStyle = INK; g.fillRect(0, 0, W, 52);
-    g.fillStyle = '#4A3020'; g.fillRect(0, 0, W, 49);
-    g.fillStyle = C.gold; g.fillRect(0, 49, W, 3);
-    button(8, 5, 132, 40, '← Montanha', close, { fill: '#F6B6B0', size: 15 });
-    card(152, 6, 168, 36);
-    txt('¥', 168, 24, T(22, C.goldD));
-    txt(U.fmt(Math.floor(money())), 182, 25, T(20, INK, 'left'));
-    const rt = rates(), tot = rt.raw + rt.fac, sh = tot > 0 ? rt.fac / tot : 0;
-    card(330, 6, 300, 36);
-    txt('fábrica ¥' + U.fmt(rt.fac) + '/s', 340, 17, T(14, INK, 'left'));
-    txt('cavando ¥' + U.fmt(rt.raw) + '/s', 340, 33, T(11, '#6B4A2E', 'left'));
-    const bx = 510, bw = 112;
-    g.fillStyle = INK; g.fillRect(bx - 1, 11, bw + 2, 10);
-    g.fillStyle = C.riceS; g.fillRect(bx, 12, bw, 8);
-    g.fillStyle = C.ora; g.fillRect(bx, 12, bw * sh, 8);
-    txt(Math.round(sh * 100) + '% da renda', bx + bw / 2, 30, T(11, C.oraD));
-    card(640, 6, 312, 36);
-    const items = ['cozido', 'onigiri', 'mochi', 'mochid'];
-    items.forEach((k, i) => {
-      const x = 652 + i * 76, locked = (k === 'mochi' && !S.unlocked.pilao) || (k === 'mochid' && !S.unlocked.mochid);
-      blit(ICON[k], x + 8, 33, 2, { alpha: locked ? 0.35 : 1 });
-      txt(locked ? '?' : U.fmt(S.made[k]), x + 20, 25, T(12, locked ? '#9a8a76' : INK, 'left'));
-    });
-  }
-  function drawLeftPanel(t) {
-    card(8, 62, 170, 392, '#FFF3D6');
-    txt('Kome cavando', 93, 78, T(14));
-    txt(U.fmt(S.sackRate) + ' sacos/s', 93, 94, T(11, '#8A6A4A'));
-    g.fillStyle = C.riceS; g.beginPath(); g.ellipse(118, 160, 40, 22, 0, Math.PI, 0); g.fill();
-    g.strokeStyle = INK; g.lineWidth = 2; g.stroke();
-    g.fillStyle = C.rice; g.beginPath(); g.ellipse(112, 152, 22, 8, 0, Math.PI, 0); g.fill();
-    const digging = S.digRate > 0;
-    E.drawShiba(g, 62, 160, digging ? 'dig' : 'sit', t, { scale: 1, pal: (GS().look && GS().look.pal) || 'kome' });
-    if (digging && Math.random() < 0.2) ps.add({ x: 84, y: 146, vx: U.rnd(20, 90), vy: U.rnd(-140, -60), g: 400, shape: 'grain', c: Math.random() < S.goldMix ? C.gold : C.rice, life: 0.6, w: 2, h: 3 });
-    g.fillStyle = INK; g.fillRect(20, 160, 146, 2);
-    txt('1 item cru = ¥' + U.fmt(unitV()), 93, 182, T(12, C.goldD));
-    txt(Math.round(S.goldMix * 100) + '% dourado', 93, 200, T(11, '#8A6A4A'));
-    g.fillStyle = 'rgba(59,40,24,.15)'; g.fillRect(18, 214, 150, 2);
-    txt('Doca de Entrada · Nv. ' + S.dockLvl, 93, 232, T(12));
-    txt('puxa ' + Math.round(dockPct() * 100) + '% do que você cava', 93, 250, T(11, '#6B4A2E'));
-    const cap = dockCap(), use = Math.min(S.dockUse, cap);
-    txt('usando ' + fmt1(use) + ' de ' + fmt1(cap) + ' itens/s', 93, 268, T(11, '#6B4A2E'));
-    const bw = 140; g.fillStyle = INK; g.fillRect(22, 278, bw + 2, 9); g.fillStyle = C.riceS; g.fillRect(23, 279, bw, 7);
-    g.fillStyle = C.grass; g.fillRect(23, 279, bw * U.clamp(use / Math.max(0.01, cap), 0, 1), 7);
-    const p = dockPrice(), max = dockPct() >= F.dock.pctMax;
-    button(18, 300, 150, 52, max ? 'Doca no máximo' : 'Subir doca', dockUp, { sub: max ? '' : '¥' + U.fmt(p) + ' (+5% e +40%/s)', subSize: 10, subCol: money() >= p ? C.grassD : C.redD, off: max || money() < p });
-    txt('nada se perde: o que', 93, 382, T(11, '#8A6A4A'));
-    txt('a doca não puxa', 93, 398, T(11, '#8A6A4A'));
-    txt('vende cru, como sempre', 93, 414, T(11, '#8A6A4A'));
-    if (!digging) txt('cave pra fábrica andar!', 93, 438, T(11, C.redD));
-  }
-  function drawDivCard(m, t) {
-    const X = 867;
-    txt('Divisor', 796, 80, T(15, INK, 'left'));
-    txt('um pra esquerda, um pra direita', X, 100, T(10, '#8A6A4A'));
-    txt('entra por trás (setinha creme)', X, 130, T(11, '#6B4A2E'));
-    txt('sai pelos dois lados', X, 148, T(11, '#6B4A2E'));
-    txt('lado travado? manda pro outro', X, 166, T(11, '#6B4A2E'));
-    button(794, 200, 70, 44, 'Girar', () => rotateMachine(m), { size: 12 });
-    button(870, 200, 70, 44, 'Tirar', () => { const a = beginAction(); removeMachine(m); commit(a); sfx('pop'); }, { size: 12, sub: 'grátis', subSize: 11 });
-  }
-
-  /* ======================================================================
-     Tela: overlay em tela cheia com stage próprio (960×540, cabe deitado no celular)
-     ====================================================================== */
+  let firstCard = null; const firstQueue = [];
+  function firstMade(k) { if (firstCard) firstQueue.push(k); else { firstCard = { k, life: 4.2, t: 0 }; if (!S.fast) { sfx('chirin'); sfx('fab-jingle', { vol: 0.7 }); ps.burst(W / 2, 190, 26, { c: [C.gold, C.sakura, C.goldL, C.cream], shape: 'star', speed: [100, 300], life: 1.1 }); } } }
   function drawOverlayMsgs(t, dt) {
     if (banner) {
-      banner.life -= dt; const a = U.clamp(Math.min(banner.life, 3.2 - banner.life) * 3, 0, 1);
-      g.globalAlpha = a; card(W / 2 - 220, 150, 440, 74, '#FFE9A8');
-      txt(banner.t, W / 2, 176, T(22, INK)); txt(banner.sub, W / 2, 204, T(13, '#6B4A2E')); g.globalAlpha = 1;
+      banner.life -= dt; const a = U.clamp(Math.min(banner.life, 3.2 - banner.life) * 3, 0, 1), k = U.ease.back(U.clamp((3.2 - banner.life) * 3, 0, 1));
+      g.globalAlpha = a; g.save(); g.translate(W / 2, 188); g.scale(k, k); g.translate(-W / 2, -188);
+      pill(W / 2 - 230, 150, 460, 76, '#FFE9A8', 14);
+      txt(banner.t, W / 2, 178, T(23, INK)); txt(banner.sub, W / 2, 206, T(13, '#6B4A2E')); g.restore(); g.globalAlpha = 1;
       if (banner.life <= 0) banner = null;
+    } else if (firstCard) {
+      const f = firstCard; f.life -= dt; f.t += dt;
+      const a = U.clamp(Math.min(f.life * 4, f.t * 6), 0, 1), k = U.ease.back(U.clamp(f.t * 3.5, 0, 1));
+      g.globalAlpha = a; g.save(); g.translate(W / 2, 200); g.scale(k, k); g.translate(-W / 2, -200);
+      pill(W / 2 - 200, 144, 400, 112, '#FFF6DE', 14);
+      g.fillStyle = '#FFE9A8'; g.beginPath(); g.arc(W / 2 - 146, 200, 40, 0, TAU); g.fill();
+      for (let i = 0; i < 8; i++) { const an = t * 0.8 + i * TAU / 8; g.fillStyle = 'rgba(243,201,74,.5)'; g.beginPath(); g.moveTo(W / 2 - 146, 200); g.arc(W / 2 - 146, 200, 46, an, an + 0.2); g.fill(); }
+      blit(ICON[f.k], W / 2 - 146, 222 + Math.sin(t * 4) * 2, 4);
+      txt('PRODUTO NOVO!', W / 2 - 92, 166, T(12, C.oraD, 'left'));
+      txt(ITEMS[f.k].name, W / 2 - 92, 189, T(22, INK, 'left'));
+      txt(PHRASE[f.k] || '', W / 2 - 92, 213, T(PHRASE[f.k] && PHRASE[f.k].length > 38 ? 11 : 12, '#6B4A2E', 'left'));
+      txt('vale ' + ITEMS[f.k].val + '× o saco cru', W / 2 - 92, 234, T(13, C.goldD, 'left'));
+      g.restore(); g.globalAlpha = 1;
+      if (f.life <= 0) { firstCard = null; if (firstQueue.length) firstMade(firstQueue.shift()); }
     }
     if (toastMsg) {
       toastMsg.life -= dt; g.globalAlpha = U.clamp(toastMsg.life * 3, 0, 1);
-      g.fillStyle = 'rgba(42,26,16,.88)'; D.rrect(g, W / 2 - 190, 404, 380, 26, 9); g.fill();
-      txt(toastMsg.t, W / 2, 417, T(13, C.cream)); g.globalAlpha = 1;
+      const tw = Math.max(200, toastMsg.t.length * 7.6 + 28);
+      g.fillStyle = 'rgba(42,26,16,.9)'; D.rrect(g, W / 2 - tw / 2, 432, tw, 28, 10); g.fill();
+      txt(toastMsg.t, W / 2, 446.5, T(13, C.cream)); g.globalAlpha = 1;
       if (toastMsg.life <= 0) toastMsg = null;
     }
   }
-  let lastT = 0, raf = 0;
+
+  /* ======================================================================
+     Quadro: cenário em cache → portas → esteiras → máquinas por linha → luz → HUD
+     ====================================================================== */
+  let lastT = 0, raf = 0, bubH = null;
+  function bubbleLoop() {            // borbulho das panelas: um loop só, mais alto com mais panelas trabalhando
+    let n = 0; for (const m of machines) if (m.type === 'panela' && m.work && m.prog < 1) n++;
+    const want = isOpen() && n > 0 && !(GS() && GS().opts && GS().opts.mute) && E.Loops;
+    if (want && !bubH) { try { bubH = E.Loops.start('fab-borbulho', { vol: 0.25, rate: 0.3 }); } catch (e) { bubH = null; } }
+    if (bubH && want) bubH.set({ vol: Math.min(0.6, 0.22 + n * 0.07), rate: Math.min(1, 0.25 + n * 0.12) }, 0.4);
+    if (bubH && !want) { try { bubH.stop(0.4); } catch (e) { /* */ } bubH = null; }
+  }
   function frame() {
-    if (!isOpen()) { raf = 0; return; }
+    if (!isOpen()) { raf = 0; bubbleLoop(); return; }
     const now = performance.now() / 1000, dt = Math.min(0.05, lastT ? now - lastT : 0.016); lastT = now;
-    ps.update(dt); fl.update(dt);
+    ps.update(dt); fl.update(dt); baysTick(dt); toolT += dt;
+    for (let i = 0; i < 2; i++) chipPop[i] = Math.max(0, chipPop[i] - dt * 1.4);
+    for (const m of machines) if (m.type === 'divisor') m.flip = m.flip === undefined ? m.side : m.flip + (m.side - m.flip) * Math.min(1, dt * 14);
     while (pendingBanners.length) { const [a, b] = pendingBanners.shift(); S.fast = false; celebrate(a, b); }
+    bubbleLoop();
     render(dt);
     raf = requestAnimationFrame(frame);
   }
+  const NIGHT = { top: '#2B2A4A', mid: '#4A4470', bot: '#8A6A8A' };
   function render(dt) {
-    const t = performance.now() / 1000;
+    const t = performance.now() / 1000, s = GS();
     btns = [];
     g.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0);
-    g.drawImage(bgCv, 0, 0, W, H);
-    drawDocks(t);
-    drawBelts(t);
-    const ms = machines.slice().sort((a, b) => (a.y + (a.rot === 1 ? 1 : 0)) - (b.y + (b.rot === 1 ? 1 : 0)));
-    for (const m of ms) drawMachine(m, t);
+    // hora do dia do jogo: de dia entra sol pelas janelas; no fim da tarde as lanternas acendem
+    const tod = s ? (s.tod || 0.3) : 0.3, Lg = E.Nature && E.Nature.light ? E.Nature.light(tod) : null;
+    const dusk = Lg ? U.clamp(Math.max(Lg.night, Lg.dusk * 0.75), 0, 1) : 0, day = 1 - dusk;
+    A.outsideIn(g, t, Lg, S.digRate > 0, (s && s.look && s.look.pal) || 'kome');
+    A.outsideOut(g, t, Lg, truck);
+    g.imageSmoothingEnabled = false; g.drawImage(A.bg(), 0, 0, W, H);
+    if (day > 0.03) { g.globalAlpha = day; g.drawImage(A.sun(), 0, 0, W, H); g.globalAlpha = 1; }
+    A.wall(g, t, { tod, dusk });
+    const sig = layoutSig(); if (sig !== bsig) { bsig = sig; rebuildBelts(); }
+    for (let i = 0; i < bview.length; i++) { const v = bview[i]; if (v.cell) v.moving = !(v.cell.jam > 0.3); }
+    const feeding = S.digRate > 0; for (let i = 0; i < feedV.length; i++) feedV[i].moving = feeding;
+    A.belts(g, bview, t);
+    for (const m of machines) drawPorts(m, t, S.sel === m);
+    if (S.sel && typeof S.sel === 'object') selRing(S.sel, t);
+    drawBays(t);
+    drawBeltItems(t);
+    drawGhostCells = null;
+    const ms = machines.slice().sort((a, b) => (a.y + (a.type === 'pilao' && a.rot % 2 === 1 ? 1 : 0)) - (b.y + (b.type === 'pilao' && b.rot % 2 === 1 ? 1 : 0)) || a.x - b.x);
+    const moving = drag && drag.mode === 'move' && drag.moved ? drag.m : null;
+    for (const m of ms) { if (m === moving) { g.globalAlpha = 0.35; drawMachine(m, t); g.globalAlpha = 1; } else drawMachine(m, t); }
     drawGhost(t);
     ps.draw(g); fl.draw(g);
-    if (S.tool) {
-      const label = { esteira: 'arraste pelas casas · toque numa esteira pra girar', borracha: 'toque ou arraste pra apagar (devolve 100%)' }[S.tool] || ('toque numa casa pra pôr: ' + MDEF[S.tool].name);
-      g.fillStyle = 'rgba(42,26,16,.8)'; D.rrect(g, W / 2 - 200, 430, 400, 22, 8); g.fill();
-      txt(label, W / 2, 441, T(12, C.cream));
+    A.corner(g, t); A.cornerR(g);
+    // poeirinha no raio de sol
+    if (day > 0.2) {
+      g.fillStyle = '#FFF6D0';
+      for (let i = 0; i < 18; i++) {
+        const wx = A.WIN[i % 4], y = 130 + ((i * 97 + t * (5 + i % 4)) % 170), x = wx - 6 + (y - 130) * 0.62 + ((i * 53) % 44) + Math.sin(t * 0.5 + i) * 6;
+        g.globalAlpha = day * 0.55 * (0.5 + 0.5 * Math.sin(t * 1.3 + i * 2.1)); g.fillRect(Math.round(x), Math.round(y), 2, 2);
+      }
+      g.globalAlpha = 1;
     }
-    drawTopBar();
-    drawLeftPanel(t);
-    drawRightPanel(t);
-    drawBottomBar();
+    if (dusk > 0.03) {
+      g.fillStyle = 'rgba(38,28,84,' + (dusk * 0.36).toFixed(3) + ')'; g.fillRect(0, 0, W, H);
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = dusk; g.drawImage(A.dusk(), 0, 0, W, H); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    }
+    // moedas voando da venda pro dinheiro
+    for (const c of coins) {
+      if (!c.on || c.t < 0) continue;
+      const u = U.ease.inOut(c.t / c.d), mx = (c.x + YEN.x) / 2, my = Math.min(c.y, YEN.y) + 150;
+      const x = (1 - u) * (1 - u) * c.x + 2 * (1 - u) * u * mx + u * u * YEN.x, y = (1 - u) * (1 - u) * c.y + 2 * (1 - u) * u * my + u * u * YEN.y;
+      blit(SPR.coin, x, y + 10, 2);
+    }
+    drawTopBar(t);
+    drawBottomBar(t);
+    if (S.sel === 'dock') drawDockCard(t); else if (S.sel === 'sale') drawSaleCard(t); else if (S.sel) drawCard(S.sel, t);
+    else if (S.tut < 0 && !S.tool && !dockMax() && money() >= dockPrice()) blit(SPR.up, GEO.feedX - 34, 124 + Math.sin(t * 5) * 2.5, 2);
     drawOverlayMsgs(t, dt);
+    if (helpOpen) drawHelp();
     if (S.tut >= 0) drawTutorial(t);
   }
+  let drawGhostCells = null;
 
   /* ======================================================================
      Save (S.stats.fab), começo já montado, desbloqueio
@@ -1321,13 +1230,14 @@
     if (!S.on) return false;
     root.classList.add('k-fab-open'); stage.resize(); S.fast = false; lastT = 0;
     if (!S.tutDone && S.tut < 0) S.tut = 0;
+    while (pendingFirst.length) firstMade(pendingFirst.shift());
     if (!raf) raf = requestAnimationFrame(frame);
     sfx('whoosh');
     return true;
   }
   function close() {
     if (!isOpen()) return;
-    root.classList.remove('k-fab-open'); S.tool = null; drag = null; S.fast = true; persist();
+    root.classList.remove('k-fab-open'); S.tool = null; S.sel = null; helpOpen = false; drag = null; S.fast = true; ship.length = 0; persist(); bubbleLoop();
     if (api && api.save) api.save();
   }
 
@@ -1359,7 +1269,7 @@
     machineAt(x, y) { const c = cellAt(x, y); return c && c.k === 'm' ? c.m : null; },
     levelUp(x, y) { const m = G.Fab.machineAt(x, y); if (m) levelUp(m); },
     recipe(x, y, i) { setRecipe(G.Fab.machineAt(x, y), i); },
-    dockUp, unlockAll() { S.unlocked.pilao = true; S.unlocked.mochid = true; }, skipTut() { S.tut = -1; S.tutDone = true; }, tut(n) { S.tut = n; },
+    dockUp, unlockAll() { S.unlocked.pilao = true; S.unlocked.mochid = true; }, skipTut() { S.tut = -1; S.tutDone = true; }, quiet() { firstCard = null; firstQueue.length = 0; pendingFirst.length = 0; banner = null; pendingBanners.length = 0; }, select(x, y) { S.sel = x === 'dock' || x === 'sale' ? x : G.Fab.machineAt(x, y); }, tool(id) { S.tool = id; toolT = 0; }, tut(n) { S.tut = n; },
     price: machinePrice, levelPrice: (x, y) => levelPrice(G.Fab.machineAt(x, y)), dockPrice,
     get state() {
       const rt = rates();
