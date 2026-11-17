@@ -42,7 +42,7 @@
     STORM_DROPS: 150, STORM_GAP: [1.3, 2.1],                  // Tempestade: gotas, intervalo entre raios (s)
     GIANT_H: 0.62, GIANT_BEAT: 1.3,                           // Kome Gigante: altura (fração da tela), s por patada
     PARADE_CREW: 8,                                           // Desfile: shibas marchando atrás do carro
-    FEST_LANTERNS: 13, FEST_FW: [0.55, 1.2],                  // Festival: lanternas por corda, intervalo dos fogos
+    FEST_LANTERNS: 13, FEST_FW: [0.45, 0.95],                  // Festival: lanternas por corda, intervalo dos fogos
     FREN_BPM: 1.45,                                           // Frenesi: música ×1,45 mais rápida
     ORDER: ['frenesi', 'chuva', 'gigante', 'desfile', 'tempestade', 'festival'],
     EV: {   // nome, piada e números da planilha (camada-cookie-conteudo.csv, tipo evento) — o sistema manda nos números de verdade
@@ -668,26 +668,35 @@
     Draw.text(g, d.fx + '  ·  ' + Math.round(c.dur) + ' s', 40, 36, { size: 24, col: PAL.cream, sw: 7 });
     g.restore();
   }
-  // chip do evento rodando: ícone, nome, tempo que falta (barra), número do evento
+  // chip do evento rodando: ícone, nome, tempo que falta (barra), número do evento.
+  // Lugar FIXO e pequeno: logo abaixo da fileira de cima do HUD (barra da Montanha), centralizado. Os eventos que
+  // desenham coisa alta (Gigante) respeitam chipBottom() pra nunca ficar por baixo do chip.
+  const CHIP_H = 28;
+  const chipY = slot => HUDY.top - 2 + slot * (CHIP_H + 8);
+  const chipBottom = () => { let n = 0; for (const id in ACT) if (ACT[id].phase === 'run') n++; return chipY(Math.max(1, n)) + 6; };
   function drawChip(g, c, t, slot) {
     if (c.phase !== 'run' || c.t < EA.INTRO * 0.85) return;
     const d = c.d, lab = MOD[c.id].label ? MOD[c.id].label(c) : d.s;
-    g.font = '900 18px ' + Draw.FONT; const w = Math.max(250, Math.ceil(g.measureText(lab).width) + 128), h = 44, x = SW / 2 - w / 2, y = HUDY.top + slot * 54, k = EZ.back(clamp((c.t - EA.INTRO * 0.85) / 0.3, 0, 1));
+    g.font = '900 15px ' + Draw.FONT; const w = Math.max(210, Math.ceil(g.measureText(lab).width) + 96), h = CHIP_H, x = SW / 2 - w / 2, y = chipY(slot), k = EZ.back(clamp((c.t - EA.INTRO * 0.85) / 0.3, 0, 1));
     g.save(); g.translate(SW / 2, y + h / 2); g.scale(k, k); g.translate(-SW / 2, -(y + h / 2));
     const bt = beat(t, 120), pulse = c.id === 'frenesi' || c.id === 'festival' ? Math.pow(1 - bt, 3) : 0;
-    pill(g, x, y, w, h, '#FFF6DE', 3);
+    pill(g, x, y, w, h, '#FFF6DE', 2.5);
     g.save(); rr(g, x, y, w, h, h / 2); g.clip();
-    g.fillStyle = mix(d.col, '#FFFFFF', 0.55); g.fillRect(x, y + h - 9, w * clamp(c.left / c.dur, 0, 1), 9);
-    g.fillStyle = d.col; g.fillRect(x, y + h - 9, w * clamp(c.left / c.dur, 0, 1), 4);
+    g.fillStyle = mix(d.col, '#FFFFFF', 0.55); g.fillRect(x, y + h - 6, w * clamp(c.left / c.dur, 0, 1), 6);
+    g.fillStyle = d.col; g.fillRect(x, y + h - 6, w * clamp(c.left / c.dur, 0, 1), 3);
     g.restore();
-    blitC(g, medal(c.id, 22), x + 22, y + h / 2, 1 + pulse * 0.12);
-    Draw.text(g, lab, x + 52, y + 18, { size: 18, col: d.ink, sw: 0, align: 'left' });
-    Draw.text(g, Math.ceil(c.left) + ' s', x + w - 14, y + 18, { size: 20, col: INK, sw: 0, align: 'right' });
+    blitC(g, medal(c.id, 16), x + 16, y + h / 2, 1 + pulse * 0.12);
+    Draw.text(g, lab, x + 38, y + h / 2 - 1, { size: 15, col: d.ink, sw: 0, align: 'left' });
+    Draw.text(g, Math.ceil(c.left) + ' s', x + w - 12, y + h / 2 - 1, { size: 16, col: INK, sw: 0, align: 'right' });
     g.restore();
     if (d.badge && c.id !== 'chuva') {
-      const bx = x + w + 44, by = y + h / 2, bs = 1 + pulse * 0.18;
-      if (c.id === 'frenesi') for (let i = 0; i < 3; i++) pixImg(g, flame(Math.floor(t * 10) + i), bx - 22 + i * 22, by - 8 - pulse * 4, 3);
-      Draw.text(g, d.badge, bx, by, { size: (d.badge.length > 4 ? 22 : 34) * bs, col: PAL.goldL, sw: 9 });
+      g.font = '900 18px ' + Draw.FONT;
+      const bs = 1 + pulse * 0.12, bw = Math.ceil(g.measureText(d.badge).width) + 18, bx = x + w + 10 + bw / 2, by = y + h / 2;
+      g.save(); g.translate(bx, by); g.scale(bs * k, bs * k);
+      pill(g, -bw / 2, -12, bw, 24, d.col === '#F3C94A' ? '#8A5A12' : d.ink, 2);
+      Draw.text(g, d.badge, 0, -1, { size: 17, col: PAL.goldL, sw: 0 });
+      g.restore();
+      if (c.id === 'frenesi') for (let i = 0; i < 3; i++) pixImg(g, flame(Math.floor(t * 10) + i), bx + bw / 2 + 12 + i * 12, by + 2 - pulse * 3, 2);
     }
   }
   // festa do fim: cartão com o resultado
@@ -879,8 +888,8 @@
       if (c.ring !== undefined) c.ring += dt;
       // anda um pouquinho a cada patada, perto de onde o Kome está
       const P = G.P, cam = CAM(), vw = cam ? SW / cam.z : 600;
-      if (P) c.ax = lerp(c.ax, P.x, Math.min(1, dt * 0.6));
-      c.x = c.ax + Math.sin(n * 1.7) * 0.07 * vw;
+      if (P) c.ax = lerp(c.ax, P.x, Math.min(1, dt * 3));
+      c.x = c.ax + Math.sin(n * 1.7) * 0.012 * vw;
     },
     end(c) { c.shrink = 0; const cam = CAM(); if (cam) { cam.toScreen(c.x, heapY(c.x), tmpP); for (let i = 0; i < 18; i++) part(6, tmpP.x + (Math.random() - 0.5) * 140, tmpP.y - Math.random() * SH * 0.4, (Math.random() - 0.5) * 160, -Math.random() * 80, 1, '#FFFFFF', 18, 0); } sfx('boing', { pitch: 1.5 }); },
     tickEnd(c, dt) { c.shrink = Math.min(1, (c.shrink || 0) + dt / 0.6); },
@@ -888,22 +897,45 @@
     world(g, c, v, t) {
       const cam = CAM(); if (!cam) return;
       if (c.phase === 'end' && c.shrink >= 1) return;
-      const z = cam.z, full = EA.GIANT_H * SH / (42 * z), grow = c.phase === 'end' ? 1 - EZ.in(c.shrink) : EZ.back(c.grow), sc = lerp(1, full, grow);
+      // altura: GIANT_H da tela, mas a cabeça (com o pulo) nunca passa por baixo do chip do evento
+      const fy0 = heapY(c.x); cam.toScreen(c.x, fy0, tmpP);
+      const jumpPx = 0.1 * SH, roomPx = tmpP.y - chipBottom() - 8 - jumpPx;
+      const z = cam.z, full = Math.max(2.2 * 42 * z, Math.min(EA.GIANT_H * SH, roomPx)) / (42 * z), grow = c.phase === 'end' ? 1 - EZ.in(c.shrink) : EZ.back(c.grow), sc = lerp(1, full, grow);
       const B = EA.GIANT_BEAT, tt = c.t - 1.0, u = tt < 0 ? 0 : (tt / B) % 1;
       let pose = 'stand', hgt = 0, sq = -c.sq;
       if (c.phase === 'end') pose = 'surprise';
       else if (tt < 0) pose = 'surprise';
       else if (u < 0.36) pose = Math.floor(t * 1.5) % 2 ? 'stand' : 'wag';
       else if (u < 0.55) { pose = 'windup'; sq = 0.14 * Math.sin((u - 0.36) / 0.19 * Math.PI / 2); }
-      else if (u < 0.86) { pose = 'jump'; hgt = Math.sin(Math.PI * (u - 0.55) / 0.31) * 0.15 * SH / z; }
+      else if (u < 0.86) { pose = 'jump'; hgt = Math.sin(Math.PI * (u - 0.55) / 0.31) * jumpPx / z; }
       else pose = 'stand';
       const fy = heapY(c.x);
       // sombra no chão
       g.fillStyle = 'rgba(40,20,8,' + (0.28 * (1 - Math.min(1, hgt / (0.2 * SH / z)) * 0.6)).toFixed(3) + ')';
       g.beginPath(); g.ellipse(c.x, fy, 15 * sc * (1 - hgt / (SH / z)), 3.4 * sc, 0, 0, TAU); g.fill();
+      // nuvem de poeira em cima do Kome normal (o gigante É ele; o pequeno some no meio da poeira)
+      this.dust(g, c, t, grow);
       shiba(g, c.x, fy - hgt, pose, t, sc, c.pal, c.face, sq);
       // brilho dourado em volta (lê como "evento" mesmo de longe)
       g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35 * fade(c); blitC(g, glowImg(GOLD_G), c.x, fy - hgt - 22 * sc, sc * 0.75); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+    },
+    dust(g, c, t, k) {
+      const P = G.P; if (!P || k <= 0.02) return;
+      const px = P.x, py = P.y, base = 16 * k, n = 8, cols = [PAL.riceS, '#EFE3C6', '#FFFBEA'];
+      // 3 passadas (contorno, sombra, corpo+luz) — mesmas regras da arte do jogo: #3B2818 e 3 tons
+      for (let pass = 0; pass < 3; pass++) {
+        for (let i = 0; i < n; i++) {
+          const a = i / n * TAU + t * 0.6, w = 1 + 0.12 * Math.sin(t * 5 + i * 1.9), rx = Math.cos(a) * base * 0.95, ry = Math.sin(a) * base * 0.55;
+          const r = (10 + 4 * hash(i)) * k * w, x = px + rx, y = py - 16 * k + ry;
+          g.fillStyle = pass === 0 ? INK : cols[pass === 1 ? 0 : 1];
+          g.beginPath(); g.arc(x - (pass === 2 ? r * 0.12 : 0), y - (pass === 2 ? r * 0.18 : 0), pass === 0 ? r + 1.6 : pass === 1 ? r : r * 0.78, 0, TAU); g.fill();
+        }
+        if (pass > 0) { g.fillStyle = pass === 1 ? cols[0] : cols[1]; g.beginPath(); g.ellipse(px, py - 16 * k, base * 0.95, base * 0.62, 0, 0, TAU); g.fill(); }
+      }
+      g.fillStyle = cols[2]; for (let i = 0; i < 5; i++) { const a = i * 1.3 + t * 0.6; g.beginPath(); g.arc(px + Math.cos(a) * base * 0.5 - 4 * k, py - 21 * k + Math.sin(a) * base * 0.3, 3.5 * k, 0, TAU); g.fill(); }
+      // grãos voando da poeira
+      g.fillStyle = PAL.riceD; for (let i = 0; i < 6; i++) { const q = (t * 1.4 + hash(i * 3)) % 1, a = hash(i * 7) * Math.PI + Math.PI; g.globalAlpha = 1 - q; g.fillRect(px + Math.cos(a) * base * (0.8 + q), py - 16 * k + Math.sin(a) * base * (0.5 + q * 0.8), 2.5, 1.5); }
+      g.globalAlpha = 1;
     },
     screen(g, c, t) {
       if (c.ring !== undefined && c.ring < 0.6) {   // onda de choque no chão
@@ -941,7 +973,8 @@
     end() {},
     label: c => 'DESFILE  ·  ' + c.cn + ' na avenida',
     head(c) { return -60 + (SW + c.len + 80) * clamp(c.t / c.dur, 0, 1); },
-    gy(sx) { return clamp(groundScreenY(sx, HUDY.bot - 6), SH * 0.34, HUDY.bot - 4); },
+    // avenida PLANA: chão do pátio (y=0 do mundo), passando na frente do pé da montanha; nunca atrás do HUD de baixo
+    gy() { const cam = CAM(); let y = HUDY.bot - 4; if (cam && cam.toScreen) { cam.toScreen(0, 0, tmpP); y = Math.min(y, tmpP.y - 2); } return clamp(y, SH * 0.5, HUDY.bot - 4); },
     screen(g, c, t) {
       const f = c.phase === 'run' ? 1 : Math.max(0, 1 - c.endT / 0.6); if (f <= 0) return;
       const head = this.head(c), step = Math.floor(t * 4) % 2, bob = i => Math.abs(Math.sin(t * 6.3 + i * 0.9)) * 3, S = 1.25;
@@ -956,8 +989,7 @@
         const y = this.gy(fx), yb = y - 4;
         for (let k = 0; k < 2; k++) { const px = fx + 108 + k * 34; shiba(g, px, this.gy(px) - bob(k + 3), 'walk', t + k * 0.3, S, pal, 1); }
         g.strokeStyle = INK; g.lineWidth = 2.5; g.beginPath(); g.moveTo(fx + 70, yb - 34); g.quadraticCurveTo(fx + 100, yb - 18, fx + 140, yb - 26); g.stroke();
-        const tilt = clamp(Math.atan2(this.gy(fx + 60) - this.gy(fx - 60), 120), -0.35, 0.35);
-        g.save(); g.translate(fx, yb); g.rotate(tilt);
+        g.save(); g.translate(fx, yb);
         Draw.box(g, -90, -40, 180, 28, mix(c.col, '#2A1A10', 0.15), { ol: 2.2, top: mix(c.col, '#FFFFFF', 0.3) });
         for (let k = 0; k < 9; k++) Draw.circle(g, -82 + k * 20.5, -40, 7, k % 2 ? '#FFF6E6' : '#F29CB4', { ol: 1.5, hi: false, shade: false });
         for (const wx of [-60, 60]) Draw.circle(g, wx, -10, 13, PAL.woodD, { ol: 2 }), Draw.circle(g, wx, -10, 5, PAL.wood, { ol: 1.5, hi: false });
@@ -972,8 +1004,7 @@
       const dx = head - 150;
       if (vis(dx)) {
         const y = this.gy(dx);
-        const tl = clamp(Math.atan2(this.gy(dx + 40) - this.gy(dx - 40), 80), -0.35, 0.35);
-        g.save(); g.translate(dx, y); g.rotate(tl);
+        g.save(); g.translate(dx, y - 5);
         drumCart(g, 0, 0, 1.15, t, c.hit);
         shiba(g, -44, -30, c.hit > 0.5 ? 'cheer' : 'windup', t, 1.1, pal, 1);
         g.restore();
@@ -1079,6 +1110,7 @@
     },
   };
 
+  const FW_LIFE = 1.9, FW_COLS = ['#FF6B5A', '#FFD34A', '#7FD8FF', '#B98CFF', '#7CF0A0', '#FF9AD0'];
   /* ---------------- FESTIVAL DAS LANTERNAS: entardecer, cordas de lanternas, barraquinhas, bon-odori, fogos e taiko ---------------- */
   MOD.festival = {
     start(c) {
@@ -1090,7 +1122,7 @@
       c.next -= dt;
       if (c.next <= 0 && c.phase === 'run') {
         c.next = lerp(EA.FEST_FW[0], EA.FEST_FW[1], Math.random());
-        c.shells.push({ x: lerp(SW * 0.1, SW * 0.9, Math.random()), y0: HUDY.bot, y1: lerp(SH * 0.12, SH * 0.36, Math.random()) + HUDY.top * 0.3, t: 0, col: CONF[(Math.random() * 5) | 0], kind: (Math.random() * 3) | 0 });
+        c.shells.push({ x: lerp(SW * 0.12, SW * 0.88, Math.random()), y0: HUDY.bot, y1: lerp(HUDY.top + 70, SH * 0.42, Math.random()), t: 0, col: FW_COLS[(Math.random() * FW_COLS.length) | 0], kind: (Math.random() * 3) | 0 });
         sfx('ev-subida');
       }
       this.tickEnd(c, dt);
@@ -1098,8 +1130,9 @@
         const s = c.shells[i]; s.t += dt;
         if (s.t >= 0.75) {
           c.shells.splice(i, 1); sfx('ev-fogos', { pitch: lerp(0.85, 1.2, Math.random()) });
-          const n = s.kind === 1 ? 30 : 44, sp = s.kind === 2 ? 210 : 290; c.flashes = c.flashes || []; c.flashes.push({ x: s.x, y: s.y1, a: 1, col: s.col });
-          for (let k = 0; k < n; k++) { const a = k / n * TAU, v = sp * (s.kind === 2 ? (k % 2 ? 1 : 0.6) : 1) * lerp(0.9, 1.05, Math.random()); part(5, s.x, s.y1, Math.cos(a) * v, Math.sin(a) * v, 1.5, k % 3 === 0 ? '#FFF6DE' : s.col, 3.5, 70); }
+          c.flashes = c.flashes || []; c.flashes.push({ x: s.x, y: s.y1, a: 1, col: s.col });
+          c.fws = c.fws || []; if (c.fws.length > 6) c.fws.shift();
+          c.fws.push({ x: s.x, y: s.y1, t: 0, col: s.col, kind: s.kind, r: lerp(78, 118, Math.random()) * (s.kind === 2 ? 0.8 : 1), rot: Math.random() * TAU, n: s.kind === 1 ? 20 : 28 });
           if (s.kind === 1) burst(1, s.x, s.y1, 10, 30, 120, 1.2, [PAL.goldL, '#FFFFFF'], 4, 30);
         }
       }
@@ -1107,9 +1140,32 @@
       const bi = Math.floor(c.t / 0.5);
       if (bi !== c.lastBeat && c.phase === 'run') { c.lastBeat = bi; const p = bi % 8; if (p === 0 || p === 2 || p === 4 || p === 6) sfx('taiko', { vol: p === 0 ? 0.85 : 0.55 }); if (p === 6) setTimeout(() => sfx('taiko', { vol: 0.5, pitch: 1.1 }), 125); }
     },
-    tickEnd(c, dt) { if (c.flashes) for (let i = c.flashes.length - 1; i >= 0; i--) { c.flashes[i].a -= dt * 3; if (c.flashes[i].a <= 0) c.flashes.splice(i, 1); } },
+    tickEnd(c, dt) {
+      if (c.flashes) for (let i = c.flashes.length - 1; i >= 0; i--) { c.flashes[i].a -= dt * 3; if (c.flashes[i].a <= 0) c.flashes.splice(i, 1); }
+      if (c.fws) for (let i = c.fws.length - 1; i >= 0; i--) { c.fws[i].t += dt; if (c.fws[i].t >= FW_LIFE) c.fws.splice(i, 1); }
+    },
+    // estouro grande: raios com rastro (linha do centro até a ponta), cai com gravidade, ponta brilhante que pisca no fim
+    fw(g, w) {
+      const q = w.t / FW_LIFE, e = 1 - Math.pow(1 - Math.min(1, q * 1.7), 3), R = w.r * e, drop = q * q * 46, fadeA = q < 0.55 ? 1 : 1 - (q - 0.55) / 0.45;
+      const light = mix(w.col, '#FFFFFF', 0.55);
+      g.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < w.n; k++) {
+        const a = w.rot + k / w.n * TAU, rk = R * (w.kind === 2 ? (k % 2 ? 1 : 0.62) : 1), ca = Math.cos(a), sa = Math.sin(a);
+        const tx = w.x + ca * rk, ty = w.y + sa * rk + drop, tail = Math.min(rk, w.r * 0.55) * (0.35 + 0.65 * (1 - q));
+        const bx = w.x + ca * (rk - tail), by = w.y + sa * (rk - tail) + drop * 0.6;
+        g.globalAlpha = fadeA * 0.55; g.strokeStyle = w.col; g.lineWidth = 3; g.beginPath(); g.moveTo(bx, by); g.lineTo(tx, ty); g.stroke();
+        g.globalAlpha = fadeA; g.strokeStyle = light; g.lineWidth = 1.5; g.beginPath(); g.moveTo(lerp(bx, tx, 0.5), lerp(by, ty, 0.5)); g.lineTo(tx, ty); g.stroke();
+        const tw = q > 0.6 ? (Math.sin(w.t * 40 + k * 2.3) > 0 ? 1 : 0.3) : 1, ps = k % 3 === 0 ? 5 : 4;
+        g.globalAlpha = fadeA * tw; g.fillStyle = k % 3 === 0 ? '#FFF6DE' : light; g.fillRect(tx - ps / 2, ty - ps / 2, ps, ps);
+        if (w.kind === 1 && q > 0.3) { g.fillStyle = PAL.goldL; g.fillRect(lerp(w.x, tx, 0.55) - 1.5, lerp(w.y, ty, 0.55) + drop * 0.3 - 1.5, 3, 3); }
+      }
+      if (q < 0.25) { g.globalAlpha = 1 - q / 0.25; g.fillStyle = '#FFFBEA'; g.beginPath(); g.arc(w.x, w.y, 10 + q * 40, 0, TAU); g.fill(); }
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    },
     end(c) { musicPop('festival'); },
     label: c => 'FESTIVAL  ·  tudo ×2',
+    // chão das barraquinhas: o pátio (y=0 do mundo), com o balcão inteiro acima do HUD de baixo
+    ground() { const cam = CAM(); let y = HUDY.bot - 10; if (cam && cam.toScreen) { cam.toScreen(0, 0, tmpP); y = Math.min(y, tmpP.y); } return clamp(y, SH * 0.55, HUDY.bot - 10); },
     screen(g, c, t) {
       const f = fade(c); if (f <= 0) return;
       // entardecer: tinta roxa quente e topo escuro
@@ -1121,7 +1177,14 @@
       g.globalAlpha = 1;
       // fogos (subindo + estouros)
       if (c.flashes) { g.globalCompositeOperation = 'lighter'; for (const fl of c.flashes) { g.globalAlpha = fl.a * 0.8; blitC(g, glowImg(WARM_G), fl.x, fl.y, 1.6); } g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; }
-      for (const s of c.shells) { const q = EZ.out(s.t / 0.75), y = lerp(s.y0, s.y1, q); g.fillStyle = '#FFE9A0'; g.fillRect(s.x - 1.5, y, 3, 8); g.globalAlpha = 0.5; g.fillRect(s.x - 1, y + 8, 2, 14); g.globalAlpha = 1; }
+      if (c.fws) for (const w of c.fws) this.fw(g, w);
+      for (const s of c.shells) {   // subindo: cabeça brilhante + rastro de faíscas que balança
+        const q = EZ.out(s.t / 0.75), y = lerp(s.y0, s.y1, q), wob = Math.sin(s.t * 18) * 2;
+        g.globalCompositeOperation = 'lighter';
+        for (let k = 1; k < 9; k++) { g.globalAlpha = (1 - k / 9) * 0.7; g.fillStyle = k % 2 ? '#FFE9A0' : s.col; g.fillRect(s.x + wob * (k % 3 - 1) - 1, y + k * 6, 2.5, 3); }
+        g.globalAlpha = 0.7; blitC(g, glowImg(WARM_G), s.x, y, 0.22);
+        g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.fillStyle = '#FFFBEA'; g.fillRect(s.x - 2, y - 2, 4, 6);
+      }
       partsDraw(g);
       // lanternas flutuando (toro) subindo devagar
       g.globalCompositeOperation = 'lighter';
@@ -1129,9 +1192,9 @@
       g.globalCompositeOperation = 'source-over'; g.globalAlpha = f;
       for (let i = 0; i < 9; i++) { const y = SH - ((t * (10 + hash(i) * 8) + hash(i * 3) * SH) % (SH + 40)), x = hash(i * 7) * SW + Math.sin(t * 0.6 + i) * 20; g.fillStyle = INK; g.fillRect(x - 6, y - 7, 12, 14); g.fillStyle = '#FFD98A'; g.fillRect(x - 4, y - 5, 8, 10); g.fillStyle = '#FFF6DE'; g.fillRect(x - 2, y - 3, 4, 4); }
       // barraquinhas + vendedores + bon-odori no pé da tela
-      const by = HUDY.bot + 14, n = Math.ceil(SW / 250) + 1, drop = (1 - f) * 120;
+      const by = this.ground(), drop = (1 - f) * 120, n = SW < 1000 ? 3 : 4, gap = Math.min(178, (SW * 0.62) / n);
       for (let i = 0; i < n; i++) {
-        const x = i * 250 + 30 - ((i % 2) * 14), y = by + drop;
+        const x = 6 + i * gap, y = by + drop;
         blit(g, stallBack(i), x, y - 140);
         shiba(g, x + 80, y - 32, i % 2 ? 'wave' : 'stand', t + i, 1.1, i % 3 === 0 ? 'goma' : i % 3 === 1 ? 'kome' : 'aka', 1);
         blit(g, stallFront(i), x, y - 140);
@@ -1140,7 +1203,7 @@
         pixImg(g, lantern(false), x + 150, y - 98, 2);
       }
       // bon-odori: 4 shibas dançando na frente
-      for (let i = 0; i < 4; i++) { const x = SW * (0.18 + i * 0.22) + Math.sin(t * 0.8 + i) * 20, y = by - 4 + drop; shiba(g, x, y, Math.floor(t * 1.2 + i) % 2 ? 'dance' : 'dance2', t + i * 0.3, 1.3, ['kome', 'sakura', 'kuro', 'yuki'][i], i % 2 ? -1 : 1); }
+      for (let i = 0; i < 4; i++) { const x = 70 + i * gap * n / 4.3 + Math.sin(t * 0.8 + i) * 16, y = by + 6 + drop; shiba(g, x, y, Math.floor(t * 1.2 + i) % 2 ? 'dance' : 'dance2', t + i * 0.3, 1.3, ['kome', 'sakura', 'kuro', 'yuki'][i], i % 2 ? -1 : 1); }
       // cordas de lanternas no topo
       for (let r = 0; r < 2; r++) {
         const y0 = (r ? 18 : 6) - (1 - f) * 120, sag = r ? 46 : 62, n2 = EA.FEST_LANTERNS, xo = r ? SW / n2 / 2 : 0;
@@ -1378,8 +1441,8 @@
   }
   function hanko(g, x, y, txt, rot) {
     g.save(); g.translate(x, y); g.rotate(rot); g.globalAlpha = 0.85;
-    g.strokeStyle = '#C8423A'; g.lineWidth = 3.5; rr(g, -48, -22, 96, 44, 8); g.stroke(); g.lineWidth = 1.5; rr(g, -43, -17, 86, 34, 5); g.stroke();
-    Draw.text(g, txt, 0, 1, { size: txt.length > 7 ? 15 : 19, col: '#C8423A', sw: 0 });
+    g.strokeStyle = '#C8423A'; g.lineWidth = 3.5; rr(g, -60, -23, 120, 46, 8); g.stroke(); g.lineWidth = 1.5; rr(g, -55, -18, 110, 36, 5); g.stroke();
+    Draw.text(g, txt, 0, 1, { size: txt.length > 7 ? 18 : 21, col: '#C8423A', sw: 0 });
     g.restore();
   }
   function roundBtn(g, b, kind, hot, off) {
@@ -1419,49 +1482,49 @@
     const d = DEF(id), P = BOOK.pl, seen = dat.seen > 0, x = x0 !== undefined ? x0 : P.x;
     paper(g, x, P.y, P.w, P.h, true);
     // moldura da gravura
-    const fx = x + 22, fy = P.y + 20, fw = P.w - 44, fh = 232;
+    const fx = x + 22, fy = P.y + 20, fw = P.w - 44, fh = 216;
     g.fillStyle = INK; g.fillRect(fx - 5, fy - 5, fw + 10, fh + 10); g.fillStyle = '#C9A36A'; g.fillRect(fx - 3, fy - 3, fw + 6, fh + 6); g.fillStyle = INK; g.fillRect(fx - 1, fy - 1, fw + 2, fh + 2);
     g.save(); g.beginPath(); g.rect(fx, fy, fw, fh); g.clip(); g.translate(fx, fy);
     if (seen) { try { VIG[id](g, fw, fh, t); } catch (e) { /* */ } }
     else { g.fillStyle = '#EADBB8'; g.fillRect(0, 0, fw, fh); g.drawImage(silhouette(id, fw, fh), 0, 0, fw, fh); Draw.text(g, '?', fw - 44, 62, { size: 76, col: '#F6E8C8', sw: 10, stroke: '#6B563E' }); }
     g.restore();
-    if (seen) hanko(g, fx + fw - 52, fy + fh - 26, 'VISTO ×' + dat.seen, -0.12);
+    if (seen) hanko(g, fx + fw - 64, fy + fh - 28, 'VISTO ×' + dat.seen, -0.12);
     // nome e piada (ou dica)
     const ny = fy + fh + 34;
     Draw.text(g, seen ? d.n : '? ? ?', x + P.w / 2, ny, { size: d.n.length > 22 ? 22 : 27, col: seen ? d.ink : '#8A7458', sw: 0 });
     g.fillStyle = seen ? d.col : '#BBA580'; g.fillRect(x + P.w / 2 - 60, ny + 18, 120, 3);
     if (seen) { g.font = '900 34px ' + Draw.FONT; g.fillStyle = 'rgba(138,90,40,0.35)'; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillText('“', x + 20, ny + 22); }
-    wrapText(g, seen ? d.joke : 'Dica: ' + d.hint, x + 40, ny + 34, P.w - 70, 18, seen ? '#5A3A22' : '#7A6448', 23);
-    Draw.text(g, (IDS.indexOf(id) + 1) + ' / ' + IDS.length, x + P.w / 2, P.y + P.h - 16, { size: 17, col: '#9A7E58', sw: 0 });
+    wrapText(g, seen ? d.joke : 'Dica: ' + d.hint, x + 40, ny + 32, P.w - 66, 19, seen ? '#5A3A22' : '#7A6448', 24);
+    Draw.text(g, (IDS.indexOf(id) + 1) + ' / ' + IDS.length, x + P.w / 2, P.y + P.h - 15, { size: 18, col: '#9A7E58', sw: 0 });
   }
   function drawRight(g, id, dat, all, t, x0) {
     const d = DEF(id), P = BOOK.pr, seen = dat.seen > 0, x = x0 !== undefined ? x0 : P.x;
     paper(g, x, P.y, P.w, P.h, false);
     const L = x + 28, R = x + P.w - 28;
-    Draw.text(g, 'CHANCE POR COISA DOURADA', L, P.y + 30, { size: 17, col: '#9A7E58', sw: 0, align: 'left' });
-    if (dat.locked) Draw.text(g, 'TRANCADO', L, P.y + 72, { size: 40, col: '#8A7458', sw: 0, align: 'left' });
-    else { Draw.text(g, oneIn(dat.p), L, P.y + 72, { size: 44, col: d.ink, sw: 0, align: 'left' }); Draw.text(g, pct(dat.p), R, P.y + 76, { size: 26, col: '#9A7E58', sw: 0, align: 'right' }); }
+    Draw.text(g, 'CHANCE POR COISA DOURADA', L, P.y + 26, { size: 18, col: '#9A7E58', sw: 0, align: 'left' });
+    if (dat.locked) Draw.text(g, 'TRANCADO', L, P.y + 64, { size: 38, col: '#8A7458', sw: 0, align: 'left' });
+    else { Draw.text(g, oneIn(dat.p), L, P.y + 64, { size: 40, col: d.ink, sw: 0, align: 'left' }); Draw.text(g, pct(dat.p), R, P.y + 68, { size: 26, col: '#9A7E58', sw: 0, align: 'right' }); }
     // barras com as 6 chances (a planilha toda num relance)
-    let y = P.y + 112;
+    let y = P.y + 102;
     for (let i = 0; i < IDS.length; i++) {
-      const id2 = IDS[i], d2 = DEF(id2), dd = all[id2], me = id2 === id, BX = L + 116, BWm = R - BX - 44, bw = BWm * Math.min(1, dd.p / 0.4);
-      if (me) { g.fillStyle = 'rgba(243,201,74,0.28)'; rr(g, L - 8, y - 12, R - L + 16, 24, 8); g.fill(); }
+      const id2 = IDS[i], d2 = DEF(id2), dd = all[id2], me = id2 === id, BX = L + 134, BWm = R - BX - 52, bw = BWm * Math.min(1, dd.p / 0.4);
+      if (me) { g.fillStyle = 'rgba(243,201,74,0.28)'; rr(g, L - 8, y - 13, R - L + 16, 26, 8); g.fill(); }
       pixImg(g, icon(id2), L + 8, y, 1.6);
-      Draw.text(g, dd.seen > 0 ? (d2.sh || d2.s) : '???', L + 22, y + 1, { size: 14, col: me ? INK : '#7A6448', sw: 0, align: 'left' });
-      g.fillStyle = '#E6D3AC'; rr(g, BX, y - 6, BWm, 12, 6); g.fill();
+      Draw.text(g, dd.seen > 0 ? (d2.sh || d2.s) : '???', L + 21, y + 1, { size: 17, col: me ? INK : '#7A6448', sw: 0, align: 'left' });
+      g.fillStyle = '#E6D3AC'; rr(g, BX, y - 6, BWm, 12, 6); g.fill();   // (rótulos de 17 px: barra começa mais pra direita)
       if (bw > 0) { g.fillStyle = INK; rr(g, BX, y - 6, Math.max(12, bw), 12, 6); g.fill(); g.fillStyle = me ? d2.col : '#C9B48A'; rr(g, BX + 2, y - 4, Math.max(8, bw - 4), 8, 4); g.fill(); }
-      Draw.text(g, dd.locked ? '—' : pct(dd.p), R, y + 1, { size: 15, col: me ? INK : '#7A6448', sw: 0, align: 'right' });
-      y += 25;
+      Draw.text(g, dd.locked ? '—' : pct(dd.p), R, y + 1, { size: 17, col: me ? INK : '#7A6448', sw: 0, align: 'right' });
+      y += 27;
     }
     // ficha
-    y += 14; g.fillStyle = '#D9C49A'; g.fillRect(L, y - 8, R - L, 2);
-    const row = (k, v, big) => { Draw.text(g, k, L, y + 12, { size: 17, col: '#9A7E58', sw: 0, align: 'left' }); Draw.text(g, v, R, y + 12, { size: big ? 22 : 19, col: big ? '#8A5A12' : INK, sw: 0, align: 'right' }); y += 33; };
+    y += 6; g.fillStyle = '#D9C49A'; g.fillRect(L, y - 8, R - L, 2);
+    const row = (k, v, big) => { Draw.text(g, k, L, y + 12, { size: 18, col: '#9A7E58', sw: 0, align: 'left' }); Draw.text(g, v, R, y + 12, { size: big ? 22 : 19, col: big ? '#8A5A12' : INK, sw: 0, align: 'right' }); y += 30; };
     row('Duração', seen ? Math.round(d.dur) + ' s' : '?');
     row('O que faz', seen ? d.fx : '?');
     row('Vezes visto', String(dat.seen));
     row('Melhor resultado', seen && dat.best ? dat.best : '—', true);
-    if (dat.locked) Draw.text(g, 'Abre com o nó Livro de Receitas (Sorte).', x + P.w / 2, P.y + P.h - 44, { size: 16, col: '#C8423A', sw: 0 });
-    Draw.text(g, 'A cada 3–8 min jogando · nenhum evento é ruim', x + P.w / 2, P.y + P.h - 18, { size: 14, col: '#9A7E58', sw: 0 });
+    if (dat.locked) Draw.text(g, 'Abre com o nó Livro de Receitas.', x + P.w / 2, P.y + P.h - 44, { size: 17, col: '#C8423A', sw: 0 });
+    Draw.text(g, 'A cada 3–8 min · nenhum é ruim', x + P.w / 2, P.y + P.h - 18, { size: 17, col: '#9A7E58', sw: 0 });
   }
   function bookRender(dt) {
     const g = BK.g; BK.t += dt;
