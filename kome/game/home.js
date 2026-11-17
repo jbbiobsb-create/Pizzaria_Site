@@ -393,7 +393,7 @@
       '.kh-big{display:flex;gap:12px;align-items:center}.kh-big canvas{width:84px;height:84px;flex:none;background:#FBEFD0;border:3px solid #3B2818;border-radius:14px}',
       '.kh-big b{font-size:22px;display:block;font-weight:900}.kh-big span{font-size:17px;display:block;opacity:.8}',
       '.kh-row{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}',
-      '.kh-pane{font-size:17px}',
+      '.kh-pane{font-size:17px;zoom:1.3}',
     ].join('\n');
     document.head.appendChild(css);
     root.classList.add('kh-open');                 // visível na criação: o Stage mede o pai de verdade
@@ -563,7 +563,7 @@
       return;
     }
     // caderno / ilhas / armazém: o conteúdo é o de sempre (dono: goals.js, islands.js, items.js)
-    const pane = el('div', 'kh-pane k-pane', body);
+    const pane = el('div', 'kh-pane', body);
     if (id === 'caderno' && G.Goals) G.Goals.mountIn(pane);
     else if (id === 'ilhas' && G.Islands) G.Islands.fill(pane);
     else if (id === 'armazem' && G.Items) G.Items.fill(pane);
