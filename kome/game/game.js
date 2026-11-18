@@ -2447,7 +2447,7 @@
     if (S.ended && !S.stats.cs_ilhas && !(S.island | 0) && !/nointro/.test(location.search)) setTimeout(() => endgameIntro(), 2500);
     if (G.Inf) G.Inf.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), playing: () => cur, busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()) });
     if (G.Goals) G.Goals.init({ sfx, recompute: () => computeStats(), pay: v => credit(v, 2, false), quiet: () => FAST || !!cs || !!S.endOpen, badge: () => G.Home && G.Home.noteNew() });
-    if (G.Missoes) G.Missoes.init({ sfx, pay: v => credit(v, 2, false), fast: () => FAST, quiet: () => FAST || !!cs || !!S.endOpen });   // Jornada (missoes.js)
+    if (G.Missoes) G.Missoes.init({ sfx, pay: v => credit(v, 2, false), fastPay: v => { S.money += v; }, fast: () => FAST, quiet: () => FAST || !!cs || !!S.endOpen });   // Jornada (missoes.js)
     if (G.Carta) G.Carta.init({ sfx, had: () => had, fast: () => FAST, save: () => saveNow(), recompute: () => computeStats(), gift: giftSacks,
       busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()) || (S.cele.t >= 0 && S.cele.t < S.cele.dur) });
     if (G.Escada) G.Escada.init({ sfx, recompute: () => computeStats(), quiet: () => FAST || !!cs || !!S.endOpen, badge: () => G.Home && G.Home.noteNew() });

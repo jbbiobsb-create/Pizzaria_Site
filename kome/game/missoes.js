@@ -82,13 +82,14 @@
       if (done(s)) claim(); else { api.sfx('click'); try { s.go(); } catch (er) { console.warn('[kome] missão', er); } }
     });
     el = { root: b, ic, t, fill, n, go, icon: '' };
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 0);   // joystick, zoom e tela cheia se medem de novo com o cartão
   }
 
   // mexe no DOM só quando algo muda
   function paint() {
     if (!el) return;
     const s = cur();
-    if (!s) { if (sig !== 'end') { sig = 'end'; el.root.style.display = 'none'; } return; }
+    if (!s) { if (sig !== 'end') { sig = 'end'; el.root.style.display = 'none'; window.dispatchEvent(new Event('resize')); } return; }
     const v = val(s), ok = v >= s.need, k = s.id + '|' + v + '|' + ok + (ok ? '|' + U.fmt(reward(s)) : '');
     if (k === sig) return; sig = k;
     el.root.style.display = '';
@@ -103,7 +104,10 @@
   function tick(dt) {
     if (!S || (acc += dt) < 0.5) return; acc = 0;
     const s = cur();
-    if (api.fast()) { if (s && done(s)) { const r = reward(s); J().i++; api.pay(r); } return; }   // modo acelerado: pega calado
+    // depois de viajar, passo da 1ª campanha que ficou pra trás conta como feito: pula calado, sem pagar (igual save antigo)
+    if (s && s.camp && trip()) { let i = J().i; while (STEPS[i] && STEPS[i].camp) i++; J().i = i; sig = ''; return; }
+    // modo acelerado: pega calado, só no bolso (fora do "ganho total", pra não abrir Cidade/Fábrica antes da hora nos testes)
+    if (api.fast()) { if (s && done(s)) { J().i++; if (api.fastPay) api.fastPay(reward(s)); } return; }
     if (!el && G.HUD && G.HUD.ready) build();
     paint();
   }
