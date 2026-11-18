@@ -989,7 +989,7 @@
     /* ---------- montanha guardada (o.cache): o corpo vai pra uma tela de apoio na escala da tela (1 pixel = 1 pixel, sem
        reamostrar) e só os retângulos das colunas que mudaram são refeitos; vivos por cima: brilhos, flash, grãos rolando.
        Refaz tudo quando muda escala/espelho/opções/camadas; câmera andando = copia o que já tem e desenha só a faixa nova. */
-    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0 };
+    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false };
     const BV = { x0: 0, x1: 0, y0: 0, y1: 0 };
     function bakeMargin(K) { const step = Math.max(1, Math.floor(1.6 / (colW * K))); return (8 * step + 4) * colW + 24 / K; }
     function foundSig() { let f = ''; for (let k = 0; k < heap.pockets.length; k++) f += heap.pockets[k].found ? '1' : '0'; return f; }
@@ -998,7 +998,6 @@
       if (rx < 0) { rw += rx; rx = 0; } if (ry < 0) { rh += ry; ry = 0; }
       if (rx + rw > BK.w) rw = BK.w - rx; if (ry + rh > BK.h) rh = BK.h - ry;
       if (rw <= 0 || rh <= 0) return;
-      heap._lastBake = [rx, ry, rw, rh];
       const c = BK.g, K = BK.K, E2 = bakeMargin(K);
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(rx, ry, rw, rh);
       c.save(); c.beginPath(); c.rect(rx, ry, rw, rh); c.clip();
@@ -1028,10 +1027,10 @@
       const wantW = Math.min(vw * 1.3, x0 + n * colW + padW - (x0 - padW)), wantH = Math.min(vh * 1.2, bot - top);
       const cw = Math.ceil(wantW * K) + 4, ch = Math.ceil(wantH * K) + 4;
       const cx = (view.x0 + view.x1) / 2, cy = (view.y0 + view.y1) / 2;
-      let full = sig !== BK.sig || !BK.cv || cw > BK.w || ch > BK.h || cw < BK.w * 0.7 || ch < BK.h * 0.7;
+      let full = sig !== BK.sig || !BK.cv || cw > BK.w || ch > BK.h || cw < BK.w * 0.7 || ch < BK.h * 0.6;
       if (full) {
         if (!BK.cv) { BK.cv = doc.createElement('canvas'); BK.g = BK.cv.getContext('2d'); }
-        BK.w = BK.cv.width = cw; BK.h = BK.cv.height = ch;
+        BK.w = BK.cv.width = cw; BK.h = BK.cv.height = Math.ceil(ch * 1.06) + 24;   // folga em altura: o pico crescer 1 px não refaz tudo
         BK.K = K; BK.mir = mir; BK.sig = sig;
         BK.bx = mir ? Math.ceil(m.e) - m.e : m.e - Math.floor(m.e); BK.by = m.f - Math.floor(m.f);
         if (!BK.hs || BK.hs.length !== n) BK.hs = new Float32Array(n);
@@ -1039,7 +1038,6 @@
       // janela atual em mundo
       const wx0 = (BK.ox - BK.bx) / K, wy0 = (BK.oy - BK.by) / K, wx1 = wx0 + BK.w / K, wy1 = wy0 + BK.h / K;
       const inside = !full && ax0 >= wx0 && ax1 <= wx1 && ay0 >= wy0 && ay1 <= wy1;
-      heap._dbg = [full, ax0, ax1, ay0, ay1, wx0, wx1, wy0, wy1, view.x0, view.x1, view.y0, view.y1, top, bot].map(v => typeof v === "number" ? +v.toFixed(2) : v);
       if (!full) {
         // colunas que mudaram desde a última vez (inclusive as da folga, que mexem na sombra de dentro)
         const E2 = bakeMargin(K), hs = BK.hs;
@@ -1058,7 +1056,9 @@
             hs[i] = h[i];
           } else if (ra >= 0 && (i > c1 || i - rb > 24)) { runs.push(ra, rb, lo, hi); tot += rb - ra; ra = -1; }
         }
-        if (tot * colW > (wx1 - wx0) * 0.6) full = true;
+        // muita coisa mexendo ao mesmo tempo (avalanche larga, restore): desenha direto enquanto durar e refaz tudo quando acalmar
+        if (tot * colW > (wx1 - wx0) * 0.6) { BK.stale = true; return false; }
+        if (BK.stale) { BK.stale = false; full = true; }
         else {
           const stepK = Math.max(1, Math.floor(1.6 / (colW * K))), dk = Math.max(1, 0.7 / K), deep = Math.max(105 * dk, 22, 16 / K, 30) + 12 + 6 / K, fx = E2 + colW;
           for (let r = 0; r < runs.length; r += 4) {

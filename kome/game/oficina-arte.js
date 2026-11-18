@@ -548,7 +548,7 @@
   function mech(g, x, y, pose, t, o) {
     o = o || {};
     const sc = o.scale || 1, face = o.face || 1, hatK = o.hat === undefined ? 'cap' : o.hat;
-    const tt = E.drawShiba.frameT ? E.drawShiba.frameT(t) : t;
+    const tt = E.drawShiba.frameT ? E.drawShiba.frameT(t, null, pose) : t;
     E.drawShiba(g, x, y, pose, t, { scale: sc, pal: o.pal || 'kome', face, hat: !hatK, shadow: o.shadow !== false, alpha: o.alpha });
     if (pose === 'sleep' || pose === 'lie') return;
     g.imageSmoothingEnabled = false;

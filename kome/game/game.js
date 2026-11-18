@@ -1811,7 +1811,7 @@
     else g.drawImage(c, bx, f._y0, W0, H0 + 40);
   }
   G.drawMach = (g, id, m, f) => drawMach(g, id, m, f);   // industry.js: a Gêmea usa o mesmo cache (uma imagem só passa pelo filtro de cor)
-  const HEAP_CACHE = !/[?&]nocache\b/.test(location.search);   // ?nocache = montanha desenhada inteira todo quadro (comparar)
+  let HEAP_CACHE = !/[?&]nocache\b/.test(location.search);   // ?nocache = montanha desenhada inteira todo quadro (comparar)
   function render() {
     machFrame++;
     stage.begin();
@@ -2375,6 +2375,7 @@
     stats: () => st, nodeState: id => nodeState(D.nodeById[id]), nodeCost: id => nodeCost(D.nodeById[id]),
     reset() { save.clear(); saveNow = () => {}; location.reload(); },
     save: () => saveNow(), exportStr: () => save.exportStr(),
+    heapCache(v) { if (v !== undefined) HEAP_CACHE = !!v; return HEAP_CACHE; },   // testes: liga/desliga a montanha guardada
     res(v) { RES.off = true; if (v) stage.setMaxDpr(v); return stage.dpr; },   // testes de desempenho: resolução fixa (desliga a adaptativa)
     patioTour: () => patioTour(), patioTourT: t => { if (ptour) ptour.t = t; return !!ptour; },   // testes/prints do Ver o Pátio
     view() { if (celeCard && celeCard.close) { celeCard.close(); celeCard = null; } S.stamp = 0; S.camX = P.x + 30 / cur.zoom; camTick(1); cam.snapTo(cam.tx, cam.ty, cur.zoom); },

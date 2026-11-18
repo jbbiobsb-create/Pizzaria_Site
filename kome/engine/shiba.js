@@ -614,8 +614,9 @@
   }
 
   /* ---------- pose(): despacha; as poses antigas são o código do rascunho ---------- */
+  let LIFE_T = null;   // cache em laço: a vida ociosa (piscada, orelha) usa o t de verdade, o corpo usa o t dentro do ciclo
   function pose(mode, t, extra) {
-    life(t);
+    life(LIFE_T === null ? t : LIFE_T);
     A.hasHold = false; A.hasPaw2 = false; A.pawX = 32; A.pawY = 36; A.backX = 20; A.backY = 19.5;
     const eyesO = LF.blink ? 'closed' : LF.half ? 'half' : 'open';
     if (mode === 'roll') {
@@ -872,6 +873,12 @@
   const stats = { hits: 0, misses: 0, exact: 0 };
   let exactCv = null, exactG = null;
   const NOOPTS = {};
+  /* Poses que se repetem EXATAMENTE (tudo do corpo sai de sin/cos de uma fase só): o frame é guardado por fase dentro do
+     ciclo + estado da vida ociosa (piscada/meia piscada, tremida de orelha), não pelo t absoluto. Uma multidão andando ou
+     correndo, cada um no seu t, passa a reaproveitar ~20 frames por paleta em vez de rasterizar 1 frame novo por shiba a
+     cada 1/30 s. walk: fase 9,5t · run: fase 16t (o resto dessas poses só usa a piscada/orelha). Desenho igual. */
+  const LOOP = { walk: 2 * Math.PI / 9.5, run: 2 * Math.PI / 16 };
+  const LOOP_KEY = TQ_MAX + 1;                             // chaves de laço ficam acima de qualquer tq absoluto (cabe em 2^53)
   const idOf = (arr, v) => { const i = arr.indexOf(v); return i < 0 ? 15 : i + 1; };
 
   // t são: número finito (NaN/undefined/Infinity viram 0)
@@ -880,10 +887,14 @@
   function isExact(o, K, t) {
     return !!(o.exact || o.arm != null || o.arm2 != null || o.lean != null || o.tilt || o.look || ShibaPX.tilt || ShibaPX.look || ShibaPX.quiet || K.id > 255 || Math.abs(t) * CACHE_FPS > TQ_MAX);
   }
-  // drawShiba.frameT(t, opts?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache)
-  function frameT(t, o) {
+  // drawShiba.frameT(t, opts?, pose?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache;
+  //   com a pose, nas poses em laço devolve um t com a mesma fase do frame guardado)
+  function frameT(t, o, mode) {
     t = saneT(t); o = o || NOOPTS;
-    return isExact(o, compilePal(typeof o.pal === 'object' && o.pal ? o.pal : getPal(o.pal)), t) ? t : Math.round(t * CACHE_FPS) / CACHE_FPS;
+    if (isExact(o, compilePal(typeof o.pal === 'object' && o.pal ? o.pal : getPal(o.pal)), t)) return t;
+    const lp = mode !== undefined ? LOOP[mode] : undefined;
+    if (lp !== undefined) { const N = Math.max(1, Math.round(lp * CACHE_FPS)); let ph = (t / lp) % 1; if (ph < 0) ph += 1; return t + (Math.round(ph * N) / N - ph) * lp; }
+    return Math.round(t * CACHE_FPS) / CACHE_FPS;
   }
 
   // frame velho que voltou a ser usado: troca de lugar com o slot que seria o próximo a sair e vira o mais novo
@@ -923,7 +934,16 @@
       frameFast(exactCv, exactG, mode, t, K, shadow);
       stats.exact++; cv = exactCv;
     } else {
-      const tq = Math.round(t * CACHE_FPS);
+      const lp = LOOP[mode];
+      let tq, tr;
+      if (lp !== undefined) {
+        life(t);                                             // vida ociosa no t de verdade: entra na chave
+        const N = Math.max(1, Math.round(lp * CACHE_FPS));
+        let ph = (t / lp) % 1; if (ph < 0) ph += 1;
+        const fi = Math.round(ph * N) % N;
+        tq = LOOP_KEY + fi * 16 + (LF.blink ? 1 : LF.half ? 2 : 0) + ((LF.tw + 1) << 2);
+        tr = (fi / N) * lp;
+      } else { tq = Math.round(t * CACHE_FPS); tr = tq / CACHE_FPS; }
       const bits = K.id | (pid << 8) | (hat ? 16384 : 0) | (shadow ? 32768 : 0) | ((mouth ? idOf(MOUTHS, mouth) : 0) << 16) | ((eyes ? idOf(EYES, eyes) : 0) << 20) | (fast << 24);
       const key = tq * KEY_MUL + bits;
       let hit = cacheMap.get(key);
@@ -937,7 +957,9 @@
       else cacheMap.delete(slotKey[i]);
       slotKey[i] = key; slotSeq[i] = ++cacheSeq; cacheMap.set(key, i);
       ShibaPX.hatOn = hat; ShibaPX.mouthOverride = mouth; ShibaPX.eyesOverride = eyes; ShibaPX.tilt = 0; ShibaPX.look = null; S.fast = fast;
-      frameFast(slotCv[i], slotG[i], mode, tq / CACHE_FPS, K, shadow);
+      if (lp !== undefined) LIFE_T = t;
+      frameFast(slotCv[i], slotG[i], mode, tr, K, shadow);
+      LIFE_T = null;
       stats.misses++; cv = slotCv[i];
     }
     ShibaPX.hatOn = gH; ShibaPX.mouthOverride = gM; ShibaPX.eyesOverride = gE; ShibaPX.tilt = gT; ShibaPX.look = gL; S.fast = gF; twoSet(null);
@@ -1233,7 +1255,7 @@
       // anchor(nome, out?) -> {x,y} em coordenadas de mundo (considera face, escala, squash e rot), no mesmo t do frame desenhado
       anchor(name, out) {
         const ao = anchorOpts; ao.hat = a.hat; ao.fast = a.fast; ao.pal = a.pal;
-        out = shibaAnchor(a.pose, frameT(a.t, ao), name, out, ao);
+        out = shibaAnchor(a.pose, frameT(a.t, ao, a.pose), name, out, ao);
         const lx = out.x * a.face * a.scale * (1 + a.squash * 0.6), ly = out.y * a.scale * (1 - a.squash);
         const c = Math.cos(a.rot), sn = Math.sin(a.rot);
         out.x = a.x + lx * c - ly * sn; out.y = a.y - a.z + lx * sn + ly * c;
@@ -1259,7 +1281,7 @@
       drawHold(g, h, y) {
         const ao = anchorOpts; ao.hat = a.hat; ao.fast = a.fast; ao.pal = a.pal;
         // âncora no t do frame que o cache desenha (senão o objeto treme 1px em relação à pata)
-        const cv = h.cv || h, p = shibaAnchor(a.pose, frameT(a.t, ao), h.anchor || 'hold', anchorTmp, ao), hs = h.scale || 1;
+        const cv = h.cv || h, p = shibaAnchor(a.pose, frameT(a.t, ao, a.pose), h.anchor || 'hold', anchorTmp, ao), hs = h.scale || 1;
         g.save(); g.translate(a.x, y); if (a.rot) g.rotate(a.rot);
         g.scale(a.face * a.scale * (1 + a.squash * 0.6), a.scale * (1 - a.squash));
         g.translate(p.x + (h.dx || 0), p.y + (h.dy || 0)); if (h.rot) g.rotate(h.rot);

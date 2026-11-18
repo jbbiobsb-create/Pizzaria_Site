@@ -142,7 +142,7 @@
   function worker(g, x, y, pose, t, o) {
     o = o || {};
     const sc = o.scale || 1, face = o.face || 1, cap = o.hat === undefined ? 'toque' : o.hat;
-    const tt = E.drawShiba.frameT ? E.drawShiba.frameT(t) : t;
+    const tt = E.drawShiba.frameT ? E.drawShiba.frameT(t, null, pose) : t;
     E.drawShiba(g, x, y, pose, t, { scale: sc, pal: o.pal || 'kome', face, hat: !cap, shadow: o.shadow !== false, alpha: o.alpha });
     if (!cap || !hat[cap] || pose === 'sleep' || pose === 'lie') return;
     E.shibaAnchor(pose, tt, 'head', ANC, { hat: false });
