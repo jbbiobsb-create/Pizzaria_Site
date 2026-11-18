@@ -87,7 +87,7 @@ Jogável do primeiro arranhão de pata até a Bagger, as 6 etapas da casa e o ca
 - Arroz viaja até um coletor que evolui (cesto → saco → barraquinha → kei-truck → silo → moega); o ¥ estoura lá.
 - Celebração de compra em todas; sequência grande da Bagger em 3 partes.
 - "Régua do mundo" no pátio (casinha, barraquinha, cerejeira, torii, poste, casa, torre, fábrica de 6 andares).
-- HUD, som, save.
+- HUD, som, save. **18/11: casa voltava a "nunca comprada" a cada recarga/versão** — `S.house/S.time/S.dug` estavam dentro de um comentário no `loadState` desde a importação; corrigido + MIGR[10] (SAVE_V 10) recupera casa (ilha terminada = pronta; sem viagem, conquistas k07/k18); fixture `tools/fixtures/save-v3-casa.json` no alicerce.
 - Jogador automático: final em ~75 min, maior espera entre compras 138–168 s, Bagger aos ~65 min.
 
 ## O que fazer agora (em ordem; cada item é um passo separado)

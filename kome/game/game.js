@@ -56,7 +56,7 @@
 
   /* SAVE VERSIONADO (fase 0 do PLANO-100H): cada camada nova sobe SAVE_V e põe UMA migração aqui. Save antigo nunca quebra:
      E.Save chama migrate(d, versãoAntiga) e roda todas as migrações que faltam, em ordem. */
-  const SAVE_V = 9;
+  const SAVE_V = 10;
   const MIGR = {
     5: d => { d.stats = d.stats || {}; d.stats.inv = d.stats.inv || {}; d.stats.got = d.stats.got || {}; },   // armazém de itens
     // amuletos (amuletos.js): build da ilha atual; trip = ilhas concluídas (a viagem zera sozinha). Save antigo entra sem amuleto
@@ -69,6 +69,12 @@
     // do que dá pra saber), carta do dia (carta.js: dia já visto + presentes guardados), recordes por ilha×faixa e dos modos (modos.js)
     9: d => { d.stats = d.stats || {}; const s = d.stats; if (!s.esc || typeof s.esc !== 'object') s.esc = { g: {} }; s.dugAll = +s.dugAll || 0; s.amPick = s.amPick | 0 || Object.keys((s.am && s.am.disc) || {}).length;
       if (!s.carta || typeof s.carta !== 'object') s.carta = { day: '', tok: {} }; if (!s.recF || typeof s.recF !== 'object') s.recF = {}; if (!s.mrec || typeof s.mrec !== 'object') s.mrec = {}; },
+    // casa perdida: loadState não lia d.house (estava dentro de um comentário), então cada recarga gravava house 0 por cima. Recupera o que
+    // dá pra provar: ilha terminada = casa pronta (o final exige a casa); sem viagem ainda, as conquistas Dono de Terreno/Casa no Japão contam
+    10: d => { const fix = x => { const s = x.stats || {}, n = D.HOUSE.length, a = s.ach || {}; let h = x.house | 0;
+        if (x.ended) h = n; else if (!(s.islandsDone | 0) && !s.modo) h = Math.max(h, a.k18 ? n : a.k07 ? 1 : 0);
+        x.house = Math.min(n, h); if (Array.isArray(s.mis)) s.mis = s.mis.filter(m => m && m.k !== 'dug'); };   // missão de cavar tinha base do cavado zerado: refaz
+      fix(d); if (d.snap && typeof d.snap === 'object') fix(d.snap); },   // retrato da partida normal (modos.js) também
   };
   function migrate(d, v) { for (let k = (v | 0) + 1; k <= SAVE_V; k++) if (MIGR[k]) MIGR[k](d); return d; }
 
@@ -103,7 +109,9 @@
   function loadState() {
     const d = save.load();
     if (!d || !d.v) return false;
-    S.money = +d.money || 0; S.earned = +d.earned || 0; S.tool = U.clamp((d.tool | 0) + (!d.tv && (d.tool | 0) >= 8 ? 1 : 0), 0, NT - 1); if ((d.tv | 0) < 3) S.tool = ({ 8: 9, 9: 8, 11: 12, 12: 11 })[S.tool] || S.tool;   // 16/11: empilhadeira antes da colheitadeira, caminhão antes da pá de cabo S.house = d.house | 0; S.time = +d.time || 0; S.dug = +d.dug || 0;
+    S.money = +d.money || 0; S.earned = +d.earned || 0; S.tool = U.clamp((d.tool | 0) + (!d.tv && (d.tool | 0) >= 8 ? 1 : 0), 0, NT - 1); if ((d.tv | 0) < 3) S.tool = ({ 8: 9, 9: 8, 11: 12, 12: 11 })[S.tool] || S.tool;   // 16/11: empilhadeira antes da colheitadeira, caminhão antes da pá de cabo
+    // casa, tempo e cavado: ficaram DENTRO do comentário acima desde a importação (a casa voltava a 'nunca comprada' a cada recarga/versão nova)
+    S.house = U.clamp(d.house | 0, 0, D.HOUSE.length); S.time = +d.time || 0; S.dug = +d.dug || 0;
     S.closet = fixCloset(d.closet); S.look = d.look && typeof d.look === 'object' ? { pal: d.look.pal || 'kome', acc: d.look.acc || '' } : { pal: 'kome', acc: '' };
     S.island = d.island | 0; S.shape = d.shape || ''; S.mountT = +d.mountT || 0;
     S.homeData = d.home && typeof d.home === 'object' ? d.home : { own: {}, hide: {}, theme: 'verao' }; S.homeData.own = S.homeData.own || {}; S.homeData.hide = S.homeData.hide || {};

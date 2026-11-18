@@ -137,6 +137,29 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   const r4 = await p.evaluate(() => { const s = Pixxel.Sim(); let t = 0; s.add('a', { tick: dt => { t += dt; }, offline: dt => ({ yen: dt * 2 }) }).add('b', { tick() {} });
     s.tick(0.5); const off = s.catchUp(3600); return { t, off }; });
   ok(r4.t === 0.5 && r4.off.a && r4.off.a.yen === 7200 && !r4.off.b, 'E.Sim tick/catchUp: ' + JSON.stringify(r4.off));
+  // 9) CASA de save antigo (fixture congelado da v3, commit d3d01a4, SAVE_V 6: casa na fase 2, 56 nós, roupas, quintal).
+  // Bug de 11/2026: loadState tinha `S.house = d.house` dentro de um comentário → a casa voltava a "nunca comprada" a cada versão.
+  const fxSave = require('fs').readFileSync(path.join(__dirname, 'fixtures', 'save-v3-casa.json'), 'utf8');
+  const fxD = JSON.parse(fxSave);
+  const p2 = await b.newPage({ viewport: { width: 960, height: 540 } }); p2.on('pageerror', e => errs.push(e.message.split('\n')[0]));
+  // o save a injetar vai na sessionStorage ANTES da navegação; o script consome antes dos scripts do jogo (o jogo regrava o save ao sair)
+  await p2.addInitScript(() => { const s = sessionStorage.getItem('inject'); if (!s) return; sessionStorage.removeItem('inject'); localStorage.clear(); localStorage.setItem('kome-no-japao-v4', s); });
+  const go = async d => { if (d) await p2.evaluate(s => sessionStorage.setItem('inject', s), typeof d === 'string' ? d : JSON.stringify(d)); await p2.goto(URL + '?nointro&nofont'); await p2.waitForTimeout(700); };
+  const mod = f => { const d = JSON.parse(fxSave); f(d); return d; };
+  await p2.goto(URL + '?nointro&nofont&fresh'); await p2.waitForTimeout(300);
+  const casa = () => p2.evaluate(() => { const S = __kome.S; return { house: S.house, tool: S.tool, money: S.money, nodes: Object.keys(S.own).length, closet: S.closet.join(), home: Object.keys(S.homeData.own).length, time: S.time }; });
+  await go(fxSave);
+  const c1 = await casa();
+  ok(c1.house === fxD.house && fxD.house === 2, 'save v3 (fixture): casa carrega na fase ' + c1.house + '/' + fxD.house);
+  ok(c1.tool === fxD.tool && Math.round(c1.money) === Math.round(fxD.money) && c1.nodes === fxD.tree.length && c1.closet === fxD.closet.join() && c1.home === Object.keys(fxD.home.own).length && c1.time >= fxD.time,
+    'save v3 (fixture): ferramenta, ¥, árvore, roupas, quintal e tempo iguais');
+  await p2.evaluate(() => KomeGame.Game.saveNow());
+  await go();
+  ok((await casa()).house === 2, 'casa sobrevive a salvar + recarregar de novo');
+  await go(mod(d => { d.house = 0; d.ended = true; }));
+  ok((await casa()).house === 6, 'MIGR[10]: save com a casa zerada pelo bug e ilha terminada → casa pronta');
+  await go(mod(d => { d.house = 0; d.stats.ach = { k07: 1 }; }));
+  ok((await casa()).house === 1, 'MIGR[10]: casa zerada + conquista Dono de Terreno sem viagem → volta o terreno');
   ok(!errs.length, 'sem erro de página' + (errs.length ? ': ' + errs.slice(0, 2).join(' | ') : ''));
   await b.close();
   console.log(bad ? bad + ' FALHA(S)' : 'ALICERCE OK');
