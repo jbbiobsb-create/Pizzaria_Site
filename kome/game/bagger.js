@@ -34,7 +34,7 @@
   const RING = -142, LIFT = 30;                             // topo do anel de giro (tudo acima balança junto)
   const PX = 60, PY = -310;                       // pino da lança da roda
   const BL = 560, WR = 134, WS = 1.2, NB = 18, STEP = TAU / NB;
-  const LMIN = -18 * DEG, LMAX = 32 * DEG;
+  const LMIN = -22 * DEG, LMAX = 32 * DEG;   // −22°: a roda (centro y −130, raio 134) encosta no chão; com −18° ela parava 33 px acima e a Bagger nunca limpava o chão
   const M1B = [66, -318], M1T = [244, -636];      // mastro inclinado pra frente
   const M2B = [-34, -292], M2T = [-34, -664];     // torre vertical
   const K0 = [-44, -326], K1 = [-340, -388];      // lança do contrapeso

@@ -775,7 +775,10 @@
     const m = S.m, MO = D.MORDIDA, b0 = T.bite(m);
     let hx = m.x - 150;
     for (; hx < WL.MX1; hx += 8) if (heap.height(hx) > 70) break;
-    const mk = m.k || 1, maxX = hx - 340 * mk + (b0.x - m.x);
+    // a Bagger não entra na montanha: o corpo para antes do pé; ela avança conforme a roda vai abrindo caminho
+    let fx0 = m.x - 330 * (m.k || 1); for (; fx0 < WL.MX1; fx0 += 8) if (heap.height(fx0) > 34) break;
+    const mk = m.k || 1, bodyMax = fx0 - 300 * mk;   // Gêmea (mk 1,5) para mais longe: corpo maior
+    const maxX = Math.min(hx - 340 * mk, bodyMax) + (b0.x - m.x);   // o alvo da roda já respeita o corpo (viajando rápido não bate e volta)
     inp.x = P.x; inp.y = 0; inp.face = 1; inp.floor = baggerFloor; inp.t = S.time; inp.zoom = cam.z;
     inp.tx = hold ? Math.min(maxX, Math.max(ptr.wx, Wd.X.front - Wd.X.lane + 70 + 780 * mk + (b0.x - m.x))) : b0.x; inp.ty = ptr.wy;   // de ré, para antes do pátio
     inp.digging = hold || S.cele.spin; inp.speedMul = animSpeed() * (S.own.b1 ? 1.2 : 1); inp.boost = S.estreia > 0 ? 1 : 0;
@@ -784,9 +787,6 @@
     const bt = heap.bite(b0.x, b0.y, b0.r, 1, 12);
     m.bite01 = bt; m.band = st.mordida ? [MO.loK, MO.hiK] : [MO.lo, MO.hi];
     T.update(m, dt, inp);
-    // a Bagger não entra na montanha: o corpo para antes do pé; ela avança conforme a roda vai abrindo caminho
-    let fx0 = m.x - 330 * mk; for (; fx0 < WL.MX1; fx0 += 8) if (heap.height(fx0) > 34) break;
-    const bodyMax = fx0 - 300 * mk;   // Gêmea (mk 1,5) para mais longe: corpo maior
     if (m.x > bodyMax) { m.x = Math.max(bodyMax, m.x - 400 * dt); if (m.vx > 0) m.vx = 0; }
     P.x = m.x; P.y = 0;
     const payNow = toolEvents(m), b = T.bite(m);

@@ -532,8 +532,10 @@
       draw,
       // dropCache(): solta a tela de apoio do cache (libera memória; a próxima draw com cache refaz tudo)
       dropCache() { if (BK.cv) { BK.cv.width = BK.cv.height = 0; } BK.cv = null; BK.g = null; BK.sig = ''; BK.w = BK.h = 0; return heap; },
-      // cacheStats -> {bakes: retângulos refeitos desde o início, w, h, K}
-      get cacheStats() { return { bakes: BK.n, w: BK.w, h: BK.h, K: BK.K }; },
+      // cacheStats -> {bakes: retângulos refeitos desde o início, w, h, K, fails: vezes que a tela de apoio falhou, on}
+      get cacheStats() { return { bakes: BK.n, w: BK.w, h: BK.h, K: BK.K, fails: BK.fails, on: !!BK.cv && BK.off <= 0 }; },
+      // _cacheCanvas: a tela de apoio atual (só testes: o alicerce apaga ela pra simular o celular perdendo o canvas)
+      get _cacheCanvas() { return BK.cv; },
       // prewarm(g): gera as texturas agora (evita o engasgo do primeiro frame)
       prewarm(g) {
         const vs = ['g', 's', 'ca', 'cb'];
@@ -989,7 +991,22 @@
     /* ---------- montanha guardada (o.cache): o corpo vai pra uma tela de apoio na escala da tela (1 pixel = 1 pixel, sem
        reamostrar) e só os retângulos das colunas que mudaram são refeitos; vivos por cima: brilhos, flash, grãos rolando.
        Refaz tudo quando muda escala/espelho/opções/camadas; câmera andando = copia o que já tem e desenha só a faixa nova. */
-    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false, fc: 0 };
+    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false, fc: 0, ep: 0, age: 0, off: 0, fails: 0 };
+    const BK_REFRESH = 420;   // quadros com cache entre duas refeitas inteiras (~7 s): cura sozinho o que nenhum evento avisa
+    // A tela de apoio pode ficar TRANSPARENTE sem erro nenhum (celular: aba em segundo plano/tela bloqueada perde o canvas
+    // acelerado; iOS sem memória pra telas devolve contexto nulo). Era a "montanha invisível do nada". Aqui: contexto perdido =
+    // solta e desenha direto; aba voltou / GPU voltou (E.gfx.epoch) = refaz tudo; falhou ao criar/desenhar = direto por ~2 s.
+    function drawCached(g, view, time, o, S, dt) {
+      if (BK.off > 0) { BK.off--; return false; }
+      const GF = E.gfx;
+      if (BK.cv && GF) {
+        if (GF.lost(BK.g)) { heap.dropCache(); BK.off = 30; return false; }
+        if (BK.ep !== GF.epoch) BK.sig = '';
+      }
+      if (++BK.age > BK_REFRESH) BK.sig = '';
+      try { return drawCached0(g, view, time, o, S, dt); }
+      catch (e) { heap.dropCache(); BK.fails++; BK.off = 120; return false; }
+    }
     const BV = { x0: 0, x1: 0, y0: 0, y1: 0 };
     function bakeMargin(K) { const step = Math.max(1, Math.floor(1.6 / (colW * K))); return (8 * step + 4) * colW + 24 / K; }
     function foundSig() { let f = ''; for (let k = 0; k < heap.pockets.length; k++) f += heap.pockets[k].found ? '1' : '0'; return f; }
@@ -1008,7 +1025,7 @@
       c.restore();
       BK.n++;
     }
-    function drawCached(g, view, time, o, S, dt) {
+    function drawCached0(g, view, time, o, S, dt) {
       const m = g.getTransform();
       if (m.b || m.c || !(m.d > 0)) return false;
       const K = m.d;
@@ -1029,9 +1046,13 @@
       const cx = (view.x0 + view.x1) / 2, cy = (view.y0 + view.y1) / 2;
       let full = sig !== BK.sig || !BK.cv || cw > BK.w || ch > BK.h || cw < BK.w * 0.7 || ch < BK.h * 0.6;
       if (full) {
-        if (!BK.cv) { BK.cv = doc.createElement('canvas'); BK.g = BK.cv.getContext('2d'); }
-        BK.w = BK.cv.width = cw; BK.h = BK.cv.height = Math.ceil(ch * 1.06) + 24;   // folga em altura: o pico crescer 1 px não refaz tudo
-        BK.K = K; BK.mir = mir; BK.sig = sig;
+        const ch2 = Math.ceil(ch * 1.06) + 24;   // folga em altura: o pico crescer 1 px não refaz tudo
+        if (cw * ch2 > 16e6) return false;     // maior que o limite de canvas do iOS/celular: desenha direto
+        if (!BK.cv) { BK.cv = doc.createElement('canvas'); if (E.gfx) E.gfx.watch(BK.cv); }
+        if (!BK.g) BK.g = BK.cv.getContext('2d');
+        BK.w = BK.cv.width = cw; BK.h = BK.cv.height = ch2;
+        if (E.gfx && !E.gfx.ok(BK.g, BK.cv, cw, ch2)) throw new Error('tela de apoio da montanha não abriu');
+        BK.K = K; BK.mir = mir; BK.sig = sig; BK.ep = E.gfx ? E.gfx.epoch : 0; BK.age = 0;
         BK.bx = mir ? Math.ceil(m.e) - m.e : m.e - Math.floor(m.e); BK.by = m.f - Math.floor(m.f);
         if (!BK.hs || BK.hs.length !== n) BK.hs = new Float32Array(n);
       }

@@ -695,6 +695,34 @@
   }
   E.Stage = Stage;
 
+  /* E.gfx — saúde das telas de apoio (caches desenhados em canvas: montanha guardada, Draw.layer...).
+     Celular com a aba em segundo plano, tela bloqueada ou GPU reiniciada pode PERDER o conteúdo de um canvas acelerado
+     (contextlost → contextrestored = canvas transparente) sem nenhum erro: o cache continua "válido" e o desenho some.
+     epoch sobe quando a aba volta a aparecer, a página volta do bfcache ou algum canvas observado perde/recupera o contexto;
+     cada cache guarda o epoch com que foi feito e refaz quando muda.
+       E.gfx.epoch             número atual
+       E.gfx.bump()            força todo cache a se refazer (testes: simula a perda)
+       E.gfx.watch(canvas)     observa contextlost/contextrestored desse canvas (sobe o epoch)
+       E.gfx.lost(ctx2d)       true se o contexto está perdido agora (isContextLost; navegador sem a função = false)
+       E.gfx.ok(ctx2d, cv, w, h) true se a tela de apoio existe de verdade no tamanho pedido (iOS sem memória devolve null/0) */
+  const gfx = E.gfx = {
+    epoch: 1,
+    bump() { gfx.epoch++; return gfx.epoch; },
+    watch(cv) {
+      if (!cv || !cv.addEventListener || cv.__gfxW) return cv;
+      cv.__gfxW = 1;
+      cv.addEventListener('contextlost', () => gfx.bump());
+      cv.addEventListener('contextrestored', () => gfx.bump());
+      return cv;
+    },
+    lost(c) { try { return !c || (typeof c.isContextLost === 'function' && c.isContextLost()); } catch (e) { return false; } },
+    ok(c, cv, w, h) { return !!c && !!cv && cv.width === w && cv.height === h && !gfx.lost(c); },
+  };
+  if (doc) {
+    doc.addEventListener('visibilitychange', () => { if (!doc.hidden) gfx.bump(); });
+    if (root.addEventListener) root.addEventListener('pageshow', e => { if (e && e.persisted) gfx.bump(); });
+  }
+
   /* ======================================================================
      Input — ponteiro unificado (mouse + touch + caneta) e teclado
      ====================================================================== */

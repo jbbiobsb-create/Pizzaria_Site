@@ -452,18 +452,24 @@
     if (!m || m.b || m.c || !(m.d > 0) || Math.abs(Math.abs(m.a) - m.d) > m.d * 1e-6 || typeof document === 'undefined') { fn(g); return; }
     const k = m.d, mir = m.a < 0 ? 1 : 0;
     let L = LAYERS.get(key);
-    if (!L) { L = { cv: null, k: 0, mir: 0, sig: undefined, z: 0, mp: 0, pk: 0, x0: 0, y0: 0, x1: 0, y1: 0 }; LAYERS.set(key, L); }
-    if (!L.cv || L.k !== k || L.mir !== mir || L.sig !== sig || L.z !== Draw.zoom || L.mp !== Draw.minPx || L.x0 !== x0 || L.y0 !== y0 || L.x1 !== x1 || L.y1 !== y1) {
+    if (!L) { L = { cv: null, c: null, k: 0, mir: 0, sig: undefined, z: 0, mp: 0, pk: 0, x0: 0, y0: 0, x1: 0, y1: 0, ep: 0, n: 0, off: 0 }; LAYERS.set(key, L); }
+    if (L.off > 0) { L.off--; fn(g); return; }   // tela de apoio falhou há pouco: direto
+    // a imagem pode virar transparente sem erro (celular perde o canvas em segundo plano): refaz quando a aba volta / a GPU volta
+    // (E.gfx.epoch), com o contexto perdido desenha direto, e de tempos em tempos (~15 s) refaz de qualquer jeito
+    const GF = E.gfx, ep = GF ? GF.epoch : 0;
+    if (L.c && GF && GF.lost(L.c)) { L.cv = L.c = null; L.off = 30; fn(g); return; }
+    if (!L.cv || ++L.n > 900 || L.ep !== ep || L.k !== k || L.mir !== mir || L.sig !== sig || L.z !== Draw.zoom || L.mp !== Draw.minPx || L.x0 !== x0 || L.y0 !== y0 || L.x1 !== x1 || L.y1 !== y1) {
       if (L.k !== k && L.pk !== k) { L.pk = k; fn(g); return; }   // escala mudando: espera assentar
       const P = 2, w = Math.ceil((x1 - x0) * k) + P * 2, h = Math.ceil((y1 - y0) * k) + P * 2;
       if (!(w > 0 && h > 0) || w * h > 2e6) { fn(g); return; }
-      if (!L.cv) L.cv = document.createElement('canvas');
+      if (!L.cv) { L.cv = document.createElement('canvas'); L.c = null; if (GF) GF.watch(L.cv); }
       L.cv.width = w; L.cv.height = h;
-      const c = L.cv.getContext('2d');
+      const c = L.c || (L.c = L.cv.getContext('2d'));
+      if (GF && !GF.ok(c, L.cv, w, h)) { L.cv = L.c = null; L.off = 120; fn(g); return; }   // iOS sem memória pra tela nova
       c.setTransform(mir ? -k : k, 0, 0, k, (mir ? x1 * k : -x0 * k) + P, -y0 * k + P);
       c.imageSmoothingEnabled = g.imageSmoothingEnabled; c.lineJoin = g.lineJoin; c.lineCap = g.lineCap;
       fn(c);
-      L.k = k; L.pk = k; L.mir = mir; L.sig = sig; L.z = Draw.zoom; L.mp = Draw.minPx; L.x0 = x0; L.y0 = y0; L.x1 = x1; L.y1 = y1;
+      L.k = k; L.pk = k; L.mir = mir; L.sig = sig; L.z = Draw.zoom; L.mp = Draw.minPx; L.x0 = x0; L.y0 = y0; L.x1 = x1; L.y1 = y1; L.ep = ep; L.n = 0;
     }
     const X = Math.round((mir ? m.a * x1 : m.a * x0) + m.e) - 2, Y = Math.round(m.d * y0 + m.f) - 2;
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(L.cv, X, Y); g.restore();
