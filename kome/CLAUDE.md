@@ -3,6 +3,16 @@
 Jogo incremental de navegador (canvas 2D + HUD em DOM), pt-BR, roda abrindo `index.html` de `file://`.
 Duas metades com o mesmo peso: o jogo (`game/`) e a engine Pixxel, reaproveitável (`engine/`).
 
+## PREMISSA (palavra do dono; régua pra TODA decisão)
+Tem uma montanha GIGANTE de arroz. Você começa cavando com as patinhas e termina cavando com uma máquina incrivelmente
+grande e rápida, com uma fábrica que faz ganhar mais dinheiro. Bem Cookie Clicker: TUDO dá mais dinheiro, o dinheiro
+sobe sem parar, dopamina "vap vap vap", incremental. Então:
+- Cada sistema tem que responder "como isso me dá mais dinheiro / me faz cavar mais?" em UMA frase, visível na tela dele.
+  Se não responde: ligar no dinheiro ou tirar do jogo. Nada de lugar vazio, botão que não faz nada, câmera que só passeia.
+- O número de ¥ e a renda (¥/s) ficam sempre grandes e à vista, subindo. Toda compra mostra o salto ("+¥ 1,2 mi/s").
+- Sempre tem uma compra perto (segundos, não minutos). Espera longa é defeito.
+- Simples: nada escondido, tudo a 2 toques, uma pessoa de 50 anos joga sem ajuda (docs/design/ux-guia.md).
+
 ## Economia de token (o dono pediu)
 - NÃO mandar print pro dono nem pausar pra aprovação a cada mudança. Seguir em frente.
 - Verificar com `node tools/check.js` (saída curta; `--fast` pula o playtest de ~40 s; `--only celular`).
