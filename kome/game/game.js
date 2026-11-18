@@ -1811,6 +1811,7 @@
     else g.drawImage(c, bx, f._y0, W0, H0 + 40);
   }
   G.drawMach = (g, id, m, f) => drawMach(g, id, m, f);   // industry.js: a Gêmea usa o mesmo cache (uma imagem só passa pelo filtro de cor)
+  const HEAP_CACHE = !/[?&]nocache\b/.test(location.search);   // ?nocache = montanha desenhada inteira todo quadro (comparar)
   function render() {
     machFrame++;
     stage.begin();
@@ -1852,7 +1853,7 @@
     // 2. montanha + chão
     const qa = (S.quake || 0) * (S.quake || 0) * 9 / Math.max(0.2, cam.z), qx = (Math.random() - 0.5) * 2 * qa, qy = (Math.random() - 0.5) * 2 * qa;
     g.save(); g.translate(qx, qy);
-    heap.draw(g, view, t, { pockets: st.glow && !(G.Faixas && G.Faixas.has('escondido')) ? 'hint' : 'found', rolling: !slideFX });
+    heap.draw(g, view, t, { pockets: st.glow && !(G.Faixas && G.Faixas.has('escondido')) ? 'hint' : 'found', rolling: !slideFX, cache: HEAP_CACHE });   // corpo guardado em tela de apoio (só refaz o que cavou)
     if (slideFX) slideFX.draw(g, cam.z);
     if (G.Scenery) G.Scenery.crest(g, heap, view, t, cam.z, S);   // neve / cinza / areia / brilho de mochi por cima
     if (S.own.s10) drawVeins(g, view, t);
