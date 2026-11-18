@@ -4,7 +4,7 @@
 
    FICHA (um arquivo por coisa, em conteudo/<tipo>-<id>.js):
      ficha({
-       tipo: 'enfeite' | 'bicho' | 'roupa' | 'evento' | 'loja' | 'amuleto',
+       tipo: 'enfeite' | 'bicho' | 'roupa' | 'evento' | 'loja' | 'amuleto' | 'evolucao',
        id: 'lanterna_papel', nome: 'Lanterna de papel', desc: 'texto curto',
        preco: 60,                 // enfeite/bicho: segundos de renda (vira ¥ sozinho)
        onde: { x: 0.3, y: 10 },   // enfeite/bicho: x = 0..1 da largura do quintal, y = px abaixo do chão (+ = mais pra frente)
@@ -20,7 +20,10 @@
        // amuleto (omamori, game/amuletos.js): texto (1 linha), etiquetas ['mao'|'motor'|'sorte'|'fabrica'|'equipe'],
        //   raridade 'comum'|'raro'|'lendario', fx: {kind, values: {gancho: valor}} (ganchos no topo do amuletos.js),
        //   icone (id de ferramenta do G.Props, 'onigiri', 'sack_gold', 'sack_leg', 'coin' ou ícone do E.UI), desbloqueio
-       //   (id de conquista do goals.js: lendário só entra no baralho depois dela), ai (nota pro jogador guloso dos testes)
+       //   (id de conquista do goals.js: lendário só entra no baralho depois dela), ai (nota pro jogador guloso dos testes),
+       //   faixa (n: só entra no baralho depois de jogar a faixa n, game/faixas.js)
+       // evolucao (game/evolucoes.js): maquina (id do G.Tools), amuleto (id da ficha), texto, fala (frase da cena),
+       //   visual (peças extras desenhadas por cima: 'ouro' | 'carretas' | 'bracos' | 'dourada' | 'foguete' | 'chef')
      });
 
    CORES (minúscula = tom escuro da mesma cor):
@@ -56,7 +59,11 @@ const API = `/* GERADO por tools/content.js a partir de conteudo/*.js — não e
         const L = (D.AMULETOS = D.AMULETOS || []);
         if (L.some(a => a.id === id)) return;
         L.push({ id, n: f.nome, d: f.texto || f.desc || '', tags: f.etiquetas || [], rar: f.raridade || 'comum', fx: f.fx || { kind: 'mult', values: {} },
-          icon: f.icone || 'star', unlock: f.desbloqueio || null, ai: f.ai || 1 });
+          icon: f.icone || 'star', unlock: f.desbloqueio || null, ai: f.ai || 1, faixa: f.faixa || 0 });
+      } else if (f.tipo === 'evolucao') {
+        const L = (D.EVOLUCOES = D.EVOLUCOES || []);
+        if (L.some(e => e.id === id)) return;
+        L.push({ id, n: f.nome, d: f.texto || f.desc || '', tool: f.maquina, am: f.amuleto, vis: f.visual || 'ouro', fala: f.fala || '' });
       } else { console.warn('[kome] ficha com tipo desconhecido:', f.tipo, f.nome); return; }
       lista.push(Object.assign({ tipo: f.tipo }, base));
     } catch (e) { console.warn('[kome] ficha quebrada:', f && f.nome, e); }

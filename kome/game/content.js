@@ -26,7 +26,11 @@
         const L = (D.AMULETOS = D.AMULETOS || []);
         if (L.some(a => a.id === id)) return;
         L.push({ id, n: f.nome, d: f.texto || f.desc || '', tags: f.etiquetas || [], rar: f.raridade || 'comum', fx: f.fx || { kind: 'mult', values: {} },
-          icon: f.icone || 'star', unlock: f.desbloqueio || null, ai: f.ai || 1 });
+          icon: f.icone || 'star', unlock: f.desbloqueio || null, ai: f.ai || 1, faixa: f.faixa || 0 });
+      } else if (f.tipo === 'evolucao') {
+        const L = (D.EVOLUCOES = D.EVOLUCOES || []);
+        if (L.some(e => e.id === id)) return;
+        L.push({ id, n: f.nome, d: f.texto || f.desc || '', tool: f.maquina, am: f.amuleto, vis: f.visual || 'ouro', fala: f.fala || '' });
       } else { console.warn('[kome] ficha com tipo desconhecido:', f.tipo, f.nome); return; }
       lista.push(Object.assign({ tipo: f.tipo }, base));
     } catch (e) { console.warn('[kome] ficha quebrada:', f && f.nome, e); }
@@ -360,6 +364,15 @@ ficha({
 });
 
 
+  /* ===== conteudo/amuleto-faixa_preta.js ===== */
+ficha({
+  tipo: 'amuleto', id: 'faixa_preta', nome: 'Faixa Preta',
+  texto: 'Cada amuleto na build dá +25% de renda. Anos de treino pra isso.',
+  etiquetas: ['equipe', 'motor'], raridade: 'lendario', icone: 'star', ai: 4.5, faixa: 7,
+  fx: { kind: 'mult', values: { porAmuleto: 0.25 } },
+});
+
+
   /* ===== conteudo/amuleto-ferramenta_de_estimacao.js ===== */
 ficha({
   tipo: 'amuleto', id: 'ferramenta_de_estimacao', nome: 'Ferramenta de Estimação',
@@ -411,6 +424,24 @@ ficha({
   texto: 'Bolsões dourados valem ×2,5; o resto do arroz, ×0,85. Vai caçar.',
   etiquetas: ['sorte'], raridade: 'comum', icone: 'chest', ai: 1.3,
   fx: { kind: 'mult', values: { gold: 2.5, sell: 0.85 } },
+});
+
+
+  /* ===== conteudo/amuleto-ippon.js ===== */
+ficha({
+  tipo: 'amuleto', id: 'ippon', nome: 'Ippon',
+  texto: '+8% de chance de crítico e crítico ×2. Um golpe perfeito encerra a luta.',
+  etiquetas: ['mao', 'sorte'], raridade: 'raro', icone: 'trophy', ai: 3.5, faixa: 5,
+  fx: { kind: 'mult', values: { crit: 0.08, critMult: 2 } },
+});
+
+
+  /* ===== conteudo/amuleto-kiai.js ===== */
+ficha({
+  tipo: 'amuleto', id: 'kiai', nome: 'Kiai!',
+  texto: 'O combo enche 3× mais rápido e esfria pela metade. Grite enquanto cava.',
+  etiquetas: ['mao'], raridade: 'comum', icone: 'bolt', ai: 3, faixa: 1,
+  fx: { kind: 'mult', values: { comboGain: 3, comboDecay: 0.5 } },
 });
 
 
@@ -522,6 +553,15 @@ ficha({
 });
 
 
+  /* ===== conteudo/amuleto-randori.js ===== */
+ficha({
+  tipo: 'amuleto', id: 'randori', nome: 'Randori',
+  texto: 'Todo arroz vale +25% e os sacos ×1,5. Treino livre, lucro livre.',
+  etiquetas: ['sorte'], raridade: 'raro', icone: 'sack_gold', ai: 3.5, faixa: 3,
+  fx: { kind: 'mult', values: { val: 1.25, sack: 1.5 } },
+});
+
+
   /* ===== conteudo/amuleto-saco_do_imperador.js ===== */
 ficha({
   tipo: 'amuleto', id: 'saco_do_imperador', nome: 'Saco do Imperador',
@@ -546,6 +586,15 @@ ficha({
   texto: '+3 shibas ajudantes; você cavando ganha 20% menos (eles têm piso).',
   etiquetas: ['equipe'], raridade: 'comum', icone: 'paw', ai: 1.6,
   fx: { kind: 'mult', values: { help: 3, kome: 0.8 } },
+});
+
+
+  /* ===== conteudo/amuleto-tatame.js ===== */
+ficha({
+  tipo: 'amuleto', id: 'tatame', nome: 'Tatame Macio',
+  texto: '+3 shibas ajudantes e a frota rende ×1,3. Todo mundo treina junto.',
+  etiquetas: ['equipe'], raridade: 'raro', icone: 'paw', ai: 3.5, faixa: 2,
+  fx: { kind: 'mult', values: { help: 3, frota: 1.3 } },
 });
 
 
@@ -1137,6 +1186,60 @@ ficha({
   "tipo": "evento",
   "id": "festival_da_lua",
   "nome": "Festival da Lua"
+});
+
+
+  /* ===== conteudo/evolucao-bagger_dourada.js ===== */
+ficha({
+  tipo: 'evolucao', id: 'bagger_dourada', nome: 'Bagger Dourada',
+  maquina: 'bagger', amuleto: 'nucleo_vivo', visual: 'dourada',
+  texto: '14 mil toneladas de ouro rodando. O núcleo da montanha reconheceu a parente.',
+  fala: 'O banco central ligou perguntando se ela está à venda.',
+});
+
+
+  /* ===== conteudo/evolucao-caminhao_foguete.js ===== */
+ficha({
+  tipo: 'evolucao', id: 'caminhao_foguete', nome: 'Caminhão Foguete',
+  maquina: 'caminhao', amuleto: 'esteira_expressa', visual: 'foguete',
+  texto: 'Dois foguetes presos na traseira com fita e fé. Entrega expressa de verdade.',
+  fala: 'Frete grátis acima de Mach 1.',
+});
+
+
+  /* ===== conteudo/evolucao-colheita_gourmet.js ===== */
+ficha({
+  tipo: 'evolucao', id: 'colheita_gourmet', nome: 'Colheitadeira Gourmet',
+  maquina: 'colheita', amuleto: 'chef', visual: 'chef',
+  texto: 'Colhe, cozinha e cospe onigiri pronto. Usa chapéu de chef porque tem padrão.',
+  fala: 'Sim, chef!',
+});
+
+
+  /* ===== conteudo/evolucao-escav_dois_bracos.js ===== */
+ficha({
+  tipo: 'evolucao', id: 'escav_dois_bracos', nome: 'Escavadeira de Dois Braços',
+  maquina: 'escav', amuleto: 'gemeos', visual: 'bracos',
+  texto: 'Nasceu um braço novo nas costas. Cava pra frente e pra trás ao mesmo tempo.',
+  fala: 'Ambidestra. Ambi-escavadeira. Tanto faz.',
+});
+
+
+  /* ===== conteudo/evolucao-pa_lendaria.js ===== */
+ficha({
+  tipo: 'evolucao', id: 'pa_lendaria', nome: 'Pá Lendária',
+  maquina: 'pa', amuleto: 'pata_de_ouro', visual: 'ouro',
+  texto: 'A lâmina virou ouro maciço e cresceu 50%. Cada pazada deixa brilho no ar.',
+  fala: 'Excalibur? Não. Excapá.',
+});
+
+
+  /* ===== conteudo/evolucao-trator_comboio.js ===== */
+ficha({
+  tipo: 'evolucao', id: 'trator_comboio', nome: 'Trator Comboio',
+  maquina: 'trator', amuleto: 'frota_feliz', visual: 'carretas',
+  texto: 'Puxa três carretas de arroz engatadas. Ninguém sabe de onde vieram as carretas.',
+  fala: 'Piuí! (o trator não sabe que não é trem)',
 });
 
 

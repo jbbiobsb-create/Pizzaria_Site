@@ -129,7 +129,7 @@
   // = campanha × (ganho no Pátio / ganho da campanha)^0,15 (ficar ×100 mais no Pátio ≈ só ×2). Antes do final: o total.
   const seedsBase = () => (S = S || G.S, Math.floor(Math.sqrt(Math.max(0, S.stats.earnedEnd || S.earned) / 1e6)));
   const seedsPatio = () => { const e0 = S.stats.earnedEnd || 0, r = e0 > 0 ? Math.max(0, S.earned - e0) / e0 : 0; return r > 0 ? Math.floor(seedsBase() * Math.pow(r, EG.patioExp || 0.15)) : 0; };
-  const gain = () => (S = S || G.S, S.stats.earnedEnd ? seedsBase() + seedsPatio() : seedsBase());
+  const gain = () => (S = S || G.S, Math.floor((S.stats.earnedEnd ? seedsBase() + seedsPatio() : seedsBase()) * (G.Faixas ? G.Faixas.seedMul() : 1)));   // faixa: ×1,5 por faixa
   const seedCost = s => Math.ceil(s.base * Math.pow(EG.seedGrow || 1.45, lvl(s.id)));
   const recs = () => (S.stats.isl || (S.stats.isl = {}));
   const rec = id => recs()[id] || null;
@@ -176,7 +176,7 @@
   function travel() {
     if (!S.ended) { UI.toast('Termine a casa nesta ilha primeiro', { icon: 'lock', sub: 'depois o barco te leva pra ' + D.ISLANDS[nextIdx()].n }); return; }
     const next = nextIdx(), g = gain(), to = D.ISLANDS[next], wrap = next === 0;
-    UI.confirm((wrap ? 'Volta ' + (lap() + 2) + ' ao Japão! ' : '') + 'O Kome vai de barco pra ' + to.n + ' (' + to.d + '). Montanha, frota, árvore, casa e dinheiro recomeçam; você ganha ' + U.fmt(g) + ' Sementes Douradas' + (S.stats.earnedEnd && seedsPatio() > 0 ? ' (' + U.fmt(seedsBase()) + ' da ilha + ' + U.fmt(seedsPatio()) + ' do Pátio)' : '') + '. Roupas, quintal e conquistas vão junto.', () => {
+    UI.confirm((wrap ? 'Volta ' + (lap() + 2) + ' ao Japão! ' : '') + 'O Kome vai de barco pra ' + to.n + ' (' + to.d + '). Montanha, frota, árvore, casa e dinheiro recomeçam; você ganha ' + U.fmt(g) + ' Sementes Douradas' + (S.stats.earnedEnd && seedsPatio() > 0 ? ' (' + U.fmt(seedsBase()) + ' da ilha + ' + U.fmt(seedsPatio()) + ' do Pátio)' : '') + '. Roupas, quintal e conquistas vão junto.' + (wrap && G.Faixas ? ' ' + G.Faixas.nextTxt() : ''), () => {
       boat(to, () => api.travel(next, g));
     }, { title: 'Carta: ' + to.n + ' quer arroz!', yes: 'Partir', no: 'Ainda não' });
   }
@@ -203,7 +203,7 @@
   let ev = null, evT = 0, nextEv = EG.ev.first;
   function evTick(dt) {
     if (!api || !islandRun()) return;
-    if (ev) { evT -= dt; if (evT <= 0) { ev = null; nextEv = U.rnd(EG.ev.every[0], EG.ev.every[1]); } return; }
+    if (ev) { evT -= dt; if (evT <= 0) { ev = null; nextEv = U.rnd(EG.ev.every[0], EG.ev.every[1]) * (G.Faixas ? G.Faixas.mult('evRaro') : 1); } return; }
     if (S.tool < EG.ev.minTool || (api.busy && api.busy())) return;
     if ((nextEv -= dt) > 0) return;
     ev = isl().ev; evT = ev.dur; S.stats.islEv = (S.stats.islEv | 0) + 1;

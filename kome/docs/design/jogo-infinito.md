@@ -49,6 +49,11 @@ build própria**. Ela ajusta `sementes.md` e o "fim de jogo da fábrica" (as dua
   Escavadeira + Gêmeos → **Escavadeira de Dois Braços**; Bagger + Núcleo Vivo → **Bagger Dourada**.
 - Cada evolução descoberta entra no Caderno (coleção) e fica marcada com "?" até ser achada. Começar com 6, crescer por ficha.
 
+- **FEITO (19/11):** `game/evolucoes.js` + 6 fichas `conteudo/evolucao-*.js`: Pá + Pata de Ouro → Pá Lendária; Trator + Frota
+  Feliz → Trator Comboio; Escavadeira + Gêmeos → Escavadeira de Dois Braços; Bagger + Núcleo Vivo → Bagger Dourada;
+  Caminhão + Esteira Expressa → Caminhão Foguete; Colheitadeira + Chef → Colheitadeira Gourmet. ×3 na máquina evoluída
+  em uso. Desenho por bandeira (`m.evo`) e peças extras por cima da máquina vetorial (não redesenha).
+
 ### 4. Faixas (as "stakes"): cada volta ao Japão é mais difícil e paga mais
 - Terminou as 5 ilhas e o Kome-Oh → abre a **Faixa** seguinte (branca, amarela, laranja, verde, azul, marrom, preta, e daí
   Dan 1, Dan 2… sem fim, como no judô).
@@ -56,6 +61,14 @@ build própria**. Ela ajusta `sementes.md` e o "fim de jogo da fábrica" (as dua
   só 4 amuletos por ilha; bolsões escondidos; arroz duro mais cedo; eventos mais raros…
 - Paga: Sementes ×1,5 por faixa, amuletos novos no baralho, e a faixa aparece amarrada no Kome em todas as telas.
 - **Sem punição:** a faixa nunca tira nada do que é permanente (Vila, coleção, sementes, selos).
+
+- **FEITO (19/11):** `game/faixas.js`. Faixa = volta (S.stats.lap). Regras, na ordem das faixas: montanha 20% maior · só 4
+  amuletos por ilha · bolsões escondidos · arroz duro mais cedo · eventos mais raros · combo frágil · duas cartas · (Dan) sacos
+  tímidos · chegada sem presente · núcleo blindado; do 4º Dan em diante cada faixa reforça uma regra numérica até o teto.
+  Paga sementes ×1,5 por faixa (composto), 5 amuletos novos de faixa no baralho (Kiai, Tatame Macio, Randori, Ippon, Faixa
+  Preta) e a faixa no Kome (`E.shibaBelt`). **Preço: a faixa NÃO multiplica preço.** O preço por viagem do item 6
+  (`D.ENDGAME.price`, t = ilha + volta×5) já sobe a cada volta e é a parte "preço" da aposta; somar ×2,5 por faixa em cima
+  dobraria a conta (lapStep saiu pelo mesmo motivo).
 
 ### 5. O que é permanente (pra sessão curta valer a pena todo dia)
 - A **Vila**, a **fábrica** (layout e selos), a **coleção** (roupas, fósseis, carpas, amuletos e evoluções descobertos, Cardápio),

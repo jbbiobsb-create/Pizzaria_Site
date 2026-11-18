@@ -5,6 +5,7 @@
    - E.drawShiba    desenha com os pés em (x,y), com cache de frames (aguenta 100+ shibas por frame)
    - E.drawShibaHead close de rosto com expressões para cutscenes
    - E.shibaAnchor  âncoras (pata, boca, cabeça, costas, topo do chapéu) por pose
+   - E.shibaBelt    faixa (judô) amarrada na cintura de quem usa uma paleta: shibaBelt(nome, cor | {b,b2,bk} | null)
    - E.Actor        shiba com estado, objeto na pata e balão de fala
    Depende só de core.js. */
 (function () {
@@ -20,7 +21,8 @@
 
   // índices de cor (0 = vazio). A paleta compilada é um Uint32Array indexado por eles.
   const FUR = 1, FURS = 2, FURD = 3, CREAM = 4, CREAMS = 5, EYE = 6, NOSE = 7, PINK = 8, BLUSH = 9,
-    HAT = 10, HATS = 11, HATL = 12, LINE = 13, WHITE = 14, TEAR = 15, TEARL = 16, VEIN = 17, GOLD = 18;
+    HAT = 10, HATS = 11, HATL = 12, LINE = 13, WHITE = 14, TEAR = 15, TEARL = 16, VEIN = 17, GOLD = 18,
+    BELT = 19, BELTS = 20, BELTK = 21;   // faixa amarrada na cintura (camada nova; só existe se a paleta tiver b, ver shibaBelt)
   const NCOL = 32;
 
   const bodyBuf = new Uint8Array(W * H);
@@ -133,14 +135,49 @@
     lut[LINE] = pack(mixc(fur, [20, 10, 5], 0.8)); lut[WHITE] = pack([255, 255, 255, 255]);
     lut[TEAR] = pack([98, 178, 232, 255]); lut[TEARL] = pack([205, 236, 255, 255]);
     lut[VEIN] = pack([214, 64, 54, 255]); lut[GOLD] = pack([255, 214, 92, 255]);
-    const K = { lut, id: palSeq++ };
+    const K = { lut, id: palSeq++, belt: 0 };
+    if (p.b) {   // faixa (judô): b = cor, b2 = 2ª cor listrada (faixa coral), bk = nó
+      const b = hexc(p.b);
+      lut[BELT] = pack(b); lut[BELTS] = pack(p.b2 ? hexc(p.b2) : mixc(b, [40, 20, 10], 0.28)); lut[BELTK] = pack(p.bk ? hexc(p.bk) : mixc(b, [40, 20, 10], 0.5));
+      K.belt = p.b2 ? 2 : 1;
+    }
     try { Object.defineProperty(p, '__K', { value: K, enumerable: false, configurable: true }); } catch (e) { p.__K = K; }
     return K;
   }
   // resolve nome ou objeto de paleta
+  // faixa por NOME de paleta (shibaBelt): o nome vira uma paleta derivada com b/b2/bk (id próprio = frames próprios no cache)
+  const BELTON = Object.create(null), beltPals = Object.create(null);
   function getPal(p) {
-    if (typeof p === 'string' || p == null) p = PALS[p || 'kome'] || PALS.kome;
+    if (typeof p === 'string' || p == null) {
+      const n = p || 'kome'; p = PALS[n] || PALS.kome;
+      const bo = BELTON[n]; if (bo) { const key = n + '|' + bo.key; p = beltPals[key] || (beltPals[key] = Object.assign({}, p, bo.o)); }
+    }
     return p;
+  }
+  // shibaBelt(nomeDaPaleta, cor | {b, b2, bk} | null): todo shiba desenhado com essa paleta (string) passa a usar a faixa
+  //   amarrada na cintura (uma camada pintada depois da pose; as poses em si não mudam). null tira.
+  function shibaBelt(pal, c) {
+    const n = pal || 'kome';
+    if (!c) { delete BELTON[n]; return; }
+    const o = typeof c === 'string' ? { b: c } : { b: c.b, b2: c.b2 || null, bk: c.bk || null };
+    if (!o.b) { delete BELTON[n]; return; }
+    BELTON[n] = { key: o.b + '|' + (o.b2 || '') + '|' + (o.bk || ''), o };
+  }
+  // pinta a faixa no corpo já rasterizado: 2 colunas na altura do lombo (âncora 'back'), só por cima de pelo/creme,
+  // + nó e duas pontas soltas pro lado do rabo (o contorno sai sozinho no blit)
+  function beltPaint(kind) {
+    const bx = Math.round(A.backX) - 1, by = Math.round(A.backY);
+    let top = 99;
+    for (let x = bx; x <= bx + 1; x++) for (let y = by - 3; y <= by + 10; y++) {
+      const yy = y + OY; if (yy < 0 || yy >= H || x < 0 || x >= W) continue;
+      const i = yy * W + x, c = bodyBuf[i];
+      if (c >= FUR && c <= CREAMS) { bodyBuf[i] = kind === 2 ? ((((y >> 1) + (x - bx)) & 1) ? BELTS : BELT) : (x === bx ? BELT : BELTS); if (y < top) top = y; }
+    }
+    if (top === 99) return;
+    const put = (x, y, c) => { const yy = y + OY; if (yy >= 0 && yy < H && x >= 0 && x < W) bodyBuf[yy * W + x] = c; };
+    const ky = top + 2;
+    put(bx - 1, ky, BELTK); put(bx - 1, ky + 1, BELTK);
+    put(bx - 2, ky + 2, BELT); put(bx - 3, ky + 3, BELT); put(bx - 1, ky + 2, BELTS); put(bx - 1, ky + 3, BELTS);
   }
 
   /* =====================================================================
@@ -775,6 +812,7 @@
     buf = bodyBuf; BW = W; BH = H; BOY = OY; dry = false;
     bodyBuf.fill(0);
     pose(mode === 'shake' ? 'stand' : mode, t, true);
+    if (K.belt) beltPaint(K.belt);
     blit(bodyBuf, W, H, K.lut, img32, under);
   }
   // riscos de tremida da pose 'shake' (igual ao rascunho)
@@ -1258,5 +1296,6 @@
   E.drawBubble = drawBubble;
   E.PAW = PAW; E.MOUTH = MOUTH; E.HEAD = HEAD;
   E.shibaAnchor = shibaAnchor;
+  E.shibaBelt = shibaBelt;
   E.Actor = Actor;
 })();

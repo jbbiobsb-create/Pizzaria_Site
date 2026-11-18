@@ -75,6 +75,23 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok(r8.on && r8.del === 1 && r8.ppl === 6 && r8.obraSaved, 'Cidade volta igual do save (moradores, entregas, obra)');
   ok(r8.off && r8.built >= 1, 'offline (E.Sim): a obra termina com o tempo fora: ' + JSON.stringify(r8.off));
   ok(r8.trip, 'viagem não zera a Cidade (S.stats.city fica)');
+  // 7) faixas (game/faixas.js) e evoluções (game/evolucoes.js): migração MIGR[8], regras por volta, sementes, faixa no Kome, evolução ×3
+  const rFx = await p.evaluate(() => { const K = __kome, S = K.S, F = KomeGame.Faixas, A = KomeGame.Amuletos, V = KomeGame.Evolucoes, P = Pixxel;
+    const mig = !!(S.stats.fx && typeof S.stats.fx.seen === 'number' && S.stats.evo && S.stats.evo.disc);
+    const lap0 = S.stats.lap | 0, g0 = KomeGame.Islands.gain() / F.seedMul();
+    S.island = 1; S.stats.islandsDone = 7; S.stats.lap = 2; S.ended = false; S.tool = 3; K.step(0.5);
+    const lv = F.level(), max = A.max(), mul = F.seedMul(), seen = S.stats.fx.seen;
+    const cv = P.shibaCanvas('sit', 0.4, { pal: (S.look && S.look.pal) || 'kome' }), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    let belt = 0; for (let i = 0; i < d.length; i += 4) if (d[i] === 242 && d[i + 1] === 201 && d[i + 2] === 76) belt++;
+    S.stats.lap = 9; S.stats.islandsDone = 8; S.tool = 3; const earn9 = A.earned(); S.tool = 7; const off = (A.offer() || []).length;
+    S.stats.am.cur = ['frota_feliz']; S.stats.lv = { trator: 25 }; S.ended = true; K.step(0.5);
+    const act = Object.keys(V.active()), disc = !!S.stats.evo.disc.trator_comboio, st = { sell: 1 }; V.applyStats(st, { id: 'trator' });
+    S.stats.lap = lap0; return { mig, lv, max, mul, seen, belt, earn9, off, act, disc, x3: st.sell, g0 }; });
+  ok(rFx.mig, 'migração criou S.stats.fx e S.stats.evo (faixas/evoluções)');
+  ok(rFx.lv === 2 && rFx.max === 4 && Math.abs(rFx.mul - 2.25) < 1e-9 && rFx.seen === 2, 'faixa amarela na volta 3: 4 amuletos, sementes ×2,25, apresentação pulada no modo acelerado (' + JSON.stringify([rFx.lv, rFx.max, rFx.mul, rFx.seen]) + ')');
+  ok(rFx.belt > 4, 'faixa amarrada no Kome (' + rFx.belt + ' px da cor da faixa)');
+  ok(rFx.earn9 === 0 && rFx.off === 2, '2º Dan: sem amuleto na chegada e 2 cartas por escolha (' + rFx.earn9 + ', ' + rFx.off + ')');
+  ok(rFx.act.indexOf('trator') >= 0 && rFx.disc && rFx.x3 === 3, 'Trator nível 25 + Frota Feliz = Trator Comboio, ×3, anotado no Caderno (' + rFx.act.join() + ')');
   // 4) E.Sim puro
   const r4 = await p.evaluate(() => { const s = Pixxel.Sim(); let t = 0; s.add('a', { tick: dt => { t += dt; }, offline: dt => ({ yen: dt * 2 }) }).add('b', { tick() {} });
     s.tick(0.5); const off = s.catchUp(3600); return { t, off }; });

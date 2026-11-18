@@ -41,7 +41,7 @@
   const TAGS = { mao: { n: 'mão', c: '#E58A3A' }, motor: { n: 'motor', c: '#5C7FB8' }, sorte: { n: 'sorte', c: '#4FA36A' }, fabrica: { n: 'fábrica', c: '#B8564A' }, equipe: { n: 'equipe', c: '#8E6FB3' } };
   const RAR = { comum: { n: 'comum', c: '#B88A52' }, raro: { n: 'raro', c: '#3E86D6' }, lendario: { n: 'lendário', c: '#F0B429' } };
   const MARCOS = [
-    { id: 'chegada', n: 'chegada na ilha', ok: () => true },
+    { id: 'chegada', n: 'chegada na ilha', ok: () => !FX('semChegada') },   // faixa "Chegada sem presente" (faixas.js)
     { id: 'motor', n: '1ª máquina a motor', ok: () => S().tool >= ti('trator') },
     { id: 'escav', n: 'Escavadeira', ok: () => S().tool >= ti('escav') },
     { id: 'bagger', n: 'Bagger', ok: () => S().tool >= ti('bagger') },
@@ -63,6 +63,10 @@
   const OFF = (() => { try { return localStorage.getItem('kome-sem-amuleto') === '1'; } catch (e) { return false; } })();
   const run = () => !OFF && !!(G.Islands && G.Islands.islandRun && G.Islands.islandRun());
   const fast = () => !!(api && api.fast && api.fast());
+  // faixas (game/faixas.js): regras que mexem nos amuletos — menos amuletos por ilha, menos cartas, sem o da chegada
+  const FX = k => (G.Faixas ? G.Faixas.val(k) : 0);
+  const maxN = () => Math.max(1, CFG.max - FX('amMax'));
+  const offerN = () => Math.max(1, CFG.offer - FX('amOffer'));
 
   function fresh() { return { trip: 0, cur: [], got: 0, rr: 0, offer: null, disc: {}, t0: 0, rg: 0 }; }
   function norm(a) {
@@ -140,7 +144,7 @@
   function night() { const s = S(); if (E.Nature && E.Nature.light && s.tod !== undefined) { try { return E.Nature.light(s.tod).night || 0; } catch (e) { /* */ } } return 0; }
 
   /* ---- baralho ---- */
-  const unlocked = x => !x.unlock || !!((S().stats.ach || {})[x.unlock]);
+  const unlocked = x => (!x.unlock || !!((S().stats.ach || {})[x.unlock])) && (!x.faixa || (G.Faixas ? G.Faixas.best() : 0) >= x.faixa);
   function pool(skip) { const a = st(); return list().filter(x => a.cur.indexOf(x.id) < 0 && unlocked(x) && (!skip || skip.indexOf(x.id) < 0)); }
   function draw(n, skip) {
     let P = pool(skip); if (P.length < n) P = pool();
@@ -153,15 +157,15 @@
     }
     return out;
   }
-  const earned = () => (run() ? Math.min(CFG.max, MARCOS.filter(m => m.ok()).length) : 0);
+  const earned = () => (run() ? Math.min(maxN(), MARCOS.filter(m => m.ok()).length) : 0);
   const pending = () => run() && st().got < earned();
   const nextMarco = () => { const k = st().got; const m = MARCOS.filter(x => x.ok())[k]; return m || MARCOS[Math.min(k, MARCOS.length - 1)]; };
-  function offer() { const a = st(); if (!pending()) return null; if (!a.offer || !a.offer.length) a.offer = draw(CFG.offer); return a.offer.map(byId).filter(Boolean); }
+  function offer() { const a = st(); if (!pending()) return null; if (!a.offer || !a.offer.length) a.offer = draw(offerN()); return a.offer.map(byId).filter(Boolean); }
   const rerollCost = () => CFG.reroll * Math.pow(2, st().rr);
   function reroll() {
     const a = st(), c = rerollCost(), s = S().stats;
     if (!pending() || Math.floor(s.seeds || 0) < c) return false;
-    s.seeds -= c; a.rr++; a.offer = draw(CFG.offer, a.offer || []);
+    s.seeds -= c; a.rr++; a.offer = draw(offerN(), a.offer || []);
     if (api && api.save && !fast()) api.save();
     return true;
   }
@@ -200,7 +204,7 @@
     if (o.regrow && (dyn.rgT += dt) >= CFG.regrowEvery) { dyn.rgT = 0; regrow(a); }
     // escolha pendente
     if (!pending()) return;
-    if (!a.offer || !a.offer.length) a.offer = draw(CFG.offer);
+    if (!a.offer || !a.offer.length) a.offer = draw(offerN());
     if (fast()) { const b = best(offer()); if (b) pick(b.id, true); return; }
     const UIx = G.AmuletosUI;
     if (!UIx || UIx.isOpen() || UIx.later || (api && api.busy && api.busy())) { if (!UIx || !UIx.isOpen()) waitT = Math.max(waitT, 1.5); return; }
@@ -224,7 +228,7 @@
     // tela (amuletos-ui.js) lê daqui
     run, list, byId, current: cur, offer, reroll, rerollCost, pick, pending, earned, nextMarco, lit, need, tagCount,
     seeds: () => Math.floor((S() && S().stats.seeds) || 0), discovered: () => Object.assign({}, st().disc), unlocked,
-    max: () => CFG.max, sets: CFG.sets, TAGS, RAR, MARCOS, fast,
+    max: maxN, sets: CFG.sets, TAGS, RAR, MARCOS, fast,
     dyn: () => ({ rush: dyn.rushT, est: dyn.est, full: dyn.fullT, night: night() }),
     sim: { best, score, drain: () => { const l = log; log = []; return l; }, auto() { const o = offer(); const b = o && best(o); return b ? pick(b.id, true) : null; } },
   };

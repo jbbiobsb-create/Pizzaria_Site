@@ -56,13 +56,15 @@
 
   /* SAVE VERSIONADO (fase 0 do PLANO-100H): cada camada nova sobe SAVE_V e põe UMA migração aqui. Save antigo nunca quebra:
      E.Save chama migrate(d, versãoAntiga) e roda todas as migrações que faltam, em ordem. */
-  const SAVE_V = 7;
+  const SAVE_V = 8;
   const MIGR = {
     5: d => { d.stats = d.stats || {}; d.stats.inv = d.stats.inv || {}; d.stats.got = d.stats.got || {}; },   // armazém de itens
     // amuletos (amuletos.js): build da ilha atual; trip = ilhas concluídas (a viagem zera sozinha). Save antigo entra sem amuleto
     6: d => { d.stats = d.stats || {}; const a = d.stats.am; if (!a || typeof a !== 'object') d.stats.am = { trip: d.stats.islandsDone | 0, cur: [], got: 0, rr: 0, offer: null, disc: {}, t0: d.tool | 0, rg: 0 }; },
     // Cidade (cidade.js): camada permanente (fica entre viagens). Save antigo entra fechada; abre no 1º mochi vendido
     7: d => { d.stats = d.stats || {}; if (!d.stats.city || typeof d.stats.city !== 'object') d.stats.city = { on: 0 }; },
+    // faixas (faixas.js) e evoluções (evolucoes.js): best = faixa já jogada (= volta), seen = apresentação vista; evo.disc = Caderno
+    8: d => { d.stats = d.stats || {}; const s = d.stats; if (!s.fx || typeof s.fx !== 'object') s.fx = { best: s.lap | 0, seen: 0 }; if (!s.evo || typeof s.evo !== 'object') s.evo = { disc: {}, seen: {} }; },
   };
   function migrate(d, v) { for (let k = (v | 0) + 1; k <= SAVE_V; k++) if (MIGR[k]) MIGR[k](d); return d; }
 
@@ -137,6 +139,8 @@
     if (G.Patio && G.Patio.heart) s.sell *= G.Patio.heart();   // Arroz do Coração: +1% por conquista da camada Cookie
     if (G.Islands) G.Islands.applyStats(s);   // árvore das sementes + bônus da ilha
     if (G.Amuletos) G.Amuletos.applyStats(s, cur);   // amuletos da ilha (mão/motor, sacos, ajudantes, regras da árvore)
+    if (G.Faixas) G.Faixas.applyStats(s);   // faixa da volta (sacos tímidos; o resto entra pelos ganchos AM/MATS/buildWorld)
+    if (G.Evolucoes) G.Evolucoes.applyStats(s, cur);   // máquina evoluída em uso: ×3
     if (G.Ind) G.Ind.applyStats(s);           // fábrica, lojas e Bagger gêmea (modo infinito)   // selos das conquistas: +1% cada   // oficina do modo infinito
     st = s;
     if (heap) for (const p of heap.pockets) p.mult = s.gold;
@@ -186,7 +190,7 @@
     ],
   };
   const MATS = () => {
-    const base = G.Islands ? G.Islands.matsFor() : D.MATS, sm = SHAPE_MATS[shapeId()];
+    const base = G.Faixas ? G.Faixas.mats(G.Islands ? G.Islands.matsFor() : D.MATS) : G.Islands ? G.Islands.matsFor() : D.MATS, sm = SHAPE_MATS[shapeId()];   // faixas: duro mais cedo, núcleo blindado
     if (!sm) return base;
     return base.map(m => { const o = sm.find(x => x.id === m.id); return o ? Object.assign({}, m, o) : m; });
   };
@@ -198,14 +202,15 @@
     // grãos de verdade descendo a encosta + poeira quando um grão grande cai de um pulo
     slideFX = E.SlideFX ? E.SlideFX(heap, { max: 260, carry: 0, active: () => !FAST,   // carry desligado: com grão carregando massa o save/load divergia (investigar antes de religar)
        onLand: (x, y, sp) => { if (!FAST && parts && Math.random() < 0.25) parts.puff(x, y, 1 + (sp > 260 ? 2 : 0), 4, { c: PAL.sand }); } }) : null;
-    heap.generate(mountainShape);
+    const fxM = G.Faixas ? G.Faixas.val('mont', 1) : 1;   // faixa "Montanha 20% maior"
+    heap.generate(fxM === 1 ? mountainShape : x => mountainShape(x) * fxM);
     heap.wake().settle(4000);                                   // nasce já assentada no talude do arroz solto
     heap.fromArray(heap.h.slice());
     heap.onPocket = onPocket;
     const r = E.RNG(WL.SEED + ((S.mount || 1) - 1) * 7919 + (S.island | 0) * 104729), PK = D.POCKETS;
     let made = 0, guard = 0;
     while (made < PK.n && guard++ < 4000) {
-      const early = made < 5;                                   // os primeiros ficam perto do começo, rasos
+      const early = made < 5 && !(G.Faixas && G.Faixas.has('escondido'));   // os primeiros ficam perto do começo, rasos (faixa "Bolsões escondidos": não)
       const x = early ? r.range(2000, 2700) : r.range(2300, 7600), rad = early ? r.range(35, 48) : r.range(PK.r[0], PK.r[1]);
       const hs = heap.h0[heap.col(x)], dep = PK.minDepth + rad + (early ? r.range(0, 40) : r.range(0, Math.min(1100, hs * 0.6)));
       const alt = hs - dep;
@@ -266,7 +271,7 @@
      4. Economia
      ===================================================================== */
   let comboLv = 0;
-  const AM = k => (G.Amuletos ? G.Amuletos.mult(k) : 1);   // ganchos dos amuletos (game/amuletos.js): 1 = sem efeito
+  const AM = k => (G.Amuletos ? G.Amuletos.mult(k) : 1) * (G.Faixas ? G.Faixas.mult(k) : 1);   // ganchos dos amuletos (game/amuletos.js) e das faixas (combo, sacos): 1 = sem efeito
   const comboMult = () => 1 + (st.comboCap - 1) * S.combo / D.COMBO.max;
   // multiplicador de iene do que o Kome cava agora (preço x combo x eventos)
   function yenK() {
@@ -1759,7 +1764,7 @@
     // 2. montanha + chão
     const qa = (S.quake || 0) * (S.quake || 0) * 9 / Math.max(0.2, cam.z), qx = (Math.random() - 0.5) * 2 * qa, qy = (Math.random() - 0.5) * 2 * qa;
     g.save(); g.translate(qx, qy);
-    heap.draw(g, view, t, { pockets: st.glow ? 'hint' : 'found', rolling: !slideFX });
+    heap.draw(g, view, t, { pockets: st.glow && !(G.Faixas && G.Faixas.has('escondido')) ? 'hint' : 'found', rolling: !slideFX });
     if (slideFX) slideFX.draw(g, cam.z);
     if (G.Scenery) G.Scenery.crest(g, heap, view, t, cam.z, S);   // neve / cinza / areia / brilho de mochi por cima
     if (S.own.s10) drawVeins(g, view, t);
@@ -2178,6 +2183,8 @@
     if (G.Topo) G.Topo.init({ sfx });
     if (G.Events) G.Events.init({ sfx, fast: () => FAST, ips: () => Math.max(1, S.ips || 0), pay: v => credit(v, 2, false),
       banner: (e, txt) => { sfx('fanfare'); ui(() => UI.banner(e.n.toUpperCase() + '!', txt, { icon: e.icon || 'star', tone: 'gold', dur: 3 })); } });
+    if (G.Faixas) G.Faixas.init({ fast: () => FAST, save: () => saveNow(), busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()) });
+    if (G.Evolucoes) G.Evolucoes.init({ sfx, fast: () => FAST, save: () => saveNow(), recompute: () => computeStats(), busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()) });
     if (G.Amuletos) G.Amuletos.init({ sfx, fast: () => FAST, save: () => saveNow(), recompute: () => computeStats(), playing: () => cur, heap: () => heap, ui,
       busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()) || (G.CookieUI && G.CookieUI.isOpen && G.CookieUI.isOpen()) || S.cele.t >= 0 && S.cele.t < S.cele.dur });
     if (G.Patio) G.Patio.init({ sfx, fast: () => FAST, credit: v => credit(v, 1, false), recompute: () => computeStats(),

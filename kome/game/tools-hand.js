@@ -145,6 +145,7 @@
     g.fillRect(x - rx * 0.45, y - ry * 0.45, 1.2, 0.6); g.fillRect(x + rx * 0.2, y - ry * 0.62, 1.2, 0.6); g.fillRect(x + rx * 0.5, y - ry * 0.25, 1, 0.6);
     g.fillRect(x - rx * 0.1, y - ry * 0.25, 1.2, 0.6);
   }
+  let shovelGold = false;
   // pá: pivô (pata) em (px,py), cabo ao longo do ângulo a; back = cabo pra trás da pata, fwd = até o pescoço da lâmina
   function shovel(g, px, py, a, back, fwd, bs, far, load) {
     g.save(); g.translate(px, py); g.rotate(a);
@@ -153,9 +154,9 @@
     g.strokeStyle = LINE; g.lineWidth = 2.5; g.stroke(); g.strokeStyle = far ? PAL.wood : PAL.woodL; g.lineWidth = 1; g.stroke();
     const h = bs / 2;
     g.beginPath(); g.moveTo(fwd - 1, -h); g.lineTo(fwd + bs * 0.75, -h); g.quadraticCurveTo(fwd + bs * 1.5, 0, fwd + bs * 0.75, h); g.lineTo(fwd - 1, h); g.closePath();
-    g.fillStyle = far ? PAL.steelD : PAL.steel; g.fill(); g.strokeStyle = LINE; g.lineWidth = 1; g.stroke();
-    g.fillStyle = far ? PAL.steel : PAL.steelL; g.fillRect(fwd + 0.6, -h + 1, bs * 0.7, 1.1);
-    g.fillStyle = far ? PAL.gray : PAL.steelD; g.fillRect(fwd + 0.6, h - 1.9, bs * 0.7, 1);
+    g.fillStyle = shovelGold ? PAL.gold : far ? PAL.steelD : PAL.steel; g.fill(); g.strokeStyle = LINE; g.lineWidth = 1; g.stroke();   // shovelGold: Pá Lendária (evolucoes.js, m.evo)
+    g.fillStyle = shovelGold ? PAL.goldL : far ? PAL.steel : PAL.steelL; g.fillRect(fwd + 0.6, -h + 1, bs * 0.7, 1.1);
+    g.fillStyle = shovelGold ? PAL.goldD : far ? PAL.gray : PAL.steelD; g.fillRect(fwd + 0.6, h - 1.9, bs * 0.7, 1);
     if (load > 0.02) { g.translate(fwd + bs * 0.55, 0); g.rotate(-a); mound(g, 0, bs * 0.3, bs * 0.62 * load, bs * 0.8 * load); }
     g.restore();
   }
@@ -375,19 +376,20 @@
       m.seatO.x = m.x; m.seatO.y = WY(m, -18);
     };
     m.drawFn = g => {
-      enter(g, m); shadow(g, 1, 1, 11);
+      enter(g, m); shadow(g, 1, 1, 11); shovelGold = !!m.evo;
       boostFx(g, m, 2, -20, 26);
       const u = m.ph, behind = m.busy && Math.sin(m.arm) < -0.55 && Math.cos(m.arm) < 0.35;   // pá armada atrás da cabeça
       if (m.busy && u > 0.37 && u < 0.52) {                                      // rastro do golpe
-        g.globalAlpha = 0.5 * (1 - (u - 0.37) / 0.15 * 0.5); g.strokeStyle = PAL.white; g.lineWidth = 4;
+        g.globalAlpha = 0.5 * (1 - (u - 0.37) / 0.15 * 0.5); g.strokeStyle = m.evo ? PAL.goldL : PAL.white; g.lineWidth = m.evo ? 6 : 4;
         g.beginPath(); g.arc(m.px, m.py, 18, m.ang - 1.5, m.ang - 0.15); g.stroke(); g.globalAlpha = 1;
       }
-      if (behind) shovel(g, m.px, m.py, m.ang, 9, 13, 8, false, 0);
+      if (behind) shovel(g, m.px, m.py, m.ang, 9, 13, m.evo ? 12 : 8, false, 0);
       komeM(g, m);
       if (!behind) {
-        shovel(g, m.px, m.py, m.ang, 9, 13, 8, false, m.clod);
+        shovel(g, m.px, m.py, m.ang, 9, 13, m.evo ? 12 : 8, false, m.clod);
         if (m.busy) disc(g, m.px, m.py, 1.6, PAL.cream, 0.8);
       }
+      shovelGold = false;
       g.restore();
     };
     return m;

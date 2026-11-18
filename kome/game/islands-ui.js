@@ -71,7 +71,7 @@
   function fillSide() {
     const side = root.querySelector('.k-isl-side'); side.innerHTML = '';
     root.querySelector('.k-isl-seeds').textContent = '★ ' + U.fmt(S.stats.seeds || 0) + ' Sementes Douradas';
-    root.querySelector('.k-isl-title').textContent = 'A Volta ao Japão' + (I().lap() ? ' · volta ' + (I().lap() + 1) : '') + (S.stats.legend ? ' · Lenda do Japão' : '');
+    root.querySelector('.k-isl-title').textContent = 'A Volta ao Japão' + (I().lap() ? ' · volta ' + (I().lap() + 1) : '') + (G.Faixas ? G.Faixas.title() : '') + (S.stats.legend ? ' · Lenda do Japão' : '');
     const i = sel, isl = D.ISLANDS[i], st = stateOf(i), r = I().rec(isl.id), cur = I().index();
     const info = el('div', 'k-isl-info', side);
     const h = el('div', 'k-isl-name', info); h.textContent = (st === 'locked' ? '???' : isl.n);
@@ -92,6 +92,7 @@
         ex.forEach(c => { const has = (S.closet || []).indexOf(c.id) >= 0, w = el('span', 'k-isl-exi' + (has ? ' k-got' : ''), row); w.appendChild(kome(c.kind === 'pal' ? c.id : 'kome', 'sit', 1)); el('small', '', w, c.n + (has ? ' ✓' : '')); });
       }
     }
+    if (G.Faixas) G.Faixas.mapInfo(info);   // faixa da volta: regras e sementes
     // partir
     const nx = I().next(), go = el('button', 'k-btn k-isl-go' + (S.ended ? ' k-pulse' : ''), side);
     go.innerHTML = '<b>Partir pra ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ') + '</b><small>' + (S.ended ? '+' + U.fmt(I().gain()) + ' sementes agora' : 'termine a casa de ' + I().island().n.replace('Ilha Flutuante de ', '') + ' primeiro (' + S.house + '/' + D.HOUSE.length + ')') + '</small>';

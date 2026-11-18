@@ -295,7 +295,7 @@
     if (!A() || !UI || !UI.el) return;
     const L = A().list(), disc = A().discovered(), n = L.filter(x => disc[x.id]).length;
     UI.el('div', 'k-h', col, 'Amuletos descobertos · ' + n + '/' + L.length);
-    if (UI.album) UI.album(col, { cols: 2, items: L.map(x => ({ id: 'am_' + x.id, name: x.n, hint: '???', q: x.rar === 'lendario' && !A().unlocked(x) ? 'lendário: destrava com uma conquista' : 'escolha numa ilha pra descobrir', a: x.d, icon: disc[x.id] ? art(x) : 'lock', unlocked: !!disc[x.id] })) });
+    if (UI.album) UI.album(col, { cols: 2, items: L.map(x => ({ id: 'am_' + x.id, name: x.n, hint: '???', q: x.faixa && !A().unlocked(x) ? 'entra no baralho na ' + (G.Faixas ? G.Faixas.name(x.faixa) : 'faixa ' + x.faixa) : x.rar === 'lendario' && !A().unlocked(x) ? 'lendário: destrava com uma conquista' : 'escolha numa ilha pra descobrir', a: x.d, icon: disc[x.id] ? art(x) : 'lock', unlocked: !!disc[x.id] })) });
   }
 
   const api = (G.AmuletosUI = { open: openChoice, close, isOpen: () => !!open, later: false, openBuild, caderno, icon, art, chipTick });
