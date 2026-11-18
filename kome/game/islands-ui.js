@@ -70,7 +70,7 @@
   }
   function fillSide() {
     const side = root.querySelector('.k-isl-side'); side.innerHTML = '';
-    root.querySelector('.k-isl-seeds').textContent = '★ ' + Math.floor(S.stats.seeds || 0) + ' Sementes Douradas';
+    root.querySelector('.k-isl-seeds').textContent = '★ ' + U.fmt(S.stats.seeds || 0) + ' Sementes Douradas';
     root.querySelector('.k-isl-title').textContent = 'A Volta ao Japão' + (I().lap() ? ' · volta ' + (I().lap() + 1) : '') + (S.stats.legend ? ' · Lenda do Japão' : '');
     const i = sel, isl = D.ISLANDS[i], st = stateOf(i), r = I().rec(isl.id), cur = I().index();
     const info = el('div', 'k-isl-info', side);
@@ -94,7 +94,7 @@
     }
     // partir
     const nx = I().next(), go = el('button', 'k-btn k-isl-go' + (S.ended ? ' k-pulse' : ''), side);
-    go.innerHTML = '<b>Partir pra ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ') + '</b><small>' + (S.ended ? '+' + I().gain() + ' sementes agora' : 'termine a casa de ' + I().island().n.replace('Ilha Flutuante de ', '') + ' primeiro (' + S.house + '/' + D.HOUSE.length + ')') + '</small>';
+    go.innerHTML = '<b>Partir pra ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ') + '</b><small>' + (S.ended ? '+' + U.fmt(I().gain()) + ' sementes agora' : 'termine a casa de ' + I().island().n.replace('Ilha Flutuante de ', '') + ' primeiro (' + S.house + '/' + D.HOUSE.length + ')') + '</small>';
     if (!S.ended) go.classList.add('k-off');
     go.onclick = () => { if (!S.ended) { UI.toast('Termine a casa nesta ilha primeiro', { icon: 'lock', sub: 'sem pressa: a ilha espera' }); return; } close(true); I().travel(); };
     // sementes
@@ -102,10 +102,10 @@
     el('div', 'k-isl-sub', sd, 'Sementes Douradas · nunca zeram');
     const grid = el('div', 'k-isl-grid', sd);
     for (const s of D.SEEDS) {
-      const L = I().lvl(s.id), full = L >= s.max, c = I().seedCost(s), can = !full && Math.floor(S.stats.seeds || 0) >= c;
+      const L = I().lvl(s.id), full = !!s.max && L >= s.max, c = I().seedCost(s), can = !full && Math.floor(S.stats.seeds || 0) >= c;
       const b = el('button', 'k-btn k-isl-seed' + (can ? ' k-can' : '') + (full ? ' k-full' : ''), grid);
-      b.innerHTML = '<b>' + s.n + '</b><small>' + s.d + '</small><span class="k-isl-pips"></span><span class="k-isl-cost">' + (full ? 'completo' : '★ ' + c) + '</span>';
-      const pp = b.querySelector('.k-isl-pips'); if (s.max > 12) pp.textContent = 'Nv ' + L + '/' + s.max; else for (let k = 0; k < s.max; k++) el('i', k < L ? 'on' : '', pp);   // muitos níveis: texto em vez de paredão de quadradinhos
+      b.innerHTML = '<b>' + s.n + '</b><small>' + s.d + '</small><span class="k-isl-pips"></span><span class="k-isl-cost">' + (full ? 'completo' : '★ ' + U.fmt(c)) + '</span>';
+      const pp = b.querySelector('.k-isl-pips'); if (!s.max) pp.textContent = 'Nv ' + L + ' · sem teto'; else if (s.max > 12) pp.textContent = 'Nv ' + L + '/' + s.max; else for (let k = 0; k < s.max; k++) el('i', k < L ? 'on' : '', pp);   // muitos níveis: texto em vez de paredão de quadradinhos
       b.onclick = () => { if (!full) I().buy(s); };
     }
     const row = el('div', 'k-isl-row', side);

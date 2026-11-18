@@ -82,7 +82,7 @@
     sinergias: () => [], buySinergia: () => false,
     coracao: () => ({ n: 0, total: 0, per: 0.01, bonus: 0, next: null, recent: [] }), conquistas: () => [],
     tigelas: () => [], buyTigela: () => false,
-    seeds: () => (G.S && G.S.stats ? G.S.stats.seeds | 0 : 0), seedTree: () => ({ branches: {}, nodes: [] }),
+    seeds: () => (G.S && G.S.stats ? Math.floor(G.S.stats.seeds || 0) : 0), seedTree: () => ({ branches: {}, nodes: [] }),
     seedLevel: () => 0, seedCost: () => Infinity, buySeed: () => false,
     away: () => null, claimAway: () => {}, partir: () => null,
     openMap: () => { if (G.IslandsUI && G.IslandsUI.open) G.IslandsUI.open(); },

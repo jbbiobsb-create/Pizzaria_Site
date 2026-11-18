@@ -17,7 +17,7 @@
   const rows = () => ((D.COOKIE && D.COOKIE.ev) || []).filter(e => e.ef !== 'tempestade' || (S() && ((S().stats.sl || {}).livro | 0) > 0));
   const totalW = () => rows().reduce((s, e) => s + (e.peso || 1), 0);
   const emit = (e, f, k) => { for (const h of hooks) { try { h(e, f, k); } catch (err) { /* arte com erro não derruba o jogo */ } } };
-  const nextWait = () => U.rnd(CFG.every[0], CFG.every[1]) / (1 + 0.1 * ((S() && S().stats.sl && S().stats.sl.faro_ev) | 0));
+  const nextWait = () => U.rnd(CFG.every[0], CFG.every[1]) / (1 + (L => 0.1 * Math.min(L, 10) + 0.02 * Math.max(0, L - 10))((S() && S().stats.sl && S().stats.sl.faro_ev) | 0));   // sem teto: 10%/nível até o 10, depois 2%
   function pick() {
     const L = rows(); let r = Math.random() * totalW();
     for (const e of L) { r -= e.peso || 1; if (r <= 0) return e; }

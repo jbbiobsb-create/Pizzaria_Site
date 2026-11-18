@@ -196,7 +196,7 @@
       conquistas: () => CK.ach.map(a => ({ id: a.id, name: a.n, desc: a.d, fam: fam(a), icon: a.icon, secret: a.cond === 'segredo', got: !!H0().ach[a.id], hint: null })),
       tigelas: () => TIG.map(u => ({ id: u.id, name: u.n, desc: u.d, need: u.alvo, price: tigCost(u), owned: !!H0().tig[u.id], can: tigOpen(u) && S().money >= tigCost(u) })),
       buyTigela: i => (TIG[i] ? buyTig(TIG[i]) : false),
-      seeds: () => S().stats.seeds | 0,
+      seeds: () => Math.floor(S().stats.seeds || 0),   // sem |0: passa de 2^31 nas voltas altas
       seedTree: () => {
         const BR = { Viagem: { name: 'Viagem', color: '#E3BC62', icon: 'boat' }, 'Pátio': { name: 'Pátio', color: '#7DB34A', icon: 'paw' }, Sorte: { name: 'Sorte', color: '#F3C94A', icon: 'star' }, 'Coração': { name: 'Coração', color: '#E86A7A', icon: 'star' }, 'Poupança': { name: 'Poupança', color: '#6FA8DC', icon: 'yen' }, Absurdo: { name: 'Absurdo', color: '#E3BC62', icon: 'drill' } };
         const col = {}; return { branches: BR, nodes: D.SEEDS.map(s => { const b = s.g || 'Viagem', k = Object.keys(BR).indexOf(b), r = (col[b] = (col[b] | 0) + 1) - 1;

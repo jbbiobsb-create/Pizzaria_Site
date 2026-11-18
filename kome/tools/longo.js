@@ -70,7 +70,9 @@ const TRAVEL = `(() => { const K = __kome, S = K.S, G = KomeGame, I = G.Islands;
   const next = ((S.island | 0) + 1) % KomeGame.Data.ISLANDS.length;   // depois da última: Honshu de novo (Volta 2, 3…)
   I.go(next); return next; })()`;
 const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I || !I.sim) return 0; let n = 0;
-  for (let g = 0; g < 40; g++) { const L = KomeGame.Data.SEEDS.filter(s => ((S.stats.sl || {})[s.id] | 0) < s.max).sort((a, b) => I.sim.seedCost(a) - I.sim.seedCost(b));
+  // guloso: máquina absurda assim que dá (nó caro e único), senão a semente mais barata; sem teto (jogo-infinito) = pode comprar centenas
+  const lv = id => (S.stats.sl || {})[id] | 0, abs = s => s.g === 'Absurdo' ? 0.01 : 1;
+  for (let g = 0; g < 600; g++) { const L = KomeGame.Data.SEEDS.filter(s => (!s.max || lv(s.id) < s.max) && (!s.req || lv(s.req))).sort((a, b) => I.sim.seedCost(a) * abs(a) - I.sim.seedCost(b) * abs(b));
     const s = L[0]; if (!s || Math.floor(S.stats.seeds || 0) < I.sim.seedCost(s)) break; I.sim.buy(s); n++; } return n; })()`;
 
 (async () => {

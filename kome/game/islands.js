@@ -70,22 +70,24 @@
         ground: { grass: '#BFE6A6', grassD: '#94C77E', grassL: '#E6FAD6', soil: '#F2C9D2', soilD: '#DCA6B4' },
         air: 'petals', airN: 50, crest: 'mochi', tree: 'sakura', yard: 'mochi', feel: 'float', music: 'mochi' } },
   ];
-  // árvore permanente das sementes douradas
+  // árvore permanente das sementes douradas. SEM TETO (jogo-infinito.md + sementes.md): custo base × 1,45^nível pra sempre;
+  // sem `max` = infinito. Ficam com fim só os que não fazem sentido infinitos: Mala de Viagem (3 ferramentas), compras únicas
+  // (garagem, marco turbinado, livro, absurdos) e os que já dizem o teto no texto (cochilo até 100%, cama até 24 h).
   D.SEEDS = [
-    { id: 'renda', n: 'Arroz Abençoado', d: '+15% de renda por nível', max: 100, base: 2 },
-    { id: 'preco', n: 'Amigo do Corretor', d: '-6% em todos os preços por nível', max: 8, base: 3 },
+    { id: 'renda', n: 'Arroz Abençoado', d: '+15% de renda por nível', base: 2 },
+    { id: 'preco', n: 'Amigo do Corretor', d: '-6% em todos os preços por nível', base: 3 },
     { id: 'ferr', n: 'Mala de Viagem', d: 'começa a ilha com Pá → Carrinho → Trator', max: 3, base: 6 },
-    { id: 'grana', n: 'Poupança', d: 'começa a ilha com ¥1 mil, 10 mil, 100 mil…', max: 5, base: 1 },
-    { id: 'ajud', n: 'Turma do Kome', d: '+1 shiba ajudante desde o minuto 1', max: 3, base: 4 },
-    { id: 'ouro', n: 'Faro de Ouro', d: '+25% nos bolsões dourados por nível', max: 8, base: 2 },
+    { id: 'grana', n: 'Poupança', d: 'começa a ilha com ¥1 mil, 10 mil, 100 mil… (depois do 5, +¥10 mi por nível)', base: 1 },
+    { id: 'ajud', n: 'Turma do Kome', d: '+1 shiba ajudante nos níveis 1–3, depois +1 a cada 5 níveis', base: 4 },
+    { id: 'ouro', n: 'Faro de Ouro', d: '+25% nos bolsões dourados por nível', base: 2 },
     // camada Cookie (docs/design/camada-cookie.md): galhos Pátio, Sorte, Coração e Poupança
     { id: 'garagem', n: 'Garagem Abençoada', d: 'o Pátio começa com 5 de cada máquina de mão', max: 1, base: 4, g: 'Pátio' },
-    { id: 'desc_frota', n: 'Desconto de Frota', d: '-1% no preço do Pátio por nível', max: 30, base: 3, g: 'Pátio' },
+    { id: 'desc_frota', n: 'Desconto de Frota', d: '-1% no preço do Pátio por nível', base: 3, g: 'Pátio' },
     { id: 'marco_turbo', n: 'Marco Turbinado', d: 'os marcos de 1 e 5 viram ×3', max: 1, base: 20, g: 'Pátio' },
-    { id: 'sindicato', n: 'Shiba Sindicalizado', d: '+0,5% na frota por 10 unidades no total, por nível', max: 10, base: 8, g: 'Pátio' },
-    { id: 'faro_ev', n: 'Faro Dourado', d: 'eventos dourados 10% mais frequentes por nível', max: 10, base: 3, g: 'Sorte' },
+    { id: 'sindicato', n: 'Shiba Sindicalizado', d: '+0,5% na frota por 10 unidades no total, por nível', base: 8, g: 'Pátio' },
+    { id: 'faro_ev', n: 'Faro Dourado', d: 'eventos dourados 10% mais frequentes por nível (2% depois do 10)', base: 3, g: 'Sorte' },
     { id: 'livro', n: 'Livro de Receitas', d: 'abre a Tempestade de Sacos Dourados', max: 1, base: 6, g: 'Sorte' },
-    { id: 'pote', n: 'Pote Fundo', d: '+0,1% por conquista por nível', max: 20, base: 4, g: 'Coração' },
+    { id: 'pote', n: 'Pote Fundo', d: '+0,1% por conquista por nível', base: 4, g: 'Coração' },
     { id: 'cochilo', n: 'Cochilo Produtivo', d: 'offline rende +10% por nível (até 100%)', max: 5, base: 2, g: 'Poupança' },
     { id: 'cama', n: 'Cama Grande', d: 'teto offline +4 h por nível (até 24 h)', max: 4, base: 3, g: 'Poupança' },
     // galho Absurdo: cada nó destrava uma máquina absurda no Pátio (D.PATIO.turmas, campo seed); req = nó anterior da cadeia
@@ -116,6 +118,9 @@
 
   const sl = () => { S = S || G.S; return S.stats.sl || (S.stats.sl = {}); };
   const lvl = id => sl()[id] | 0;
+  const capped = s => !!s.max && lvl(s.id) >= s.max;   // sem max = sem teto
+  const ajudN = L => Math.min(L, 3) + Math.floor(Math.max(0, L - 3) / 5);   // Turma do Kome: 1–3 = +1 cada; depois +1 a cada 5
+  const granaOf = L => (L > 0 ? Math.pow(10, 2 + Math.min(L, 5)) * (1 + Math.max(0, L - 5)) : 0);   // Poupança: ×10 até o 5, depois +¥10 mi/nível
   const idx = () => (S = S || G.S, U.clamp(S.island | 0, 0, D.ISLANDS.length - 1));
   const isl = () => D.ISLANDS[idx()];
   const lap = () => (S = S || G.S, S.stats.lap | 0);
@@ -133,7 +138,7 @@
   // efeitos permanentes (chamado por computeStats)
   function applyStats(s) {
     s.sell *= (1 + 0.15 * lvl('renda')) * (S.stats.legend ? EG.legend : 1);
-    s.help += lvl('ajud');
+    s.help += ajudN(lvl('ajud'));
     s.gold *= (1 + 0.25 * lvl('ouro')) * (isl().gold || 1);
   }
   // cada ilha mais cara (as sementes compensam). t = nº da viagem (0 = campanha, 1 = Hokkaido da 1ª volta, 5 = Honshu da volta 2…):
@@ -161,9 +166,9 @@
 
   function buy(s) {
     const c = seedCost(s);
-    if (lvl(s.id) >= s.max) return false;
+    if (capped(s)) return false;
     if (s.req && !lvl(s.req)) { const r = D.SEEDS.find(x => x.id === s.req); UI.toast('Antes: ' + (r ? r.n : s.req), { icon: 'lock', tone: 'bad' }); return false; }
-    if (Math.floor(S.stats.seeds || 0) < c) { UI.toast('Faltam ' + (c - Math.floor(S.stats.seeds || 0)) + ' sementes', { icon: 'star', tone: 'bad' }); return false; }
+    if (Math.floor(S.stats.seeds || 0) < c) { UI.toast('Faltam ' + U.fmt(c - Math.floor(S.stats.seeds || 0)) + ' sementes', { icon: 'star', tone: 'bad' }); return false; }
     S.stats.seeds -= c; sl()[s.id] = lvl(s.id) + 1;
     api.sfx('pling'); api.recompute(); api.save(); fill(panelPane); if (G.IslandsUI) G.IslandsUI.refresh();
     return true;
@@ -171,7 +176,7 @@
   function travel() {
     if (!S.ended) { UI.toast('Termine a casa nesta ilha primeiro', { icon: 'lock', sub: 'depois o barco te leva pra ' + D.ISLANDS[nextIdx()].n }); return; }
     const next = nextIdx(), g = gain(), to = D.ISLANDS[next], wrap = next === 0;
-    UI.confirm((wrap ? 'Volta ' + (lap() + 2) + ' ao Japão! ' : '') + 'O Kome vai de barco pra ' + to.n + ' (' + to.d + '). Montanha, frota, árvore, casa e dinheiro recomeçam; você ganha ' + g + ' Sementes Douradas. Roupas, quintal e conquistas vão junto.', () => {
+    UI.confirm((wrap ? 'Volta ' + (lap() + 2) + ' ao Japão! ' : '') + 'O Kome vai de barco pra ' + to.n + ' (' + to.d + '). Montanha, frota, árvore, casa e dinheiro recomeçam; você ganha ' + U.fmt(g) + ' Sementes Douradas' + (S.stats.earnedEnd && seedsPatio() > 0 ? ' (' + U.fmt(seedsBase()) + ' da ilha + ' + U.fmt(seedsPatio()) + ' do Pátio)' : '') + '. Roupas, quintal e conquistas vão junto.', () => {
       boat(to, () => api.travel(next, g));
     }, { title: 'Carta: ' + to.n + ' quer arroz!', yes: 'Partir', no: 'Ainda não' });
   }
@@ -189,7 +194,7 @@
     stats.earnedAll = (stats.earnedAll || 0) + (d.earned || 0);
     for (const k in d) delete d[k];
     Object.assign(d, keep, { stats, island: next, mount: 1, tool: START_TOOL[U.clamp((stats.sl && stats.sl.ferr) | 0, 0, 3)],
-      tree: [], house: 0, money: (stats.sl && stats.sl.grana) ? Math.pow(10, 2 + stats.sl.grana) : 0, earned: 0, ended: false, time: 0, dayT: 0, dayEarn: 0 });
+      tree: [], house: 0, money: granaOf((stats.sl && stats.sl.grana) | 0), earned: 0, ended: false, time: 0, dayT: 0, dayEarn: 0 });
     if (d.home) d.home.theme = D.ISLANDS[next].theme || d.home.theme;
     return d;
   }
@@ -270,13 +275,13 @@
     UI.el('div', 'k-h', col, 'Você está em ' + isl().n + (lap() ? ' · volta ' + (lap() + 1) : ''));
     UI.el('div', 'k-homehint', col, isl().d + ' · ilhas concluídas: ' + (S.stats.islandsDone | 0));
     const nx = D.ISLANDS[nextIdx()];
-    const b = UI.button(col, { title: 'Partir pra ' + nx.n, sub: S.ended ? '+' + gain() + ' sementes · ' + nx.d : 'termine a casa primeiro · ' + nx.d, icon: 'star', tone: S.ended ? 'red' : '', size: 'sm', onClick: travel });
+    const b = UI.button(col, { title: 'Partir pra ' + nx.n, sub: S.ended ? '+' + U.fmt(gain()) + ' sementes · ' + nx.d : 'termine a casa primeiro · ' + nx.d, icon: 'star', tone: S.ended ? 'red' : '', size: 'sm', onClick: travel });
     (b.el || b).style.width = '100%'; if (!S.ended) (b.el || b).style.opacity = '0.6';
-    UI.el('div', 'k-h', col, 'Sementes Douradas: ' + Math.floor(S.stats.seeds || 0));
+    UI.el('div', 'k-h', col, 'Sementes Douradas: ' + U.fmt(S.stats.seeds || 0));
     UI.el('div', 'k-homehint', col, 'nunca zeram; valem em todas as ilhas');
     for (const s of D.SEEDS) {
-      const L = lvl(s.id), full = L >= s.max;
-      const bt = UI.button(col, { title: s.n + ' · nível ' + L + '/' + s.max, sub: (full ? 'completo · ' : seedCost(s) + ' sementes · ') + s.d, icon: 'star', size: 'sm', onClick: () => buy(s) });
+      const L = lvl(s.id), full = capped(s);
+      const bt = UI.button(col, { title: s.n + ' · nível ' + L + (s.max ? '/' + s.max : ''), sub: (full ? 'completo · ' : U.fmt(seedCost(s)) + ' sementes · ') + s.d, icon: 'star', size: 'sm', onClick: () => buy(s) });
       (bt.el || bt).style.width = '100%'; if (full || Math.floor(S.stats.seeds || 0) < seedCost(s)) (bt.el || bt).style.opacity = '0.6';
     }
   }
@@ -287,7 +292,7 @@
     // chegada numa ilha nova: game.js chama depois do boot (cutscene se não for teste, senão só o aviso)
     arrival() { if (!S.stats.arrive) return null; S.stats.arrive = 0; return isl(); },
     seedsBase, seedsPatio,
-    applyStats, priceMul, matsFor, makeSave, fill, island: isl, index: idx, next: () => D.ISLANDS[nextIdx()], lap, gain, travel, buy, seedCost, lvl,
+    applyStats, priceMul, matsFor, makeSave, fill, island: isl, index: idx, next: () => D.ISLANDS[nextIdx()], lap, gain, travel, buy, seedCost, lvl, capped,
     scene, evTick, evMult, event: () => ev,
     forceEvent(on) { if (on === false) { ev = null; return; } ev = isl().ev; evT = ev.dur; if (ev.gift && api && api.gift) api.gift(ev.gift); },
     eventLeft: () => evT, rec, medalFor, onEnding, MEDALS, islandRun,   // forceEvent: testes e atalho do ?dev
