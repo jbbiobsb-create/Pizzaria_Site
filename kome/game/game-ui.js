@@ -120,6 +120,8 @@
     b.innerHTML = '<span class="k-chip-i"></span><b></b><small></small>';
     const c = { id: o.id, el: b, b: b.querySelector('b'), sm: b.querySelector('small'), ic: b.querySelector('.k-chip-i'), label: o.label || '', hot: '', hint: '', prio: 0, on: o.show !== false, tone: o.tone || '', order: o.order || 0, icon: null };
     c.set = function (p) {
+      // chips são atualizados por vários relógios (300–700 ms): sem mudança, não refaz o layout (chipFit mede a tela = layout forçado)
+      const sig0 = c.label + '|' + c.hot + '|' + c.hint + '|' + c.prio + '|' + c.on + '|' + c.tone + '|' + c.icon;
       if (p.icon !== undefined && p.icon !== c.icon) { c.icon = p.icon; c.ic.textContent = ''; const i = UI.iconEl ? UI.iconEl(p.icon, 20) : null; if (i) c.ic.appendChild(i); }
       if (p.label !== undefined) c.label = p.label; if (p.hot !== undefined) c.hot = p.hot;
       if (p.hint !== undefined) c.hint = p.hint || ''; if (p.prio !== undefined) c.prio = +p.prio || 0;
@@ -127,8 +129,12 @@
       if (p.tip !== undefined) { c.tip = p.tip || ''; if (chipPop && chipPop.c === c) chipPop.el.firstChild.textContent = c.tip; }
       if (p.act !== undefined) c.act = p.act;
       if (!c.on && chipPop && chipPop.c === c) chipPopClose();
-      chipLayout(); return c;
+      const sig1 = c.label + '|' + c.hot + '|' + c.hint + '|' + c.prio + '|' + c.on + '|' + c.tone + '|' + c.icon, now = performance.now();
+      if (sig1 !== sig0 || c.isNew) { c.isNew = false; chipLayout(); chipFitT = now; }
+      else if (now - chipFitT > 2000) { chipFitT = now; chipFit(); }   // iene cresceu? a largura da fileira acompanha de vez em quando
+      return c;
     };
+    c.isNew = true;
     b.addEventListener('click', e => {
       e.stopPropagation(); b.blur();
       const open = chipPop && chipPop.c === c; chipPopClose();

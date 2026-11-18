@@ -1813,6 +1813,8 @@
   function render() {
     machFrame++;
     stage.begin();
+    // cena de fim do dia já opaca: o mundo todo ficaria escondido atrás dela (economiza ~5 s de quadros pesados por dia)
+    if (S.dayEnd > 0 && !cs && !S.oni.on && !(S.stamp > 0) && !(G.Home && G.Home.isOpen()) && Math.min(1, (DAY_SCENE - S.dayEnd) / 0.5, S.dayEnd / 0.5) >= 1) { drawDayEnd(g, S.time); fx.draw(g); return; }
     const t = S.time, z = cam.z;
     // fundo (céu, sol, nuvens, Fuji, morros) em pixel art no traço do Kome: desenhado numa tela 3x menor e ampliado sem suavizar.
     // Fica atrás de tudo e não depende do zoom, então o pixel não "pula". A montanha de arroz, o pátio e as máquinas seguem lisos.
@@ -2224,7 +2226,7 @@
   const RES = { last: 0, avg: 16, slow: 0, hold: 3, steps: [2, 5 / 3, 4 / 3] };
   function adaptRes(now) {
     const R = RES, dt = R.last ? now - R.last : 16; R.last = now;
-    if (!stage || !stage.setMaxDpr || document.hidden || cs || dt > 250) { R.slow = 0; return; }   // pausa longa (aba, alerta) não conta
+    if (!stage || !stage.setMaxDpr || document.hidden || cs || dt > 1500) { R.slow = 0; return; }   // pausa longa (aba, alerta) não conta
     if ((R.hold -= dt / 1000) > 0) { R.avg = 16; return; }
     R.avg += (dt - R.avg) * 0.05;
     R.slow = R.avg > 24 ? R.slow + dt / 1000 : 0;

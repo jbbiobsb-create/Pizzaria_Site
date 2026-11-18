@@ -8,6 +8,8 @@
 const path = require('path');
 const { launch } = require('./pw');
 const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
+// mute(pg): a página que vai sair não grava mais nada (o save ao ocultar/sair pode chegar DEPOIS do script de injeção da próxima carga)
+const mute = pg => pg.evaluate(() => { try { Storage.prototype.setItem = function () {}; } catch (e) { /* */ } }).catch(() => {});
 let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m); if (!c) bad++; };
 (async () => {
   const b = await launch(), p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = [];
@@ -34,10 +36,12 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok((r3.inv.arroz | 0) === (r1.inv.arroz | 0) || r3.inv.arroz >= r1.inv.arroz * 0.99, 'armazém sobrevive ao recarregar (arroz ' + Math.floor(r3.inv.arroz || 0) + ', chaves ' + keyInfo.join(',') + ')');
   // 2) save antigo v4: tira o armazém e a versão, recarrega
   // (o jogo regrava o save ao sair da página, então a troca é feita ANTES dos scripts do jogo, na próxima carga)
-  await p.addInitScript(() => { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1');
-    const k = 'kome-no-japao-v4', d = JSON.parse(localStorage.getItem(k));
+  // Sinal pela URL, não pela sessionStorage: no Chromium a sessionStorage NÃO sobrevive a toda navegação entre páginas file://
+  // (perde em ~1 de cada 5) → o script rodava de novo no meio dos modos (¥777, armazém apagado, "setting '__v'" de null) ou a injeção sumia.
+  await p.addInitScript(() => { if (!/[?&]alicerce_mig\b/.test(location.search)) return;
+    const k = 'kome-no-japao-v4', raw = localStorage.getItem(k); if (!raw) return; const d = JSON.parse(raw);
     d.__v = 4; delete d.stats.inv; delete d.stats.got; d.money = 777; d.tool = 3; localStorage.setItem(k, JSON.stringify(d)); localStorage.removeItem(k + '.bak'); });
-  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  await mute(p); await p.goto(URL + '?nointro&nofont&alicerce_mig'); await p.waitForTimeout(700);
   const r2 = await p.evaluate(() => { const K = __kome, S = K.S; for (let s = 0; s < 40; s++) { const a = K.aim(); K.hold(a.x, a.y, true); K.step(1 / 4); } K.hold(0, 0, false); K.step(3);
     return { money: S.money, tool: S.tool, inv: S.stats.inv, v: JSON.parse(localStorage.getItem('kome-no-japao-v4')).__v }; });
   ok(r2.tool === 3 && r2.money >= 777, 'save v4 carregou (ferramenta ' + r2.tool + ', ¥' + Math.round(r2.money) + ')');
@@ -109,13 +113,14 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok(rCb.rc === 0, 'presente "rerrolar grátis" deixa a troca de cartas de graça');
   // 10) modos de partida (modos.js): retrato da partida dentro do save, ilha com bandeira, volta igual + o que é permanente
   const nav = async fn => { await Promise.all([p.waitForNavigation({ timeout: 20000 }).catch(() => {}), p.evaluate(fn).catch(() => {})]); await p.waitForTimeout(800); };
+  // o jogo segue rodando em tempo real entre um evaluate e outro (ajudantes vendem): o retrato tem pelo menos os ¥12.345, não exatamente
   await p.evaluate(() => { const S = __kome.S; S.stats.lap = 1; S.stats.legend = 1; S.money = 12345; S.island = 2; S.stats.mrec = {}; KomeGame.Game.saveNow(); });
   const dd = await p.evaluate(() => KomeGame.Modos.daily());
   await nav(() => KomeGame.Modos.start('dia', true));
   const rD = await p.evaluate(() => { const S = __kome.S, G = KomeGame, M = G.Modos, raw = JSON.parse(localStorage.getItem('kome-no-japao-v4'));
     const mo = M.state(), r = { id: mo && mo.id, isl: S.island, lap: S.stats.lap, am: S.stats.am.cur.join(), pend: G.Amuletos.pending(), gain: G.Islands.gain(), snapMoney: raw.snap && raw.snap.money, money: S.money };
     S.stats.sacks += 100; S.earned = 5e6; const e0 = S.stats.earnedAll || 0; const res = G.Islands.onEnding(600); r.res = !!res.modo; r.t = S.stats.mrec.dia && S.stats.mrec.dia.t; r.e0 = e0; r.sacks = S.stats.sacks; return r; });
-  ok(rD.id === 'dia' && rD.isl === dd.isl && rD.lap === dd.fx && rD.am === dd.am.join() && !rD.pend && rD.gain === 0 && rD.snapMoney === 12345, 'Desafio do Dia: ilha/faixa/3 amuletos da data, sem sementes, partida guardada no retrato (' + [rD.isl, rD.lap, rD.am].join(' · ') + ')');
+  ok(rD.id === 'dia' && rD.isl === dd.isl && rD.lap === dd.fx && rD.am === dd.am.join() && !rD.pend && rD.gain === 0 && rD.snapMoney >= 12345, 'Desafio do Dia: ilha/faixa/3 amuletos da data, sem sementes, partida guardada no retrato (' + [rD.isl, rD.lap, rD.am].join(' · ') + ')');
   ok(rD.res && rD.t === 600, 'final do desafio vira recorde do modo (sem medalha/sementes da ilha)');
   await nav(() => KomeGame.Modos.after());
   const rB = await p.evaluate(() => { const S = __kome.S, G = KomeGame; return { money: S.money, isl: S.island, modo: !!G.Modos.on(), t: S.stats.mrec.dia && S.stats.mrec.dia.t, sacks: S.stats.sacks, ea: S.stats.earnedAll || 0, again: G.Modos.start('dia', true) }; });
@@ -142,9 +147,14 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   const fxSave = require('fs').readFileSync(path.join(__dirname, 'fixtures', 'save-v3-casa.json'), 'utf8');
   const fxD = JSON.parse(fxSave);
   const p2 = await b.newPage({ viewport: { width: 960, height: 540 } }); p2.on('pageerror', e => errs.push(e.message.split('\n')[0]));
-  // o save a injetar vai na sessionStorage ANTES da navegação; o script consome antes dos scripts do jogo (o jogo regrava o save ao sair)
-  await p2.addInitScript(() => { const s = sessionStorage.getItem('inject'); if (!s) return; sessionStorage.removeItem('inject'); localStorage.clear(); localStorage.setItem('kome-no-japao-v4', s); });
-  const go = async d => { if (d) await p2.evaluate(s => sessionStorage.setItem('inject', s), typeof d === 'string' ? d : JSON.stringify(d)); await p2.goto(URL + '?nointro&nofont'); await p2.waitForTimeout(700); };
+  // o save a injetar vai no #hash da URL (sessionStorage não é confiável entre páginas file://, ver acima); o script grava antes dos
+  // scripts do jogo. &inj=N força navegação de verdade (só o hash mudando não recarrega) e a página velha é calada antes (mute)
+  await p2.addInitScript(() => { const m = /^#alicerce_inject=(.*)$/.exec(location.hash); if (!m) return;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* */ }
+    localStorage.clear(); localStorage.setItem('kome-no-japao-v4', decodeURIComponent(m[1])); });
+  let inj = 0;
+  const go = async d => { if (d) await mute(p2);
+    await p2.goto(URL + '?nointro&nofont' + (d ? '&inj=' + (++inj) + '#alicerce_inject=' + encodeURIComponent(typeof d === 'string' ? d : JSON.stringify(d)) : '')); await p2.waitForTimeout(700); };
   const mod = f => { const d = JSON.parse(fxSave); f(d); return d; };
   await p2.goto(URL + '?nointro&nofont&fresh'); await p2.waitForTimeout(300);
   const casa = () => p2.evaluate(() => { const S = __kome.S; return { house: S.house, tool: S.tool, money: S.money, nodes: Object.keys(S.own).length, closet: S.closet.join(), home: Object.keys(S.homeData.own).length, time: S.time }; });
