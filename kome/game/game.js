@@ -1830,9 +1830,9 @@
     // 5. ferramenta atual
     if (S.loader) G.Tools.escav.draw(g, S.loader);
     const twinPaint = S.twinPlay && cur.kind === 'bagger' && G.Ind && G.Ind.paintFilter ? G.Ind.paintFilter() : '';
-    if (twinPaint) { try { g.filter = twinPaint; } catch (e) { /* */ } }
-    if (cur.kind === 'bagger' && cam.z < 0.3) { BAGC.every = 1; drawMach(g, 'bagger', S.m, BAGC); } else if (!drawFeel(g, t)) T.draw(g, S.m);
-    if (twinPaint) { try { g.filter = 'none'; } catch (e) { /* */ } }   // zoom bem aberto: Bagger em cache (redesenha 1 quadro sim, 1 não)
+    // Gêmea pilotada: a máquina vai pra uma tela de apoio e entra com UM filtro de cor (filtro por traço = celular a 3 quadros/s)
+    if (twinPaint) Wd.filtered(g, twinPaint, null, c => { if (cam.z < 0.3) { BAGC.every = 1; drawMach(c, 'bagger', S.m, BAGC); } else if (!drawFeel(c, t)) T.draw(c, S.m); });
+    else if (cur.kind === 'bagger' && cam.z < 0.3) { BAGC.every = 1; drawMach(g, 'bagger', S.m, BAGC); } else if (!drawFeel(g, t)) T.draw(g, S.m);   // zoom bem aberto: Bagger em cache
     if (c.kind === 'cesto' && cur.kind === 'hand') drawBackpack(g, c, t);
     p2Draw(g, t);
     for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && !f.bay && !f.bg && f.warm && cam.visible(f.x, f.y - 150, 800)) drawMach(g, f.id, f.m, f); }   // frota indo cavar no barranco (Kome a pé), na faixa da frente
