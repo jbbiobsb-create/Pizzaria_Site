@@ -2148,7 +2148,7 @@
     ptr.down = input.down && !tapEat;
     if (input.down || input.inside) { cam.toWorld(input.x, input.y, sp); ptr.wx = sp.x; ptr.wy = sp.y; if (input.down) ptr.has = true; }
     // teclado: A/D (ou setas) anda, W/S/Espaço cava onde a ferramenta está; tem prioridade sobre o mouse enquanto apertado
-    const K = input.keys || {}, kL = K.KeyA || K.ArrowLeft || VK.l, kR = K.KeyD || K.ArrowRight || VK.r, kd = K.KeyS || K.ArrowDown || K.Space || VK.dig;
+    const K = input.keys || {}, kL = K.KeyA || K.ArrowLeft || VK.l, kR = K.KeyD || K.ArrowRight || VK.r, kd = K.KeyS || K.ArrowDown || K.Space || VK.dig || (S.opts.cavar === 'auto' && !kL && !kR && !input.down && !tapEat);   // Ajustes › Cavar sozinho: 'segurado' virtual quando o jogador está parado
     const kl = cam.mx < 0 ? kR : kL, kr = cam.mx < 0 ? kL : kR;   // ilha espelhada: direita na tela = -x no mundo
     // W / seta pra cima: o Kome pula (a pé, com ferramenta de mão); nas máquinas não faz nada
     if (input.keyPressed && (input.keyPressed('KeyW') || input.keyPressed('ArrowUp')) && P.ground && !locked() && (cur.kind === 'hand' || cur.kind === 'push' || cur.kind === 'jack')) {
@@ -2294,8 +2294,8 @@
     joy.addEventListener('pointermove', e => { if (e.pointerId === jid) jmove(e); });
     const jup = e => { if (e.pointerId !== jid) return; jid = -1; VK.l = VK.r = false; knob.style.transform = ''; };
     joy.addEventListener('pointerup', jup); joy.addEventListener('pointercancel', jup);
-    dig.addEventListener('pointerdown', e => { VK.dig = true; dig.setPointerCapture(e.pointerId); dig.classList.add('on'); initAudio(); if (S.own.b0 && cur.kind === 'bagger') horn(); e.preventDefault(); });
-    const dup = () => { VK.dig = false; dig.classList.remove('on'); };
+    dig.addEventListener('pointerdown', e => { const alt = S.opts.cavar === 'alternar'; VK.dig = alt ? !VK.dig : true; if (!alt) dig.setPointerCapture(e.pointerId); dig.classList.toggle('on', VK.dig); dig.classList.toggle('k-dig-lock', alt && VK.dig); dig.textContent = alt && VK.dig ? 'PARAR' : 'CAVAR'; initAudio(); if (S.own.b0 && cur.kind === 'bagger') horn(); e.preventDefault(); });
+    const dup = () => { if (S.opts.cavar === 'alternar') return; VK.dig = false; dig.classList.remove('on', 'k-dig-lock'); if (dig.textContent !== 'CAVAR') dig.textContent = 'CAVAR'; };   // 'alternar': 1 toque liga, outro desliga
     dig.addEventListener('pointerup', dup); dig.addEventListener('pointercancel', dup);
     full.addEventListener('pointerdown', e => { e.preventDefault(); if (document.fullscreenElement) document.exitFullscreen(); else goFull(); });
   }

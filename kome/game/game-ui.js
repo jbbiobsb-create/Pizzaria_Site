@@ -499,7 +499,7 @@
       const k = hb.width / (ui.hud.offsetWidth || hb.width), s = 68 * k, gap = 14 * k, port = innerHeight > innerWidth * 1.1;
       let trB = 0; const tr = document.querySelector('.k-zone-tr'); if (tr) { const b = tr.getBoundingClientRect(); trB = b.bottom; }
       let x = r.left + (r.width - s) / 2, y = r.top - s - gap;
-      if (port || y < trB + gap) { x = r.left - s - gap * 1.4; y = r.top + (r.height - s) / 2; }
+      if (port || y < trB + gap) { x = r.left + r.width / 2 < innerWidth / 2 ? r.right + gap * 1.4 : r.left - s - gap * 1.4; y = r.top + (r.height - s) / 2; }   // canhoto: CAVAR à esquerda, Trocar do lado de dentro
       pos = Math.round((x - hb.left) / k) + ',' + Math.round((y - hb.top) / k);
     }
     if (pos === swapPos) return; swapPos = pos;

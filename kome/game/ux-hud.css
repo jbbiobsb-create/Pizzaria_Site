@@ -82,3 +82,8 @@ body.k-tight .k-tipcontrols{max-width:230px;box-sizing:border-box;font-size:12px
 .k-zone-dock > .k-slot{flex:0 1 150px;min-width:96px}
 .k-zone-dock > .k-toolbtn{flex:0 1 218px;min-width:150px}
 @media (max-width:1150px){body:not(.k-mob) .k-zone-dock > .k-slot3{display:none}}
+/* Ajustes › Modo canhoto (classe ux-canhoto no :root): CAVAR e Trocar à esquerda, direcional à direita */
+.ux-canhoto .k-joy{left:auto;right:max(18px,env(safe-area-inset-right))}
+.ux-canhoto .k-dig{right:auto;left:max(22px,env(safe-area-inset-left))}
+/* Ajustes › Cavar com 1 toque: botão aceso enquanto está cavando */
+.k-dig.k-dig-lock{background:rgba(242,194,48,.92);border-color:#3B2818}
