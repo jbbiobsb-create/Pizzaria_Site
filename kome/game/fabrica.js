@@ -846,6 +846,7 @@
   function check(x, y, col) { g.strokeStyle = INK; g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x - 1, y + 5); g.lineTo(x + 7, y - 5); g.stroke(); g.strokeStyle = col; g.lineWidth = 3; g.stroke(); }
 
   const chipPop = [0, 0];
+  let facShow = 0, facBump = 0, dtUI = 0.016;
   function goalChip(i, x, name, n, need, done, icon) {       // ícone do produto + "3/20" com barrinha (ou "liberado"); o nome aparece no toque
     const p = chipPop[i], y = 6 - Math.sin(Math.min(1, p) * Math.PI) * 4, w = 116;
     pill(x, y, w, 38, done ? '#DDF0C2' : C.cream);
@@ -865,25 +866,25 @@
     pill(128, 6, 136, 38);
     blit(SPR.coin, YEN.x, 36 - bump * 20, 2 + bump * 2);
     txt(U.fmt(Math.floor(money())), YEN.x + 17, 26, T(18, INK, 'left'));
-    // produção numa linha só, em palavras: "rende ¥X/min" + quantos de cada produto já saíram
+    // a frase da fábrica: "a fábrica rende ¥X/s" (grande, contando pra cima) e quanto isso é a mais no seu ganho
     const rt = rates(), tot = rt.raw + rt.fac, sh = tot > 0 ? rt.fac / tot : 0;
-    pill(272, 6, 432, 38);
-    txt('rende', 284, 26, T(TXT, '#6B4A2E', 'left'));
-    txt('¥' + U.fmt(rt.fac * 60) + '/min', 334, 26, T(18, INK, 'left'));
-    g.fillStyle = 'rgba(59,40,24,.18)'; g.fillRect(466, 11, 2, 28);
-    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => {
-      const x = 472 + i * 58, locked = (k === 'mochi' && !S.unlocked.pilao) || (k === 'mochid' && !S.unlocked.mochid);
-      blit(ICON[k], x + 14, 37, 2, { alpha: locked ? 0.3 : 1 });
-      txt(locked ? '?' : fmtK(S.made[k]), x + 29, 26, T(TXT, locked ? '#9a8a76' : INK, 'left'));
-    });
-    hit(272, 6, 432, 38, () => { toast('A fábrica rende ¥' + U.fmt(rt.fac * 60) + ' por minuto: ' + Math.round(sh * 100) + '% do que você ganha'); sfx('click'); });
+    if (rt.fac > facShow * 1.02 + 0.5 && facShow > 0) facBump = 1;
+    facShow += (rt.fac - facShow) * Math.min(1, dtUI * 3); if (Math.abs(rt.fac - facShow) < 0.5) facShow = rt.fac;
+    facBump = Math.max(0, facBump - dtUI * 2.5);
+    pill(272, 6, 432, 38, facBump > 0 ? '#FFE9A8' : C.cream);
+    txt('a fábrica rende', 284, 26, T(TXT, '#6B4A2E', 'left'));
+    const fx = 290 + textW('a fábrica rende', TXT), fs = '¥' + U.fmt(facShow) + '/s', fk = 22 + Math.sin(facBump * Math.PI) * 5;
+    txt(fs, fx, 26, T(fk, C.goldD, 'left'));
+    const fx2 = fx + textW(fs, 22) + 12, extra = rt.raw > 0 ? Math.round(rt.fac / rt.raw * 100) : 0;
+    if (extra > 0 && fx2 < 560) { blit(SPR.up, fx2 + 8, 37, 2); txt('+' + (extra > 999 ? U.fmt(extra) : extra) + '% de dinheiro', fx2 + 20, 26, T(TXT, C.grassD, 'left')); }
+    hit(272, 6, 432, 38, () => { toast('A fábrica rende ¥' + U.fmt(rt.fac) + ' por segundo: ' + Math.round(sh * 100) + '% de tudo que você ganha'); sfx('click'); });
     goalChip(0, 712, 'Pilão', S.made.onigiri, UNLOCK.pilao, S.unlocked.pilao, ICON.mochi);
     goalChip(1, 836, 'Dourado', S.made.mochi, UNLOCK.dourado, S.unlocked.mochid, ICON.mochid);
   }
 
   const TOOLS = [
     { id: 'panela', name: 'Panela', hint: 'toque numa casa pra pôr' }, { id: 'moldadora', name: 'Moldadora', hint: 'toque numa casa pra pôr' }, { id: 'pilao', name: 'Pilão', hint: 'ocupa 2 casas' },
-    { id: 'esteira', name: 'Esteira', hint: 'arraste pelas casas' }, { id: 'divisor', name: 'Divisor', hint: 'um pra cada lado' }, { id: 'borracha', name: 'Borracha', hint: 'o dinheiro volta' }, { id: 'undo', name: 'Desfazer', hint: '' },
+    { id: 'esteira', name: 'Esteira', hint: 'toque ou arraste nas casas' }, { id: 'divisor', name: 'Divisor', hint: 'um pra cada lado' }, { id: 'borracha', name: 'Borracha', hint: 'o dinheiro volta' }, { id: 'undo', name: 'Desfazer', hint: '' },
   ];
   // cada botão: desenho + NOME + uma palavra embaixo (preço / grátis). Largo pro dedo (92×70 no palco ≈ 66×50 no celular… a barra inteira é alvo).
   const BAR = { w: 92, h: 70, gap: 4, y: 466 }; BAR.x = (W - (BAR.w * 7 + BAR.gap * 6)) / 2;
@@ -990,7 +991,7 @@
     }
     if (S.tool === 'divisor') return { s: 'Toque numa casa: o Divisor manda um pra cada lado' };
     if (MDEF[S.tool]) return { s: 'Toque numa casa do chão pra pôr ' + (S.tool === 'pilao' ? 'o Pilão' : 'a ' + MDEF[S.tool].name) };
-    if (S.tool === 'esteira') return { s: 'Arraste o dedo pelas casas pra fazer a esteira' };
+    if (S.tool === 'esteira') return { s: 'Toque nas casas (ou arraste) pra pôr esteira. Toque de novo pra virar' };
     if (S.tool === 'borracha') return { s: 'Toque no que quer apagar. O dinheiro volta!' };
     if (S.sel) return null;
     if (!machines.some(m => m.type !== 'divisor')) return { s: 'Toque numa máquina aqui embaixo e depois no chão' };
@@ -1054,84 +1055,130 @@
     return { x, y };
   }
   function removeBtn(m, x, y, w) {
-    button(x, y, w, 50, 'Tirar', () => { const a = beginAction(); const c = mcenter(m); const ref = removeMachine(m); GS().money += ref; a.cost = -ref; commit(a); sfx('pop'); if (!S.fast) { ps.puff(c.x, c.y + 10, 10, 9, { c: C.sand }); if (ref) fl.add(c.x, c.y - 10, 'devolveu ¥' + U.fmt(ref), { size: 17, c: C.goldL }); } },
-      { sub: m.paid + m.spent > 0 ? '+¥' + U.fmt(m.paid + m.spent) : 'grátis', subCol: C.grassD });
+    const back = m.paid + m.spent;
+    button(x, y, w, 44, back > 0 ? 'Tirar daqui · devolve ¥' + U.fmt(back) : 'Tirar daqui', () => { const a = beginAction(); const c = mcenter(m); const ref = removeMachine(m); GS().money += ref; a.cost = -ref; commit(a); sfx('pop'); if (!S.fast) { ps.puff(c.x, c.y + 10, 10, 9, { c: C.sand }); if (ref) fl.add(c.x, c.y - 10, 'devolveu ¥' + U.fmt(ref), { size: 17, c: C.goldL }); } });
+  }
+  function moveBtns(m, x, y, w) {                            // Girar e Mover: botões (nada de toque duplo ou arrastar como único caminho)
+    const bw = (w - 8) / 2;
+    button(x, y, bw, 48, 'Girar', () => rotateMachine(m));
+    button(x + bw + 8, y, bw, 48, 'Mover', () => { moveSel = m; S.sel = null; S.tool = null; sfx('click'); });
   }
   function lvlTag(x, y, lvl, fill) {                          // etiqueta "Nv. 3" no canto do cartão
     g.fillStyle = INK; D.rrect(g, x - 68, y + 6, 60, 26, 9); g.fill(); g.fillStyle = fill; D.rrect(g, x - 66, y + 8, 56, 22, 7); g.fill();
     txt('Nv. ' + lvl, x - 38, y + 19.5, T(TXT, INK));
   }
+  // quanto ESTA máquina põe de dinheiro por segundo: o que ela faz vale mais do que o que entrou nela (a soma das máquinas = a fábrica)
+  function machineYen(m) {
+    const R = recipeOf(m); if (!R.out) return { n: 0, yen: 0 };
+    const sv = k => ITEMS[k].val - ITEMS[k].base; let add = sv(R.out) * starMul(m); for (const k in R.in) add -= sv(k) * R.in[k];
+    const n = U.clamp(m.busy, 0, 1) * speedOf(m) / R.time;
+    return { n, yen: Math.max(0, add) * n * unitV() * fabMul() };
+  }
+  const INAME = { raw: 'arroz', gold: 'arroz dourado', cozido: 'arroz cozido' };
   function drawCard(m, t) {
-    const r = mrect(m.type, m.x, m.y, m.rot), ax = r.x + r.w, ay = r.y + r.h / 2 - 10, def = MDEF[m.type], w = 250;
+    const r = mrect(m.type, m.x, m.y, m.rot), ax = r.x + r.w, ay = r.y + r.h / 2 - 10, def = MDEF[m.type], w = 270;
     if (m.type === 'divisor') {
-      const c = floatCard(ax - 6, ay + 10, w, 146, m.x < 5 ? 1 : -1, r.x + 6), x = c.x + 10, y = c.y;
+      const c = floatCard(ax - 6, ay + 10, w, 196, m.x < 5 ? 1 : -1, r.x + 6), x = c.x + 10, y = c.y;
       txt('Divisor', x, y + 19, T(18, INK, 'left'));
       txt('entra por trás e sai', c.x + w / 2, y + 46, T(TXT, '#6B4A2E')); txt('um pra cada lado', c.x + w / 2, y + 67, T(TXT, '#6B4A2E'));
-      button(x, y + 86, 111, 50, 'Girar', () => rotateMachine(m)); removeBtn(m, x + 119, y + 86, 111);
+      moveBtns(m, x, y + 86, w - 20); removeBtn(m, x, y + 142, w - 20);
       return;
     }
-    const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 330 : 282, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1, r.x + 4), x = c.x + 10;
+    const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 404 : 356, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1, r.x + 4), x = c.x + 10;
     let y = c.y;
     txt(def.name, x, y + 19, T(18, INK, 'left'));
     if (m.star) seloPlate(x + textW(def.name, 18) + 8, y + 8, m.star);
     lvlTag(c.x + w, y, m.lvl, [C.cream, '#DDE6EE', K.copperL, C.goldL][A.tierOf(m.lvl)]);
-    // receita: o que entra → o que sai e quanto vale
+    // receita em desenho: o que entra → o que sai
     g.fillStyle = '#F1E4C2'; D.rrect(g, x, y + 38, w - 20, 36, 8); g.fill();
     let ix = x + 18; for (const k in R.in) for (let i = 0; i < R.in[k]; i++) { blit(ICON[k], ix, y + 68, 2); ix += 22; }
-    g.fillStyle = INK; g.beginPath(); g.moveTo(ix - 4, y + 50); g.lineTo(ix + 6, y + 56); g.lineTo(ix - 4, y + 62); g.fill();
-    blit(ICON[R.out], ix + 26, y + 68, 2);
-    { const v = ITEMS[R.out].val * starMul(m); txt('vale ' + (v >= 1e4 ? U.fmt(v) : (Math.round(v * 10) / 10 + '').replace('.', ',')) + '×', c.x + w - 16, y + 56.5, T(TXT, C.goldD, 'right')); }
+    flowArrow(ix + 4, y + 56, 0.8);
+    blit(ICON[R.out], ix + 30, y + 68, 2);
+    txt('vira ' + (R.out === 'mochid' ? 'Mochi D.' : ITEMS[R.out].name.replace('Arroz ', '')), c.x + w - 16, y + 56.5, T(TXT, '#6B4A2E', 'right'));
     y += 82;
     if (two) {
+      const bw = (w - 28) / 2;
       def.recipes.forEach((rc, i) => {
         const lock = i === 1 && !S.unlocked.mochid;
-        button(x + i * 119, y, 111, 40, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, lock });
+        button(x + i * (bw + 8), y, bw, 40, i ? 'Dourado' : 'Mochi', () => setRecipe(m, i), { on: m.rec === i, off: lock, lock });
       });
       y += 48;
     }
-    const st = m.blocked ? ['saída travada', C.redD] : (m.full > 0 && m.busy > 0.8) ? ['fila cheia: gargalo aqui!', C.oraD] : (m.work && m.prog < 1) ? ['trabalhando · ' + fmt1(R.time / speedOf(m)) + ' s cada', C.grassD] : ['esperando ingrediente', '#8A6A4A'];
-    txt('ocupada', x, y + 9, T(TXT, '#6B4A2E', 'left')); meter(x + 70, y + 4, 112, 10, m.busy, m.busy > 0.85 ? C.ora : C.gold);
-    txt(Math.round(m.busy * 100) + '%', c.x + w - 10, y + 9, T(TXT, INK, 'right'));
-    txt(st[0], c.x + w / 2, y + 31, T(TXT, st[1]));
-    y += 46;
-    const p = levelPrice(m), max = m.lvl >= MAX_LVL, nextT = m.lvl < 3 ? 3 : m.lvl < 6 ? 6 : 10;
-    button(x, y, w - 20, 52, max ? 'Tirar o Selo ★' + ((m.star | 0) + 1) : 'Subir nível', () => levelUp(m), { off: !max && money() < p, fill: max ? (Math.sin(t * 5) > 0 ? '#FFE9A8' : '#FFF3C8') : '#DDF0C2', sub: max ? 'volta pro Nv. 1 · +50% no valor' : '¥' + U.fmt(p) + ' · +25% rápida', subCol: max ? C.goldD : money() >= p ? C.grassD : C.redD });
-    if (max) txt('níveis ficam ×' + SELO.cost + ' mais caros', c.x + w / 2, y + 70, T(TXT, '#8A6A4A'));
-    else txt(m.lvl + 1 === nextT ? 'próximo nível: visual novo!' : 'visual novo no Nv. ' + nextT, c.x + w / 2, y + 70, T(TXT, m.lvl + 1 === nextT ? C.oraD : '#8A6A4A'));
-    y += 88;
-    button(x, y, 111, 50, 'Girar', () => rotateMachine(m)); removeBtn(m, x + 119, y, 111);
+    // em palavras: o que ela está fazendo e quanto dinheiro ela põe
+    let miss = ''; for (const k in R.in) if (!miss && m.inB[k] < R.in[k]) miss = INAME[k] || k;
+    const st = m.blocked ? ['travada: ligue a saída', C.redD] : (m.full > 0 && m.busy > 0.8) ? ['fila cheia: melhore ela!', C.oraD] : (m.work && m.prog < 1) ? ['trabalhando · ' + fmt1(R.time / speedOf(m)) + ' s cada', C.grassD] : ['esperando ' + (miss || 'arroz'), '#8A6A4A'];
+    const my = machineYen(m), p = levelPrice(m), max = m.lvl >= MAX_LVL, can = money() >= p;
+    txt(st[0], c.x + w / 2, y + 9, T(TXT, st[1]));
+    txt('ela rende', x + 4, y + 36, T(TXT, '#6B4A2E', 'left')); txt('¥' + U.fmt(my.yen) + '/s', c.x + w - 14, y + 36, T(22, C.goldD, 'right'));
+    y += 58;
+    // MELHORAR: o botão principal (dourado se o dinheiro dá; cinza dizendo quanto falta), com o salto de dinheiro
+    const pct = Math.round(LVL_SPEED * 100), jump = my.yen * LVL_SPEED / speedOf(m), sj = SELO.val * my.yen;
+    if (max) button(x, y, w - 20, 58, 'Tirar o Selo ★' + ((m.star | 0) + 1), () => { seloAsk = m; sfx('click'); }, { on: true, size: 19, sub: 'tudo dela vale +' + Math.round(SELO.val * 100) + '%', subCol: INK });
+    else button(x, y, w - 20, 58, 'Melhorar · ¥' + U.fmt(p), () => {
+      const l0 = m.lvl; levelUp(m);
+      if (m.lvl > l0 && !S.fast) { const cc = mcenter(m); fl.add(cc.x, cc.y - 104, '+' + pct + '% mais rápida' + (jump >= 1 ? ' · +¥' + U.fmt(jump) + '/s' : ''), { size: 19, c: C.goldL, delay: 0.45, life: 1.6 }); facBump = 1; }
+    }, { on: can, off: !can, size: 19, sub: can ? '+' + pct + '% mais rápida' + (jump >= 1 ? ' · +¥' + U.fmt(jump) + '/s' : '') : 'falta ¥' + U.fmt(p - money()), subCol: can ? INK : C.redD });
+    txt('nível ' + m.lvl + ' de ' + MAX_LVL, x + 4, y + 78, T(TXT, '#6B4A2E', 'left')); meter(x + 118, y + 73, w - 20 - 122, 10, m.lvl / MAX_LVL, C.gold);
+    y += 96;
+    moveBtns(m, x, y, w - 20); removeBtn(m, x, y + 56, w - 20);
+    void sj;
+  }
+  // confirma o Selo: diz numa frase o que acontece (a máquina volta ao nível 1) e o que se ganha (+50% pra sempre)
+  function drawSeloAsk(t) {
+    const m = seloAsk; if (!m || machines.indexOf(m) < 0 || m.lvl < MAX_LVL) { seloAsk = null; return; }
+    g.fillStyle = 'rgba(30,18,10,.6)'; g.fillRect(0, 0, W, H);
+    hit(0, 0, W, H, () => { seloAsk = null; sfx('click'); }, null);
+    const w = 540, h = 262, x = (W - w) / 2, y = 124, n = (m.star | 0) + 1, pc = Math.round(SELO.val * 100), gain = machineYen(m).yen * SELO.val / starMul(m) / speedOf(m);
+    pill(x, y, w, h, '#FFF6DE', 14); hit(x, y, w, h, () => {}, null);
+    const pw = seloPlate(x + 22, y + 20, n, 24);
+    txt('Tirar o Selo de Qualidade?', x + 30 + pw, y + 35, T(22, INK, 'left'));
+    txt('A ' + MDEF[m.type].name.replace('Pilão', 'máquina') + ' volta ao nível 1 e ganha uma ★.', x + w / 2, y + 78, T(18, INK));
+    txt('Com a ★, tudo que ela faz vale +' + pc + '%. Pra sempre!', x + w / 2, y + 106, T(18, C.goldD));
+    txt('Os próximos níveis dela ficam ' + SELO.cost + '× mais caros.', x + w / 2, y + 134, T(TXT, '#6B4A2E'));
+    txt('Mudou de ideia? É só tocar em Desfazer.', x + w / 2, y + 158, T(TXT, '#6B4A2E'));
+    button(x + 20, y + h - 74, 180, 56, 'Agora não', () => { seloAsk = null; sfx('click'); });
+    button(x + 216, y + h - 74, w - 236, 56, 'Tirar o Selo ★' + n, () => { seloAsk = null; S.sel = m; selo(m); facBump = 1; }, { on: true, size: 20 });
+    void gain;
   }
   function drawDockCard(t) {
-    const w = 290, h = 214, c = floatCard(BAY_IN.x + BAY_IN.w - 10, 230, w, h, 1), x = c.x + 10, y = c.y, cap = dockCap(), use = Math.min(S.dockUse, cap), max = dockMax(), p = dockPrice();
-    txt('Doca de Entrada', x, y + 19, T(18, INK, 'left'));
+    const w = 300, h = 222, c = floatCard(BAY_IN.x + BAY_IN.w - 10, 230, w, h, 1), x = c.x + 10, y = c.y, cap = dockCap(), use = Math.min(S.dockUse, cap), max = dockMax(), p = dockPrice(), can = money() >= p;
+    txt('Entrada do arroz', x, y + 19, T(18, INK, 'left'));
     lvlTag(c.x + w, y, S.dockLvl, C.cream);
     txt('puxa ' + fmt1(dockPct() * 100) + '% do arroz que você cava', c.x + w / 2, y + 48, T(TXT, '#6B4A2E'));
     meter(x, y + 62, w - 20, 10, use / Math.max(0.01, cap), C.grass);
-    txt('usando ' + fmt1(use) + ' de ' + fmt1(cap) + ' sacos/s', c.x + w / 2, y + 88, T(TXT, '#6B4A2E'));
+    txt('usando ' + fmt1(use) + ' de ' + fmt1(cap) + ' sacos por segundo', c.x + w / 2, y + 88, T(TXT, '#6B4A2E'));
     txt('1 saco na esteira = ¥' + U.fmt(unitV()), c.x + w / 2, y + 110, T(TXT, C.goldD));
-    button(x, y + 126, w - 20, max ? 40 : 52, max ? 'Doca no máximo' : 'Subir doca', dockUp, { off: max || money() < p, fill: '#DDF0C2', sub: max ? '' : '¥' + U.fmt(p) + ' · puxa mais arroz', subCol: money() >= p ? C.grassD : C.redD });
-    txt(S.digRate > 0 ? 'o resto vende cru: nada se perde' : 'cave lá fora pra fábrica andar!', c.x + w / 2, y + 196, T(TXT, S.digRate > 0 ? '#8A6A4A' : C.redD));
+    if (max) button(x, y + 126, w - 20, 44, 'Entrada no máximo', dockUp, { off: true });
+    else button(x, y + 126, w - 20, 58, 'Melhorar · ¥' + U.fmt(p), () => { const l0 = S.dockLvl; dockUp(); if (S.dockLvl > l0) facBump = 1; }, { on: can, off: !can, size: 19, sub: can ? 'mais arroz = mais dinheiro' : 'falta ¥' + U.fmt(p - money()), subCol: can ? INK : C.redD });
+    txt(S.digRate > 0 ? 'o resto vende cru: nada se perde' : 'cave lá fora pra fábrica andar!', c.x + w / 2, y + 204, T(TXT, S.digRate > 0 ? '#8A6A4A' : C.redD));
   }
   function drawSaleCard(t) {
-    const w = 270, h = 134, c = floatCard(BAY_OUT.x + 10, 230, w, h, -1), x = c.x + 10, y = c.y;
-    txt('Doca de Venda', x, y + 19, T(18, INK, 'left'));
-    txt('o que chega aqui vende sozinho', c.x + w / 2, y + 48, T(TXT, '#6B4A2E'));
-    txt('e o kei-truck leva embora', c.x + w / 2, y + 69, T(TXT, '#6B4A2E'));
-    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 14 + i * 63, y + 122, 2); txt(ITEMS[k].val + '×', x + 30 + i * 63, y + 109, T(TXT, C.goldD, 'left')); });
+    const w = 280, h = 176, c = floatCard(BAY_OUT.x + 10, 230, w, h, -1), x = c.x + 10, y = c.y;
+    txt('Venda', x, y + 19, T(18, INK, 'left'));
+    txt('o que chega aqui vira dinheiro', c.x + w / 2, y + 48, T(TXT, '#6B4A2E'));
+    txt('sozinho. Cada um vale mais:', c.x + w / 2, y + 69, T(TXT, '#6B4A2E'));
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 14 + i * 65, y + 110, 2); txt(ITEMS[k].val + '×', x + 30 + i * 65, y + 97, T(TXT, C.goldD, 'left')); });
+    txt('você já fez:', x, y + 132, T(TXT, '#6B4A2E', 'left'));
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { const locked = (k === 'mochi' && !S.unlocked.pilao) || (k === 'mochid' && !S.unlocked.mochid); blit(ICON[k], x + 14 + i * 65, y + 168, 2, { alpha: locked ? 0.3 : 1 }); txt(locked ? '?' : fmtK(S.made[k]), x + 29 + i * 65, y + 156, T(TXT, locked ? '#9a8a76' : INK, 'left')); });
   }
   let helpOpen = false;
   function drawHelp() {
-    g.fillStyle = 'rgba(30,18,10,.55)'; g.fillRect(0, 0, W, H);
-    const w = 600, h = 336, x = (W - w) / 2, y = 96;
+    g.fillStyle = 'rgba(30,18,10,.6)'; g.fillRect(0, 0, W, H);
+    hit(0, 0, W, H, () => { helpOpen = false; sfx('click'); }, null);
+    const w = 660, h = 398, x = (W - w) / 2, y = 66;
     pill(x, y, w, h, '#FFF6DE', 14);
-    E.drawShibaHead(g, x + 52, y + 50, performance.now() / 1000, { scale: 1.1, expr: 'happy' });
-    txt('Como montar a fábrica', x + 100, y + 32, T(20, INK, 'left'));
-    txt('o arroz entra pela ENTRADA e tem que chegar na VENDA', x + 100, y + 60, T(TXT, '#6B4A2E', 'left'));
-    const tips = ['Pôr máquina: toque no botão e depois numa casa', 'Mover: arraste a máquina · Girar: toque duas vezes', 'Esteira: escolha Esteira e arraste o dedo pelas casas', 'Toque numa esteira pra virar a direção dela', 'Toque numa máquina: nível, receita, girar e tirar', 'Divisor: reparte os itens, um pra cada lado'];
-    tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 100 + i * 27, 4, 0, TAU); g.fill(); txt(s, x + 48, y + 101 + i * 27, T(TXT, INK, 'left')); });
-    txt('quanto vale cada coisa (× o saco cru):', x + 30, y + 272, T(TXT, '#6B4A2E', 'left'));
-    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 64 + i * 130, y + 320, 2); txt(ITEMS[k].val + '×', x + 84 + i * 130, y + 307, T(18, C.goldD, 'left')); });
-    hit(0, 0, W, H, () => { helpOpen = false; sfx('click'); });
+    E.drawShibaHead(g, x + 50, y + 44, performance.now() / 1000, { scale: 1, expr: 'happy' });
+    txt('A fábrica faz seu arroz valer mais', x + 96, y + 30, T(22, INK, 'left'));
+    txt('mais máquina e mais nível = mais dinheiro por segundo', x + 96, y + 58, T(TXT, '#6B4A2E', 'left'));
+    // o caminho, em desenho grande
+    g.fillStyle = '#F1E4C2'; D.rrect(g, x + 20, y + 84, w - 40, 92, 10); g.fill();
+    FLOW.forEach((f, i) => { const cx = x + 96 + i * 156; flowIcon(f[0], cx, y + 142, 3); txt(f[1], cx, y + 160, T(TXT, INK)); if (i < 3) flowArrow(cx + 78, y + 120, 1.5); });
+    const tips = ['Pôr máquina: toque nela aqui embaixo, depois no chão', 'Esteira leva as coisas: escolha Esteira e arraste no chão', 'Toque numa máquina pra Melhorar, Girar, Mover ou Tirar', 'Errou? Toque em Desfazer. Bagunçou? Toque em Arrumar'];
+    tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 202 + i * 27, 4, 0, TAU); g.fill(); txt(s, x + 48, y + 203 + i * 27, T(TXT, INK, 'left')); });
+    txt('cada produto vale mais que o arroz cru:', x + 30, y + 322, T(TXT, '#6B4A2E', 'left'));
+    ['cozido', 'onigiri', 'mochi', 'mochid'].forEach((k, i) => { blit(ICON[k], x + 64 + i * 110, y + 372, 2); txt(ITEMS[k].val + '×', x + 84 + i * 110, y + 359, T(18, C.goldD, 'left')); });
+    button(x + w - 150, y + h - 66, 130, 52, 'Entendi', () => { helpOpen = false; sfx('click'); }, { on: true, size: 19 });
+    button(x + w - 54, y + 8, 44, 40, 'X', () => { helpOpen = false; sfx('click'); }, { size: 20, fill: '#F6B6B0' });
   }
 
   /* ---- tutorial: 4 passos com o Kome ---- */
@@ -1139,7 +1186,7 @@
     { r: () => BAY_IN, t: 'Esta é a Doca de Entrada.', s: ['Ela puxa uma parte do arroz que você cava', 'lá fora. O resto vende cru, como sempre.'] },
     { r: () => { const m = machines.find(q => q.type === 'panela'); if (!m) return { x: GX, y: GY, w: CW, h: CH }; const r = mrect(m.type, m.x, m.y, m.rot); return { x: r.x, y: r.y - 36, w: r.w, h: r.h + 36 }; }, t: 'A Panela cozinha o arroz.', s: ['1 saco vira 1 arroz cozido,', 'e o cozido vale 2× o cru. Essa é grátis!'] },
     { r: () => BAY_OUT, t: 'Doca de Venda.', s: ['Tudo que chega aqui vende sozinho', 'e o kei-truck leva. Nada se perde.'] },
-    { r: () => ({ x: BAR.x - 8, y: BAR.y - 8, w: BAR.w * 7 + BAR.gap * 6 + 16, h: BAR.h + 18 }), t: 'Pronto, veja o +¥ subindo!', s: ['Agora compre uma Moldadora, ligue com Esteira', 'e transforme o cozido em onigiri (4×).'] },
+    { r: () => ({ x: BAR.x - 8, y: BAR.y - 8, w: BAR.w * 7 + BAR.gap * 6 + 16, h: BAR.h + 18 }), t: 'Pronto, veja o +¥ subindo!', s: ['Agora ponha uma Moldadora: o cozido vira', 'onigiri e vale o dobro. Eu mostro onde tocar!'] },
   ];
   function drawTutorial(t) {
     const st = TUT[S.tut], r = st.r(), pad = 6;
@@ -1185,6 +1232,11 @@
     for (let i = btns.length - 1; i >= 0; i--) { const b = btns[i]; if (x >= b.x - 3 && y >= b.y - 3 && x < b.x + b.w + 3 && y < b.y + b.h + 6) { pressBtn = b.o; b.fn(); return; } }
     if (S.tut >= 0) return;
     if (firstCard) { firstCard.life = Math.min(firstCard.life, 0.3); }
+    if (moveSel) {                                             // botão Mover: o próximo toque no chão é o destino
+      const m = moveSel, mc = toCell(x, y); moveSel = null;
+      if (mc && machines.indexOf(m) >= 0) { const at = fitAnchor(m.type, mc[0], mc[1], m.rot, m); if (at) moveMachine(m, at[0], at[1]); else { toast('Aí não cabe: já tem máquina'); sfx('error'); } S.sel = m; }
+      return;
+    }
     const c = toCell(x, y);
     if (!c) {
       const pm = !S.tool && pickMachine(x, y);
@@ -1261,7 +1313,7 @@
   });
   addEventListener('keydown', e => {
     if (!isOpen()) return;
-    if (e.key === 'Escape' && helpOpen) { helpOpen = false; return; }
+    if (e.key === 'Escape' && (helpOpen || seloAsk || moveSel)) { helpOpen = false; seloAsk = null; moveSel = null; return; }
     if (e.key === 'Escape' && !S.tool && !S.sel) { close(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') { doUndo(); e.preventDefault(); }
     if (e.key === 'Escape') { S.tool = null; S.sel = null; }
@@ -1280,6 +1332,7 @@
   function drawGhost(t) {
     let type, x, y, rot, ignore;
     if (drag && drag.mode === 'move' && drag.moved) { type = drag.m.type; x = drag.last[0] + drag.off[0]; y = drag.last[1] + drag.off[1]; rot = drag.m.rot; ignore = drag.m; }
+    else if (moveSel && hover) { const at = fitAnchor(moveSel.type, hover[0], hover[1], moveSel.rot, moveSel) || hover; type = moveSel.type; x = at[0]; y = at[1]; rot = moveSel.rot; ignore = moveSel; }
     else if (MDEF[S.tool] && (hover || (drag && drag.last))) { const c = (drag && drag.last) || hover; const at = fitAnchor(S.tool, c[0], c[1], 0); type = S.tool; rot = 0; if (at) { x = at[0]; y = at[1]; } else { x = c[0]; y = c[1]; } }
     else if ((S.tool === 'esteira' || S.tool === 'borracha') && hover && !drag) { cellGlow(hover[0], hover[1], S.tool === 'borracha' ? 'rgba(200,66,58,.30)' : 'rgba(243,201,74,.28)', t); return; }
     else return;
@@ -1367,6 +1420,7 @@
     A.belts(g, bview, t);
     for (const m of machines) drawPorts(m, t, S.sel === m);
     if (S.sel && typeof S.sel === 'object') selRing(S.sel, t);
+    if (moveSel) selRing(moveSel, t);
     drawBays(t);
     drawBeltItems(t);
     drawGhostCells = null; pickUp();
@@ -1397,12 +1451,15 @@
       const x = (1 - u) * (1 - u) * c.x + 2 * (1 - u) * u * mx + u * u * YEN.x, y = (1 - u) * (1 - u) * c.y + 2 * (1 - u) * u * my + u * u * YEN.y;
       blit(SPR.coin, x, y + 10, 2);
     }
-    drawTopBar(t);
+    dtUI = dt; drawTopBar(t);
     drawBottomBar(t);
-    if (G.News) G.News.draw(g, 166, 52, dt, { maxW: 400 });   // evento do modo infinito + avisos do jogo (ficavam escondidos atrás desta tela)
+    if (S.tut < 0 && !helpOpen) drawNow(t);
+    if (G.News) G.News.draw(g, 166, 88, dt, { maxW: 400 });   // evento do modo infinito + avisos do jogo (ficavam escondidos atrás desta tela)
     if (S.sel === 'dock') drawDockCard(t); else if (S.sel === 'sale') drawSaleCard(t); else if (S.sel) drawCard(S.sel, t);
     if (S.sel !== 'dock' && !dockMax() && (upPick === 'dock' || (upAll && money() >= dockPrice()))) blit(SPR.up, GEO.feedX - 34, 122 + upBob(t, 0), 2);
+    if (S.tut < 0) drawGuide(t);
     drawOverlayMsgs(t, dt);
+    if (seloAsk) drawSeloAsk(t);
     if (helpOpen) drawHelp();
     if (S.tut >= 0) drawTutorial(t);
   }
@@ -1487,7 +1544,7 @@
   }
   function close() {
     if (!isOpen()) return;
-    root.classList.remove('k-fab-open'); S.tool = null; S.sel = null; helpOpen = false; drag = null; S.fast = true; ship.length = 0; persist(); bubbleLoop();
+    root.classList.remove('k-fab-open'); S.tool = null; S.sel = null; helpOpen = false; seloAsk = null; moveSel = null; drag = null; S.fast = true; ship.length = 0; persist(); bubbleLoop();
     if (api && api.save) api.save();
   }
 
