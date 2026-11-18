@@ -49,7 +49,8 @@
 .cid-want{display:flex;align-items:center;gap:4px;font-weight:800;min-width:0}
 .cid-want span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cid-fest-ic{width:44px;height:44px}
-.cid-go{width:100%;justify-content:center;min-height:52px;padding:4px 8px;box-shadow:0 4px 0 #2a1a10;flex-wrap:wrap;column-gap:8px;row-gap:0}
+.cid-go{width:100%;justify-content:center;min-height:52px;padding:4px 6px;box-shadow:0 4px 0 #2a1a10;gap:6px;white-space:nowrap;overflow:hidden}
+.cid-fest .cid-want{white-space:nowrap}
 .k-mob .cid-go{min-height:56px}
 .cid-pay{font-size:calc(var(--b)*1.1);font-weight:900;color:#1F5A1A}
 .cid-wait{min-height:52px;display:flex;flex-direction:column;justify-content:center;gap:4px;font-weight:700;color:#5A4630;font-size:max(14px,calc(var(--b)*.88))}
@@ -111,7 +112,7 @@
 .cid-vila{position:fixed;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;display:none;gap:10px;align-items:stretch;font-family:system-ui,sans-serif;color:#3B2818;max-width:96vw}
 .cid-vila.cid-on{display:flex}
 .cid-vila .ux-btn{box-shadow:0 4px 0 #2a1a10}
-.cid-vila-go{flex-direction:row;flex-wrap:wrap;justify-content:center;max-width:60vw}
+.cid-vila-go{flex-wrap:wrap;white-space:normal;justify-content:center;max-width:60vw}
 .cid-vila-go .cid-pay{flex-basis:100%;font-size:14px}
 .cid-vila-lock{display:none;flex-direction:column;gap:3px;justify-content:center;background:#D8CDB8;border:3px solid #3B2818;border-radius:14px;padding:6px 12px;font-size:15px;font-weight:700;min-width:220px}
 .cid-vila.cid-locked .cid-vila-go{display:none}.cid-vila.cid-locked .cid-vila-lock{display:flex}
@@ -124,6 +125,10 @@
 /* celular deitado (tela baixa): tudo mais justo pra rua aparecer */
 @media (max-height:480px){
   .cid-top{padding:4px 8px;gap:4px}
+  .cid-r1 .ux-btn,.k-mob .cid-r1 .ux-btn{min-height:48px;padding:4px 12px}
+  .cid-now{min-height:48px}.cid-now-face{width:38px;height:38px}
+  .cid-jar-cap,.cid-hearts{display:none}.cid-full .cid-jar-cap{display:inline}
+  .cid-go .cid-ic{display:none}
   .cid-shelf,.cid-stat{min-height:36px}
   .cid-shelf-t{display:none}
   .cid-bot{padding:5px 8px;gap:6px}

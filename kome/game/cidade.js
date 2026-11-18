@@ -874,11 +874,11 @@
     }
     // festival
     const f = ui.fest, se = season(), full = c.fest >= CFG.FEST_NEED, on = c.festOn > 0;
-    setIco(f.ic, SEASON_ICON[c.season]); setT(f.nome, 'Festival ' + se.fest);
+    setIco(f.ic, SEASON_ICON[c.season]); setT(f.nome, 'Festa ' + se.fest);
     setC(f, 'cid-is-ready', full && !on); setC(f, 'cid-is-wait', !full || on); setC(f, 'cid-fest-on', on);
     if (on) { setT(f.sub, 'Tá rolando!'); setT(f.line, 'Corações em dobro · acaba em ' + emPalavras(c.festOn)); setBar(f.bar.fill, c.festOn / CFG.FEST_SEC); }
-    else if (full) setT(f.sub, 'Corações em dobro por ' + emPalavras(CFG.FEST_SEC));
-    else { setT(f.sub, Math.floor(c.fest) + ' de ' + CFG.FEST_NEED + ' corações'); setT(f.line, 'Entregue pedidos pra encher'); setBar(f.bar.fill, c.fest / CFG.FEST_NEED); }
+    else if (full) setT(f.sub, '♥ em dobro, ' + emPalavras(CFG.FEST_SEC));
+    else { setT(f.sub, Math.floor(c.fest) + ' de ' + CFG.FEST_NEED + ' ♥'); setT(f.line, 'Entregue pedidos pra encher'); setBar(f.bar.fill, c.fest / CFG.FEST_NEED); }
     // setas
     setC(ui.arL, 'cid-on', R.camX > 10); setC(ui.arR, 'cid-on', R.camX < world() - W - 10);
     // janela da escolha
@@ -894,7 +894,7 @@
     const a = Math.max(0, (ui.top.getBoundingClientRect().bottom - r.top) / s), b = Math.min(H, (ui.bot.getBoundingClientRect().top - r.top) / s);
     R.oy = a <= 118 && b >= BOT ? 0 : Math.round(U.clamp((a + b) / 2 - 240, -70, 70));
     R.sr = { l: r.left, t: r.top, s };
-    const hr = ui.hearts.getBoundingClientRect();
+    const hr = (ui.hearts.offsetWidth ? ui.hearts : ui.fest).getBoundingClientRect();
     R.hx = (hr.left + 14 - r.left) / s; R.hy = Math.max(8, (hr.top + hr.height / 2 - r.top) / s);
   }
   function uiFollow() {      // plaquinha da obra acompanha o terreno

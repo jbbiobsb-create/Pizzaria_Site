@@ -438,7 +438,7 @@
     ARROZ_RATE: 0.5, ARROZ_SEC: 0.5,     // a montanha manda sacos de arroz pra Despensa (por s); cada saco vale ARROZ_SEC s da sua renda
     BUILD_RENDA: 2,                      // cada prédio pronto: +2% de renda pra sempre (soma no Arroz do Coração, igual à amizade)
     ITEMS: {
-      arroz: { nome: 'saco de arroz', plural: 'sacos de arroz', capMin: 60, qMin: 8 },
+      arroz: { nome: 'saco', plural: 'sacos', capMin: 60, qMin: 8 },
       onigiri: { nome: 'onigiri', plural: 'onigiris', capMin: 40, qMin: 6 },
       mochi: { nome: 'mochi', plural: 'mochis', capMin: 12, qMin: 3 },
       mochid: { nome: 'mochi dourado', plural: 'mochis dourados', capMin: 4, qMin: 1 },
