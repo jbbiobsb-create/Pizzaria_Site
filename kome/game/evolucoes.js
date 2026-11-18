@@ -130,7 +130,7 @@
     // Colheitadeira Gourmet: chapéu de chef gigante na cabine, vapor e onigiri pulando pra fora
     chef(g, m, draw) {
       draw();
-      const sc = m.sc || 1, t = m.t || 0, s = m.seatO || { x: m.x, y: m.y - 90 * sc }, hx = s.x, hy = s.y - 58 * sc;
+      const sc = m.sc || 1, t = m.t || 0, s = m.seatO || { x: m.x, y: m.y - 90 * sc }, hx = s.x, hy = s.y - 46 * sc;
       for (let i = 0; i < 3; i++) { const q = (t * 0.6 + i / 3) % 1; g.globalAlpha = 0.5 * (1 - q); Draw.circle(g, hx + 30 * sc + q * 20 * sc, hy - 30 * sc - q * 60 * sc, (6 + q * 12) * sc, '#FFFFFF', { ol: 0 }); }
       g.globalAlpha = 1;
       Draw.box(g, hx - 17 * sc, hy - 2 * sc, 34 * sc, 14 * sc, '#FFFFFF', { r: 2 * sc });
@@ -170,7 +170,7 @@
     if (api && api.sfx) api.sfx('whoosh');
     G.Faixas.card({
       kick: 'EVOLUÇÃO!', title: e.n + '!', auto: 6, btn: 'Que absurdo!',
-      art: { w: 420, h: 210, draw(g, t, w, h) {
+      art: { w: 400, h: 160, draw(g, t, w, h) {
         if (!m) return;
         const k = Math.min(w * 0.86 / (W0 * extra), h * 0.78 / H0), evo = t > 1.4;
         if (evo && !flashed) { flashed = true; if (api && api.sfx) { api.sfx('fanfare'); } }

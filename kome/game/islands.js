@@ -75,11 +75,11 @@
   // (garagem, marco turbinado, livro, absurdos) e os que já dizem o teto no texto (cochilo até 100%, cama até 24 h).
   D.SEEDS = [
     { id: 'renda', n: 'Arroz Abençoado', d: '+15% de renda por nível', base: 2 },
-    { id: 'preco', n: 'Amigo do Corretor', d: '-6% em todos os preços por nível', base: 3 },
+    { id: 'preco', n: 'Amigo do Corretor', d: '-6% em todos os preços por nível (-1% depois do 8)', base: 3 },
     { id: 'ferr', n: 'Mala de Viagem', d: 'começa a ilha com Pá → Carrinho → Trator', max: 3, base: 6 },
-    { id: 'grana', n: 'Poupança', d: 'começa a ilha com ¥1 mil, 10 mil, 100 mil… (depois do 5, +¥10 mi por nível)', base: 1 },
+    { id: 'grana', n: 'Poupança', d: 'começa a ilha com ¥1 mil, 10 mil, 100 mil…', max: 5, base: 1 },   // kit de partida (igual à Mala): infinito pulava a ilha
     { id: 'ajud', n: 'Turma do Kome', d: '+1 shiba ajudante nos níveis 1–3, depois +1 a cada 5 níveis', base: 4 },
-    { id: 'ouro', n: 'Faro de Ouro', d: '+25% nos bolsões dourados por nível', base: 2 },
+    { id: 'ouro', n: 'Faro de Ouro', d: '+25% nos bolsões dourados por nível (+5% depois do 8)', base: 2 },
     // camada Cookie (docs/design/camada-cookie.md): galhos Pátio, Sorte, Coração e Poupança
     { id: 'garagem', n: 'Garagem Abençoada', d: 'o Pátio começa com 5 de cada máquina de mão', max: 1, base: 4, g: 'Pátio' },
     { id: 'desc_frota', n: 'Desconto de Frota', d: '-1% no preço do Pátio por nível', base: 3, g: 'Pátio' },
@@ -120,7 +120,7 @@
   const lvl = id => sl()[id] | 0;
   const capped = s => !!s.max && lvl(s.id) >= s.max;   // sem max = sem teto
   const ajudN = L => Math.min(L, 3) + Math.floor(Math.max(0, L - 3) / 5);   // Turma do Kome: 1–3 = +1 cada; depois +1 a cada 5
-  const granaOf = L => (L > 0 ? Math.pow(10, 2 + Math.min(L, 5)) * (1 + Math.max(0, L - 5)) : 0);   // Poupança: ×10 até o 5, depois +¥10 mi/nível
+  const granaOf = L => (L > 0 ? Math.pow(10, 2 + Math.min(L, 5)) : 0);   // Poupança: ¥1 mil … 10 mi (máx 5)
   const idx = () => (S = S || G.S, U.clamp(S.island | 0, 0, D.ISLANDS.length - 1));
   const isl = () => D.ISLANDS[idx()];
   const lap = () => (S = S || G.S, S.stats.lap | 0);
@@ -139,7 +139,7 @@
   function applyStats(s) {
     s.sell *= (1 + 0.15 * lvl('renda')) * (S.stats.legend ? EG.legend : 1);
     s.help += ajudN(lvl('ajud'));
-    s.gold *= (1 + 0.25 * lvl('ouro')) * (isl().gold || 1);
+    s.gold *= (1 + 0.25 * Math.min(lvl('ouro'), 8) + 0.05 * Math.max(0, lvl('ouro') - 8)) * (isl().gold || 1);
   }
   // cada ilha mais cara (as sementes compensam). t = nº da viagem (0 = campanha, 1 = Hokkaido da 1ª volta, 5 = Honshu da volta 2…):
   // preço = D.ENDGAME.price.trip[t-1] (tabela medida com tools/longo.js) e, depois da tabela, + grow por viagem (sobe devagar:
@@ -148,7 +148,8 @@
   const tripN = () => idx() + lap() * D.ISLANDS.length;
   const priceBase = t => { const P = EG.price, L = P.trip.length; return t <= 0 ? 1 : t <= L ? P.trip[t - 1] : P.trip[L - 1] + P.grow * (t - L); };
   // × price da ficha da ilha (D.ISLANDS[i].price, padrão 1): acerto fino medido (Kyushu rende mais com o curry ×1,8)
-  const priceMul = () => { const t = tripN(); return Math.pow(0.94, lvl('preco')) * priceBase(t) * (t > 0 ? isl().price || 1 : 1); };
+  const precoK = L => Math.pow(0.94, Math.min(L, 8)) * Math.pow(0.99, Math.max(0, L - 8));   // sem teto, mas depois do 8 só -1%/nível (longo 8 h: ilhas caíram pra 11–15 min com -6% infinito)
+  const priceMul = () => { const t = tripN(); return precoK(lvl('preco')) * priceBase(t) * (t > 0 ? isl().price || 1 : 1); };
   const matsFor = () => (mats[isl().id] ? mats[isl().id]() : D.MATS);
 
   /* ---- medalhas: bronze = terminou; prata e ouro = terminou abaixo do tempo (D.ENDGAME.medal) ---- */

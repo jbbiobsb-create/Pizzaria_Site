@@ -136,7 +136,7 @@
   /* ---- cartão de tela cheia (apresentação da faixa; evolucoes.js usa o mesmo) — estilo das cartas de amuleto ---- */
   const css = document.createElement('style');
   css.textContent = `
-.k-fx-card{position:relative;width:600px;max-width:calc(100% - 20px);background:#FFFAEE;border:4px solid ${INK};border-radius:18px;box-shadow:0 6px 0 ${INK},0 12px 26px rgba(20,10,0,.4),inset 0 0 0 5px #F0B429;padding:12px 18px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;animation:kfxin .45s cubic-bezier(.2,1.4,.4,1)}
+.k-fx-card{position:relative;width:680px;font-size:17px;max-width:calc(100% - 20px);background:#FFFAEE;border:4px solid ${INK};border-radius:18px;box-shadow:0 6px 0 ${INK},0 12px 26px rgba(20,10,0,.4),inset 0 0 0 5px #F0B429;padding:8px 16px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;animation:kfxin .45s cubic-bezier(.2,1.4,.4,1)}
 @keyframes kfxin{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
 .k-fx-card canvas{image-rendering:pixelated;max-width:100%}
 .k-fx-nm{font-size:26px;font-weight:900;line-height:1.05}
@@ -202,10 +202,10 @@
     sfx('fanfare');
     card({
       kick: 'Volta ' + (lap() + 1) + ' ao Japão · faixa nova', title: b.n + '!',
-      art: { w: 300, h: 150, draw(g, t, w, h) {
+      art: { w: 260, h: 112, draw(g, t, w, h) {
         g.imageSmoothingEnabled = false;
         const pal = (S().look && S().look.pal) || 'kome', pose = t < 0.9 ? 'bow' : Math.floor(t / 1.6) % 2 ? 'proud' : 'cheer';
-        E.drawShiba(g, w / 2, h - 8, pose, t, { scale: 3, pal });
+        E.drawShiba(g, w / 2, h - 6, pose, t, { scale: 2.4, pal });
         if (t < 1.4) { g.globalAlpha = Math.max(0, 1 - t / 1.4); g.fillStyle = b.b; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 + t * 2, r = 30 + t * 70; g.fillRect(w / 2 + Math.cos(a) * r - 3, h / 2 + Math.sin(a) * r * 0.6 - 3, 6, 6); } g.globalAlpha = 1; }
       } },
       lines: [
