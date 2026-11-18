@@ -4,7 +4,7 @@
 
    FICHA (um arquivo por coisa, em conteudo/<tipo>-<id>.js):
      ficha({
-       tipo: 'enfeite' | 'bicho' | 'roupa' | 'evento' | 'loja',
+       tipo: 'enfeite' | 'bicho' | 'roupa' | 'evento' | 'loja' | 'amuleto',
        id: 'lanterna_papel', nome: 'Lanterna de papel', desc: 'texto curto',
        preco: 60,                 // enfeite/bicho: segundos de renda (vira ¥ sozinho)
        onde: { x: 0.3, y: 10 },   // enfeite/bicho: x = 0..1 da largura do quintal, y = px abaixo do chão (+ = mais pra frente)
@@ -17,6 +17,10 @@
        // evento: dur (s), mult (×renda), icone ('star'|'clock'|'rice'...), sub (texto do aviso)
        // loja: k ('sell' renda | 'val' valor do arroz | 'gold' bolsões), r (bônus por nível, ex.: 0.06)
        // roupa: ilha (0..4) = só aparece enterrada naquela ilha
+       // amuleto (omamori, game/amuletos.js): texto (1 linha), etiquetas ['mao'|'motor'|'sorte'|'fabrica'|'equipe'],
+       //   raridade 'comum'|'raro'|'lendario', fx: {kind, values: {gancho: valor}} (ganchos no topo do amuletos.js),
+       //   icone (id de ferramenta do G.Props, 'onigiri', 'sack_gold', 'sack_leg', 'coin' ou ícone do E.UI), desbloqueio
+       //   (id de conquista do goals.js: lendário só entra no baralho depois dela), ai (nota pro jogador guloso dos testes)
      });
 
    CORES (minúscula = tom escuro da mesma cor):
@@ -48,6 +52,11 @@ const API = `/* GERADO por tools/content.js a partir de conteudo/*.js — não e
         if (G.Inf && G.Inf.addEvent) G.Inf.addEvent({ id, n: f.nome, sub: f.sub || f.desc || '', dur: f.dur || 30, mult: f.mult || 2, icon: f.icone || 'star' });
       } else if (f.tipo === 'loja') {
         if (D.SHOPS && !D.SHOPS.some(s => s.id === id)) D.SHOPS.push({ id, n: f.nome, d: f.desc || '', k: f.k || 'sell', r: f.r || 0.05 });
+      } else if (f.tipo === 'amuleto') {
+        const L = (D.AMULETOS = D.AMULETOS || []);
+        if (L.some(a => a.id === id)) return;
+        L.push({ id, n: f.nome, d: f.texto || f.desc || '', tags: f.etiquetas || [], rar: f.raridade || 'comum', fx: f.fx || { kind: 'mult', values: {} },
+          icon: f.icone || 'star', unlock: f.desbloqueio || null, ai: f.ai || 1 });
       } else { console.warn('[kome] ficha com tipo desconhecido:', f.tipo, f.nome); return; }
       lista.push(Object.assign({ tipo: f.tipo }, base));
     } catch (e) { console.warn('[kome] ficha quebrada:', f && f.nome, e); }

@@ -14,7 +14,7 @@ const a = process.argv.slice(2), val = (k, d) => (a.includes(k) ? a[a.indexOf(k)
 
 // peso de cada tipo de novidade (pico de dopamina)
 const W = { tool: 10, ilha: 12, casa: 6, gemea: 7, marco: 5, montanha: 4, conquista: 3, enfeite: 2, fabrica: 2, no: 1.5, loja: 1,
-  oficina: 1, compra: 0.1, upgrade: 2.2, dourado: 5, prestigio: 12, celeste: 4, novo: 10 };
+  oficina: 1, compra: 0.1, upgrade: 2.2, dourado: 5, prestigio: 12, celeste: 4, novo: 10, amuleto: 6 };   // amuleto: escolha 1 de 3 (amuletos.js)
 const HAB_TAU = 20 * 60, D_HALF = 4 * 60, LIM = 1.0, QUIT = 15 * 60;
 
 function play(events, horas) {   // events: [[t, tipo], ...] ordenados

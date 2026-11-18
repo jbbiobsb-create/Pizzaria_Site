@@ -103,7 +103,7 @@
     return null;
   }
   function sellLoose(item, px, py) {          // item que sai do mundo (esteira apagada etc.): vende na hora, nada se perde
-    const v = (ITEMS[item.t].val - ITEMS[item.t].base) * unitV(); pay(v); S.facAcc += v;
+    const v = (ITEMS[item.t].val - ITEMS[item.t].base) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1); pay(v); S.facAcc += v;
     if (!S.fast && px !== undefined && v > 0) fl.add(px, py, '+¥' + U.fmt(v), { size: 17, c: C.cream, life: 0.8 });
   }
   function clearBelt(x, y) {
@@ -183,7 +183,7 @@
   /* ---------- venda na doca ---------- */
   const pend = { v: 0, best: 0, t: 0, n: 0 };
   function sell(item, row) {
-    const it = ITEMS[item.t], v = (it.val - it.base) * unitV();
+    const it = ITEMS[item.t], v = (it.val - it.base) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1);   // amuletos Chef / Esteira Expressa
     pay(v); S.facAcc += v; S.sold[item.t] = (S.sold[item.t] || 0) + 1;
     if (S.firstSale < 0 && item.t !== 'raw' && item.t !== 'gold') S.firstSale = S.timeOpen;
     pend.v += v; pend.best = Math.max(pend.best, it.val); pend.n++;

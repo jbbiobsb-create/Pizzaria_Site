@@ -42,6 +42,19 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
     return { money: S.money, tool: S.tool, inv: S.stats.inv, v: JSON.parse(localStorage.getItem('kome-no-japao-v4')).__v }; });
   ok(r2.tool === 3 && r2.money >= 777, 'save v4 carregou (ferramenta ' + r2.tool + ', ¥' + Math.round(r2.money) + ')');
   ok(r2.inv && typeof r2.inv === 'object' && Object.keys(r2.inv).length > 0, 'migração criou o armazém e ele enche: ' + JSON.stringify(Object.fromEntries(Object.entries(r2.inv || {}).map(([k, v]) => [k, Math.floor(v)]))));
+  // 5) amuletos (game/amuletos.js): migração cria S.stats.am; na ilha o modo acelerado escolhe sozinho; volta igual do save; viagem zera
+  const r5 = await p.evaluate(() => { const K = __kome, S = K.S, A = KomeGame.Amuletos; const mig = !!(S.stats.am && Array.isArray(S.stats.am.cur));
+    S.island = 1; S.stats.islandsDone = 1; S.stats.seeds = 50; S.ended = false; S.tool = 3; const pend = A.pending(); K.step(1); const cur = S.stats.am.cur.slice();
+    const rr0 = S.stats.seeds; S.tool = 7; const o1 = A.offer().map(x => x.id).join(); const okR = A.reroll(); const o2 = A.offer().map(x => x.id).join(); K.step(1);
+    KomeGame.Game.saveNow(); return { mig, pend, cur, n: S.stats.am.cur.length, okR, spent: rr0 - S.stats.seeds, diff: o1 !== o2 }; });
+  ok(r5.mig, 'migração criou S.stats.am (amuletos)');
+  ok(r5.pend && r5.cur.length === 1 && r5.n === 2, 'modo acelerado escolhe o amuleto na hora (chegada + 1ª máquina a motor): ' + r5.cur.join());
+  ok(r5.okR && r5.spent === 1 && r5.diff, 'rerrolar custa 1 semente e troca as cartas');
+  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  const r6 = await p.evaluate(() => { const S = __kome.S, A = KomeGame.Amuletos; const n = S.stats.am.cur.length, d = Object.keys(S.stats.am.disc).length;
+    S.stats.islandsDone = 2; const after = A.current().length, disc = Object.keys(A.discovered()).length; return { n, d, after, disc, rr: S.stats.am.rr }; });
+  ok(r6.n === 2 && r6.d >= 2, 'amuletos voltam do save (' + r6.n + ' na build, ' + r6.d + ' descobertos)');
+  ok(r6.after === 0 && r6.disc === r6.d && r6.rr === 0, 'viagem zera a build e o rerrolar; descobertos ficam');
   // 4) E.Sim puro
   const r4 = await p.evaluate(() => { const s = Pixxel.Sim(); let t = 0; s.add('a', { tick: dt => { t += dt; }, offline: dt => ({ yen: dt * 2 }) }).add('b', { tick() {} });
     s.tick(0.5); const off = s.catchUp(3600); return { t, off }; });

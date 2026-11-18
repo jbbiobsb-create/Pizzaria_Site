@@ -162,8 +162,8 @@
   // tempo fora (o game.js calcula antes de o Pátio se registrar, então ele faz a conta aqui, como a fábrica)
   function offlineOnce() {
     const aw = S().away; if (!aw || !(aw.sec > 5) || !on()) return;
-    const sec = Math.min(aw.sec, P.offMax + 4 * 3600 * sl('cama')), v = rate() * sec * Math.min(1, P.off + 0.1 * sl('cochilo')); if (!(v > 0)) return;
-    const capSec = P.offMax + 4 * 3600 * sl('cama');
+    const AMo = G.Amuletos, capSec = Math.max(P.offMax + 4 * 3600 * sl('cama'), AMo ? AMo.val('offCap') * 3600 : 0);   // amuleto Preguiça Boa: 24 h e ×3
+    const sec = Math.min(aw.sec, capSec), v = rate() * sec * Math.min(1, P.off + 0.1 * sl('cochilo')) * (AMo ? AMo.mult('offline') : 1); if (!(v > 0)) return;
     if (G.CookieUI) { pendAway = { sec: aw.sec, capSec, capped: aw.sec > capSec, rows: [{ icon: 'yen', label: 'A frota cavou', value: v }], total: v }; return; }
     S().money += v; S().earned += v;
     if (api && api.away) api.away(sec, v);

@@ -108,6 +108,7 @@
     if (UI.album) {
       UI.album(col, { cols: 2, items: ACH.map(a => ({ id: a.id, name: a.n, hint: a.d, q: '', a: a.d, icon: a.icon, unlocked: !!st().ach[a.id] })) });
     } else for (const a of ACH) UI.el('div', 'k-homehint', col, (st().ach[a.id] ? '✓ ' + a.n : '··· ' + a.d));
+    if (G.AmuletosUI) G.AmuletosUI.caderno(col);   // coleção de amuletos (omamori) descobertos
   }
   function refresh() { if (panelEls && panelEls.pane) fill(panelEls.pane); }
   function mountIn(pane) { fill(pane); panelEls.pane = pane; }

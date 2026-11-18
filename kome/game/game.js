@@ -56,9 +56,11 @@
 
   /* SAVE VERSIONADO (fase 0 do PLANO-100H): cada camada nova sobe SAVE_V e põe UMA migração aqui. Save antigo nunca quebra:
      E.Save chama migrate(d, versãoAntiga) e roda todas as migrações que faltam, em ordem. */
-  const SAVE_V = 5;
+  const SAVE_V = 6;
   const MIGR = {
     5: d => { d.stats = d.stats || {}; d.stats.inv = d.stats.inv || {}; d.stats.got = d.stats.got || {}; },   // armazém de itens
+    // amuletos (amuletos.js): build da ilha atual; trip = ilhas concluídas (a viagem zera sozinha). Save antigo entra sem amuleto
+    6: d => { d.stats = d.stats || {}; const a = d.stats.am; if (!a || typeof a !== 'object') d.stats.am = { trip: d.stats.islandsDone | 0, cur: [], got: 0, rr: 0, offer: null, disc: {}, t0: d.tool | 0, rg: 0 }; },
   };
   function migrate(d, v) { for (let k = (v | 0) + 1; k <= SAVE_V; k++) if (MIGR[k]) MIGR[k](d); return d; }
 
@@ -132,12 +134,13 @@
     if (G.Goals) s.sell *= G.Goals.mult();
     if (G.Patio && G.Patio.heart) s.sell *= G.Patio.heart();   // Arroz do Coração: +1% por conquista da camada Cookie
     if (G.Islands) G.Islands.applyStats(s);   // árvore das sementes + bônus da ilha
+    if (G.Amuletos) G.Amuletos.applyStats(s, cur);   // amuletos da ilha (mão/motor, sacos, ajudantes, regras da árvore)
     if (G.Ind) G.Ind.applyStats(s);           // fábrica, lojas e Bagger gêmea (modo infinito)   // selos das conquistas: +1% cada   // oficina do modo infinito
     st = s;
     if (heap) for (const p of heap.pockets) p.mult = s.gold;
     return s;
   }
-  const PM = () => (G.Islands ? G.Islands.priceMul() : 1);   // sementes: Amigo do Corretor
+  const PM = () => (G.Islands ? G.Islands.priceMul() : 1) * AM('preco');   // sementes: Amigo do Corretor · amuletos Pão-Duro/Diesel
   const toolCost = t => Math.ceil(t.cost * EC.COST_TOOL * PM());
   const nodeCost = n => Math.ceil(n.c * EC.COST_NODE * PM());
   const houseCost = h => Math.ceil(h.c * EC.COST_HOUSE * PM());
@@ -261,6 +264,7 @@
      4. Economia
      ===================================================================== */
   let comboLv = 0;
+  const AM = k => (G.Amuletos ? G.Amuletos.mult(k) : 1);   // ganchos dos amuletos (game/amuletos.js): 1 = sem efeito
   const comboMult = () => 1 + (st.comboCap - 1) * S.combo / D.COMBO.max;
   // multiplicador de iene do que o Kome cava agora (preço x combo x eventos)
   function yenK() {
@@ -383,6 +387,7 @@
   function credit(v, kind, crit) {
     if (!smallShow && G.Inf) v *= G.Inf.evMult();   // evento do modo infinito (rush, veio, festival)
     if (!smallShow && G.Islands) v *= G.Islands.evMult();
+    if (!smallShow && G.Amuletos) v *= G.Amuletos.credit(kind);   // amuletos: você / frota / prêmio, noite, rush, estimação
     if (!smallShow && G.Events) v *= G.Events.mult(kind);   // eventos dourados da camada Cookie (frenesi, gigante, desfile…)   // evento da ilha (nevasca, erupção, maré, gravidade fofa)
     if (G.Fab && kind !== 2 && !smallShow) G.Fab.dig(v);   // fábrica: ritmo de cavar (a Doca puxa uma % disso)
     S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind === 0) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma e sem prêmio de evento: o prêmio é minutos da renda TOTAL, Pátio junto, e virava o R0 do próximo Pátio) S.col.pulse = 1; S.win.inc[kind] += v;
@@ -434,7 +439,7 @@
     S.digT += dt; if (S.boingT > 0) S.boingT -= dt; if (coinT > 0) coinT -= dt; if (sndT > 0) sndT -= dt;
     if (S.estreia > 0) S.estreia -= dt; if (S.slide > 0) S.slide -= dt; if (S.col.pulse > 0) S.col.pulse = Math.max(0, S.col.pulse - dt * 3);
     // combo
-    if (S.digT < C.idle + (cur.kind === 'hand' || cur.kind === 'jack' ? 0 : (cur.cycle || 2.5) * 1.6) && !S.autoMode) S.combo = Math.min(C.max, S.combo + C.gain * dt); else S.combo = Math.max(0, S.combo - C.decay * dt);
+    if (S.digT < C.idle + (cur.kind === 'hand' || cur.kind === 'jack' ? 0 : (cur.cycle || 2.5) * 1.6) && !S.autoMode) S.combo = Math.min(C.max, S.combo + C.gain * dt * AM('comboGain')); else S.combo = Math.max(0, S.combo - C.decay * dt * AM('comboDecay'));
     if (S.combo > S.stats.bestCombo) S.stats.bestCombo = S.combo;
     { const lv = Math.floor(S.combo / 3); if (lv > comboLv && lv > 0 && Sfx && !S.opts.mute && !FAST) { try { Sfx.combo(S.combo >= C.max - 0.01 ? 30 : lv * 3); } catch (e) { /* */ } } comboLv = lv; }
     if (S.furia > 0) S.furia -= dt;
@@ -455,7 +460,7 @@
     if (st.slide && heap.flow > 40000 * dt && S.slide <= -30) { S.slide = 3; ui(() => UI.banner('DESLIZAMENTO!', 'iene ×1,5 por 3 segundos', { icon: 'bolt', dur: 1.4 })); if (!FAST) quake(0.5); }
     // sacos
     if (hold && S.digT < 1) S.sackT -= dt;
-    if (S.sackT <= 0) { S.sackT = D.SACK.every * U.rnd(D.SACK.jitter[0], D.SACK.jitter[1]); spawnSack(); }
+    if (S.sackT <= 0) { S.sackT = D.SACK.every * U.rnd(D.SACK.jitter[0], D.SACK.jitter[1]) / AM('sackRate'); spawnSack(); }
     for (let i = S.sacks.length - 1; i >= 0; i--) {
       const k = S.sacks[i]; k.t += dt;
       const gy = heap.surf(k.x);
@@ -493,6 +498,7 @@
     if (S.sacks.length >= 4) return;
     let r = Math.random(), gi = 0; const GA = D.SACK.gacha;
     for (; gi < GA.length - 1; gi++) { if (r < GA[gi].p) break; r -= GA[gi].p; }
+    if (G.Amuletos) gi = Math.min(GA.length - 1, Math.max(gi, G.Amuletos.val('sackFloor')));   // Trio da Sorte / Saco do Imperador
     const x = U.clamp(P.x - P.face * U.rnd(50, 110) / Math.min(1, cam ? cam.z : 1), 950, WL.MX1);
     S.sacks.push({ x, y: heap.surf(x) - 160, vy: 0, t: 0, g: gi, state: 0, sh: 0, v: 0 });
   }
@@ -2099,7 +2105,7 @@
     let had = false;
     if (/fresh/.test(location.search)) save.clear(); else had = loadState();   // ?fresh = começa do zero (testes)
     // tempo fora: sistemas com offline(dt) andam até 8 h (nenhum ainda; a fábrica da fase 1 é o primeiro). Resultado em S.away
-    if (had && G.Sim) { const sec = Math.min(8 * 3600, save.offlineAtLoad || 0); S.away = { sec, res: G.Sim.catchUp(sec) }; }
+    if (had && G.Sim) { const sec = Math.min(Math.max(8, G.Amuletos ? G.Amuletos.val('offCap') : 0) * 3600, save.offlineAtLoad || 0); S.away = { sec, res: G.Sim.catchUp(sec) }; }   // amuleto Preguiça Boa: teto 24 h
     S.heapArea = heap.area; S.footX = scanFoot();
     cur = TOOLS[S.tool];
     setTool(S.tool);
@@ -2122,6 +2128,8 @@
     if (G.Topo) G.Topo.init({ sfx });
     if (G.Events) G.Events.init({ sfx, fast: () => FAST, ips: () => Math.max(1, S.ips || 0), pay: v => credit(v, 2, false),
       banner: (e, txt) => { sfx('fanfare'); ui(() => UI.banner(e.n.toUpperCase() + '!', txt, { icon: e.icon || 'star', tone: 'gold', dur: 3 })); } });
+    if (G.Amuletos) G.Amuletos.init({ sfx, fast: () => FAST, save: () => saveNow(), recompute: () => computeStats(), playing: () => cur, heap: () => heap, ui,
+      busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()) || (G.CookieUI && G.CookieUI.isOpen && G.CookieUI.isOpen()) || S.cele.t >= 0 && S.cele.t < S.cele.dur });
     if (G.Patio) G.Patio.init({ sfx, fast: () => FAST, credit: v => credit(v, 1, false), recompute: () => computeStats(),
       ach: a => { sfx('chirin'); ui(() => UI.achievement(a.n, { sub: a.d + ' · +1% no Arroz do Coração', icon: a.icon, kicker: 'Conquista' })); },
       banner: () => { sfx('fanfare'); ui(() => UI.banner('PÁTIO DA FROTA ABRIU!', 'compre várias de cada máquina: toque em Pátio, no topo', { icon: 'star', tone: 'gold', dur: 4.5 })); },
