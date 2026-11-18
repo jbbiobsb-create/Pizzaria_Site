@@ -788,17 +788,18 @@
   function drawGround(g, v) {
     const a = Math.max(L.L, v.x0), b = Math.min(L.R, v.x1); if (b <= a) return;
     // cerca de tela no fundo do pátio (baixa e clara)
-    g.fillStyle = '#B9C0C8'; for (let x = Math.ceil(a / 46) * 46; x <= b; x += 46) g.fillRect(x - 1.5, -30, 3, 31);
-    g.fillRect(a, -30, b - a, 2.5); g.fillRect(a, -16, b - a, 1.5);
+    // (retângulos da mesma cor num caminho só: 1 preenchimento por cor em vez de ~150 por quadro)
+    g.fillStyle = '#B9C0C8'; g.beginPath(); for (let x = Math.ceil(a / 46) * 46; x <= b; x += 46) g.rect(x - 1.5, -30, 3, 31);
+    g.rect(a, -30, b - a, 2.5); g.rect(a, -16, b - a, 1.5); g.fill();
     // piso: terra batida na parte das turmas, asfalto na das máquinas, rua do comboio na frente
     const ha = Math.max(a, L.handL), hb = Math.min(b, L.R);
     if (hb > ha) { g.fillStyle = '#CDB48A'; g.fillRect(ha, 1, hb - ha, 66); g.fillStyle = '#B99E72'; g.fillRect(ha, 62, hb - ha, 4); g.fillStyle = '#E3D2AE'; g.fillRect(ha, 1, hb - ha, 2.5);
-      g.fillStyle = '#E8DCC2'; for (let x = Math.ceil(ha / 34) * 34; x < hb; x += 34) g.fillRect(x, 50, 22, 6); }
+      g.fillStyle = '#E8DCC2'; g.beginPath(); for (let x = Math.ceil(ha / 34) * 34; x < hb; x += 34) g.rect(x, 50, 22, 6); g.fill(); }
     const ma = Math.max(a, L.L), mb = Math.min(b, L.handL);
     if (mb > ma) {
       g.fillStyle = '#8B8F96'; g.fillRect(ma, 1, mb - ma, 46); g.fillStyle = '#A3A7AD'; g.fillRect(ma, 1, mb - ma, 3);
       g.fillStyle = '#6F747C'; g.fillRect(ma, 47, mb - ma, 20); g.fillStyle = '#5E636B'; g.fillRect(ma, 64, mb - ma, 3);
-      g.fillStyle = '#E8E2D2'; for (let x = Math.ceil(ma / 60) * 60; x < mb; x += 60) g.fillRect(x, 56, 28, 2.5);
+      g.fillStyle = '#E8E2D2'; g.beginPath(); for (let x = Math.ceil(ma / 60) * 60; x < mb; x += 60) g.rect(x, 56, 28, 2.5); g.fill();
     }
   }
 
@@ -875,7 +876,7 @@
     // pontas: muro de arrimo de pedra (fecha a faixa em vez de cortar seco no barro)
     for (const ex of [L.L - 20, L.R + 10]) if (ex > v.x0 - 30 && ex < v.x1 + 30) {
       Draw.box(g, ex - 12, FG_Y - 4, 24, FG_H + 6, '#B7AFA2', { ol: 1.4 });
-      g.fillStyle = '#9E978A'; for (let y = FG_Y + 18, r = 0; y < FG_Y + FG_H; y += 22, r++) { g.fillRect(ex - 10, y, 20, 1.8); g.fillRect(ex + (r % 2 ? -3 : 3), y - 20, 1.8, 20); }
+      g.fillStyle = '#9E978A'; g.beginPath(); for (let y = FG_Y + 18, r = 0; y < FG_Y + FG_H; y += 22, r++) { g.rect(ex - 10, y, 20, 1.8); g.rect(ex + (r % 2 ? -3 : 3), y - 20, 1.8, 20); } g.fill();
       Draw.box(g, ex - 15, FG_Y - 10, 30, 9, '#D3CCC0', { ol: 1.4 });
     }
   }

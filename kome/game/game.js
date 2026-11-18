@@ -1801,6 +1801,9 @@
     const tm = f.res ? null : g.getTransform(), td = tm && !tm.b && !tm.c ? Math.abs(tm.d) : 0;
     const k = td && td <= 1.5 * stage.dpr ? td : Math.min(1.5, z * (f.res || 1)) * stage.dpr, mk = m.k || 1, W0 = (T0.w || 300) * 1.6 * mk, H0 = (T0.h || 200) * 1.7 * mk, x0 = m.x - W0 / 2, y0 = m.y - H0, bw = Math.ceil(W0 * k), bh = Math.ceil((H0 + 40) * k);
     const c = f._cv || (f._cv = document.createElement('canvas')), mir = cam.mx < 0;
+    // zoom andando (tamanho mudou e a escala não é a do quadro passado): desenha direto em vez de refazer a imagem todo quadro
+    if (f._ok && !f.flt && (c.width !== bw || c.height !== bh) && f._pk !== k) { f._pk = k; T0.draw(g, m); return; }
+    f._pk = k;
     if (c.width !== bw || c.height !== bh || !f._ok || f._mir !== mir || (machFrame - (f._fr || 0)) > (f.every || (z < 0.3 ? 6 : 3)) || Math.abs(m.x - f._mx) > 60) {
       if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
       const cg = c.getContext('2d'); cg.setTransform(1, 0, 0, 1, 0, 0); cg.clearRect(0, 0, bw, bh);
