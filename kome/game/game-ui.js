@@ -290,6 +290,17 @@
     HUD.tree = tree; HUD.treePanel = treePanel; HUD.settings = aj;
     HUD.refreshCloset = () => {};   // o guarda-roupa mora na Casa › Roupas
 
+    // tela cheia: ícone pequeno e discreto no canto de cima à direita (4 setas pra fora; dentro da tela cheia, pra dentro)
+    { const de = document.documentElement;
+      if (de.requestFullscreen || de.webkitRequestFullscreen) {
+        const fs = document.createElement('button'); fs.type = 'button'; fs.className = 'ux-fs'; Z.tr.appendChild(fs);
+        const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+        const OUT = 'M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6', IN = 'M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6';
+        const paint = () => { const f = isFs(); fs.setAttribute('aria-label', f ? 'Sair da tela cheia' : 'Tela cheia'); fs.title = fs.getAttribute('aria-label');
+          fs.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="' + (f ? IN : OUT) + '" fill="none" stroke="#3B2818" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'; };
+        fs.addEventListener('click', e => { e.stopPropagation(); if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else if (api.goFull) api.goFull(); });
+        document.addEventListener('fullscreenchange', paint); document.addEventListener('webkitfullscreenchange', paint); paint();
+      } }
     // tela baixa: a missão é uma pílula (ícone + "0 de 1"); 1º toque abre o nome por 4 s, o 2º faz a ação (Pegar! age direto)
     document.addEventListener('click', e => {
       const m = e.target.closest && e.target.closest('.ux-mis'); if (!m || innerHeight > 420 || m.classList.contains('ux-mis-ok')) return;

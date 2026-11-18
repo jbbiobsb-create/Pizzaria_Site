@@ -111,7 +111,7 @@ body.k-tight .k-tipcontrols{max-width:230px;box-sizing:border-box;font-size:12px
 .k-toasts,.k-banners{display:none !important}
 .k-bar.ux-combo-off{display:none}
 /* zoom e tela cheia: só no canto (k-zbl). Sem lugar no canto, somem (pinça e Mais › Ajustes › Zoom continuam) */
-body:not(.k-zbl) .k-zb,.k-fullscr{display:none !important}   /* tela cheia: automática no 1º toque + Mais › Ajustes */
+.k-zb,.k-fullscr{display:none !important}   /* tela cheia: automática no 1º toque + Mais › Ajustes */
 /* celular (qualquer tamanho): sem fileira de chips (novidade = bolinha na aba + 1 aviso), sem linha de recorde */
 body.k-mob .k-chips,body.k-mob .k-chip-more{display:none !important}
 body.k-mob .k-rate-line{display:none}
@@ -150,3 +150,8 @@ body.k-mob .k-rate-line{display:none}
 }
 /* telinha muito baixa (≤ 320 px): a sublinha do aviso some, o aviso fica numa linha só */
 @media (max-height:320px){.ux-note-t small{display:none}.k-zone-tl .k-pill.k-big{min-height:36px}}
+/* ícone de tela cheia: 44 px de toque, desenho de ~22 px, meio transparente, no canto de cima à direita */
+.ux-fs{order:9;flex:0 0 auto;width:44px;height:44px;min-width:44px;padding:0;display:flex;align-items:center;justify-content:center;
+ background:rgba(255,248,234,.55);border:2px solid rgba(59,40,24,.45);border-radius:10px;cursor:pointer;opacity:.8;pointer-events:auto}
+.ux-fs:active{transform:translateY(1px)}
+.ux-fs:focus-visible{outline:3px solid #2E64B0;outline-offset:2px}
