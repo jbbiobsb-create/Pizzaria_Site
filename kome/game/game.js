@@ -1792,7 +1792,8 @@
   }
   // máquina de fundo com zoom aberto: desenha numa imagem e reaproveita por alguns quadros (celular ficava lento com a Bagger)
   let machFrame = 0, machSeq = 0; const BAGC = {};
-  // force = imagem mesmo de perto (frota estacionada parada: redesenha a cada 3 quadros; até zoom 1,5 a imagem tem a resolução da tela)
+  // force = imagem mesmo de perto (frota estacionada parada: redesenha a cada 4 quadros, a cada 8 com zoom < 0,45 — parada, o que
+  // mexe nela é menor que 1 pixel de tela nesse zoom; até zoom 1,5 a imagem tem a resolução da tela)
   function drawMach(g, id, m, f, force) {
     const T0 = G.Tools[id], z = cam.z;
     if ((z > 0.55 && !f.always && !(force && z <= 1.5)) || !T0.w) { T0.draw(g, m); return; }
@@ -1804,7 +1805,7 @@
     // zoom andando (tamanho mudou e a escala não é a do quadro passado): desenha direto em vez de refazer a imagem todo quadro
     if (f._ok && !f.flt && (c.width !== bw || c.height !== bh) && f._pk !== k) { f._pk = k; T0.draw(g, m); return; }
     f._pk = k;
-    if (c.width !== bw || c.height !== bh || !f._ok || f._mir !== mir || (machFrame - (f._fr || 0)) > (f.every || (z < 0.3 ? 6 : 3)) || Math.abs(m.x - f._mx) > 60) {
+    if (c.width !== bw || c.height !== bh || !f._ok || f._mir !== mir || (machFrame - (f._fr || 0)) > (f.every || (force && z < 0.45 ? 7 : z < 0.3 ? 6 : 3)) || Math.abs(m.x - f._mx) > 60) {
       if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
       const cg = c.getContext('2d'); cg.setTransform(1, 0, 0, 1, 0, 0); cg.clearRect(0, 0, bw, bh);
       // ilha espelhada: a imagem já é desenhada espelhada (assim placas e textos da máquina saem legíveis) e carimbada sem espelhar

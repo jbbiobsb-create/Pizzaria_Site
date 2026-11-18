@@ -5958,7 +5958,7 @@
     /* ---------- montanha guardada (o.cache): o corpo vai pra uma tela de apoio na escala da tela (1 pixel = 1 pixel, sem
        reamostrar) e só os retângulos das colunas que mudaram são refeitos; vivos por cima: brilhos, flash, grãos rolando.
        Refaz tudo quando muda escala/espelho/opções/camadas; câmera andando = copia o que já tem e desenha só a faixa nova. */
-    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false };
+    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false, fc: 0 };
     const BV = { x0: 0, x1: 0, y0: 0, y1: 0 };
     function bakeMargin(K) { const step = Math.max(1, Math.floor(1.6 / (colW * K))); return (8 * step + 4) * colW + 24 / K; }
     function foundSig() { let f = ''; for (let k = 0; k < heap.pockets.length; k++) f += heap.pockets[k].found ? '1' : '0'; return f; }
@@ -6007,7 +6007,10 @@
       // janela atual em mundo
       const wx0 = (BK.ox - BK.bx) / K, wy0 = (BK.oy - BK.by) / K, wx1 = wx0 + BK.w / K, wy1 = wy0 + BK.h / K;
       const inside = !full && ax0 >= wx0 && ax1 <= wx1 && ay0 >= wy0 && ay1 <= wy1;
-      if (!full) {
+      // colunas cavadas: refaz em quadros alternados (a 30 qps; a máquina, os grãos e o brilho continuam a 60 por cima).
+      // Cavando sem parar era 1 retângulo refeito por quadro, o maior custo da montanha no pós-final.
+      BK.fc = (BK.fc + 1) | 0;
+      if (!full && (BK.fc & 1 || BK.stale)) {
         // colunas que mudaram desde a última vez (inclusive as da folga, que mexem na sombra de dentro)
         const E2 = bakeMargin(K), hs = BK.hs;
         let c0 = Math.floor((wx0 - E2 - x0) / colW), c1 = Math.ceil((wx1 + E2 - x0) / colW);
