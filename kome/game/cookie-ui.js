@@ -251,6 +251,8 @@
   function button(parent, txt, cls, fn) { const b = el('button', 'k-cui-b' + (cls ? ' ' + cls : ''), parent); b.type = 'button'; if (txt) b.textContent = txt; if (fn) b.addEventListener('click', e => { e.stopPropagation(); fn(e); }); return b; }
   // card(cls) -> {card, dim, open(), close()} com fundo escurecido opcional
   const opened = [];
+  addEventListener('keydown', e => { if (e.key !== 'Escape' || !opened.length) return; const top = opened[opened.length - 1];   // mapa/amuletos por cima: eles fecham primeiro
+    if (!top.esc || document.querySelector('.k-isl.k-open, .k-am-dim.on')) return; top.close(); });
   function sheet(cls, o) {
     o = o || {};
     const dim = o.dim === false ? null : el('div', 'k-cui-dim', null);
@@ -260,6 +262,7 @@
       close() { if (!s.isOpen) return s; s.isOpen = false; const i = opened.indexOf(s); if (i >= 0) opened.splice(i, 1); if (dim) dim.classList.remove('on'); card.classList.remove('on'); setTimeout(() => { if (!s.isOpen) { card.remove(); if (dim) dim.remove(); } }, 260); if (o.onClose) o.onClose(); return s; },
     };
     if (dim && o.dismiss !== false) dim.addEventListener('pointerdown', e => { if (e.target === dim) s.close(); });
+    s.esc = !!dim && o.dismiss !== false;   // Esc fecha igual ao toque fora (só a carta de cima)
     return s;
   }
   function head(card, title, sub, onX) {

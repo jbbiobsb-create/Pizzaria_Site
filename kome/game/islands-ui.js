@@ -143,6 +143,7 @@
     const f = onClose; onClose = null; if (f && silent !== true) f();
   }
   const isOpen = () => !!(root && root.classList.contains('k-open'));
+  addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen() && !coach && !document.querySelector('.k-am-dim.on')) { close(); e.stopImmediatePropagation(); } });   // Esc fecha o mapa (não no tutorial nem com carta por cima)
   function refresh() { if (isOpen()) fillSide(); chipTick(); }
 
   /* ---------- tutorial guiado (3 passos) ---------- */
