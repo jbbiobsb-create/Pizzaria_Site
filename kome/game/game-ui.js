@@ -214,31 +214,22 @@
     mount = UI.goal(Z.tc, { label: 'Montanha', w: 250, pct: true, done: 'acabou!', endowed: 0.12,
       ticks: [{ at: 0.06, color: PAL.pressD }, { at: 0.23, color: PAL.sakuraD || PAL.pink }, { at: 0.8, color: PAL.gold }] });
 
-    flyer = UI.flyer(Z.tr, { art: 'house', title: 'Casa', sub: '', progress: 0, onClick: () => api.buyHouse() });
-    const trCol = UI.el('div', 'k-col k-trcol', Z.tr);   // engrenagem e casa empilhadas: não alarga o canto
-    // menu-central: tudo que é legal e ficava escondido (Casa, roupinhas, trocar, caderno, oficina, ilhas...) num lugar só
-    const homeBtn = UI.button(trCol, { icon: 'chest', label: 'Menu do Kome', onClick: () => openMenu() });
-    UI.tooltip(homeBtn, 'Menu do Kome: Casa, roupinhas, trocar ferramenta, caderno, oficina, ilhas');
-    HUD.homeBadge = n => UI.badge(homeBtn.el || homeBtn, n);
-    HUD.homeEl = homeBtn.el || homeBtn;
-    const gear = UI.button(trCol, { icon: 'gear', onClick: () => aj.toggle ? aj.toggle() : aj.open() });
-    trCol.insertBefore(gear.el || gear, trCol.firstChild);
-    UI.tooltip(gear, 'Ajustes');
+    flyer = UI.flyer(Z.tr, { art: 'house', title: 'Casa', sub: '', progress: 0, onClick: () => { const h = D.HOUSE[S.house]; if ((!h || S.tool + 1 < h.tier || S.money < api.houseCost(h)) && api.openHome && api.openHome('casa')) return; api.buyHouse(); } });   // não dá pra pagar: abre a escada da casa
     UI.tooltip(flyer, () => { const h = D.HOUSE[S.house]; return h ? '<b>' + h.n + '</b><br>' + h.draw + (S.tool + 1 < h.tier ? '<br>precisa: ' + D.TOOLS[h.tier - 1].name : '') : 'A casa está pronta!'; });
 
-    toolBtn = UI.button(Z.dock, { icon: icon('hashi'), iconSize: 36, title: '…', sub: '', w: 218, progress: 0, onClick: () => (!D.TOOLS[S.tool + 1] && S.ended && G.Inf) ? G.Inf.open() : api.buyTool() });
+    toolBtn = UI.button(Z.dock, { icon: icon('hashi'), iconSize: 36, title: '…', sub: '', w: 218, progress: 0, cls: 'k-toolbtn', onClick: () => (!D.TOOLS[S.tool + 1] && S.ended && G.Inf) ? G.Inf.open() : gain(() => api.buyTool()) });
     UI.tooltip(toolBtn, () => { const t = D.TOOLS[S.tool + 1]; return t ? '<b>Próxima ferramenta: ' + t.name + '</b><br>' + t.act + '<br>' + t.size : 'Você tem a maior máquina do mundo.'; });
-    for (let i = 0; i < 3; i++) slots.push(UI.button(Z.dock, { icon: 'paw', iconSize: 26, title: '…', sub: '', w: 150, progress: 0, onClick: () => quickBuy(i) }));
+    for (let i = 0; i < 3; i++) slots.push(UI.button(Z.dock, { icon: 'paw', iconSize: 26, title: '…', sub: '', w: 150, progress: 0, cls: 'k-slot k-slot' + (i + 1), onClick: () => quickBuy(i) }));
     slots.forEach((s, i) => UI.tooltip(s, () => { const n = slotNodes[i]; return n ? '<b>' + n.n + '</b><br>' + n.desc + '<br><i>' + n.see + '</i>' : ''; }));
     UI.spacer(Z.dock);
     hornBtn = UI.button(Z.dock, { icon: 'horn', tone: 'red', onClick: () => api.horn() });
     hornBtn.el.style.display = 'none';
     // TROCAR DE MÁQUINA: botão grande com o ícone da máquina que você está pilotando + setinhas de troca.
     // PC: na barra de baixo, antes da Árvore (tecla T). Celular: redondo, colado no CAVAR (em cima dele deitado, ao lado em pé).
-    swapBtn = UI.button(Z.dock, { icon: icon('hashi'), iconSize: 40, cls: 'k-swapbtn', label: 'Trocar de máquina', onClick: () => openSwap() });
+    swapBtn = UI.button(Z.dock, { icon: icon('hashi'), iconSize: 34, cls: 'k-swapbtn', title: 'Trocar', sub: 'máquina', label: 'Trocar de máquina', onClick: () => openSwap() });
     UI.el('span', 'k-swap-mark', swapBtn.el).appendChild(UI.iconEl('swap', 18));
     UI.tooltip(swapBtn, () => '<b>Trocar de máquina</b> (tecla T)<br>jogando com: ' + swapName() + '<br>pilote qualquer uma que você já comprou');
-    swapFab = UI.button(ui.hud, { icon: icon('hashi'), iconSize: 36, cls: 'k-swapfab', label: 'Trocar de máquina', onClick: () => openSwap() });
+    swapFab = UI.button(ui.hud, { icon: icon('hashi'), iconSize: 30, cls: 'k-swapfab', vertical: true, title: 'Trocar', label: 'Trocar de máquina', onClick: () => openSwap() });
     UI.el('span', 'k-swap-mark', swapFab.el).appendChild(UI.iconEl('swap', 16));
     swapBtn.el.style.display = swapFab.el.style.display = 'none';
     addEventListener('resize', () => setTimeout(swapPlace, 120));
@@ -249,7 +240,10 @@
       if (document.querySelector('.k-dim.k-show') || (G.Home && G.Home.isOpen())) return;
       openSwap();
     });
-    treeBtn = UI.button(Z.dock, { icon: 'tree', title: 'Árvore', sub: 'do Kome', badge: 0, onClick: () => treePanel.open() });
+    // NAVEGAÇÃO FIXA (rodada de UX): 4 abas grandes de ícone + palavra na barra de baixo; cada uma abre um hub de tela cheia
+    navBuild(Z.dock);
+    HUD.homeEl = navTabs.lugares.el;
+    HUD.homeBadge = n => { homeN = n ? 1 : 0; navDots(); };
 
     // árvore: mapa de nós da engine
     for (const n of D.TREE) { n.desc = fxText(n); n.icon = n.icon || undefined; }
@@ -337,31 +331,7 @@
     });
     if (tree && HUD.treeOpen) tree.refresh();
   };
-  /* ---- Menu do Kome: blocos grandes com ícone, nome, situação e "!" de novidade; bloqueado aparece apagado com dica ---- */
-  let menuPanel = null;
-  function openMenu() {
-    if (!menuPanel) menuPanel = UI.panel({ title: 'Menu do Kome', icon: 'chest', side: 'right', cls: 'k-menupanel' });
-    const b = menuPanel.body; b.innerHTML = '';
-    const grid = UI.el('div', 'k-menugrid', b);
-    const hd = S.homeData || {}, own = hd.own || {}, ach = S.stats.ach ? Object.keys(S.stats.ach).length : 0;
-    const closet = (S.closet || []).length, ended = !!S.ended, isl = G.Islands ? G.Islands.island() : null;
-    const go = fn => () => { menuPanel.close(); setTimeout(fn, 120); };
-    const tiles = [
-      { icon: 'house', t: 'Casa do Kome', s: Object.keys(own).filter(k => k.indexOf('th_') < 0).length + ' coisas no quintal', badge: hd.newAch ? '!' : 0, fn: go(() => api.openHome && api.openHome('jardim')) },
-      { icon: 'hat', t: 'Roupinhas', s: closet + '/' + D.CLOSET.length + ' achadas cavando', badge: hd.newCloth ? '!' : 0, fn: go(() => api.openHome && api.openHome('roupa')) },
-      { icon: 'swap', t: 'Trocar ferramenta', s: S.tool >= 1 ? 'jogue com qualquer uma que já comprou' : 'compre a 2ª ferramenta', lock: S.tool < 1, fn: go(() => openSwap()) },
-      { icon: 'book', t: 'Caderno', s: ach + '/30 conquistas · missões', fn: go(() => api.openHome && api.openHome('caderno')) },
-      { icon: 'bolt', t: 'Oficina', s: ended ? 'deixe sua máquina favorita mais forte' : 'libera depois de terminar a casa', lock: !ended, fn: go(() => G.Inf && G.Inf.open()) },
-      { icon: 'boat', t: 'Ilhas', s: ended ? 'viajar · ' + U.fmt(S.stats.seeds || 0) + ' sementes' : (isl ? isl.n + ' · ' : '') + 'viagem depois do final', lock: !ended && !(S.stats.islandsDone | 0), fn: go(() => (G.IslandsUI ? G.IslandsUI.open() : api.openHome && api.openHome('ilhas'))) },
-      { icon: 'rice', t: 'Nova montanha', s: ended ? 'escolha o formato' : 'depois do final', lock: !ended, fn: go(() => api.newMountain && api.newMountain()) },
-      { icon: 'gear', t: 'Ajustes', s: 'som, salvar, tremor', fn: go(() => aj.open()) },
-    ];
-    for (const it of tiles) {
-      const bt = UI.button(grid, { icon: it.icon, iconSize: 30, title: it.t, sub: it.s, cls: 'k-menutile' + (it.lock ? ' k-locked' : ''), onClick: () => { if (it.lock) { UI.toast(it.t, { icon: 'lock', sub: it.s }); return; } it.fn(); } });
-      if (it.badge) UI.badge(bt.el || bt, it.badge);
-    }
-    menuPanel.open();
-  }
+/*HUBS*/
   // etapa 5: painel de troca (todas as ferramentas compradas; a atual marcada)
   function openSwap() {
     if (!swapPanel) swapPanel = UI.panel({ title: 'Trocar de lugar', icon: 'swap', side: 'right' });
@@ -387,7 +357,7 @@
   }
   function quickBuy(i) {
     const n = slotNodes[i]; if (!n) return;
-    if (api.buyNode(n.id)) slots[i].pop && slots[i].pop();
+    if (gain(() => api.buyNode(n.id))) slots[i].pop && slots[i].pop();
     else UI.toast('Faltam ' + yen(api.nodeCost(n) - S.money), { icon: 'yen', tone: 'bad', sub: n.n });
   }
 
@@ -406,8 +376,8 @@
     if (!HUD.homeEl || (homeChk -= dt) > 0) return; homeChk = 2;
     const hd = S.homeData || {}, own = hd.own || {}, ips = Math.max(5, S.ips || 0);
     const cheap = D.DECOR ? D.DECOR.filter(x => !own[x.id] && (!x.needs || own[x.needs])).reduce((m, x) => Math.min(m, Math.ceil(x.sec * ips / 10) * 10), Infinity) : Infinity;
-    HUD.homeEl.classList.toggle('k-pulse', S.money >= cheap || !!hd.newCloth || !!hd.newAch);
-    if (!S.stats.homeTip && S.time > 120 && !S.endOpen) { S.stats.homeTip = 1; UI.toast('Novo: Casa do Kome!', { icon: 'house', tone: 'gold', sub: 'botão da casinha lá em cima: jardim, bichinhos, roupas e temas', dur: 7 }); }
+    const hn = S.money >= cheap || !!hd.newCloth || !!hd.newAch; if (hn !== homeNews) { homeNews = hn; navDots(); }
+    if (!S.stats.homeTip && S.time > 120 && !S.endOpen) { S.stats.homeTip = 1; UI.toast('Novo: Casa do Kome!', { icon: 'house', tone: 'gold', sub: 'toque em Lugares, lá embaixo: jardim, bichinhos e roupas', dur: 7 }); }
   }
   HUD.update = function (dt, force) {
     homeTick(dt);
@@ -447,7 +417,8 @@
       s.set({ sub: can ? yen(c) : 'faltam ' + yen(c - S.money), progress: 0.12 + 0.88 * U.clamp(S.money / c, 0, 1), state: can ? 'can' : '' });
     });
     for (const n of D.TREE) if (!S.own[n.id] && S.money >= api.nodeCost(n) && api.nodeState(n) === 'open') nAff++;
-    treeBtn.set({ badge: nAff });
+    if (nAff !== treeN) { treeN = nAff; UI.badge(navTabs.comprar.el, nAff); }
+    hubTick(sdt);
     hornBtn.el.style.display = S.own.b0 && api.playing && api.playing().kind === 'bagger' ? '' : 'none';
     swapTick(sdt);
   };
@@ -471,7 +442,7 @@
     const dg = document.querySelector('.k-dig'), r = dg && dg.getBoundingClientRect(), hb = ui.hud.getBoundingClientRect();
     let pos = 'none';
     if (r && r.width && hb.width) {
-      const k = hb.width / (ui.hud.offsetWidth || hb.width), s = 60 * k, gap = 12 * k, port = innerHeight > innerWidth * 1.1;
+      const k = hb.width / (ui.hud.offsetWidth || hb.width), s = 68 * k, gap = 14 * k, port = innerHeight > innerWidth * 1.1;
       let trB = 0; const tr = document.querySelector('.k-zone-tr'); if (tr) { const b = tr.getBoundingClientRect(); trB = b.bottom; }
       let x = r.left + (r.width - s) / 2, y = r.top - s - gap;
       if (port || y < trB + gap) { x = r.left - s - gap * 1.4; y = r.top + (r.height - s) / 2; }

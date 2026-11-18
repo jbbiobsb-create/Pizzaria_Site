@@ -92,11 +92,10 @@
   }
 
   /* ---- caderno (dentro da aba "Caderno" da Casa) ---- */
-  let panelEls = null;
-  function fill(pane) {
-    pane.innerHTML = '';
-    const col = UI.el('div', 'k-col', pane);
-    panelEls = { root: col };
+  let panelEls = null, tab = 'mis';
+  // Caderno em ABAS (ícone + palavra, guia de UX): cada aba tem um dono. Missões/Conquistas aqui; Metas = escada.js;
+  // Amuletos = amuletos-ui.js; Evoluções = evolucoes.js. CSS: game/ux-amuletos.css (.ux-cad-*).
+  function secMissoes(col) {
     UI.el('div', 'k-h', col, 'Missões');
     ensure();
     for (const m of st().mis) {
@@ -104,13 +103,39 @@
       const b = UI.button(col, { title: t.n(m.need), sub: Math.round(p * 100) + '% · prêmio: um saquinho de ienes', icon: t.icon, size: 'sm', progress: p });
       (b.el || b).style.width = '100%';
     }
-    UI.el('div', 'k-h', col, 'Conquistas · ' + count() + '/30 · renda +' + count() + '%');
+  }
+  function secConquistas(col) {
+    const n = count(), hd = UI.el('div', 'ux-cad-head', col);
+    UI.el('b', null, hd, 'Conquistas'); UI.el('span', null, hd, n + ' de ' + ACH.length);
+    UI.el('i', null, UI.el('div', 'ux-cad-bar', col)).style.transform = 'scaleX(' + (n / ACH.length) + ')';
+    UI.el('div', 'ux-hint', col, 'Cada conquista dá +1% de ¥ pra sempre. Você já tem +' + n + '%.');
     if (UI.album) {
       UI.album(col, { cols: 2, items: ACH.map(a => ({ id: a.id, name: a.n, hint: a.d, q: '', a: a.d, icon: a.icon, unlocked: !!st().ach[a.id] })) });
     } else for (const a of ACH) UI.el('div', 'k-homehint', col, (st().ach[a.id] ? '✓ ' + a.n : '··· ' + a.d));
-    if (G.Escada) G.Escada.caderno(col);   // conquistas em escada (graus sem fim)
-    if (G.AmuletosUI) G.AmuletosUI.caderno(col);   // coleção de amuletos (omamori) descobertos
-    if (G.Evolucoes) G.Evolucoes.caderno(col);   // evoluções de máquina (com "?" até achar)
+  }
+  const TABS = [
+    { id: 'mis', n: 'Missões', icon: 'chest', fill: secMissoes },
+    { id: 'ach', n: 'Conquistas', icon: 'trophy', fill: secConquistas },
+    { id: 'esc', n: 'Metas', icon: 'bolt', fill: col => { if (G.Escada) G.Escada.caderno(col); } },                // conquistas em escada (graus sem fim)
+    { id: 'am', n: 'Amuletos', icon: 'star', fill: col => { if (G.AmuletosUI) G.AmuletosUI.caderno(col); } },     // coleção de amuletos (omamori)
+    { id: 'evo', n: 'Evoluções', icon: 'gear', fill: col => { if (G.Evolucoes) G.Evolucoes.caderno(col); } },     // receitas de evolução ("?" até achar)
+  ];
+  function fill(pane) {
+    const keep = panelEls && panelEls.pane === pane && panelEls.tab === tab && panelEls.body ? panelEls.body.scrollTop : 0;
+    pane.innerHTML = '';
+    const col = UI.el('div', 'k-col ux-cad', pane);
+    panelEls = { root: col, tab, pane };   // (antes o pane se perdia no 1º refresh e o Caderno parava de atualizar)
+    const bar = UI.el('div', 'ux-cad-tabs', col);
+    for (const t of TABS) {
+      const b = UI.el('button', 'ux-cad-tab' + (t.id === tab ? ' on' : ''), bar); b.type = 'button';
+      const ic = UI.icon && UI.icon(t.icon, 24); if (ic) b.appendChild(ic);
+      UI.el('span', null, b, t.n);
+      b.addEventListener('click', e => { e.stopPropagation(); if (tab === t.id) return; tab = t.id; if (api && api.sfx) api.sfx('click'); refresh(); });
+    }
+    const body = panelEls.body = UI.el('div', 'k-col ux-cad-body', col);
+    const T = TABS.find(t => t.id === tab) || TABS[0];
+    try { T.fill(body); } catch (e) { console.warn('[kome] caderno', T.id, e); }
+    if (keep) body.scrollTop = keep;
   }
   function refresh() { if (panelEls && panelEls.pane) fill(panelEls.pane); }
   function mountIn(pane) { fill(pane); panelEls.pane = pane; }
@@ -118,5 +143,6 @@
   G.Goals = {
     init(a) { api = a; S = G.S; ensure(); },
     tick, mult, mountIn, refresh, list: ACH, count,
+    show(id) { if (TABS.some(t => t.id === id)) { tab = id; refresh(); } },   // abre o Caderno já numa aba (chip da escada, chip dos amuletos)
   };
 })();

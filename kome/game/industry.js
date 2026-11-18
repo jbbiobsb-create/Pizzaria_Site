@@ -334,6 +334,6 @@
     paintFilter: () => TWIN_PAINT[G.twinPaint || run().paint || 'kawaii'],
     showTwin: () => api.visit && api.visit(twinX() + 200, 0.24, -420, 3.8),   // câmera vai até a gêmea (compra de peça e testes)
     applyStats, fillPanel, tick, drawBack, drawFront, drawFactory, level, zoomK, specChoice, spec, speedK, run,
-    buy, cost, nextFab, PAINTS, shopSum, twin: () => twin,
+    buy, cost, nextFab, PAINTS, shopSum, shopLine, twin: () => twin,
   };
 })();

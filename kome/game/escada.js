@@ -77,37 +77,43 @@
     }
     if (news.length && !(api && api.quiet && api.quiet()) && E.UI && E.UI.achievement) {
       // save antigo chegando com muita coisa feita: um aviso só em vez de dez
-      if (news.length > 2) E.UI.achievement(got + ' graus de escada de uma vez', { sub: news.map(([L, g]) => L.s + ' ' + g).join(' · ') + ' · +' + got + '% de renda', icon: 'trophy', kicker: 'Conquistas em escada' });
-      else for (const [L, g] of news) E.UI.achievement(L.n(L.thr(g)), { sub: 'escada ' + L.s + ' · grau ' + g + ' · +1% de renda pra sempre', icon: L.icon, kicker: 'Conquista em escada' });
+      if (news.length > 2) E.UI.achievement(got + ' metas batidas de uma vez', { sub: news.map(([L]) => L.s).join(' · ') + ' · +' + got + '% de ¥ pra sempre', icon: 'trophy', kicker: 'Metas batidas' });
+      else for (const [L, g] of news) E.UI.achievement(L.n(L.thr(g)), { sub: '+1% de ¥ pra sempre · a próxima meta de ' + L.s + ' já começou', icon: L.icon, kicker: 'Meta batida' });
       if (api.sfx) api.sfx('chirin');
     }
     if (got && api) { if (api.recompute) api.recompute(); if (api.badge) api.badge(); }
   }
 
-  /* ---- chip do HUD: a escada mais perto de fechar, pequenininha ---- */
+  /* ---- chip do HUD: a meta mais perto de bater, em palavras ("Sacos: falta pouco") ---- */
   let chip = null;
+  const openCad = () => { if (G.Goals && G.Goals.show) G.Goals.show('esc'); if (G.Home) G.Home.open('caderno'); };
   function chipTick() {
     if (!S() || !G.HUD || !G.HUD.ready || !G.HUD.chip) return;
-    if (!chip) { chip = G.HUD.chip({ id: 'escada', icon: 'trophy', label: 'Escada', order: 4, tone: '#F3ECFF', show: false, onClick: () => { if (api && api.sfx) api.sfx('click'); if (G.Home) G.Home.open('caderno'); } }); if (!chip) return; }
+    if (!chip) { chip = G.HUD.chip({ id: 'escada', icon: 'trophy', label: 'Metas', order: 4, tone: '#F3ECFF', show: false, onClick: () => { if (api && api.sfx) api.sfx('click'); openCad(); } }); if (!chip) return; }
     const s = S(), show = !!(s.stats.tipDone || s.time > 90 || total() > 0);
     if (!show) { chip.set({ show: false }); return; }
     const c = closest(); if (!c) return;
-    const pct = Math.floor(c.p * 100), soon = c.eta < 90 || c.p >= 0.95;
-    chip.set({ show: true, icon: c.L.icon, label: c.L.s + ' ' + pct + '%', prio: soon ? 0.4 : 0, hot: 'Quase: ' + c.L.s, hint: soon ? c.txt : '',
-      tip: c.txt + ' · ' + pct + '% · grau ' + (c.g + 1) + ' (+1% de renda)', act: 'Caderno' });
-    chip.el.title = c.txt + ' (' + pct + '%) · ' + total() + ' graus de escada = +' + total() + '% de renda';
+    const pct = Math.floor(c.p * 100), soon = c.eta < 90 || c.p >= 0.95, falta = fmt(Math.max(1, Math.ceil(c.hi - c.v)));
+    chip.set({ show: true, icon: c.L.icon, label: c.L.s + ': ' + (soon ? 'falta pouco' : pct + '%'), prio: soon ? 0.4 : 0, hot: 'Falta pouco: ' + c.L.s, hint: soon ? c.txt : '',
+      tip: 'Meta: ' + c.txt + '. Falta ' + falta + '. Bater dá +1% de ¥ pra sempre.', act: 'Ver metas' });
+    chip.el.title = 'Meta: ' + c.txt + ' (' + pct + '%) · ' + total() + ' batidas = +' + total() + '% de ¥';
   }
 
-  /* ---- Caderno (goals.js chama): uma linha por escada com a barra até o próximo grau ---- */
+  /* ---- Caderno, aba Metas (goals.js chama): uma linha por meta, com barra e "falta X". CSS: game/ux-amuletos.css ---- */
   function caderno(col) {
     const UI = E.UI; if (!UI || !UI.el || !S()) return;
-    const n = total();
-    UI.el('div', 'k-h', col, 'Conquistas em escada · ' + n + (n === 1 ? ' grau' : ' graus') + ' · renda +' + n + '%');
-    UI.el('div', 'k-homehint', col, 'sem fim: cada grau fecha o próximo degrau e vale +1% de renda pra sempre (nunca zera na viagem)');
+    const n = total(), hd = UI.el('div', 'ux-cad-head', col);
+    UI.el('b', null, hd, 'Metas sem fim'); UI.el('span', null, hd, n + (n === 1 ? ' batida' : ' batidas'));
+    UI.el('div', 'ux-hint', col, 'Cada meta batida dá +1% de ¥ pra sempre. Você já tem +' + n + '%.');
     const list = LAD.map(info).sort((a, b) => a.eta - b.eta || b.p - a.p);
     for (const o of list) {
-      const b = UI.button(col, { title: o.txt, sub: o.L.s + ' · grau ' + o.g + ' · ' + Math.floor(o.p * 100) + '% · agora ' + fmt(Math.floor(o.v)), icon: o.L.icon, size: 'sm', progress: o.p });
-      (b.el || b).style.width = '100%';
+      const soon = o.eta < 90 || o.p >= 0.95, r = UI.el('div', 'ux-esc' + (soon ? ' soon' : ''), col);
+      const ic = UI.icon && UI.icon(o.L.icon, 36); if (ic) r.appendChild(ic);
+      const d = UI.el('div', null, r);
+      UI.el('b', null, d, o.txt);
+      UI.el('i', null, UI.el('div', 'ux-cad-bar', d)).style.transform = 'scaleX(' + o.p.toFixed(3) + ')';
+      UI.el('span', null, d, (soon ? 'Falta pouco! ' : '') + 'Você tem ' + fmt(Math.floor(o.v)) + ' · falta ' + fmt(Math.max(1, Math.ceil(o.hi - o.v))));
+      UI.el('em', null, r, o.g ? 'já bateu ' + o.g : 'primeira');
     }
   }
 

@@ -217,13 +217,28 @@
     waitT = 2; scene(queue.shift());
   }
 
-  /* ---- Caderno: evoluções descobertas, "?" até achar (goals.js chama) ---- */
+  /* ---- Caderno, aba Evoluções (goals.js chama): cartão de RECEITA "Máquina nível 25 + Amuleto = Evolução", com "?" no que
+     ainda não foi achado. CSS: game/ux-amuletos.css (.ux-evo*) ---- */
   function caderno(col) {
     const UI = E.UI; if (!UI || !UI.el || !list().length) return;
     const L = list(), disc = est().disc, n = L.filter(e => disc[e.id]).length;
-    UI.el('div', 'k-h', col, 'Evoluções descobertas · ' + n + '/' + L.length);
-    const icon = id => { try { return G.Props && G.Props.ids && G.Props.ids.indexOf(id) >= 0 ? G.Props.icon(id) : 'star'; } catch (err) { return 'star'; } };
-    if (UI.album) UI.album(col, { cols: 2, items: L.map(e => ({ id: 'evo_' + e.id, name: e.n, hint: '?', q: toolName(e.tool) + ' no nível ' + CFG.lvl + ' da Oficina + um amuleto certo: ?', a: toolName(e.tool) + ' + ' + amName(e.am) + ' · ' + e.d + ' · ×' + CFG.mult, icon: disc[e.id] ? icon(e.tool) : 'lock', unlocked: !!disc[e.id] })) });
+    const hd = UI.el('div', 'ux-cad-head', col); UI.el('b', null, hd, 'Evoluções'); UI.el('span', null, hd, n + ' de ' + L.length);
+    UI.el('i', null, UI.el('div', 'ux-cad-bar', col)).style.transform = 'scaleX(' + (n / L.length) + ')';
+    UI.el('div', 'ux-hint', col, 'Máquina no nível ' + CFG.lvl + ' da Oficina + o amuleto certo = máquina evoluída, que rende ×' + CFG.mult + '.');
+    const tIcon = id => { try { return UI.icon(G.Props && G.Props.ids && G.Props.ids.indexOf(id) >= 0 ? G.Props.icon(id) : 'gear', 44); } catch (err) { return UI.icon('gear', 44); } };
+    const slot = (row, ic, name, sub, cls) => { const s = UI.el('div', 'ux-evo-s' + (cls ? ' ' + cls : ''), row); if (ic && ic.nodeType) s.appendChild(ic); else UI.el('u', null, s, '?'); UI.el('b', null, s, name); if (sub) UI.el('span', null, s, sub); return s; };
+    for (const e of L) {
+      const ok = !!disc[e.id], on = !!active[e.id], c = UI.el('div', 'ux-evo' + (ok ? ' ok' : ''), col);
+      const h = UI.el('div', 'ux-evo-h', c); UI.el('b', null, h, ok ? e.n : '???');
+      if (on) UI.el('em', 'on', h, 'ligada agora'); else if (ok) UI.el('em', null, h, 'descoberta');
+      const row = UI.el('div', 'ux-evo-r', c), am = ok && G.Amuletos ? G.Amuletos.byId(e.am) : null;
+      slot(row, tIcon(e.tool), toolName(e.tool), 'nível ' + CFG.lvl);
+      UI.el('i', null, row, '+');
+      slot(row, am && G.AmuletosUI ? G.AmuletosUI.icon(am, 44) : null, am ? am.n : 'Amuleto', am ? '' : 'qual será?', am ? '' : 'q');
+      UI.el('i', null, row, '=');
+      slot(row, ok ? tIcon(e.tool) : null, ok ? 'rende ×' + CFG.mult : 'Surpresa', '', ok ? 'res' : 'q');
+      if (ok) UI.el('p', null, c, e.d);
+    }
   }
 
   G.Evolucoes = {

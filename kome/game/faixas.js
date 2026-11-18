@@ -146,10 +146,6 @@
 .k-fx-list span{font-size:17px;font-weight:800;background:#EDE3CF;border:2px solid ${INK};border-radius:10px;padding:1px 9px;color:#5A4430}
 .k-fx-pay{font-size:17px;font-weight:900;color:#2E6B3A}
 .k-am.port .k-fx-card{width:480px}
-.k-fx-side{margin-top:8px;padding:8px 10px;border:3px solid ${INK};border-radius:14px;background:#FFF6DE;display:flex;flex-direction:column;gap:4px}
-.k-fx-side b{font-size:18px;font-weight:900;display:flex;align-items:center;gap:8px}
-.k-fx-side i{display:inline-block;width:34px;height:12px;border:2px solid ${INK};border-radius:4px}
-.k-fx-side small{display:block;font-size:17px;font-weight:700;color:#5A4430;line-height:1.2}
 `;
   document.head.appendChild(css);
   let croot = null, cV = null, ck = 1, cur = null;
@@ -209,11 +205,12 @@
         if (t < 1.4) { g.globalAlpha = Math.max(0, 1 - t / 1.4); g.fillStyle = b.b; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 + t * 2, r = 30 + t * 70; g.fillRect(w / 2 + Math.cos(a) * r - 3, h / 2 + Math.sin(a) * r * 0.6 - 3, 6, 6); } g.globalAlpha = 1; }
       } },
       lines: [
-        { t: (fresh ? 'Regra nova: ' : 'Regra reforçada: ') + last.r.n + ' · ' + last.r.d, cls: 'k-fx-new' },
-        { t: 'Paga: sementes ' + fmtX(seedMul(n)) + ' na viagem' + (am.length ? ' · no baralho: ' + am.map(a => a.n).join(', ') : ''), cls: 'k-fx-pay' },
-        { t: 'Valem nesta volta (nada permanente sai):' },
+        { t: (fresh ? 'Regra nova: ' : 'Regra mais forte: ') + last.r.n, cls: 'k-fx-new' },
+        { t: frase(last.r.d) },
+        { t: 'Em troca: sementes ' + fmtX(seedMul(n)) + ' em cada viagem.' + (am.length ? ' Amuleto novo: ' + am.map(a => a.n).join(', ') + '.' : ''), cls: 'k-fx-pay' },
+        rs.length > 1 ? { t: 'Continuam valendo:' } : null,
       ],
-      list: rs.map(o => o.r.n + (o.reps ? ' +' + o.reps : '')),
+      list: rs.length > 1 ? rs.slice(0, -1).map(o => o.r.n + (o.reps ? ' +' + o.reps : '')) : [],
       btn: 'Amarrar a faixa!',
     });
   }
@@ -232,12 +229,16 @@
   }
 
   /* ---- mapa das ilhas: título e quadro da faixa ---- */
+  const frase = d => d.charAt(0).toUpperCase() + d.slice(1) + '.';
+  // quadro da faixa (CSS em game/ux-ilhas.css): desenho da faixa + a regra mais nova em 1 frase; as antigas ficam num "ver todas"
   function mapInfo(side) {
     const n = level(), b = belt(n), box = el('div', 'k-fx-side', side);
     const h = el('b', null, box); const sw = el('i', null, h); sw.style.background = b ? b.b : '#E4DCCB'; h.appendChild(document.createTextNode(b ? b.n : 'Sem faixa ainda'));
-    if (!b) { el('small', null, box, 'Dê a volta no Japão (5 ilhas + Kome-Oh) pra ganhar a Faixa Branca: uma regra nova por faixa, sementes ×1,5 cada.'); return; }
-    el('small', null, box, 'Regras desta volta: ' + rulesOf(n).map(o => o.r.n + (o.reps ? ' +' + o.reps : '')).join(' · '));
-    el('small', null, box, 'Sementes da viagem ' + fmtX(seedMul(n)) + ' · próxima: ' + name(n + 1));
+    if (!b) { el('small', null, box, 'Termine as 5 ilhas pra ganhar a Faixa Branca.'); el('small', 'k-fx-gain', box, 'Cada faixa: 1 regra nova e mais sementes.'); return; }
+    const rs = rulesOf(n), last = rs[rs.length - 1];
+    const r = el('small', 'k-fx-rule', box); el('i', null, r, '!'); const t = el('span', null, r); el('b', null, t, 'Regra nova: ' + last.r.n); el('span', null, t, frase(last.r.d));
+    el('small', 'k-fx-gain', box, '★ Sementes da viagem ' + fmtX(seedMul(n)));
+    if (rs.length > 1) { const d = el('details', 'k-fx-all', box); el('summary', null, d, 'Ver as ' + rs.length + ' regras'); rs.forEach(o => el('small', null, d, o.r.n + (o.reps ? ' +' + o.reps : '') + ': ' + o.r.d + '.')); }
   }
   const title = () => { const n = level(); return n > 0 ? ' · ' + name(n) : ''; };
 

@@ -28,10 +28,10 @@
   const cst = () => { const s = S().stats; let c = s.carta; if (!c || typeof c !== 'object') c = s.carta = { day: '', tok: {} }; if (!c.tok || typeof c.tok !== 'object') c.tok = {}; c.turbo = +c.turbo || 0; return c; };
 
   const GIFTS = {
-    rr: { n: 'Rerrolar grátis', d: 'a próxima troca das cartas de amuleto sai de graça (fica guardado até você usar)', icon: 'star' },
-    raro: { n: 'Amuleto raro garantido', d: 'a próxima escolha de amuleto vem com pelo menos um raro (fica guardado até você usar)', icon: 'star' },
-    sacos: { n: 'Chuva de sacos', d: 'sacos dourados caindo agora, perto do Kome', icon: 'sack' },
-    turbo: { n: 'Arroz fresquinho', d: 'renda ×2 nos próximos 10 min de jogo (só conta com o jogo aberto)', icon: 'bolt' },
+    rr: { n: 'Trocar cartas grátis', d: 'Sua próxima troca de amuletos sai de graça. Fica guardado até usar.', icon: 'star' },
+    raro: { n: 'Amuleto raro garantido', d: 'Sua próxima escolha de amuleto vem com um raro. Fica guardado até usar.', icon: 'star' },
+    sacos: { n: 'Chuva de sacos', d: 'Sacos dourados caindo agora, perto do Kome. Corre pegar!', icon: 'sack' },
+    turbo: { n: 'Arroz fresquinho', d: 'Você ganha o dobro de ¥ por 10 min de jogo.', icon: 'bolt' },
   };
   function pickGift(day) {
     const s = S().stats, amu = (s.islandsDone | 0) > 0 || (s.lap | 0) > 0, c = cst();
@@ -41,10 +41,10 @@
   // o que rendeu fora (S.away do boot; fábrica e Cidade fazem a conta delas no init e escrevem em S.away.res)
   function awayLines() {
     const aw = S().away; if (!aw || !(aw.sec > 60)) return [];
-    const r = aw.res || {}, out = ['Você ficou fora ' + U.fmtTime(aw.sec) + '.'];
+    const r = aw.res || {}, out = ['Você ficou ' + U.fmtTime(aw.sec) + ' fora.'];
     if (r.fabrica && r.fabrica.yen > 0) out.push('A fábrica vendeu ¥ ' + U.fmt(r.fabrica.yen) + '.');
     if (r.cidade && (r.cidade.yen > 0 || r.cidade.built > 0)) out.push('A Cidade vendeu ¥ ' + U.fmt(r.cidade.yen || 0) + (r.cidade.built ? ' e terminou ' + r.cidade.built + (r.cidade.built > 1 ? ' obras' : ' obra') : '') + '.');
-    if (G.Patio && G.Patio.on && G.Patio.on()) out.push('A frota entregou no cartão "Pegar!".');
+    if (G.Patio && G.Patio.on && G.Patio.on()) out.push('A frota também trabalhou (veja o "Pegar!").');
     return out;
   }
   function claim(quiet) {
@@ -58,8 +58,9 @@
   function open() {
     const F = G.Faixas; if (!F || !F.card || !pend) { claim(false); return; }
     const g = GIFTS[pend.gift], lines = awayLines().map(t => ({ t }));
-    lines.push({ t: 'Presente de hoje: ' + g.n + ' · ' + g.d, cls: 'k-fx-new' });
-    lines.push({ t: 'Sem sequência e sem pressa: pular dias não tira nada.', cls: 'k-fx-pay' });
+    lines.push({ t: 'Presente de hoje: ' + g.n, cls: 'k-fx-new' });
+    lines.push({ t: g.d });
+    lines.push({ t: 'Sem pressa: pular dias não tira nada.', cls: 'k-fx-pay' });
     cardOn = true;
     if (api && api.sfx) api.sfx('chime');
     F.card({ kick: 'Carta do dia · ' + longDay(), title: 'O Kome deixou uma carta',
@@ -74,7 +75,7 @@
         g2.fillStyle = '#C8423A'; g2.beginPath(); g2.arc(x, y + 2, 6, 0, 6.283); g2.fill(); g2.stroke();
         E.drawShiba(g2, w / 2 - 34, h - 4, Math.floor(t / 1.4) % 2 ? 'wag' : 'cheer', t, { scale: 2.3, pal });
       } },
-      lines, btn: 'Valeu, Kome!', onClose: () => { cardOn = false; claim(false); } });
+      lines, btn: 'Pegar presente', onClose: () => { cardOn = false; claim(false); } });
   }
   const busy = () => (api && api.busy && api.busy()) || (G.AmuletosUI && G.AmuletosUI.isOpen()) || (G.Faixas && G.Faixas.isOpen()) ||
     (G.CookieUI && G.CookieUI.isOpen && G.CookieUI.isOpen());   // cartão "Pegar!" da frota abre antes

@@ -1,1 +1,70 @@
-/* UX: casa (docs/design/ux-guia.md) */
+/* UX: casa (docs/design/ux-guia.md) — palco da Casa do Kome (game/home.js). Os cartões ficam DENTRO do palco de 960×540,
+   que escala com a tela: no celular (--f maior) a letra cresce pra dar ≥16 px de verdade. --k-fs = escala do jogador. */
+.kh-root{position:fixed;inset:0;z-index:55;background:#2a1a10;display:none}.kh-root.kh-open{display:block}
+.kh-card{--f:var(--k-fs,1);position:absolute;z-index:5;background:#FFF8EA;border:3px solid #3B2818;border-radius:18px;box-shadow:0 6px 0 rgba(59,40,24,.5);font-family:var(--k-font,system-ui,sans-serif);font-weight:800;color:#3B2818;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;transition:left .2s ease-out}
+.k-mob .kh-card{--f:calc(1.16*var(--k-fs,1))}
+.kh-card *{box-sizing:border-box}
+.kh-card.kh-in{animation:khin .18s ease-out both}
+@keyframes khin{0%{transform:scale(.9) translateY(14px);opacity:0}100%{transform:none;opacity:1}}
+.kh-head{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;background:#F2C230;border-bottom:3px solid #3B2818;flex:none}
+.kh-title{flex:1;font-size:calc(24px*var(--f));font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kh-x{width:54px;height:54px;flex:none;border-radius:14px;border:3px solid #3B2818;background:#FFF8EA;font:900 32px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 3px 0 #3B2818;color:#3B2818;padding:0}
+.kh-x:active,.kh-btn:active,.kh-tile:active{transform:translateY(3px);box-shadow:0 1px 0 #3B2818}
+.kh-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:10px 10px 18px;touch-action:pan-y;-webkit-overflow-scrolling:touch;font-size:calc(18px*var(--f))}
+.kh-more{position:sticky;bottom:-18px;margin:0 -10px -18px;height:34px;pointer-events:none;text-align:center;font-size:18px;line-height:38px;color:#3B2818;background:linear-gradient(rgba(255,248,234,0),#FFF8EA 70%);transition:opacity .15s;z-index:2}
+.kh-more.kh-off{opacity:0}
+/* "o que fazer agora" */
+.kh-hint{font-size:calc(19px*var(--f));font-weight:900;line-height:1.15;padding:8px 12px;background:#FFE9A8;border-radius:12px;margin:0 0 8px}
+.kh-prog{position:relative;height:26px;border:3px solid #3B2818;border-radius:13px;background:#EFE3C8;overflow:hidden;margin:0 0 9px}
+.kh-prog i{position:absolute;inset:0;background:#6DBF67;transform-origin:0 50%}
+.kh-prog span{position:relative;display:block;text-align:center;font-size:calc(15px*var(--f));line-height:20px;font-weight:900}
+.kh-seg{display:flex;gap:6px;margin:0 0 8px}.kh-seg .kh-btn{flex:1;padding:4px 6px;min-height:54px;font-size:calc(18px*var(--f));justify-content:center;box-shadow:0 3px 0 #3B2818}
+.kh-seg .kh-btn canvas{width:26px;height:26px}
+.kh-btn.kh-cur{background:#3B2818;color:#FFF8EA;box-shadow:none;transform:translateY(3px);cursor:default}
+/* cartões de item: dourado = dá pra pegar agora · cinza = travado/falta · verde = já é seu */
+.kh-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.kh-grid.kh-g3{grid-template-columns:1fr 1fr 1fr}
+.kh-col{display:flex;flex-direction:column;gap:10px}
+.kh-tile{position:relative;display:flex;align-items:center;gap:7px;padding:6px 8px 6px 5px;border:3px solid #3B2818;border-radius:14px;background:#FFFDF4;box-shadow:0 3px 0 #3B2818;cursor:pointer;min-height:84px;text-align:left;font:inherit;color:inherit;width:100%;min-width:0}
+.kh-tile>div{min-width:0;flex:1}
+.kh-tile canvas{width:62px;height:62px;flex:none}
+.kh-tile b{display:block;font-size:calc(18px*var(--f));line-height:1.08;font-weight:900;overflow-wrap:anywhere}
+.kh-tile small{display:block;font-size:calc(16px*var(--f));line-height:1.1;font-weight:900;margin-top:3px;color:#6B5540}
+.kh-tile.kh-can{background:#FFE48A}.kh-tile.kh-can small{color:#3B2818}
+.kh-tile.kh-dim{background:#E6DDCB}.kh-tile.kh-dim b{color:#6B5540}
+.kh-tile.kh-on{background:#D9F2D2}.kh-tile.kh-on small{color:#1F6B3A}
+.kh-tile.kh-sel{outline:4px solid #E0701C;outline-offset:1px}
+.kh-tile.kh-v{flex-direction:column;text-align:center;padding:8px 4px 7px;gap:3px;min-height:136px;justify-content:flex-start}
+.kh-tile.kh-v canvas{width:80px;height:80px;image-rendering:pixelated}
+.kh-tile.kh-v>div{flex:none;width:100%}
+.kh-tile.kh-wide{min-height:92px;padding:8px 10px}.kh-tile.kh-wide canvas{width:66px;height:66px}
+.kh-tile.kh-wide b{font-size:calc(22px*var(--f))}
+.kh-go{font-style:normal;font-size:38px;line-height:1;flex:none;padding:0 4px}
+/* rodapé: nome + 1 linha + O botão */
+.kh-foot{flex:none;border-top:3px solid #3B2818;padding:8px 10px 10px 12px;background:#FBEFD0;display:flex;align-items:center;gap:10px;min-height:82px;position:relative;z-index:3}
+.kh-foot .kh-txt{flex:1;min-width:0}.kh-foot b{font-size:calc(19px*var(--f));display:block;font-weight:900;line-height:1.1}.kh-foot span{font-size:calc(16px*var(--f));display:block;line-height:1.15;color:#5A4632}
+.kh-btn{font:inherit;font-size:calc(19px*var(--f));font-weight:900;padding:8px 14px;min-height:58px;border:3px solid #3B2818;border-radius:14px;background:#FFF8EA;color:#3B2818;box-shadow:0 4px 0 #3B2818;cursor:pointer;white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:7px}
+.kh-btn canvas{width:30px;height:30px;flex:none}
+.kh-btn.kh-gold{background:#F2C230}.kh-btn.kh-main{font-size:calc(23px*var(--f));min-height:64px;padding:8px 18px;animation:khpulse 1.2s ease-in-out infinite}
+@keyframes khpulse{50%{transform:scale(1.05)}}
+.kh-btn.kh-no{background:#B9AE9C;color:#3B2818}.kh-btn.kh-alt{background:#FFF8EA}
+.kh-btn.kh-back{min-height:50px;padding:4px 12px;box-shadow:0 3px 0 #3B2818;font-size:calc(18px*var(--f))}.kh-btn.kh-back::before{content:"‹";font-size:28px;line-height:.8}
+.kh-big{display:flex;gap:12px;align-items:center}.kh-big canvas{width:88px;height:88px;flex:none;background:#FBEFD0;border:3px solid #3B2818;border-radius:14px}
+.kh-big b{font-size:calc(23px*var(--f));display:block;font-weight:900}.kh-big span{font-size:calc(18px*var(--f));display:block;color:#5A4632}
+.kh-row{display:flex;gap:8px;margin-top:10px;justify-content:flex-end;flex-wrap:wrap}
+.kh-pane{font-size:17px;zoom:1.3}
+/* a escada da casa */
+.kh-goal{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 9px;font-size:calc(16px*var(--f))}
+.kh-goal b{width:100%;font-weight:900}
+.kh-goal span{flex:1;white-space:nowrap;text-align:center;padding:6px 8px;border:3px solid #3B2818;border-radius:12px;background:#E6DDCB;font-weight:900}
+.kh-goal span.kh-ok{background:#6DBF67}
+.kh-ladder{display:flex;flex-direction:column;gap:8px}
+.kh-step{position:relative;display:flex;align-items:center;gap:9px;padding:6px 8px 6px 6px;border:3px solid #3B2818;border-radius:14px;background:#E6DDCB;min-height:92px}
+.kh-step canvas{width:112px;height:78px;flex:none;border:3px solid #3B2818;border-radius:10px;background:#CDE9F5}
+.kh-steptx{flex:1;min-width:0}
+.kh-step small{display:block;font-size:calc(15px*var(--f));font-weight:900;color:#5A4632}
+.kh-step b{display:block;font-size:calc(19px*var(--f));font-weight:900;line-height:1.08}
+.kh-step span{display:block;font-size:calc(16px*var(--f));line-height:1.12;margin-top:2px}
+.kh-step em{font-style:normal;font-weight:900;font-size:calc(17px*var(--f));white-space:nowrap;flex:none;padding:5px 8px;border-radius:10px;border:3px solid #3B2818;background:#FFF8EA}
+.kh-step.kh-done{background:#D9F2D2}.kh-step.kh-done em{background:#6DBF67}
+.kh-step.kh-now{background:#FFE48A;outline:4px solid #E0701C;outline-offset:1px}.kh-step.kh-now em{background:#F2C230}
+.kh-step.kh-next canvas{opacity:.55}.kh-step.kh-next b{color:#6B5540}

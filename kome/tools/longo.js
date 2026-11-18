@@ -141,7 +141,12 @@ const SEEDS_CAS = `((N) => { const S = __kome.S, G = KomeGame, I = G.Islands; if
     viagens = sv.viagens | 0; const sb = await SEEDS_RUN(), isl = await ISL(); phase = 'ilha ' + isl;
     console.log('começa do save ' + path.basename(val('--de')) + ' → ilha ' + isl + ' (' + sb + ' melhorias de semente compradas)');
   }
-  const ilhas = [];   // [nome, minutos até o final, novidades nos 5 primeiros minutos]
+  const ilhas = [];   // por ilha: minutos até o final, compras (ferramenta, nó, casa), compras/min, maior espera entre compras nos 10 primeiros min e depois
+  // PREMISSA do dono (CLAUDE.md): sempre tem uma compra perto (segundos, não minutos). Régua do casual: comprar algo a cada
+  // ~30–45 s nos 10 primeiros minutos de cada ilha e nunca esperar mais de ~2–3 min depois.
+  const ritmo = (nome, a, b) => { const P = ev.filter(e => e[0] >= a && e[0] <= b && /^(tool|no|casa)$/.test(e[1])).map(e => e[0]), cut = a + 600; let g10 = 0, g2 = 0, prev = a;
+    for (const t of P.concat([b])) { const g = t - prev; if (prev < cut) g10 = Math.max(g10, Math.min(t, cut) - prev); if (t > cut) g2 = Math.max(g2, t - Math.max(prev, cut)); prev = t; }
+    return { nome, min: Math.round((b - a) / 60), n: P.length, n10: P.filter(t => t < cut).length, ppm: P.length / Math.max(1, (b - a) / 60), g10: Math.round(g10), g2: Math.round(g2) }; };
   const ev = [], gaps = [], fases = [], t0 = Date.now(), byKind = {};
   const fmt = s => (s >= 3600 ? Math.floor(s / 3600) + 'h' : '') + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + 'min';
   while (T < LIM) {
@@ -161,7 +166,7 @@ const SEEDS_CAS = `((N) => { const S = __kome.S, G = KomeGame, I = G.Islands; if
     if (has('--stats') && Math.floor(T / 1800) > Math.floor((T - r.dt) / 1800)) console.log(fmt(T) + '  stats ' + await p.evaluate(STATS).catch(e => e.message));
     if (r.ended && endedAt === null) { endedAt = T; if (r.endT > 0 && r.endT <= T - islandStart) endedAt = islandStart + r.endT;   // hora exata do final (S.endT), não o fim do bloco de 5 min
       const Tb = T; T = endedAt; fases.push([phase, T - islandStart]); phase = r.island === 0 && !r.islandsDone ? 'infinito (Honshu)' : 'infinito (ilha ' + r.island + ')'; console.log(fmt(T) + '  FINAL da ilha ' + r.island + ' (' + fmt(T - islandStart) + ')');
-      ilhas.push([phase, Math.round((T - islandStart) / 60), ev.filter(e => e[0] >= islandStart && e[0] < islandStart + 300 && /^(tool|no|casa)$/.test(e[1])).length]); T = Tb;
+      ilhas.push(ritmo(phase, islandStart, T)); T = Tb;
       if (++finais >= +val('--finais', 1e9)) break; }
     // viaja: 30 min de modo infinito OU nada novo há 15 min (o jogador se cansaria), se ainda há ilha
     // viaja como o chip "hora de partir": depois de 30 min de Pátio e 4 min sem novidade de verdade (ou 2 h no máximo)
@@ -183,7 +188,8 @@ const SEEDS_CAS = `((N) => { const S = __kome.S, G = KomeGame, I = G.Islands; if
   // ---- relatório ----
   console.log('\n== ' + fmt(T) + ' simuladas em ' + Math.round((Date.now() - t0) / 1000) + ' s reais' + (errs.length ? ' · ERROS DE PÁGINA: ' + errs.slice(0, 2).join(' | ') : ' · sem erro de página'));
   console.log('perfil: ' + PERFIL + (PERFIL === 'casual' && CAMP_GULOSA ? ' (campanha no guloso)' : ''));
-  console.log('ILHAS (min até o final · compras nos 5 primeiros min): ' + ilhas.map(i => i[0] + ' ' + i[1] + ' min · ' + i[2]).join(' | '));
+  console.log('RITMO por ilha (compras = ferramenta, nó, casa; espera = maior tempo sem comprar):');
+  ilhas.forEach(i => console.log('  ' + i.nome.padEnd(18) + String(i.min).padStart(3) + ' min · ' + i.n + ' compras (' + i.ppm.toFixed(1).replace('.', ',') + '/min) · 10 primeiros min: ' + i.n10 + ' compras, maior espera ' + i.g10 + ' s · depois: maior espera ' + i.g2 + ' s'));
   console.log('fases:'); (fases.length > 24 ? fases.slice(0, 12).concat([['…', 0]], fases.slice(-10)) : fases).forEach(([n, d]) => console.log('  ' + n.padEnd(26) + fmt(d)));
   const isl = fases.filter(f => /^ilha/.test(f[0])), inf = fases.filter(f => /^infinito/.test(f[0]));
   const avg = L => L.length ? fmt(L.reduce((a, f) => a + f[1], 0) / L.length) : '—';

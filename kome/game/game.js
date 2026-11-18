@@ -1104,7 +1104,7 @@
       vilaGo(true, Wd.X.casa, 0.95, 4);   // a casa nova fica na vila: a câmera vai lá mostrar
       if (h.id === 'h2') ui(() => UI.toast('Carta do corretor', { icon: 'house', sub: 'o iene mudou :) o onsen subiu pra ¥70 mi', dur: 6 }));
     }
-    if (S.house >= D.HOUSE.length) { if (houseFinal()) ending(); else if (!FAST) ui(() => UI.toast('Casa pronta!', { icon: 'house', tone: 'gold', sub: 'agora termine a montanha: faltam ' + Math.ceil((D.END_DUG - dugFrac()) * 100) + '%', dur: 6 })); }
+    if (S.house >= D.HOUSE.length) { if (houseFinal()) ending(); else if (!FAST) ui(() => UI.toast('Casa pronta!', { icon: 'house', tone: 'gold', sub: 'agora acabe a montanha: faltam ' + Math.ceil((1 - dugFrac() / D.END_DUG) * 100) + '%', dur: 6 })); }
     if (!FAST) saveNow();
     return true;
   }
@@ -1124,7 +1124,7 @@
     const h = D.HOUSE[S.house]; if (!h) return null;
     const c = houseCost(h), lock = S.tool + 1 < h.tier ? TOOLS[h.tier - 1].name : '';
     return { h, c, lock, n: S.house + 1, of: D.HOUSE.length, can: !lock && S.money >= c,
-      line: 'etapa ' + (S.house + 1) + '/' + D.HOUSE.length + ': ' + h.n + (lock ? ' · precisa: ' + lock : ' · ¥ ' + U.fmt(c)) };
+      line: 'Etapa ' + (S.house + 1) + ' de ' + D.HOUSE.length + ': ' + h.n + (lock ? ' · precisa: ' + lock : ' · custa ¥ ' + U.fmt(c)) };
   }
   function soCasaTick() {
     if (S.ended || S.house >= D.HOUSE.length) { S.soCasa = false; S.soCasaT = 0; return; }
@@ -1136,7 +1136,7 @@
     if (S.soCasaToast && !FAST && UI && HUD.ready && !cs && !S.endOpen) {   // aviso uma vez (espera a cena/painel fechar)
       S.soCasaToast = false; const i = soCasaInfo();
       ui(() => { UI.banner('MONTANHA ACABADA!', 'agora só falta a casa', { icon: 'house', tone: 'gold', level: 3, dur: 3.5 });
-        UI.toast('Agora só falta a casa', { icon: 'house', tone: 'gold', sub: i.line + ' · toque na Casa (lá em cima)', dur: 7 }); });
+        UI.toast('Agora só falta a casa', { icon: 'house', tone: 'gold', sub: i.line + ' · toque em "Só falta a casa"', dur: 7 }); });
       sfx('fanfare');
     } else if (FAST) S.soCasaToast = false;
     if (S.heapArea >= S.heapTotal * EC.REFILL_AT) { S.soCasaT = 0; return; }   // ainda tem arroz pra cavar: segue juntando
@@ -2386,12 +2386,12 @@
       const tick = () => { if (vc) vc.set({ label: vila.on ? 'Montanha' : 'Vila', icon: vila.on ? 'mount' : 'house', show: !!(S.stats.tipDone || S.time > 31) }); };
       setInterval(tick, 300); tick();
       // chip "Só falta a casa" (montanha acabada antes da casa): fica até a casa ficar pronta; toca = compra a etapa (ou diz quanto falta)
-      const hc = HUD.chip({ id: 'socasa', icon: 'house', label: 'Só falta a casa', order: 2, tone: '#FFE9A8', show: false, onClick: () => { buyHouse(); } });
+      const hc = HUD.chip({ id: 'socasa', icon: 'house', label: 'Só falta a casa', order: 2, tone: '#FFE9A8', show: false, onClick: () => { const i = soCasaInfo(); if (i && !i.can && G.Home && G.Home.open('casa')) return; buyHouse(); } });
       let flyEl = null;
       const htick = () => {
         const on = !!(S.soCasa && !S.ended && S.house < D.HOUSE.length), i = on ? soCasaInfo() : null;
-        if (hc) hc.set(on ? { show: true, prio: 10, hint: 'etapa ' + i.n + '/' + i.of + (i.lock ? ' · ' + i.lock : i.can ? ' · comprar!' : ' · ¥ ' + U.fmt(i.c)),
-          tip: 'Montanha acabada! Agora só falta a casa. ' + i.line, act: i.can ? 'Comprar' : 'Ver' } : { show: false, prio: 0 });
+        if (hc) hc.set(on ? { show: true, prio: 10, hint: 'etapa ' + i.n + ' de ' + i.of + (i.lock ? ' · precisa: ' + i.lock : i.can ? ' · construir!' : ' · ¥ ' + U.fmt(i.c)),
+          tip: 'A montanha acabou! Termine a casa pra zerar o jogo. ' + i.line, act: i.can ? 'Construir' : 'Ver a casa' } : { show: false, prio: 0 });
         if (!flyEl || !flyEl.isConnected) flyEl = document.querySelector('.k-flyer');
         if (flyEl) flyEl.classList.toggle('k-pulse', on);   // a "setinha": o cartão da Casa pulsa enquanto ela é o que falta
       };

@@ -486,7 +486,7 @@
       const body = el('div', 'kh-body', c);
       fillTab(card.id, body, c);
       // rolagem: sombra + setinha embaixo enquanto tem mais coisa pra ver
-      const more = el('div', 'kh-more', c, '▼');
+      const more = el('div', 'kh-more', body, '▼');
       const upd = () => more.classList.toggle('kh-off', body.scrollHeight - body.scrollTop - body.clientHeight < 12);
       body.addEventListener('scroll', upd, { passive: true });
       if (anim && P.scrollTo) { const r = P.scrollTo; body.scrollTop = Math.max(0, r.offsetTop - body.offsetTop - 70); } else body.scrollTop = keep;
@@ -553,14 +553,12 @@
     hint(body, !n ? (mp >= 1 ? 'Casa pronta. Parabéns!' : 'Casa pronta! Agora acabe a montanha') : n.can ? 'Toque em Construir!' : n.lock ? 'Compre a ' + n.lock + ' antes' : 'Cave mais: faltam ' + yen(n.miss));
     // o que falta pro final, sempre à vista
     const goal = el('div', 'kh-goal', body); el('b', '', goal, 'Pra zerar o jogo:');
-    const g1 = el('span', done >= NH() ? 'kh-ok' : '', goal, (done >= NH() ? '✓ ' : '') + 'Casa pronta · ' + done + ' de ' + NH());
-    const g2 = el('span', mp >= 1 ? 'kh-ok' : '', goal, (mp >= 1 ? '✓ ' : '') + 'Montanha acabada · ' + Math.floor(mp * 100) + '%');
-    void g1; void g2;
+    el('span', done >= NH() ? 'kh-ok' : '', goal, (done >= NH() ? '✓ ' : '') + 'Casa pronta · ' + done + ' de ' + NH());
+    el('span', mp >= 1 ? 'kh-ok' : '', goal, (mp >= 1 ? '✓ ' : '') + 'Montanha acabada · ' + Math.floor(mp * 100) + '%');
     const ladder = el('div', 'kh-ladder', body);
     D.HOUSE.forEach((h, i) => {
       const st = i < done ? 'done' : i === done ? 'now' : 'next';
-      const row = el('div', 'kh-step kh-' + st, ladder); row.appendChild(cvCopy(stageArt(i), 208)).height = 144;
-      const cv = row.firstChild; cv.getContext('2d').drawImage(stageArt(i), 0, 0);
+      const row = el('div', 'kh-step kh-' + st, ladder); { const cv = document.createElement('canvas'); cv.width = 208; cv.height = 144; cv.getContext('2d').drawImage(stageArt(i), 0, 0); row.appendChild(cv); }
       const tx = el('div', 'kh-steptx', row);
       el('small', '', tx, 'Etapa ' + (i + 1) + ' de ' + NH());
       el('b', '', tx, h.n);

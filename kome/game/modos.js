@@ -85,20 +85,28 @@
   function start(id, sure) {
     if (!S() || on() || !api || !api.rewrite) return false;
     const s = S().stats;
-    if (!unlocked()) { toast('Os modos abrem depois da 1ª volta ao Japão', 'lock'); return false; }
+    if (!unlocked()) { toast('Os modos abrem depois das 5 ilhas', 'lock'); return false; }
     let cfg;
-    if (id === 'dia') { const dd = daily(); if (mrec().diaTry === dd.day) { toast('Você já jogou o Desafio de hoje', 'clock', 'amanhã tem outro (sem pressa)'); return false; } cfg = { id, isl: dd.isl, fx: dd.fx, am: dd.am, day: dd.day }; }
+    if (id === 'dia') { const dd = daily(); if (mrec().diaTry === dd.day) { toast('Você já jogou o Desafio de hoje', 'clock', 'amanhã tem outro'); return false; } cfg = { id, isl: dd.isl, fx: dd.fx, am: dd.am, day: dd.day }; }
     else if (id === 'pata') cfg = { id, isl: (S().island + 1) % D.ISLANDS.length, fx: Math.max(1, s.lap | 0) };   // faixa ≥ 1: modo é sempre ilha de viagem (nunca a campanha)
     else cfg = { id: 'maratona', isl: 0, fx: Math.max(1, s.lap | 0) };
-    const txt = { dia: 'Ilha ' + shortIsl(D.ISLANDS[cfg.isl].n) + ' na ' + fxName(cfg.fx) + ', com 3 amuletos sorteados pela data. Uma tentativa hoje: terminar vale recorde.',
-      pata: shortIsl(D.ISLANDS[cfg.isl].n) + ' sem máquina a motor: ' + Math.round(CFG.pataSec / 60) + ' min de jogo pra fazer o máximo de ¥ só com as patas.',
-      maratona: 'As 5 ilhas seguidas na ' + fxName(cfg.fx) + '. Os amuletos que você escolher na 1ª ilha valem nas 5.' }[cfg.id];
-    const go = () => { if (cfg.id === 'dia') mrec().diaTry = cfg.day; api.rewrite(d => build(d, cfg)); };
-    if (!sure && E.UI && E.UI.confirm && !(api.fast && api.fast())) E.UI.confirm(txt + ' Sua partida fica guardada do jeito que está e volta quando o modo acabar (ou quando você quiser). Sem sementes e sem prêmio: só o recorde.', go, { title: NAMES[cfg.id], yes: 'Começar', no: 'Agora não' });
-    else go();
+    const ilha = shortIsl(D.ISLANDS[cfg.isl].n);
+    const what = { dia: ilha + ', ' + fxName(cfg.fx) + ', 3 amuletos sorteados. Só 1 tentativa hoje.',
+      pata: ilha + ': ' + Math.round(CFG.pataSec / 60) + ' min sem máquina a motor. Faça o máximo de ¥.',
+      maratona: 'As ' + CFG.maraN + ' ilhas seguidas na ' + fxName(cfg.fx) + '. Os amuletos da 1ª ilha valem em todas.' }[cfg.id];
+    const go = () => { if (cfg.id === 'dia') mrec().diaTry = cfg.day; if (G.IslandsUI) G.IslandsUI.close(true); api.rewrite(d => build(d, cfg)); };
+    if (sure || (api.fast && api.fast())) go();
+    else ask({ icon: { dia: 'clock', pata: 'paw', maratona: 'boat' }[cfg.id], title: 'Jogar ' + NAMES[cfg.id] + '?', sub: what,
+      rows: [{ k: 'keep', l: 'Seu jogo normal', t: 'fica guardado e volta igualzinho' }, { k: 'reset', l: 'Neste modo', t: 'você começa uma ilha do zero' }, { k: 'gain', l: 'Você ganha', t: 'só o recorde (sem sementes)' }],
+      yes: 'Começar', no: 'Agora não', onYes: go });
     return true;
   }
   const unlocked = () => { const s = S().stats; return (s.lap | 0) >= 1 || !!s.legend; };
+  // confirmação em 3 linhas (islands-ui.js · ask); sem o mapa carregado cai no diálogo simples
+  function ask(o) {
+    if (G.IslandsUI && G.IslandsUI.ask) return G.IslandsUI.ask(o);
+    if (E.UI && E.UI.confirm) E.UI.confirm((o.sub ? o.sub + ' ' : '') + (o.rows || []).map(r => r.l + ': ' + r.t + '.').join(' '), o.onYes, { title: o.title, yes: o.yes, no: o.no }); else if (o.onYes) o.onYes();
+  }
   function toast(t, icon, sub) { if (E.UI && E.UI.toast) E.UI.toast(t, { icon: icon || 'star', sub }); }
 
   /* ---- voltar pra partida: retrato inteiro + o que é permanente vindo do modo ---- */
@@ -150,12 +158,12 @@
       L.push({ icon: 'clock', label: 'Desafio de ' + mo.day.split('-').reverse().slice(0, 2).join('/'), value: U.fmtTime(sec) });
       L.push({ icon: 'star', label: 'Medalha', value: MED[m] + ' (' + fxName(mo.fx) + ')' });
       L.push({ icon: 'yen', label: 'Ienes', value: '¥ ' + U.fmt(s.earned) });
-      L.push({ icon: 'boat', label: 'Depois', value: 'volta pra sua partida' });
+      L.push({ icon: 'boat', label: 'Depois', value: 'você volta pro seu jogo' });
     } else if (mo.id === 'maratona') {
       mo.k = (mo.k | 0) + 1; mo.t = (mo.t || 0) + sec; mo.y = (mo.y || 0) + s.earned;
       if (!mo.build) mo.build = ((s.stats.am && s.stats.am.cur) || []).slice();
       const done = mo.k >= CFG.maraN;
-      L.push({ icon: 'clock', label: 'Ilha ' + mo.k + '/' + CFG.maraN, value: U.fmtTime(sec) });
+      L.push({ icon: 'clock', label: 'Ilha ' + mo.k + ' de ' + CFG.maraN, value: U.fmtTime(sec) });
       L.push({ icon: 'clock', label: 'Tempo somado', value: U.fmtTime(mo.t) });
       L.push({ icon: 'yen', label: 'Ienes somados', value: '¥ ' + U.fmt(mo.y) });
       if (done) {
@@ -164,7 +172,7 @@
         if (out.newBest) R.mara = { t: Math.round(mo.t), y: Math.max(mo.y, (old && old.y) || 0), m: Math.max(m, (old && old.m) || 0), fx: mo.fx };
         else if (mo.y > (old.y || 0)) old.y = mo.y;
         L.push({ icon: 'star', label: 'Maratona completa', value: MED[m] + (out.newBest ? ' · recorde!' : '') });
-      } else L.push({ icon: 'boat', label: 'Próxima', value: shortIsl(D.ISLANDS[(i + 1) % D.ISLANDS.length].n) + ' (mesma build)' });
+      } else L.push({ icon: 'boat', label: 'Próxima', value: shortIsl(D.ISLANDS[(i + 1) % D.ISLANDS.length].n) + ' (mesmos amuletos)' });
     }
     if (api && api.save) api.save();
     return out;
@@ -180,11 +188,13 @@
     const mo = ms(); if (!mo) return false;
     const s = S();
     if (mo.id === 'maratona' && s.ended && (mo.k | 0) < CFG.maraN) { nextIsland(); return true; }
-    const msg = s.ended || pataCard ? 'Voltar pra sua partida? Ela está do jeitinho que você deixou.' : 'Sair do ' + NAMES[mo.id] + ' agora? Sem recorde desta vez' + (mo.id === 'dia' ? ' (o desafio de hoje já foi usado)' : '') + '; sua partida volta do jeitinho que você deixou.';
-    if (E.UI && E.UI.confirm) E.UI.confirm(msg, restore, { title: NAMES[mo.id], yes: 'Voltar', no: 'Ficar' }); else restore();
+    const fim = s.ended || pataCard, back = () => { if (G.IslandsUI) G.IslandsUI.close(true); restore(); };
+    ask({ icon: 'boat', title: fim ? 'Voltar pro seu jogo?' : 'Sair do ' + NAMES[mo.id] + '?', sub: fim ? '' : 'Saindo agora, não vale recorde' + (mo.id === 'dia' ? ' (e o desafio de hoje já foi usado).' : '.'),
+      rows: [{ k: 'keep', l: 'Seu jogo normal', t: 'volta do jeitinho que você deixou' }, fim ? { k: 'gain', l: 'Recorde', t: 'já está guardado' } : { k: 'reset', l: 'Este modo', t: 'acaba aqui, sem recorde' }],
+      yes: 'Voltar', no: 'Ficar', onYes: back });
     return true;
   }
-  const chipHot = () => { const mo = ms(); if (!mo) return null; return mo.id === 'maratona' && (mo.k | 0) < CFG.maraN ? 'Maratona: próxima ilha' : 'Voltar pra partida'; };
+  const chipHot = () => { const mo = ms(); if (!mo) return null; return mo.id === 'maratona' && (mo.k | 0) < CFG.maraN ? 'Maratona: próxima ilha' : 'Voltar pra partida'; };   // islands-ui.js compara com 'Voltar pra partida'
   const lockTool = t => { const mo = ms(); return !!(mo && mo.id === 'pata' && t && t.seat !== 'paw'); };
   const seedMul = () => (on() ? 0 : 1);
 
@@ -199,8 +209,8 @@
     if ((api && api.busy && api.busy()) || (G.Faixas && G.Faixas.isOpen()) || (G.AmuletosUI && G.AmuletosUI.isOpen())) return;
     pataCard = true;
     if (G.Faixas && G.Faixas.card) G.Faixas.card({ kick: 'Só na Pata · tempo!', title: '¥ ' + U.fmt(mo.y) + (nb2 ? ' · recorde!' : ''),
-      lines: [{ t: Math.round(CFG.pataSec / 60) + ' min só com as patas em ' + shortIsl(G.Islands.island().n) + ' (' + fxName(mo.fx) + ').' }, { t: old2 && !nb2 ? 'Seu recorde: ¥ ' + U.fmt(old2) : 'Melhor marca guardada no mapa.', cls: 'k-fx-pay' }],
-      btn: 'Voltar pra partida', onClose: restore });
+      lines: [{ t: 'Você fez isso em ' + Math.round(CFG.pataSec / 60) + ' min, só com as patas.' }, { t: old2 && !nb2 ? 'Seu melhor: ¥ ' + U.fmt(old2) : 'Ficou guardado como seu melhor.', cls: 'k-fx-pay' }],
+      btn: 'Voltar pro meu jogo', onClose: restore });
     else restore();
   }
 
@@ -217,56 +227,55 @@
     chip.set({ show: true, label, tip, act: 'Mapa' }); chip.el.title = tip;
   }
 
-  /* ---- mapa: recordes por faixa da ilha escolhida + quadro dos modos ---- */
+  /* ---- mapa: recordes por faixa da ilha escolhida + os 3 cartões dos modos (CSS em game/ux-ilhas.css) ---- */
   function el(tag, cls, par, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; if (par) par.appendChild(e); return e; }
-  const css = document.createElement('style');
-  css.textContent = `
-.k-md-box{margin-top:8px;padding:8px 10px;border:3px solid #3B2818;border-radius:14px;background:#FFF6DE;display:flex;flex-direction:column;gap:5px}
-.k-md-box b{font-size:18px;font-weight:900}
-.k-md-box small{display:block;font-size:16px;font-weight:700;color:#5A4430;line-height:1.25}
-.k-md-row{display:flex;flex-wrap:wrap;gap:6px}
-.k-md-row .k-btn{flex:1 1 140px;min-height:44px;font-size:16px;font-weight:900;padding:4px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
-.k-md-row .k-btn small{font-size:13px;font-weight:700;color:#5A4430}
-.k-md-row .k-off{opacity:.55}
-.k-md-m1{color:#9A6A44}.k-md-m2{color:#7C8894}.k-md-m3{color:#C08A10}
-`;
-  document.head.appendChild(css);
-  function recLines(box, i) {
-    const R = recF()[D.ISLANDS[i].id]; if (!R) return;
-    const ks = Object.keys(R).map(Number).sort((a, b) => b - a).slice(0, 4);
-    for (const f of ks) { const r = R[f], sm = el('small', null, box); sm.textContent = (f ? fxName(f) : 'sem faixa') + ': ' + (r.t ? U.fmtTime(r.t) : '—') + ' · ¥ ' + U.fmt(r.y || 0) + ' · '; const m = el('span', 'k-md-m' + (r.m | 0), sm, MED[r.m | 0] || '—'); m.style.fontWeight = '900'; }
-  }
-  function mapInfo(side, i) {
+  function ico(par, name, size) { const c = E.UI && E.UI.iconEl ? E.UI.iconEl(name, size || 22) : null; if (c && par) par.appendChild(c); return c; }
+  function shake(e) { e.classList.remove('ux-shake'); void e.offsetWidth; e.classList.add('ux-shake'); }
+  // recordes desta ilha, 1 linha por faixa: "Faixa Branca: 24min · ouro"
+  function recInfo(side, i) {
     if (!S()) return;
-    const s = S(), cur = G.Islands.index(), mo = ms();
-    // recordes desta ilha por faixa ("bater o próprio tempo")
-    if (recF()[D.ISLANDS[i].id]) {
-      const box = el('div', 'k-md-box', side); el('b', null, box, 'Recordes por faixa');
-      if (i === cur && !s.ended && !mo) { const r = recOf(i); el('small', null, box, 'agora: ' + U.fmtTime(s.time) + (r && r.t ? ' · seu tempo nesta faixa: ' + U.fmtTime(r.t) : ' · primeira vez nesta faixa')); }
-      recLines(box, i);
-    }
-    // quadro dos modos
-    const box = el('div', 'k-md-box', side); el('b', null, box, mo ? NAMES[mo.id] + ' rolando' : 'Modos de partida');
+    const R = recF()[D.ISLANDS[i].id]; if (!R) return;
+    const ks = Object.keys(R).map(Number).sort((a, b) => b - a).slice(0, 4); if (!ks.length) return;
+    const box = el('div', 'k-md-box', side), h = el('b', null, box); ico(h, 'trophy', 22); h.appendChild(document.createTextNode('Seu melhor em cada faixa'));
+    for (const f of ks) { const r = R[f], sm = el('small', 'k-md-rec', box); el('span', null, sm, (f ? fxName(f) : 'Sem faixa') + ': '); el('b', null, sm, r.t ? U.fmtTime(r.t) : '—'); if (r.m | 0) { el('span', null, sm, ' · '); el('b', 'k-md-m' + (r.m | 0), sm, MED[r.m | 0]); } }
+  }
+  // novidade pra bolinha da aba: desafio de hoje ainda não jogado
+  const news = () => !!(S() && !on() && unlocked() && mrec().diaTry !== daily().day);
+  function modesInfo(side) {
+    if (!S()) return;
+    const s = S(), mo = ms();
+    const note = el('div', 'k-md-note', side); el('i', null, note, '✓'); el('span', null, note, mo ? 'Seu jogo normal está guardado e volta igualzinho.' : 'Isso não mexe no seu jogo normal. Ele fica guardado.');
     if (mo) {
-      el('small', null, box, mo.id === 'maratona' ? 'ilha ' + ((mo.k | 0) + 1) + '/' + CFG.maraN + ' · tempo somado ' + U.fmtTime((mo.t || 0) + (s.ended ? 0 : s.time)) : mo.id === 'pata' ? 'faltam ' + U.fmtTime(Math.max(0, CFG.pataSec - s.time)) + ' · ¥ ' + U.fmt(s.earned) : 'Desafio de hoje · ' + fxName(mo.fx));
-      el('small', null, box, 'Sua partida normal está guardada e volta igualzinha.');
-      const row = el('div', 'k-md-row', box), b = el('button', 'k-btn', row); b.innerHTML = '<span>' + (chipHot() || 'Voltar') + '</span>'; b.onclick = () => { if (G.IslandsUI) G.IslandsUI.close(true); travel(); };
+      const box = el('div', 'k-md-box', side), h = el('b', null, box); ico(h, 'clock', 22); h.appendChild(document.createTextNode('Jogando: ' + NAMES[mo.id]));
+      el('small', null, box, mo.id === 'maratona' ? 'Ilha ' + ((mo.k | 0) + 1) + ' de ' + CFG.maraN + ' · tempo somado: ' + U.fmtTime((mo.t || 0) + (s.ended ? 0 : s.time)) : mo.id === 'pata' ? 'Faltam ' + U.fmtTime(Math.max(0, CFG.pataSec - s.time)) + ' · você fez ¥ ' + U.fmt(s.earned) : 'Desafio de hoje · ' + fxName(mo.fx));
+      const b = el('button', 'ux-btn ux-main k-md-back', box); ico(b, 'boat', 26); el('span', null, b, chipHot() === 'Voltar pra partida' ? 'Voltar pro meu jogo' : 'Próxima ilha');
+      b.onclick = () => { travel(); };
       return;
     }
-    if (!unlocked()) { el('small', null, box, 'Abrem depois da 1ª volta ao Japão: Desafio do Dia, Só na Pata e Maratona.'); return; }
-    const dd = daily(), R = mrec(), usado = R.diaTry === dd.day;
-    el('small', null, box, 'Desafio de hoje: ' + shortIsl(D.ISLANDS[dd.isl].n) + ' · ' + fxName(dd.fx) + ' · ' + dd.am.map(id => { const a = (D.AMULETOS || []).find(x => x.id === id); return a ? a.n : id; }).join(', ') + (R.dia && R.dia.day === dd.day ? ' · feito: ' + U.fmtTime(R.dia.t) + ' (' + MED[R.dia.m] + ')' : ''));
-    if (R.mara || R.pata) el('small', null, box, (R.mara ? 'Maratona: ' + U.fmtTime(R.mara.t) + ' (' + MED[R.mara.m] + ')' : '') + (R.mara && R.pata ? ' · ' : '') + (R.pata ? 'Só na Pata: ¥ ' + U.fmt(R.pata.y) : ''));
-    const row = el('div', 'k-md-row', box);
-    const mk = (id, t, sub, off) => { const b = el('button', 'k-btn' + (off ? ' k-off' : ''), row); b.innerHTML = '<span>' + t + '</span><small>' + sub + '</small>'; b.onclick = () => { if (G.IslandsUI) G.IslandsUI.close(true); start(id); }; };
-    mk('dia', 'Desafio do Dia', usado ? 'amanhã tem outro' : '1 tentativa hoje', usado);
-    mk('pata', 'Só na Pata', Math.round(CFG.pataSec / 60) + ' min sem motor');
-    mk('maratona', 'Maratona', '5 ilhas, 1 build');
+    if (!unlocked()) {
+      const box = el('div', 'k-md-box k-md-locked', side), h = el('b', null, box); ico(h, 'lock', 22); h.appendChild(document.createTextNode('Ainda fechado'));
+      el('small', null, box, 'Abre quando você terminar as ' + D.ISLANDS.length + ' ilhas (você está na ' + (G.Islands.index() + 1) + 'ª).');
+      el('small', null, box, 'Depois: Desafio do Dia, Só na Pata e Maratona.');
+      return;
+    }
+    const dd = daily(), R = mrec(), usado = R.diaTry === dd.day, feito = R.dia && R.dia.day === dd.day ? R.dia : null;
+    el('div', 'k-md-how', side, 'Escolha um jogo extra. Vale só recorde.');
+    const mk = (id, icon, t, sub, rec, off, offTxt) => {
+      const b = el('button', 'k-md-card' + (off ? ' k-off' : ''), side);
+      const ic = el('span', 'k-md-ic', b); ico(ic, icon, 34);
+      const tx = el('span', 'k-md-tx', b); el('b', null, tx, t); el('small', null, tx, sub); if (rec) el('small', 'k-md-best', tx, rec);
+      el('span', 'k-md-play', b, off ? offTxt : 'Jogar');
+      b.onclick = () => { if (!start(id)) shake(b); };
+    };
+    mk('dia', 'clock', 'Desafio do Dia', 'Hoje: ' + shortIsl(D.ISLANDS[dd.isl].n) + ', ' + fxName(dd.fx) + '. 1 tentativa.', feito ? 'Feito hoje: ' + U.fmtTime(feito.t) + ' · ' + MED[feito.m] : '', usado, 'amanhã');
+    mk('pata', 'paw', 'Só na Pata', Math.round(CFG.pataSec / 60) + ' min sem máquina. Quanto ¥ você faz?', R.pata ? 'Seu melhor: ¥ ' + U.fmt(R.pata.y) : '');
+    mk('maratona', 'boat', 'Maratona', 'As ' + CFG.maraN + ' ilhas seguidas, com os mesmos amuletos.', R.mara ? 'Seu melhor: ' + U.fmtTime(R.mara.t) + ' · ' + MED[R.mara.m] : '');
   }
+  function mapInfo(side, i) { recInfo(side, i); modesInfo(side); }   // compatibilidade (tudo junto)
 
   G.Modos = {
     init(a) { api = a || {}; if (G.Sim) G.Sim.add('modos', { tick }); setInterval(() => { try { chipTick(); } catch (e) { /* */ } }, 600); },
-    on, state: ms, start, restore, after, travel, onEnding, record, recOf, mapInfo, chipHot, lockTool, seedMul, daily, unlocked,
+    on, state: ms, start, restore, after, travel, onEnding, record, recOf, mapInfo, recInfo, modesInfo, news, chipHot, lockTool, seedMul, daily, unlocked,
     sim: { build, merge },   // tools/alicerce.js
     NAMES,
   };

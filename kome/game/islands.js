@@ -188,6 +188,7 @@
     if (G.Modos && G.Modos.travel()) return;   // modo de partida: maratona segue / volta pra partida
     if (!S.ended) { UI.toast('Termine a casa nesta ilha primeiro', { icon: 'lock', sub: 'depois o barco te leva pra ' + D.ISLANDS[nextIdx()].n }); return; }
     const next = nextIdx(), g = gain(), to = D.ISLANDS[next], wrap = next === 0;
+    if (G.IslandsUI && G.IslandsUI.askTravel) { G.IslandsUI.askTravel({ to, g, wrap, base: seedsBase(), patio: S.stats.earnedEnd ? seedsPatio() : 0 }, () => boat(to, () => api.travel(next, g))); return; }   // confirmação em 3 linhas (islands-ui.js)
     UI.confirm((wrap ? 'Volta ' + (lap() + 2) + ' ao Japão! ' : '') + 'O Kome vai de barco pra ' + to.n + ' (' + to.d + '). Montanha, frota, árvore, casa e dinheiro recomeçam; você ganha ' + U.fmt(g) + ' Sementes Douradas' + (S.stats.earnedEnd && seedsPatio() > 0 ? ' (' + U.fmt(seedsBase()) + ' da ilha + ' + U.fmt(seedsPatio()) + ' do Pátio)' : '') + '. Roupas, quintal e conquistas vão junto.' + (wrap && G.Faixas ? ' ' + G.Faixas.nextTxt() : ''), () => {
       boat(to, () => api.travel(next, g));
     }, { title: 'Carta: ' + to.n + ' quer arroz!', yes: 'Partir', no: 'Ainda não' });
