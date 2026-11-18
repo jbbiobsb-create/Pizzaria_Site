@@ -102,7 +102,7 @@
   function toast(t, icon, sub) { if (E.UI && E.UI.toast) E.UI.toast(t, { icon: icon || 'star', sub }); }
 
   /* ---- voltar pra partida: retrato inteiro + o que é permanente vindo do modo ---- */
-  const PERM = ['ach', 'misDone', 'heart', 'sacks', 'bestSack', 'pockets', 'onigiri', 'goldEv', 'secret', 'events', 'evSeen', 'swaps', 'esc', 'amPick', 'recF', 'mrec', 'city', 'carta', 'perfectSecs', 'crowned', 'comboMaxSecs', 'bestCombo'];
+  const PERM = ['ach', 'misDone', 'heart', 'sacks', 'bestSack', 'pockets', 'onigiri', 'goldEv', 'secret', 'events', 'evSeen', 'swaps', 'esc', 'amPick', 'recF', 'mrec', 'city', 'carta', 'perfectSecs', 'crowned', 'comboMaxSecs', 'bestCombo', 'dicas', 'got'];   // dicas vistas e sacos colhidos no total também ficam (a dica não repete na volta)
   function merge(d) {
     const snap = d.snap, m = d.stats || {}, mo = m.modo || {};
     if (!snap || !snap.stats) { if (d.stats) delete d.stats.modo; delete d.snap; return d; }
@@ -110,6 +110,7 @@
     ['closet', 'look', 'home', 'opts'].forEach(k => { if (d[k] !== undefined) snap[k] = d[k]; });
     if (snap.home && snap.island !== undefined && D.ISLANDS[snap.island | 0]) snap.home.theme = D.ISLANDS[snap.island | 0].theme || snap.home.theme;
     PERM.forEach(k => { if (m[k] !== undefined) ss[k] = m[k]; });
+    for (const k in m) if (/^cs_/.test(k) && m[k]) ss[k] = m[k];   // cutscene já vista no modo não toca de novo na partida
     if (m.am && m.am.disc) { ss.am = ss.am || {}; ss.am.disc = Object.assign({}, ss.am.disc || {}, m.am.disc); }
     if (m.evo && m.evo.disc) { ss.evo = ss.evo || { disc: {}, seen: {} }; ss.evo.disc = Object.assign({}, ss.evo.disc || {}, m.evo.disc); }
     if (m.fab) ss.fab = Object.assign({}, m.fab, { slow: (ss.fab && ss.fab.slow) || 0, pb: (ss.fab && ss.fab.pb) || 0 });

@@ -991,7 +991,7 @@
       if (G.Sim) G.Sim.add('cidade', { tick, offline });
       // tempo fora: o game.js calcula antes de a Cidade se registrar (igual à Fábrica), então ela anda aqui
       const aw = GS().away;
-      if (/[?&]cidade=(\w+)/.test(location.search) && /[?&]dev\b/.test(location.search)) setTimeout(() => G.City.demo(RegExp.$1), 1200);
+      const dm = /[?&]cidade=(\w+)/.exec(location.search); if (dm && /[?&]dev\b/.test(location.search)) setTimeout(() => G.City.demo(dm[1]), 1200);   // (RegExp.$1 dentro do setTimeout já era de outra regex)
       if (aw && aw.sec > 5 && P().on) { const r = offline(aw.sec); if (aw.res) aw.res.cidade = r; if (r && (r.yen > 0 || r.built > 0) && api.toast) api.toast('Enquanto você estava fora', 'Cidade: as lojas venderam ¥' + U.fmt(r.yen) + (r.built ? ' · ' + r.built + ' obra(s) terminaram' : '')); }
     },
     // toque na Vila (game.js): na rua da Cidade (torii até o último lote) entra nela
