@@ -197,8 +197,9 @@
     for (const R of T.rungs) { const on = R.can > 0; if (on !== R.on) { R.on = on; R.el.classList.toggle('mx-hascan', on); } }
     const hint = nCan ? 'Toque no cartão dourado pra comprar.' : next ? 'Junte ' + yen(nextCost) + ' pra comprar: ' + next.title + '.' : 'Você já comprou tudo. Parabéns!';
     if (hint !== T.hintSig) { T.hintSig = hint; T.hint.textContent = hint; T.hint.classList.toggle('mx-hint-go', !!nCan); }
-    const total = T.cards.length, pg = nDone + ' de ' + total + ' compradas';
-    if (pg !== T.progSig) { T.progSig = pg; T.progTx.textContent = pg; T.progFill.style.transform = 'scaleX(' + (total ? nDone / total : 0) + ')'; }
+    let own = S.tool + 1; for (const n of D.TREE) if (S.own[n.id]) own++;   // conta a árvore toda, não só os cartões montados
+    const total = D.TOOLS.length + D.TREE.length, pg = own + ' de ' + total + ' compradas';
+    if (pg !== T.progSig) { T.progSig = pg; T.progTx.textContent = pg; T.progFill.style.transform = 'scaleX(' + (total ? own / total : 0) + ')'; }
     const lb = 'Dá pra comprar' + (nCan ? ' (' + nCan + ')' : ''); T.fCan.set({ title: lb });
     const emp = T.only && !nCan; if (emp !== T.emptyOn) { T.emptyOn = emp; T.empty.style.display = emp ? 'block' : ''; }
   }
