@@ -194,7 +194,7 @@
     const R = mrec(), old = R.pata, nb = !old || s.earned > old.y;
     if (!mo.done) { mo.done = 1; mo.y = s.earned; if (nb) R.pata = { y: s.earned, isl: G.Islands.index(), fx: mo.fx }; if (api && api.save) api.save(); }
     if (api && api.fast && api.fast()) return;   // modo acelerado: só registra (nenhum cartão espera)
-    if (api && api.busy && api.busy()) return;
+    if ((api && api.busy && api.busy()) || (G.Faixas && G.Faixas.isOpen()) || (G.AmuletosUI && G.AmuletosUI.isOpen())) return;
     pataCard = true;
     if (G.Faixas && G.Faixas.card) G.Faixas.card({ kick: 'Só na Pata · tempo!', title: '¥ ' + U.fmt(mo.y) + (nb ? ' · recorde!' : ''),
       lines: [{ t: Math.round(CFG.pataSec / 60) + ' min só com as patas em ' + shortIsl(G.Islands.island().n) + ' (' + fxName(mo.fx) + ').' }, { t: old && !nb ? 'Seu recorde: ¥ ' + U.fmt(old.y) : 'Melhor marca guardada no mapa.', cls: 'k-fx-pay' }],

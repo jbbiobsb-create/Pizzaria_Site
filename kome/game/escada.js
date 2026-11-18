@@ -68,17 +68,18 @@
       for (const L of LAD) { const v = safe(L); if (last[L.id] !== undefined) { const d = Math.max(0, v - last[L.id]) / rateT; rate[L.id] = rate[L.id] === undefined ? d : rate[L.id] + (d - rate[L.id]) * 0.08; } last[L.id] = v; }
       rateT = 0;
     }
-    let got = 0;
+    let got = 0; const news = [];
     for (const L of LAD) {
       const v = safe(L); let g = grade(L), n = 0;
       while (n < 40 && v >= L.thr(g + 1)) { g++; n++; }
       if (!n) continue;
-      est().g[L.id] = g; got += n;
-      if (!(api && api.quiet && api.quiet())) {
-        const txt = L.n(L.thr(g));
-        if (E.UI && E.UI.achievement) E.UI.achievement(txt, { sub: 'escada ' + L.s + ' · grau ' + g + ' · +1% de renda pra sempre', icon: L.icon, kicker: 'Conquista em escada' });
-        if (api.sfx) api.sfx('chirin');
-      }
+      est().g[L.id] = g; got += n; news.push([L, g]);
+    }
+    if (news.length && !(api && api.quiet && api.quiet()) && E.UI && E.UI.achievement) {
+      // save antigo chegando com muita coisa feita: um aviso só em vez de dez
+      if (news.length > 2) E.UI.achievement(got + ' graus de escada de uma vez', { sub: news.map(([L, g]) => L.s + ' ' + g).join(' · ') + ' · +' + got + '% de renda', icon: 'trophy', kicker: 'Conquistas em escada' });
+      else for (const [L, g] of news) E.UI.achievement(L.n(L.thr(g)), { sub: 'escada ' + L.s + ' · grau ' + g + ' · +1% de renda pra sempre', icon: L.icon, kicker: 'Conquista em escada' });
+      if (api.sfx) api.sfx('chirin');
     }
     if (got && api) { if (api.recompute) api.recompute(); if (api.badge) api.badge(); }
   }

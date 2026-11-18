@@ -210,7 +210,7 @@
       }
     }
     if (!queue.length || fast()) { if (fast()) queue.length = 0; return; }
-    if ((api && api.busy && api.busy()) || (G.AmuletosUI && G.AmuletosUI.isOpen())) { waitT = Math.max(waitT, 1.2); return; }
+    if ((api && api.busy && api.busy()) || (G.AmuletosUI && G.AmuletosUI.isOpen()) || (G.Faixas && G.Faixas.isOpen())) { waitT = Math.max(waitT, 1.2); return; }   // não fecha a carta do dia/faixa aberta
     if ((waitT -= dt) > 0) return;
     waitT = 2; scene(queue.shift());
   }

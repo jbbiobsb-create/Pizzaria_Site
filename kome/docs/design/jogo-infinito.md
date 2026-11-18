@@ -78,10 +78,26 @@ build própria**. Ela ajusta `sementes.md` e o "fim de jogo da fábrica" (as dua
 - **Carta do dia** ao abrir: o que rendeu fora + 1 presente pequeno (um rerrolar grátis, um amuleto raro garantido hoje).
 - **Recordes por ilha e por faixa** (tempo e ¥), com medalha: jogar de novo pra bater o próprio tempo.
 
+- **FEITO (19/11):** `game/escada.js` (10 escadas: grãos, ¥ total ×1000 por grau, sacos, bolsões, onigiris, eventos dourados,
+  ilhas, faixas, amuletos escolhidos, corações da Cidade; limiar base × k^p calibrado com `longo.js --stats`; cada grau conta
+  como conquista no Arroz do Coração = +1% de renda, mais com Pote/Tigelas; chip "Sacos 92%" com a de menor tempo estimado;
+  lista no Caderno). "Amuletos descobertos" virou "amuletos escolhidos" (descobertos acaba em 35; a coleção segue no Caderno).
+  `game/carta.js` (carta 1x por dia de calendário: tempo fora, fábrica, Cidade + 1 presente: rerrolar grátis, raro garantido,
+  chuva de sacos ou renda ×2 por 10 min de jogo; ficha guardada até usar, não acumula). Recordes por ilha×faixa em
+  `game/modos.js` (mapa + cartão do final).
+
 ### 6. Modos de partida (pra quem quer variar)
 Aparecem no mapa das ilhas depois da 1ª volta: **Desafio do Dia** (ilha, faixa e 3 amuletos sorteados iguais pra todo mundo
 naquele dia, 1 tentativa que vale recorde, sem prêmio exclusivo que dê culpa); **Só na Pata** (sem motor); **Maratona**
 (as 5 ilhas seguidas com a mesma build de amuletos).
+
+- **FEITO (19/11):** `game/modos.js`. Modo = ilha normal com bandeira (`S.stats.modo`), feita pelo mesmo makeSave das viagens;
+  a partida normal vira um RETRATO dentro do save (`d.snap`) e volta inteira no fim (ou quando o jogador quiser), trazendo só o
+  permanente (roupas, quintal, Cidade, fábrica, conquistas, escadas, amuletos descobertos, recordes). Nenhum modo dá sementes.
+  Desafio do Dia: ilha + Faixa Branca…Preta + 3 amuletos do baralho sem conquista, tudo pela data; 1 tentativa por dia; recorde
+  de tempo/¥/medalha. Só na Pata: ilha seguinte, ferramentas seat 'paw' só, 20 min de jogo, recorde = ¥ (sem motor o final
+  normal não existe, por isso relógio). Maratona: Honshu → Mochi na sua faixa, build da 1ª ilha segue nas 5, recorde = tempo
+  somado (medalha pela soma da régua). FAST: nenhum cartão espera.
 
 ## Números (ponto de partida)
 | Coisa | Valor |
