@@ -1,5 +1,5 @@
 # Cidade (a rua da Vila do Kome)
-status: rascunho
+status: no jogo — FATIA 1 (game/cidade.js; o que falta: seção "Fatia 1: feito / falta" no fim)
 camada: 4 · Cidade   ·   depende de: fabrica.md (no jogo), fabrica-ligacao.md (fatia "Vila" da Doca), camada-cookie.md
 (Arroz do Coração, eventos dourados), mundo-dois-lados.md (lado da Vila), E.Sim (offline) · protótipo: `demos/cidade.html`
 
@@ -116,3 +116,19 @@ Prazo em pedido, morador que vai embora ou fica triste, preço que muda, comida 
 2. Estação = festival (ritmo do jogador) ou estação real do calendário? Proposta: ritmo do jogador (nada de "volte em março").
 3. Lojas compram ¥ fixo por item; no fim de jogo isso fica pequeno perto do Pátio. Escalar pelo ¥/s (como `D.SHOPS`) ou deixar
    a Cidade valer pelos corações/eventos e não pelo ¥?
+
+## Fatia 1: feito / falta (programador, 18/11)
+FEITO: Despensa (fatia `share` 40% dos onigiris/mochis/mochis dourados vendidos na doca; cheia = vende na doca), abre no 1º mochi
+vendido, 8 moradores (6 + Kuro e Monge Matcha por prédio), 3 pedidos sem prazo (≈90 s do que chega; paga 2× o valor da doca,
+escala com o jogo via `G.Fab.itemV`), kei-truck do Kome, corações, amizade = +1 grão no Arroz do Coração, 9 prédios (lojas
+compram o excedente acima de 55% a 1,5×; Casa de Chá/Fliperama +♥; Sentô 2×; Casa nova/Templo trazem morador), **uma obra por
+vez** (um carpinteiro: 2,5 → 30 min; sem isso os 9 prédios saíam em 25 min), 2º quarteirão (6 lotes) abre quando o 1º lota,
+festival da estação que você começa (noite, lanternas, bon-odori, fogos, ♥×2) e as 4 estações, offline (obras, lojas), chip
+"Cidade" com dica, rua da Cidade desenhada na Vila depois da rua do comércio (toque entra), robô do longo joga a Cidade.
+Ritmo medido (robô, fábrica mínima de 1 linha de cada): 1ª obra 2,3 min, prédios em 2/5/10/18/29/42/59/78/99 min, festival a
+cada ~40 min, amizade a cada ~5 min nas primeiras 4 h.
+FALTA: bentô (não existe receita na fábrica: os fãs de bentô viraram fãs de mochi/onigiri; Bentô-ya "monta bentô" com o que
+sobra), foco da fábrica (atalho das fatias da Doca), ficha `morador` + 30 moradores, cardápio das ilhas, quarteirões depois do
+2º (+ponte/estação), festival dando evento dourado guardado na Mochila (não existe Mochila), variações de festival (Tanabata,
+Obon, Setsubun), enfeite na casa de quem sobe de nível sem terreno (hoje só flores), eventos pro `dopamina.js`, escolher o lote
+na mão (Pergunta 1). Estação = ritmo do jogador (Pergunta 2). ¥ escala pelo valor da doca (Pergunta 3).
