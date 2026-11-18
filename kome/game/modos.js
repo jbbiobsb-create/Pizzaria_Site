@@ -193,12 +193,13 @@
     const mo = ms(); if (!mo || mo.id !== 'pata' || pataCard) return;
     const s = S(); if (s.time < CFG.pataSec) return;
     const R = mrec(), old = R.pata, nb = !old || s.earned > old.y;
-    if (!mo.done) { mo.done = 1; mo.y = s.earned; if (nb) R.pata = { y: s.earned, isl: G.Islands.index(), fx: mo.fx }; if (api && api.save) api.save(); }
+    if (!mo.done) { mo.done = 1; mo.y = s.earned; mo.nb = nb ? 1 : 0; mo.old = old ? old.y : 0; if (nb) R.pata = { y: s.earned, isl: G.Islands.index(), fx: mo.fx }; if (api && api.save) api.save(); }
+    const nb2 = mo.nb !== undefined ? !!mo.nb : nb, old2 = mo.nb !== undefined ? mo.old : old && old.y;   // cartão atrasado (painel aberto): o recorde já foi gravado, não comparar de novo
     if (api && api.fast && api.fast()) return;   // modo acelerado: só registra (nenhum cartão espera)
     if ((api && api.busy && api.busy()) || (G.Faixas && G.Faixas.isOpen()) || (G.AmuletosUI && G.AmuletosUI.isOpen())) return;
     pataCard = true;
-    if (G.Faixas && G.Faixas.card) G.Faixas.card({ kick: 'Só na Pata · tempo!', title: '¥ ' + U.fmt(mo.y) + (nb ? ' · recorde!' : ''),
-      lines: [{ t: Math.round(CFG.pataSec / 60) + ' min só com as patas em ' + shortIsl(G.Islands.island().n) + ' (' + fxName(mo.fx) + ').' }, { t: old && !nb ? 'Seu recorde: ¥ ' + U.fmt(old.y) : 'Melhor marca guardada no mapa.', cls: 'k-fx-pay' }],
+    if (G.Faixas && G.Faixas.card) G.Faixas.card({ kick: 'Só na Pata · tempo!', title: '¥ ' + U.fmt(mo.y) + (nb2 ? ' · recorde!' : ''),
+      lines: [{ t: Math.round(CFG.pataSec / 60) + ' min só com as patas em ' + shortIsl(G.Islands.island().n) + ' (' + fxName(mo.fx) + ').' }, { t: old2 && !nb2 ? 'Seu recorde: ¥ ' + U.fmt(old2) : 'Melhor marca guardada no mapa.', cls: 'k-fx-pay' }],
       btn: 'Voltar pra partida', onClose: restore });
     else restore();
   }
