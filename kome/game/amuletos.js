@@ -157,17 +157,24 @@
       for (; i < P.length - 1; i++) { r -= CFG.peso[P[i].rar] || 10; if (r < 0) break; }
       out.push(P[i].id); P.splice(i, 1);
     }
+    // carta do dia: "amuleto raro garantido" (ficha guardada) = se não veio raro/lendário, troca a última carta por um raro
+    if (out.length && G.Carta && G.Carta.tok('raro') && run() && !fast()) {
+      const rare = P.filter(x => x.rar === 'raro' || x.rar === 'lendario');
+      if (!out.some(id => { const x = byId(id); return x && x.rar !== 'comum'; }) && rare.length) out[out.length - 1] = rare[(Math.random() * rare.length) | 0].id;
+      G.Carta.use('raro');
+    }
     return out;
   }
   const earned = () => (run() ? Math.min(maxN(), MARCOS.filter(m => m.ok()).length) : 0);
   const pending = () => run() && st().got < earned();
   const nextMarco = () => { const k = st().got; const m = MARCOS.filter(x => x.ok())[k]; return m || MARCOS[Math.min(k, MARCOS.length - 1)]; };
   function offer() { const a = st(); if (!pending()) return null; if (!a.offer || !a.offer.length) a.offer = draw(offerN()); return a.offer.map(byId).filter(Boolean); }
-  const rerollCost = () => CFG.reroll * Math.pow(2, st().rr);
+  const rerollCost = () => (G.Carta && G.Carta.tok('rr') ? 0 : CFG.reroll * Math.pow(2, st().rr));   // carta do dia: rerrolar grátis guardado
   function reroll() {
     const a = st(), c = rerollCost(), s = S().stats;
     if (!pending() || Math.floor(s.seeds || 0) < c) return false;
-    s.seeds -= c; a.rr++; a.offer = draw(offerN(), a.offer || []);
+    if (c === 0 && G.Carta) G.Carta.use('rr'); else { s.seeds -= c; a.rr++; }
+    a.offer = draw(offerN(), a.offer || []);
     if (api && api.save && !fast()) api.save();
     return true;
   }
@@ -175,7 +182,7 @@
     const a = st(), x = byId(id);
     if (!x || !pending() || a.cur.indexOf(id) >= 0) return false;
     const was = lit();
-    a.cur.push(id); a.got++; a.offer = null; a.disc[id] = 1; cache = null; waitT = CFG.wait;
+    a.cur.push(id); a.got++; a.offer = null; a.disc[id] = 1; cache = null; waitT = CFG.wait; S().stats.amPick = (S().stats.amPick | 0) + 1;   // amPick: escada.js
     const now = lit(), fresh2 = now.filter(t => was.indexOf(t) < 0);
     log.push(x.n);
     if (api && api.recompute) api.recompute();

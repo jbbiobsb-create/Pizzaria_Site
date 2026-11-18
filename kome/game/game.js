@@ -56,7 +56,7 @@
 
   /* SAVE VERSIONADO (fase 0 do PLANO-100H): cada camada nova sobe SAVE_V e põe UMA migração aqui. Save antigo nunca quebra:
      E.Save chama migrate(d, versãoAntiga) e roda todas as migrações que faltam, em ordem. */
-  const SAVE_V = 8;
+  const SAVE_V = 9;
   const MIGR = {
     5: d => { d.stats = d.stats || {}; d.stats.inv = d.stats.inv || {}; d.stats.got = d.stats.got || {}; },   // armazém de itens
     // amuletos (amuletos.js): build da ilha atual; trip = ilhas concluídas (a viagem zera sozinha). Save antigo entra sem amuleto
@@ -65,6 +65,10 @@
     7: d => { d.stats = d.stats || {}; if (!d.stats.city || typeof d.stats.city !== 'object') d.stats.city = { on: 0 }; },
     // faixas (faixas.js) e evoluções (evolucoes.js): best = faixa já jogada (= volta), seen = apresentação vista; evo.disc = Caderno
     8: d => { d.stats = d.stats || {}; const s = d.stats; if (!s.fx || typeof s.fx !== 'object') s.fx = { best: s.lap | 0, seen: 0 }; if (!s.evo || typeof s.evo !== 'object') s.evo = { disc: {}, seen: {} }; },
+    // jogo-infinito passos 5–6: conquistas em escada (escada.js: esc.g = graus; dugAll/amPick = contadores permanentes novos, começam
+    // do que dá pra saber), carta do dia (carta.js: dia já visto + presentes guardados), recordes por ilha×faixa e dos modos (modos.js)
+    9: d => { d.stats = d.stats || {}; const s = d.stats; if (!s.esc || typeof s.esc !== 'object') s.esc = { g: {} }; s.dugAll = +s.dugAll || 0; s.amPick = s.amPick | 0 || Object.keys((s.am && s.am.disc) || {}).length;
+      if (!s.carta || typeof s.carta !== 'object') s.carta = { day: '', tok: {} }; if (!s.recF || typeof s.recF !== 'object') s.recF = {}; if (!s.mrec || typeof s.mrec !== 'object') s.mrec = {}; },
   };
   function migrate(d, v) { for (let k = (v | 0) + 1; k <= SAVE_V; k++) if (MIGR[k]) MIGR[k](d); return d; }
 
@@ -136,6 +140,7 @@
     // depois da Bagger, qualquer ferramenta (trocando de lugar) fura até o núcleo dourado: devagar, mas fura (a favorita não fica inútil)
     if (cur && S.tool === NT - 1 && cur.kind !== 'bagger') s.powMul = Math.max(s.powMul, 10.4 / (cur.pow || 1));
     if (G.Goals) s.sell *= G.Goals.mult();
+    if (G.Carta) s.sell *= G.Carta.mult();   // carta do dia: presente "arroz fresquinho" (×2 por 10 min de jogo)
     if (G.Patio && G.Patio.heart) s.sell *= G.Patio.heart();   // Arroz do Coração: +1% por conquista da camada Cookie
     if (G.Islands) G.Islands.applyStats(s);   // árvore das sementes + bônus da ilha
     if (G.Amuletos) G.Amuletos.applyStats(s, cur);   // amuletos da ilha (mão/motor, sacos, ajudantes, regras da árvore)
@@ -2212,6 +2217,9 @@
     if (S.ended && !S.stats.cs_ilhas && !(S.island | 0) && !/nointro/.test(location.search)) setTimeout(() => endgameIntro(), 2500);
     if (G.Inf) G.Inf.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), playing: () => cur, busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()) });
     if (G.Goals) G.Goals.init({ sfx, recompute: () => computeStats(), pay: v => credit(v, 2, false), quiet: () => FAST || !!cs || !!S.endOpen, badge: () => G.Home && G.Home.noteNew() });
+    if (G.Carta) G.Carta.init({ sfx, had: () => had, fast: () => FAST, save: () => saveNow(), recompute: () => computeStats(), gift: giftSacks,
+      busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()) || (S.cele.t >= 0 && S.cele.t < S.cele.dur) });
+    if (G.Escada) G.Escada.init({ sfx, recompute: () => computeStats(), quiet: () => FAST || !!cs || !!S.endOpen, badge: () => G.Home && G.Home.noteNew() });
     G.drawAccAt = drawAccAt;   // Casa e guarda-roupa usam
     // preço estável: degrau do recorde de ¥/s (só muda quando você bate um recorde ~78% maior). Antes usava o ¥/s do momento e o preço mudava a cada abertura
     const priceStep = () => { const b = Math.max(10, S.stats.bestIps || 0); return Math.pow(10, Math.floor(Math.log10(b) * 4) / 4); };

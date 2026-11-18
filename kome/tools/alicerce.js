@@ -92,6 +92,21 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok(rFx.belt > 4, 'faixa amarrada no Kome (' + rFx.belt + ' px da cor da faixa)');
   ok(rFx.earn9 === 0 && rFx.off === 2, '2º Dan: sem amuleto na chegada e 2 cartas por escolha (' + rFx.earn9 + ', ' + rFx.off + ')');
   ok(rFx.act.indexOf('trator') >= 0 && rFx.disc && rFx.x3 === 3, 'Trator nível 25 + Frota Feliz = Trator Comboio, ×3, anotado no Caderno (' + rFx.act.join() + ')');
+  // 9) conquistas em escada (escada.js), carta do dia (carta.js): MIGR[9], graus sem fim valem no Arroz do Coração, carta 1x por dia
+  const rEsc = await p.evaluate(() => { const K = __kome, S = K.S, G = KomeGame, Es = G.Escada;
+    const mig = !!(S.stats.esc && S.stats.carta && S.stats.recF && S.stats.mrec && typeof S.stats.dugAll === 'number');
+    const h0 = G.Patio.heart(), t0 = Es.total(); S.stats.sacks = 5000; S.stats.goldEv = 3; K.step(2); const t1 = Es.total(), h1 = G.Patio.heart();
+    const c = Es.closest(), d = JSON.parse(JSON.stringify({ v: 4, stats: S.stats, island: 0, earned: 5, dug: 100 })); G.Islands.makeSave(d, 1, 0);
+    return { mig, t0, t1, dh: h1 - h0, g: Es.grade('sacos'), c: c && c.txt, dug: d.stats.dugAll - (S.stats.dugAll || 0), keep: d.stats.esc.g.sacos === Es.grade('sacos') }; });
+  ok(rEsc.mig, 'migração MIGR[9] criou esc/carta/recF/mrec/dugAll');
+  ok(rEsc.g >= 10 && rEsc.t1 > rEsc.t0 && rEsc.dh > (rEsc.t1 - rEsc.t0) * 0.0099, 'escada: 5.000 sacos = ' + rEsc.g + ' graus de uma vez, +' + (rEsc.dh * 100).toFixed(0) + '% no Coração · mais perto: ' + rEsc.c);
+  ok(rEsc.dug === 100 && rEsc.keep, 'viagem soma dugAll e não zera os graus');
+  const rCa = await p.evaluate(() => { const S = __kome.S, G = KomeGame, C = G.Carta; S.stats.carta.day = '2000-01-01'; S.stats.carta.tok = {}; G.Game.saveNow(); return C.today(); });
+  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  const rCb = await p.evaluate(() => { const K = __kome, S = __kome.S, G = KomeGame, C = G.Carta; const pend = C.pending(); K.step(2); const after = C.pending();
+    const day = S.stats.carta.day; S.stats.islandsDone = 3; S.island = 1; S.stats.carta.tok.rr = 1; const rc = G.Amuletos.rerollCost(); return { pend, after, day, rc }; });
+  ok(rCb.pend && !rCb.after && rCb.day === rCa, 'carta do dia: abre num dia novo; no modo acelerado o presente entra sem tela (dia ' + rCb.day + ')');
+  ok(rCb.rc === 0, 'presente "rerrolar grátis" deixa a troca de cartas de graça');
   // 4) E.Sim puro
   const r4 = await p.evaluate(() => { const s = Pixxel.Sim(); let t = 0; s.add('a', { tick: dt => { t += dt; }, offline: dt => ({ yen: dt * 2 }) }).add('b', { tick() {} });
     s.tick(0.5); const off = s.catchUp(3600); return { t, off }; });

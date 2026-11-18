@@ -202,7 +202,7 @@
     const cb = A().current();
     if (cb.length) { const b = el('div', 'k-am-build', w); el('span', null, b, 'Sua build:'); for (const x of cb) b.appendChild(icon(x, 30)); }
     const ft = el('div', 'k-am-foot', w), c = A().rerollCost(), can = A().seeds() >= c;
-    open.rr = btn(ft, 'Trocar as 3 · ★ ' + c + (c > 1 ? ' sementes' : ' semente'), can ? 'gold' : 'off', () => {
+    open.rr = btn(ft, c === 0 ? 'Trocar as 3 · grátis (carta do dia)' : 'Trocar as 3 · ★ ' + c + (c > 1 ? ' sementes' : ' semente'), can ? 'gold' : 'off', () => {
       if (busyPick) return;
       if (DEMO) { demoCards = sample(); render(); sfx('whoosh'); return; }
       if (!A().reroll()) { sfx('error', { vol: 0.5 }); open.rr.classList.remove('k-cui-shake'); return; }

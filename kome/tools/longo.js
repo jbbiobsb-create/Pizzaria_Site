@@ -18,7 +18,7 @@ const CHUNK = `((secs) => {
   const K = __kome, D = K.data, S = K.S, G = KomeGame, out = [], t0 = S.time;
   const note = (k, txt) => out.push({ t: S.time - t0, k, txt });
   const achN = () => Object.keys(S.stats.ach || {}).length + Object.keys((S.stats.heart || {}).ach || {}).length;
-  let ach0 = achN();
+  let ach0 = achN(), esc0 = G.Escada ? G.Escada.total() : 0;
   for (let s = 0; s < secs && !(S.stats.simTravel); s++) {
     const ph = S.time % 20;
     if (ph < 17) { const p = K.aim(); K.hold(p.x, p.y, true); } else K.hold(0, 0, false);
@@ -66,6 +66,7 @@ const CHUNK = `((secs) => {
     }
     if (G.City && G.City.sim) for (const [k, txt] of G.City.sim.act()) note('cidade', 'cidade: ' + txt);   // Cidade: entrega tudo, começa festival, escolhe a 1ª obra
     const an = achN(); if (an > ach0) { note('conquista', 'conquista ' + an); ach0 = an; }
+    const en = G.Escada ? G.Escada.total() : 0; if (en > esc0) { note('escada', 'escada: grau ' + en); esc0 = en; }   // conquistas em escada (meta ~1 grau/10 min)
     // depois do final: montanha nova quando a atual está quase toda cavada
     if (S.ended && K.heap.area < K.heap.total * 0.12) { K.newMountain(); note('montanha', 'montanha nova ' + (S.mount | 0)); }
   }
@@ -82,6 +83,10 @@ const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I 
   for (let g = 0; g < 600; g++) { const L = KomeGame.Data.SEEDS.filter(s => (!s.max || lv(s.id) < s.max) && (!s.req || lv(s.req))).sort((a, b) => I.sim.seedCost(a) * abs(a) - I.sim.seedCost(b) * abs(b));
     const s = L[0]; if (!s || Math.floor(S.stats.seeds || 0) < I.sim.seedCost(s)) break; I.sim.buy(s); n++; } return n; })()`;
 
+// --stats: a cada 30 min, os contadores que as conquistas em escada leem (calibrar os graus) + graus já fechados
+const STATS = `(() => { const S = __kome.S, s = S.stats, G = KomeGame, f = v => Number(v || 0).toExponential(2);
+  return JSON.stringify({ graos: f(((s.dugAll || 0) + S.dug) * 40), yen: f((s.earnedAll || 0) + S.earned), sacos: s.sacks | 0, bolsoes: s.pockets | 0, oni: s.onigiri | 0,
+    dour: s.goldEv | 0, ilhas: s.islandsDone | 0, faixa: s.lap | 0, amul: s.amPick | 0, cor: (s.city && s.city.hearts) | 0, graus: G.Escada ? G.Escada.total() : 0 }); })()`;
 (async () => {
   const b = await launch(), p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = [];
   p.on('pageerror', e => errs.push(e.message.split('\n')[0]));
@@ -103,6 +108,7 @@ const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I 
       if (has('--verbose')) console.log(fmt(at) + '  ' + e.txt);
     }
     T += r.dt;
+    if (has('--stats') && Math.floor(T / 1800) > Math.floor((T - r.dt) / 1800)) console.log(fmt(T) + '  stats ' + await p.evaluate(STATS).catch(e => e.message));
     if (r.ended && endedAt === null) { endedAt = T; if (r.endT > 0 && r.endT <= T - islandStart) endedAt = islandStart + r.endT;   // hora exata do final (S.endT), não o fim do bloco de 5 min
       const Tb = T; T = endedAt; fases.push([phase, T - islandStart]); phase = r.island === 0 && !r.islandsDone ? 'infinito (Honshu)' : 'infinito (ilha ' + r.island + ')'; console.log(fmt(T) + '  FINAL da ilha ' + r.island + ' (' + fmt(T - islandStart) + ')'); T = Tb; }
     // viaja: 30 min de modo infinito OU nada novo há 15 min (o jogador se cansaria), se ainda há ilha
@@ -126,6 +132,7 @@ const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I 
   const isl = fases.filter(f => /^ilha/.test(f[0])), inf = fases.filter(f => /^infinito/.test(f[0]));
   const avg = L => L.length ? fmt(L.reduce((a, f) => a + f[1], 0) / L.length) : '—';
   console.log('média: ilha ' + avg(isl) + ' · Pátio ' + avg(inf) + ' · viagens ' + isl.length + ' · ilha mais curta ' + (isl.length ? fmt(Math.min(...isl.map(f => f[1]))) : '—') + ' · Pátio mais curto ' + (inf.length ? fmt(Math.min(...inf.map(f => f[1]))) : '—'));
+  const escN = ev.filter(e => e[1] === 'escada').length; console.log('conquistas em escada: ' + escN + ' graus (' + (escN ? Math.round(T / 60 / escN) : '—') + ' min por grau; meta ~10)');
   console.log('novidades por tipo: ' + Object.entries(byKind).map(([k, v]) => k + ' ' + v).join(' · '));
   const longGaps = gaps.sort((x, y) => (y[1] - y[0]) - (x[1] - x[0]));
   console.log('trechos CHATOS (mais de ' + CHATO / 60 + ' min sem novidade): ' + longGaps.length);

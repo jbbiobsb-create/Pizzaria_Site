@@ -108,6 +108,7 @@
     if (UI.album) {
       UI.album(col, { cols: 2, items: ACH.map(a => ({ id: a.id, name: a.n, hint: a.d, q: '', a: a.d, icon: a.icon, unlocked: !!st().ach[a.id] })) });
     } else for (const a of ACH) UI.el('div', 'k-homehint', col, (st().ach[a.id] ? '✓ ' + a.n : '··· ' + a.d));
+    if (G.Escada) G.Escada.caderno(col);   // conquistas em escada (graus sem fim)
     if (G.AmuletosUI) G.AmuletosUI.caderno(col);   // coleção de amuletos (omamori) descobertos
     if (G.Evolucoes) G.Evolucoes.caderno(col);   // evoluções de máquina (com "?" até achar)
   }

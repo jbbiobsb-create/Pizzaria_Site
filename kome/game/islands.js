@@ -192,7 +192,7 @@
     // garantida do Goma herdavam a Oficina do Pátio anterior e a economia crescia ×10^6 por viagem até estourar (1e308 = parede da volta 17)
     delete stats.topIps; delete stats.topWk;
     if (stats.fab) { stats.fab.slow = 0; stats.fab.pb = 0; }   // Fábrica: o layout fica, o ritmo de cavar medido (valor do item) é da ilha
-    stats.earnedAll = (stats.earnedAll || 0) + (d.earned || 0);
+    stats.earnedAll = (stats.earnedAll || 0) + (d.earned || 0); stats.dugAll = (stats.dugAll || 0) + (+d.dug || 0);   // dugAll: conquistas em escada (escada.js)
     for (const k in d) delete d[k];
     Object.assign(d, keep, { stats, island: next, mount: 1, tool: START_TOOL[U.clamp((stats.sl && stats.sl.ferr) | 0, 0, 3)],
       tree: [], house: 0, money: granaOf((stats.sl && stats.sl.grana) | 0), earned: 0, ended: false, time: 0, dayT: 0, dayEarn: 0 });
