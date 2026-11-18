@@ -1464,6 +1464,11 @@
     let spawnAcc = 0, lastUpd = 0, vx0 = -1e9, vx1 = 1e9;
     const pool = new Map();                                  // coluna -> massa emprestada esperando virar grão
     const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const cols = [];
+    function grainPath(g, p, r) {
+      if (p.clump) { for (let j = 0; j < 3; j++) { const an = p.rot + j * 2.1; g.moveTo(p.x + Math.cos(an) * r * 0.55 + r * 0.55, p.y - r + Math.sin(an) * r * 0.45); g.arc(p.x + Math.cos(an) * r * 0.55, p.y - r + Math.sin(an) * r * 0.45, r * 0.55, 0, TAU); } }
+      else { g.moveTo(p.x + r * Math.cos(p.rot), p.y - r * 0.6 + r * Math.sin(p.rot)); g.ellipse(p.x, p.y - r * 0.6, r, r * 0.5, p.rot, 0, TAU); }
+    }
     function giveBack(x, m) { if (m > 0) heap.add(x, m, heap.colW * 2); }
     if (carry > 0) heap.divert = (i, area) => {
       if (now() - lastUpd > 200 || list.length >= max || (o.active && !o.active())) return 0;          // sem update recente (jogo acelerado/pausado): não empresta
@@ -1528,15 +1533,22 @@
       draw(g, z) {
         if (!list.length) return;
         const k = Math.max(1, 0.9 / (z || 1));                // longe: grão um pouco maior pra continuar visível
-        g.save(); g.lineJoin = 'round';
-        for (const p of list) {
-          const fade = p.still > 0 ? 1 - p.still / 0.35 : 1, r = p.r * k;
-          g.globalAlpha = Math.max(0, fade);
-          g.fillStyle = p.c; g.strokeStyle = LINE; g.lineWidth = Math.max(0.5, 0.7 * k);
+        g.save(); g.lineJoin = 'round'; g.strokeStyle = LINE; g.lineWidth = Math.max(0.5, 0.7 * k);
+        // grãos parados de vez (sem sumir): em lote por cor, 1 preenchimento + 1 contorno por cor (eram 2 chamadas por grão:
+        // ~150 grãos = ~300 desenhos por quadro). Só muda a ordem de quem se sobrepõe.
+        cols.length = 0;
+        for (let i = 0; i < list.length; i++) { const p = list[i]; if (!(p.still > 0) && cols.indexOf(p.c) < 0) cols.push(p.c); }
+        g.globalAlpha = 1;
+        for (let c = 0; c < cols.length; c++) {
           g.beginPath();
-          if (p.clump) { for (let j = 0; j < 3; j++) { const an = p.rot + j * 2.1; g.moveTo(p.x + Math.cos(an) * r * 0.55 + r * 0.55, p.y - r + Math.sin(an) * r * 0.45); g.arc(p.x + Math.cos(an) * r * 0.55, p.y - r + Math.sin(an) * r * 0.45, r * 0.55, 0, TAU); } }
-          else g.ellipse(p.x, p.y - r * 0.6, r, r * 0.5, p.rot, 0, TAU);
-          g.fill(); g.stroke();
+          for (let i = 0; i < list.length; i++) { const p = list[i]; if (p.c === cols[c] && !(p.still > 0)) grainPath(g, p, p.r * k); }
+          g.fillStyle = cols[c]; g.fill(); g.stroke();
+        }
+        // os que estão sumindo (alfa próprio), um a um
+        for (let i = 0; i < list.length; i++) {
+          const p = list[i]; if (!(p.still > 0)) continue;
+          g.globalAlpha = Math.max(0, 1 - p.still / 0.35);
+          g.fillStyle = p.c; g.beginPath(); grainPath(g, p, p.r * k); g.fill(); g.stroke();
         }
         g.restore();
       },

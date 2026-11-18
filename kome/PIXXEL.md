@@ -68,6 +68,7 @@ Pixxel v1.0 — core.js Base de tudo: utilitários (U), RNG, ruído, eventos, po
 - `shuffle(arr)` — embaralha no lugar (Fisher-Yates) e devolve arr
 - `fmtInt(n)` — inteiro com separador de milhar ('1.234.567')
 - `fmt(n)` — número curto pt-BR: 1.234 / 12,3 mil / 4,56 mi / bi / tri / ... / deci; acima disso '1,23e36'
+- `addUnits(['arrozilhão', ...])` — continua a escala de nomes depois do último (cada um ×1000)
 - `fmtTime(s)` — duração curta: '45s' / '3min 20s' / '1h 02min' / '2d 03h'
 - `pct(f, casas=0)` — fração 0..1 -> '42%'
 - `hex(h) -> [r,g,b,a255]` — aceita '#rgb', '#rrggbb', '#rrggbbaa', 'rgb(a)(...)' ou array (devolve cópia)
@@ -116,10 +117,12 @@ Pixxel v1.0 — core.js Base de tudo: utilitários (U), RNG, ruído, eventos, po
 - `tick(dt)` — avança a recarga
 - `reset()` — fica pronto na hora
 - `E.Stage({canvas|parent, width=960, height=540, fit='contain'|'cover'|'none', maxDpr=2, bg, pixelated=false, integer=false, maxScale, margin=0}) -> stage`
+- `stage.setMaxDpr(v) troca o teto depois (resolução adaptativa)`
 - `on('resize', fn(stage)) -> off`
 - `toStage(evt|{clientX,clientY}, out?) -> {x,y}` — coordenadas do cliente -> coordenadas lógicas do stage
 - `toClient(x, y) -> {x,y}` — coordenadas do stage -> coordenadas do cliente (pra posicionar DOM fora do stage)
 - `resize()` — recalcula escala, posição e resolução (chamado sozinho em resize/rotação)
+- `setMaxDpr(v)` — muda o teto da resolução interna (resolução adaptativa: celular lento desce um degrau) e refaz o tamanho
 - `begin()` — setTransform(dpr) + limpa (com bg se houver); chamar no começo de cada render
 - `layer(className?) -> div` — cria uma camada DOM do tamanho do stage por cima do canvas (escala junto)
 - `destroy()` — remove ouvintes (o DOM fica)
@@ -222,17 +225,19 @@ Pixxel v1.0 — pix.js O "estilo Kome" pra tudo que não é o cachorro: E.LINE /
 
 ### shiba.js
 
-Pixxel v1.0 · shiba.js O Kome (shiba chibi de chapéu kasa) desenhado em pixel art procedural numa grade 48x44. - E.ShibaPX      rasterizador original do rascunho (poses antigas pixel a pixel iguais) + poses novas - E.PALS         paletas {h,g,o,c,k,n,p} - E.drawShiba    desenha com os pés em (x,y), com cache de frames (aguenta 100+ shibas por frame) - E.drawShibaHead close de rosto com expressões para cutscenes - E.shibaAnchor  âncoras (pata, boca, cabeça, costas, topo do chapéu) por pose - E.Actor        shiba com estado, objeto na pata e balão de fala Depende só de core.js.
+Pixxel v1.0 · shiba.js O Kome (shiba chibi de chapéu kasa) desenhado em pixel art procedural numa grade 48x44. - E.ShibaPX      rasterizador original do rascunho (poses antigas pixel a pixel iguais) + poses novas - E.PALS         paletas {h,g,o,c,k,n,p} - E.drawShiba    desenha com os pés em (x,y), com cache de frames (aguenta 100+ shibas por frame) - E.drawShibaHead close de rosto com expressões para cutscenes - E.shibaAnchor  âncoras (pata, boca, cabeça, costas, topo do chapéu) por pose - E.shibaBelt    faixa (judô) amarrada na cintura de quem usa uma paleta: shibaBelt(nome, cor | {b,b2,bk} | null) - E.Actor        shiba com estado, objeto na pata e balão de fala Depende só de core.js.
 
 - `under (opcional) = pixels que aparecem onde o sprite é vazio (a sombra do chão, já pronta em Uint32)`
+- `shibaBelt(nomeDaPaleta, cor | {b, b2, bk} | null)` — todo shiba desenhado com essa paleta (string) passa a usar a faixa
+- `ponto (dx,dy) do corpo ereto, medido do quadril, inclinado por 'la' em volta do quadril`
 - `ShibaPX.frame(cv, mode, t, pal)` — desenha um frame 48x44 (com sombra) no canvas dado. API do rascunho.
 - `ShibaPX.still(pal, mode='sit', scale=1) -> dataURL de um frame parado (ícones de UI)`
-- `drawShiba.frameT(t, opts?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache)`
-- `drawShiba(g,x,y,pose,t,{face=1,scale=1,squash=0,rot=0,pal='kome',hat=true,mouth,eyes,alpha=1,shadow=true,fast,exact,smooth})` — pés em (x,y)
+- `drawShiba.frameT(t, opts?, pose?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache;`
+- `drawShiba(g,x,y,pose,t,{face=1,scale=1,squash=0,rot=0,pal='kome',hat=true,mouth,eyes,alpha=1,shadow=true,fast,exact,smooth,arm,arm2,lean})` — pés em (x,y)
 - `drawShiba.clear()` — esvazia o cache de frames ; drawShiba.stats -> {hits, misses, exact}
 - `drawShiba.fps (get/set)` — quadros de animação por segundo guardados no cache (padrão 30; 20 economiza mais)
 - `shibaCanvas(pose,t,opts) -> canvas 48x44 NOVO (cópia), pra ícones/sprites que você quer guardar`
-- `shibaAnchor(pose,t,nome:'paw'|'mouth'|'head'|'back'|'hatTop'|'hold'|'eye', out?, {hat,fast}?) -> {x,y} local (multiplique x por face)`
+- `shibaAnchor(pose,t,nome:'paw'|'paw2'|'mouth'|'head'|'back'|'hatTop'|'hold'|'eye', out?, {hat,fast,arm,arm2,lean}?) -> {x,y} local (multiplique x por face)`
 - `drawShibaHead(g,x,y,t,{scale=6,expr='normal',pal='kome',face=1,hat=true,alpha=1,rot=0,still=false})` — close de rosto centrado em (x,y)
 - `drawBubble(g,x,y,texto|B,{size=11,maxW=150,k=1 (0..1 pop),side=1,col,ink})` — balão creme com a ponta em (x,y)
 - `say(texto, seg=2.5, {size=11, maxW=150, typing=true})` — abre o balão de fala
@@ -283,7 +288,7 @@ Pixxel v1.0 · fx.js Câmera, partículas, textos flutuantes e efeitos de tela. 
 - `sparkle(x,y,n,{c,r=12})` — brilhos que piscam no lugar (ouro, item raro)
 - `poeira (puff) e fumaça (smoke)` — duas bolinhas chapadas (sombra + base), sem gradiente
 - `E.Floaters(max=160) -> fl`
-- `add(x,y,txt,{c='#FFFAEE',size=16,life=1.1,vy=-46,vx=0,stroke=LINE,pop=1,sw,rot,shake=0,delay=0})` — cria um texto que sobe
+- `add(x,y,txt,{c='#FFFAEE',size=16,life=1.1,vy=-46,vx=0,stroke=LINE,pop=1,sw,rot,shake=0,delay=0,ui=false})` — cria um texto que sobe
 - `style(valor, out?) -> {size,c,stroke,pop,shake}` — estilo pelo tamanho do número (pequeno creme, grande dourado, absurdo vermelho)
 - `money(x,y,valor,{prefix='+¥',...opts do add})` — atalho "+¥1,2 mil" já com o estilo do valor
 - `update(dt)`
@@ -341,7 +346,8 @@ Pixxel v1.0 — terrain.js Terreno granular: a montanha de arroz (E.Heap), pilha
 - `wake(xa?, xb?)` — acorda a avalanche numa faixa (ou em tudo) depois de mexer em heap.h na mão
 - `relax(dt) -> área que escorreu` — desliza grão das colunas mais altas que o talude de repouso (por material) permite
 - `settle(maxIters=4000)` — roda a avalanche até parar (carregar save, gerar terreno já assentado)
-- `draw(g, view{x0,x1,y0,y1}, time, {outline=true, sparkle=true, grains=true, pockets='all'|'found'|'hint'|false, haze:{col,a0,a1}|0, scale, ol})`
+- `draw(g, view{x0,x1,y0,y1}, time, {outline=true, sparkle=true, grains=true, pockets='all'|'found'|'hint'|false, haze:{col,a0,a1}|0, scale, ol, cache=false})`
+- `dropCache()` — solta a tela de apoio do cache (libera memória; a próxima draw com cache refaz tudo)
 - `prewarm(g)` — gera as texturas agora (evita o engasgo do primeiro frame)
 - `serialize({full=false}) -> string compacta (Uint16 em base64; só a faixa que mudou em relação ao original)`
 - `deserialize(dado) -> true se carregou` — aceita a string do serialize() ou um array de alturas. Chame depois de generate()/addPocket()
@@ -665,3 +671,21 @@ Pixxel v1.0 · ui.js — HUD em DOM por cima do canvas (par do pixxel.css) Depen
 - `E.UI.loadFont()` — pede a Zen Maru Gothic ao Google Fonts sem travar a página (offline o fallback do pixxel.css assume)
 - `E.UI.icons() -> nomes do conjunto embutido`
 - `E.UI.iconSrc(nome) -> canvas-fonte 16x16 (pra desenhar o mesmo ícone dentro do canvas do jogo)`
+
+### assets.js
+
+Pixxel v1.1 — assets.js Carrega o que sai do Pixxel Estúdio e toca as animações no jogo. E.Assets.add(id, def)            registra (o .pixxel.js exportado chama isso sozinho) E.Assets.fromSheet(id, png, json) carrega spritesheet + JSON (formato Aseprite também serve) E.Assets.get(id) -> asset | null ; E.Assets.ready(id) -> bool ; E.Assets.list() E.Assets.whenReady(fn)           chama quando tudo que foi registrado carregou E.Anim(id, tag='parado')         -> anim { tag, frame, t, done, flip, play(tag, restart), update(dt), draw(g, x, y, o) } E.Assets.draw(g, id, frame, x, y, o) desenha um quadro com âncora nos pés def = { img: dataURL|url|HTMLImageElement, w, h, frames: [dur ms...], anims: {nome: {from, to, dir}}, tipo, altura, ancora: 'pés'|'centro' } Desenho: pés em (x,y), escala o.scale (padrão 1), o.flip espelha, o.alpha. Depende de: core.js (opcional pix.js pra E.drawSprite)
+
+- `add(id, def)` — registra e começa a carregar a imagem
+- `fromSheet(id, pngUrl, json)` — json = objeto ou url; aceita o JSON do Estúdio e o do Aseprite (hash ou array)
+- `rect(a, frame) -> {x,y,w,h} na imagem`
+- `draw(g, id, frame, x, y, {scale=1, flip, alpha=1, ancora}) — pés em (x,y)`
+- `E.Anim(id, tag) -> tocador de animação por tag (forward | reverse | pingpong), respeita a duração de cada quadro`
+
+### board.js
+
+Pixxel v1.0 — board.js E.Board: SEGUNDA TELA, vista de cima, em grid (fábrica, cidade, mapa de regiões...). Tela cheia por cima do jogo, com canvas próprio, barra de ferramentas embaixo e botão de voltar. Feita pro celular DEITADO (toque) e pro mouse. const b = E.Board({ cols: 8, rows: 6, title: 'Fábrica', back: 'Montanha', tools: [{ id: 'esteira', label: 'Esteira', icon: 'belt' }, ...],   // botões da barra (icon = ícone do E.UI, opcional) floor(c, r) -> cor do ladrilho (padrão: grama em xadrez) drawCell(g, c, r, x, y, s, t)  -> desenha o que tem na célula (x,y = canto, s = lado em px) draw(g, view, t)               -> desenho livre por cima (view = {x, y, s, cols, rows, w, h}) onTap(c, r), onDrag(cells, done)  -> cells = [[c,r]...] em caminho contínuo (4 vizinhos), done no fim onTool(id), onOpen(), onClose() }); b.open() · b.close() · b.isOpen() · b.tool (id ativo ou null) · b.setTool(id) · b.sel ([c,r] ou null) b.cellAt(px, py) -> [c,r] ou null · b.view · b.toast(txt) · b.el (raiz DOM) · b.bar (barra, pra pôr mais coisas) Sem ferramenta ativa, arrastar move a vista (quando o grid não cabe). Toque = selecionar. Depende de: core.js (E.UI é opcional, só pros ícones)
+
+### sim.js
+
+Pixxel v1.0 — sim.js E.Sim: sistemas que rodam por TEMPO, separados do desenho. Base pra ganho offline, fábrica e cidade funcionarem fora da tela, e pra simuladores de balanço rodarem rápido em headless. const sim = E.Sim(); sim.add('fabrica', { tick(dt) {...}, offline(dt) { ...; return { yen: 10 } } }); sim.tick(dt)                 -> chama tick(dt) de todos (no loop do jogo) sim.catchUp(secs, {maxStep}) -> tempo fora: chama offline(dt) em passos de até maxStep s (padrão 60), soma os números que cada sistema devolve -> { fabrica: { yen: 600 }, ... } sim.list()                   -> ids registrados Sistema sem offline() simplesmente não anda enquanto o jogo está fechado (nada estraga quando você sai). Depende de: core.js

@@ -214,13 +214,17 @@
 .k-btn.k-off { filter: grayscale(.45); cursor: default; }
 .k-btn.k-off > *:not(.k-badge) { opacity: .55; }
 .k-btn.k-off { background: #efe7d3; }
-.k-btn.k-can { background: var(--k-yel); animation: k-glow 3s ease-in-out infinite; }
+.k-btn.k-can { background: var(--k-yel); }
+/* brilho do "dá pra comprar": anel no pseudo-elemento (a área de toque ::after, que não muda de tamanho) piscando só em
+   opacity — o compositor anima sozinho, sem repintar o botão a cada quadro (box-shadow animado repintava) */
+.k-btn.k-can::after { border-radius: inherit; outline: 6px solid rgba(243, 201, 74, .7); outline-offset: calc(2px - var(--k-hitpad)); opacity: 0; animation: k-glow 3s ease-in-out infinite; }
 .k-btn.k-can .k-btn-bp i { background: var(--k-goldD); }
 .k-btn.k-can .k-btn-ico { animation: k-nudge 3s ease-in-out infinite; }
-@keyframes k-glow { 0%, 62%, 100% { box-shadow: 0 var(--k-shb) 0 var(--k-ink), 0 0 0 0 rgba(243, 201, 74, 0); } 78% { box-shadow: 0 var(--k-shb) 0 var(--k-ink), 0 0 0 6px rgba(243, 201, 74, .7); } }
+@keyframes k-glow { 0%, 62%, 100% { opacity: 0; } 78% { opacity: 1; } }
 @keyframes k-nudge { 0%, 62%, 100% { transform: none; } 70% { transform: translateY(-3px) rotate(-6deg); } 80% { transform: translateY(0) rotate(4deg); } 90% { transform: rotate(-2deg); } }
 .k-btn.k-nope { animation: k-shake .28s; }
 .k-btn.k-can:active, .k-btn.k-can.k-press { animation: none; }
+.k-btn.k-can:active::after, .k-btn.k-can.k-press::after { animation: none; opacity: 0; }
 /* variantes */
 .k-btn.k-icon { width: 46px; min-width: 46px; height: 46px; padding: 0; justify-content: center; border-radius: 13px; }
 .k-btn.k-sm { min-height: 34px; padding: 3px 12px; font-size: 13px; border-radius: 11px; box-shadow: 0 3px 0 var(--k-ink); gap: 6px; }

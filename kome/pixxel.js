@@ -3170,8 +3170,9 @@
   }
 
   /* ---------- pose(): despacha; as poses antigas são o código do rascunho ---------- */
+  let LIFE_T = null;   // cache em laço: a vida ociosa (piscada, orelha) usa o t de verdade, o corpo usa o t dentro do ciclo
   function pose(mode, t, extra) {
-    life(t);
+    life(LIFE_T === null ? t : LIFE_T);
     A.hasHold = false; A.hasPaw2 = false; A.pawX = 32; A.pawY = 36; A.backX = 20; A.backY = 19.5;
     const eyesO = LF.blink ? 'closed' : LF.half ? 'half' : 'open';
     if (mode === 'roll') {
@@ -3428,6 +3429,12 @@
   const stats = { hits: 0, misses: 0, exact: 0 };
   let exactCv = null, exactG = null;
   const NOOPTS = {};
+  /* Poses que se repetem EXATAMENTE (tudo do corpo sai de sin/cos de uma fase só): o frame é guardado por fase dentro do
+     ciclo + estado da vida ociosa (piscada/meia piscada, tremida de orelha), não pelo t absoluto. Uma multidão andando ou
+     correndo, cada um no seu t, passa a reaproveitar ~20 frames por paleta em vez de rasterizar 1 frame novo por shiba a
+     cada 1/30 s. walk: fase 9,5t · run: fase 16t (o resto dessas poses só usa a piscada/orelha). Desenho igual. */
+  const LOOP = { walk: 2 * Math.PI / 9.5, run: 2 * Math.PI / 16 };
+  const LOOP_KEY = TQ_MAX + 1;                             // chaves de laço ficam acima de qualquer tq absoluto (cabe em 2^53)
   const idOf = (arr, v) => { const i = arr.indexOf(v); return i < 0 ? 15 : i + 1; };
 
   // t são: número finito (NaN/undefined/Infinity viram 0)
@@ -3436,10 +3443,14 @@
   function isExact(o, K, t) {
     return !!(o.exact || o.arm != null || o.arm2 != null || o.lean != null || o.tilt || o.look || ShibaPX.tilt || ShibaPX.look || ShibaPX.quiet || K.id > 255 || Math.abs(t) * CACHE_FPS > TQ_MAX);
   }
-  // drawShiba.frameT(t, opts?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache)
-  function frameT(t, o) {
+  // drawShiba.frameT(t, opts?, pose?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache;
+  //   com a pose, nas poses em laço devolve um t com a mesma fase do frame guardado)
+  function frameT(t, o, mode) {
     t = saneT(t); o = o || NOOPTS;
-    return isExact(o, compilePal(typeof o.pal === 'object' && o.pal ? o.pal : getPal(o.pal)), t) ? t : Math.round(t * CACHE_FPS) / CACHE_FPS;
+    if (isExact(o, compilePal(typeof o.pal === 'object' && o.pal ? o.pal : getPal(o.pal)), t)) return t;
+    const lp = mode !== undefined ? LOOP[mode] : undefined;
+    if (lp !== undefined) { const N = Math.max(1, Math.round(lp * CACHE_FPS)); let ph = (t / lp) % 1; if (ph < 0) ph += 1; return t + (Math.round(ph * N) / N - ph) * lp; }
+    return Math.round(t * CACHE_FPS) / CACHE_FPS;
   }
 
   // frame velho que voltou a ser usado: troca de lugar com o slot que seria o próximo a sair e vira o mais novo
@@ -3479,7 +3490,16 @@
       frameFast(exactCv, exactG, mode, t, K, shadow);
       stats.exact++; cv = exactCv;
     } else {
-      const tq = Math.round(t * CACHE_FPS);
+      const lp = LOOP[mode];
+      let tq, tr;
+      if (lp !== undefined) {
+        life(t);                                             // vida ociosa no t de verdade: entra na chave
+        const N = Math.max(1, Math.round(lp * CACHE_FPS));
+        let ph = (t / lp) % 1; if (ph < 0) ph += 1;
+        const fi = Math.round(ph * N) % N;
+        tq = LOOP_KEY + fi * 16 + (LF.blink ? 1 : LF.half ? 2 : 0) + ((LF.tw + 1) << 2);
+        tr = (fi / N) * lp;
+      } else { tq = Math.round(t * CACHE_FPS); tr = tq / CACHE_FPS; }
       const bits = K.id | (pid << 8) | (hat ? 16384 : 0) | (shadow ? 32768 : 0) | ((mouth ? idOf(MOUTHS, mouth) : 0) << 16) | ((eyes ? idOf(EYES, eyes) : 0) << 20) | (fast << 24);
       const key = tq * KEY_MUL + bits;
       let hit = cacheMap.get(key);
@@ -3493,7 +3513,9 @@
       else cacheMap.delete(slotKey[i]);
       slotKey[i] = key; slotSeq[i] = ++cacheSeq; cacheMap.set(key, i);
       ShibaPX.hatOn = hat; ShibaPX.mouthOverride = mouth; ShibaPX.eyesOverride = eyes; ShibaPX.tilt = 0; ShibaPX.look = null; S.fast = fast;
-      frameFast(slotCv[i], slotG[i], mode, tq / CACHE_FPS, K, shadow);
+      if (lp !== undefined) LIFE_T = t;
+      frameFast(slotCv[i], slotG[i], mode, tr, K, shadow);
+      LIFE_T = null;
       stats.misses++; cv = slotCv[i];
     }
     ShibaPX.hatOn = gH; ShibaPX.mouthOverride = gM; ShibaPX.eyesOverride = gE; ShibaPX.tilt = gT; ShibaPX.look = gL; S.fast = gF; twoSet(null);
@@ -3789,7 +3811,7 @@
       // anchor(nome, out?) -> {x,y} em coordenadas de mundo (considera face, escala, squash e rot), no mesmo t do frame desenhado
       anchor(name, out) {
         const ao = anchorOpts; ao.hat = a.hat; ao.fast = a.fast; ao.pal = a.pal;
-        out = shibaAnchor(a.pose, frameT(a.t, ao), name, out, ao);
+        out = shibaAnchor(a.pose, frameT(a.t, ao, a.pose), name, out, ao);
         const lx = out.x * a.face * a.scale * (1 + a.squash * 0.6), ly = out.y * a.scale * (1 - a.squash);
         const c = Math.cos(a.rot), sn = Math.sin(a.rot);
         out.x = a.x + lx * c - ly * sn; out.y = a.y - a.z + lx * sn + ly * c;
@@ -3815,7 +3837,7 @@
       drawHold(g, h, y) {
         const ao = anchorOpts; ao.hat = a.hat; ao.fast = a.fast; ao.pal = a.pal;
         // âncora no t do frame que o cache desenha (senão o objeto treme 1px em relação à pata)
-        const cv = h.cv || h, p = shibaAnchor(a.pose, frameT(a.t, ao), h.anchor || 'hold', anchorTmp, ao), hs = h.scale || 1;
+        const cv = h.cv || h, p = shibaAnchor(a.pose, frameT(a.t, ao, a.pose), h.anchor || 'hold', anchorTmp, ao), hs = h.scale || 1;
         g.save(); g.translate(a.x, y); if (a.rot) g.rotate(a.rot);
         g.scale(a.face * a.scale * (1 + a.squash * 0.6), a.scale * (1 - a.squash));
         g.translate(p.x + (h.dx || 0), p.y + (h.dy || 0)); if (h.rot) g.rotate(h.rot);
@@ -5157,6 +5179,7 @@
     const gM = new Uint8Array(GMAX);
 
     let layers = [], bands = [], ells = [];
+    let layVer = 0;                        // muda quando camadas/bolsões/forma original mudam (refaz a montanha guardada)
     let rA = n, rB = -1;                   // faixa ativa da avalanche (vazia = parada)
     let relaxAcc = 0, sweep = 0, peakDirty = true, lastT = -1;
     const peakOut = { x: 0, h: 0, i: 0 };
@@ -5266,13 +5289,13 @@
         const sh = p.shape = new Float32Array(12), r = E.RNG(((p.x * 31 + p.y * 17) | 0) + 7);
         for (let k = 0; k < 12; k++) sh[k] = 0.82 + r() * 0.3;
         p.seed = r();
-        heap.pockets.push(p);
+        heap.pockets.push(p); layVer++;
         const a = heap.col(p.x - p.r * 1.15), b = heap.col(p.x + p.r * 1.15);
         for (let i = a; i <= b; i++) pk[i] = 1;
         return p;
       },
       // clearPockets(): remove todos os bolsões
-      clearPockets() { heap.pockets.length = 0; pk.fill(0); return heap; },
+      clearPockets() { heap.pockets.length = 0; pk.fill(0); layVer++; return heap; },
       // pocketAt(x, alt) -> bolsão que contém o ponto, ou null
       pocketAt,
 
@@ -5417,9 +5440,16 @@
       _actHot: false, _a0: n, _a1: -1,
 
       /* ---------- desenho ---------- */
-      // draw(g, view{x0,x1,y0,y1}, time, {outline=true, sparkle=true, grains=true, pockets='all'|'found'|'hint'|false, haze:{col,a0,a1}|0, scale, ol})
+      // draw(g, view{x0,x1,y0,y1}, time, {outline=true, sparkle=true, grains=true, pockets='all'|'found'|'hint'|false, haze:{col,a0,a1}|0, scale, ol, cache=false})
       //   corte em camadas com grãos, crista ensolarada, sombra nos buracos, bolsões dourados, brilhos e contorno. g já com a câmera aplicada.
+      //   cache:true = montanha guardada numa tela de apoio na escala da tela; só refaz as colunas que mudaram (cavar, avalanche),
+      //   a faixa nova quando a câmera anda e tudo quando muda zoom/espelho/opções/camadas. Brilhos, flash e grãos rolando ficam vivos.
+      //   Com zoom andando (ou câmera girando no tremor) desenha direto. Não mexe em nada da simulação.
       draw,
+      // dropCache(): solta a tela de apoio do cache (libera memória; a próxima draw com cache refaz tudo)
+      dropCache() { if (BK.cv) { BK.cv.width = BK.cv.height = 0; } BK.cv = null; BK.g = null; BK.sig = ''; BK.w = BK.h = 0; return heap; },
+      // cacheStats -> {bakes: retângulos refeitos desde o início, w, h, K}
+      get cacheStats() { return { bakes: BK.n, w: BK.w, h: BK.h, K: BK.K }; },
       // prewarm(g): gera as texturas agora (evita o engasgo do primeiro frame)
       prewarm(g) {
         const vs = ['g', 's', 'ca', 'cb'];
@@ -5483,6 +5513,7 @@
     }
     // intervalo [lo, hi] (em altura) de cada camada em cada coluna
     function rebuild() {
+      layVer++;
       for (let b = 0; b < bands.length; b++) {
         const m = bands[b], nx = bands[b + 1], lo = m.lo, hi = m.hi;
         const byDepth = m.d0 !== undefined || m.d1 !== undefined;
@@ -5599,17 +5630,12 @@
       g.fillRect(x - s, y - t, s * 2, t * 2); g.fillRect(x - t, y - s, t * 2, s * 2);
     }
 
-    function draw(g, view, time, o) {
-      o = o || NO;
-      const S = o.scale || scaleOf(g);
-      time = time || 0;
-      const dtDraw = lastT < 0 ? 0 : Math.min(0.1, Math.max(0, time - lastT)); lastT = time;
+    // amostra a superfície na vista (px/py/ph/pc, M, KA..KB, STEP, smooth). false = nada da montanha à vista
+    let STEP = 1, KA = 0, KB = 0, I0 = 0, I1 = 0;
+    function sample(view, S) {
       let i0 = view ? Math.floor((view.x0 - x0) / colW) - 2 : 0, i1 = view ? Math.ceil((view.x1 - x0) / colW) + 2 : n - 1;
       if (i0 < 0) i0 = 0; if (i1 > n - 1) i1 = n - 1;
-      if (i1 - i0 < 1) return;
-      const vy0 = view ? view.y0 : y0 - heap.maxH * 1.5 - 200;
-      pickLod(S);
-
+      if (i1 - i0 < 1) return false;
       /* amostragem (decima colunas quando afastado: >= ~1,6 px de dispositivo por vértice) */
       const step = Math.max(1, Math.floor(1.6 / (colW * S)));
       i0 -= i0 % step;
@@ -5623,9 +5649,29 @@
         if (s > 0.05) { anyH = true; if (ka < 0) ka = M; kb = M; }
         M++;
       }
-      if (!anyH || M < 2) return;
-      ka = Math.max(0, ka - 1); kb = Math.min(M - 1, kb + 1);
+      if (!anyH || M < 2) return false;
+      KA = Math.max(0, ka - 1); KB = Math.min(M - 1, kb + 1); STEP = step; I0 = i0; I1 = i1;
       smooth = step === 1 && colW * S > 2.5;
+      return true;
+    }
+
+    function draw(g, view, time, o) {
+      o = o || NO;
+      const S = o.scale || scaleOf(g);
+      time = time || 0;
+      const dtDraw = lastT < 0 ? 0 : Math.min(0.1, Math.max(0, time - lastT)); lastT = time;
+      if (o.cache && view && drawCached(g, view, time, o, S, dtDraw)) return;
+      if (!drawStatic(g, view, time, o, S, dtDraw, true)) return;
+      drawLive(g, view, time, o, S, dtDraw, false);
+    }
+
+    // parte parada da montanha (corpo, camadas, crista, grãos, contorno, bolsões sem brilho): só depende de h, h0, camadas, bolsões
+    // achados, escala e opções. live = brilho/flash dos bolsões junto (desenho direto, ordem de sempre)
+    function drawStatic(g, view, time, o, S, dt, live) {
+      if (!sample(view, S)) return false;
+      const vy0 = view ? view.y0 : y0 - heap.maxH * 1.5 - 200;
+      pickLod(S);
+      const ka = KA, kb = KB, step = STEP, i0 = I0, i1 = I1;
       const ol = o.outline === false ? 0 : Math.max(o.ol || 1.25, 1.25 / S);
       const pxw = 1 / S; // 1 px de dispositivo em unidades de mundo
 
@@ -5711,7 +5757,7 @@
       g.fillRect(px[0], y0 - bs, px[M - 1] - px[0], bs); g.fillRect(px[0], y0 - bs * 0.45, px[M - 1] - px[0], bs * 0.45);
 
       // bolsões dourados
-      if (o.pockets !== false && heap.pockets.length) drawPockets(g, view, time, S, o.pockets || 'all', dtDraw);
+      if (o.pockets !== false && heap.pockets.length) drawPockets(g, view, time, S, o.pockets || 'all', dt, live);
 
       // crista: grãos maiores e ensolarados nos primeiros px abaixo da superfície, por material
       const cT = 9 * (1 + (1 - LNear) * 0.6);
@@ -5806,7 +5852,13 @@
         }
         g.globalAlpha = 1;
       }
+      return true;
+    }
 
+    // parte viva (depois de sample() na vista atual): grãos rolando, brilhinhos e, se pockets, brilho/flash dos bolsões
+    function drawLive(g, view, time, o, S, dt, pockets) {
+      const step = STEP, pxw = 1 / S, ol = o.outline === false ? 0 : Math.max(o.ol || 1.25, 1.25 / S);
+      if (pockets && o.pockets !== false && heap.pockets.length) livePockets(g, view, time, S, o.pockets || 'all', dt);
       /* 4. grãos rolando onde a avalanche está escorrendo */
       if (heap._actHot && S > 0.12 && o.rolling !== false) {   // rolling:false quando o jogo usa E.SlideFX
         const big = S >= 0.9, rs = big ? 1 : 1.3 * pxw;
@@ -5850,11 +5902,144 @@
       }
     }
 
-    function drawPockets(g, view, time, S, mode, dt) {
+    /* ---------- montanha guardada (o.cache): o corpo vai pra uma tela de apoio na escala da tela (1 pixel = 1 pixel, sem
+       reamostrar) e só os retângulos das colunas que mudaram são refeitos; vivos por cima: brilhos, flash, grãos rolando.
+       Refaz tudo quando muda escala/espelho/opções/camadas; câmera andando = copia o que já tem e desenha só a faixa nova. */
+    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false };
+    const BV = { x0: 0, x1: 0, y0: 0, y1: 0 };
+    function bakeMargin(K) { const step = Math.max(1, Math.floor(1.6 / (colW * K))); return (8 * step + 4) * colW + 24 / K; }
+    function foundSig() { let f = ''; for (let k = 0; k < heap.pockets.length; k++) f += heap.pockets[k].found ? '1' : '0'; return f; }
+    // refaz o retângulo (pixels da tela de apoio) com o h atual
+    function bakeRect(o, rx, ry, rw, rh) {
+      if (rx < 0) { rw += rx; rx = 0; } if (ry < 0) { rh += ry; ry = 0; }
+      if (rx + rw > BK.w) rw = BK.w - rx; if (ry + rh > BK.h) rh = BK.h - ry;
+      if (rw <= 0 || rh <= 0) return;
+      const c = BK.g, K = BK.K, E2 = bakeMargin(K);
+      c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(rx, ry, rw, rh);
+      c.save(); c.beginPath(); c.rect(rx, ry, rw, rh); c.clip();
+      c.setTransform(K, 0, 0, K, BK.bx - BK.ox, BK.by - BK.oy);
+      BV.x0 = (rx + BK.ox - BK.bx) / K - E2; BV.x1 = (rx + rw + BK.ox - BK.bx) / K + E2;
+      BV.y0 = (ry + BK.oy - BK.by) / K - E2; BV.y1 = (ry + rh + BK.oy - BK.by) / K + E2;
+      drawStatic(c, BV, 0, o, K, 0, false);
+      c.restore();
+      BK.n++;
+    }
+    function drawCached(g, view, time, o, S, dt) {
+      const m = g.getTransform();
+      if (m.b || m.c || !(m.d > 0)) return false;
+      const K = m.d;
+      if (Math.abs(Math.abs(m.a) - K) > K * 1e-7 || K * colW < 0.05) return false;
+      const mir = m.a < 0 ? 1 : 0;
+      const stable = K === BK.lastK; BK.lastK = K;
+      if (K !== BK.K && !stable) return false;            // zoom ainda andando: desenha direto até assentar
+      // pedaço da montanha que aparece (mundo)
+      const padW = 10 + 6 / K, top = y0 - Math.max(1, heap.peak().h) - padW, bot = y0 + padW;
+      const ax0 = Math.max(view.x0, x0 - padW), ax1 = Math.min(view.x1, x0 + n * colW + padW), ay0 = Math.max(view.y0, top), ay1 = Math.min(view.y1, bot);
+      if (ax1 <= ax0 || ay1 <= ay0) return false;          // nada à vista: o caminho direto sai cedo
+      const hz = o.haze, sig = K + '|' + mir + '|' + (o.outline === false ? 0 : o.ol || 1) + '|' + (o.grains === false ? 0 : 1) + '|' + (o.pockets === false ? 0 : o.pockets || 'all') + '|' +
+        (hz ? (hz.col || '') + ',' + hz.a0 + ',' + hz.a1 : '') + '|' + layVer + '|' + n;
+      const vw = view.x1 - view.x0, vh = view.y1 - view.y0;
+      // janela desejada (mundo), do tamanho da vista + folga, presa à montanha
+      const wantW = Math.min(vw * 1.3, x0 + n * colW + padW - (x0 - padW)), wantH = Math.min(vh * 1.2, bot - top);
+      const cw = Math.ceil(wantW * K) + 4, ch = Math.ceil(wantH * K) + 4;
+      const cx = (view.x0 + view.x1) / 2, cy = (view.y0 + view.y1) / 2;
+      let full = sig !== BK.sig || !BK.cv || cw > BK.w || ch > BK.h || cw < BK.w * 0.7 || ch < BK.h * 0.6;
+      if (full) {
+        if (!BK.cv) { BK.cv = doc.createElement('canvas'); BK.g = BK.cv.getContext('2d'); }
+        BK.w = BK.cv.width = cw; BK.h = BK.cv.height = Math.ceil(ch * 1.06) + 24;   // folga em altura: o pico crescer 1 px não refaz tudo
+        BK.K = K; BK.mir = mir; BK.sig = sig;
+        BK.bx = mir ? Math.ceil(m.e) - m.e : m.e - Math.floor(m.e); BK.by = m.f - Math.floor(m.f);
+        if (!BK.hs || BK.hs.length !== n) BK.hs = new Float32Array(n);
+      }
+      // janela atual em mundo
+      const wx0 = (BK.ox - BK.bx) / K, wy0 = (BK.oy - BK.by) / K, wx1 = wx0 + BK.w / K, wy1 = wy0 + BK.h / K;
+      const inside = !full && ax0 >= wx0 && ax1 <= wx1 && ay0 >= wy0 && ay1 <= wy1;
+      if (!full) {
+        // colunas que mudaram desde a última vez (inclusive as da folga, que mexem na sombra de dentro)
+        const E2 = bakeMargin(K), hs = BK.hs;
+        let c0 = Math.floor((wx0 - E2 - x0) / colW), c1 = Math.ceil((wx1 + E2 - x0) / colW);
+        if (c0 < 0) c0 = 0; if (c1 > n - 1) c1 = n - 1;
+        let ra = -1, rb = -1, lo = 1e9, hi = -1e9, tot = 0;
+        const runs = [];
+        for (let i = c0; i <= c1 + 1; i++) {
+          const ch2 = i <= c1 && h[i] !== hs[i];
+          if (ch2) {
+            if (ra >= 0 && i - rb > 24) { runs.push(ra, rb, lo, hi); tot += rb - ra; ra = -1; }
+            if (ra < 0) { ra = i; lo = 1e9; hi = -1e9; }
+            rb = i;
+            const a = h[i] < hs[i] ? h[i] : hs[i], b = h[i] > hs[i] ? h[i] : hs[i];
+            if (a < lo) lo = a; if (b > hi) hi = b;
+            hs[i] = h[i];
+          } else if (ra >= 0 && (i > c1 || i - rb > 24)) { runs.push(ra, rb, lo, hi); tot += rb - ra; ra = -1; }
+        }
+        // muita coisa mexendo ao mesmo tempo (avalanche larga, restore): desenha direto enquanto durar e refaz tudo quando acalmar
+        if (tot * colW > (wx1 - wx0) * 0.6) { BK.stale = true; return false; }
+        if (BK.stale) { BK.stale = false; full = true; }
+        else {
+          const stepK = Math.max(1, Math.floor(1.6 / (colW * K))), dk = Math.max(1, 0.7 / K), deep = Math.max(105 * dk, 22, 16 / K, 30) + 12 + 6 / K, fx = E2 + colW;
+          for (let r = 0; r < runs.length; r += 4) {
+            // a sombra de oclusão usa a média das vizinhas: o retângulo pega a altura mais alta em volta
+            let lo2 = runs[r + 2], hi2 = runs[r + 3];
+            const ia = Math.max(0, runs[r] - 8 * stepK - 2), ib = Math.min(n - 1, runs[r + 1] + 8 * stepK + 2);
+            for (let i = ia; i <= ib; i++) { if (h[i] > hi2) hi2 = h[i]; if (h[i] < lo2) lo2 = h[i]; }
+            const xa = x0 + runs[r] * colW - fx, xb = x0 + (runs[r + 1] + 1) * colW + fx;
+            const ya = y0 - hi2 - padW, yb = y0 - lo2 + deep;
+            const rx = Math.floor(K * xa + BK.bx) - BK.ox, ry = Math.floor(K * ya + BK.by) - BK.oy;
+            bakeRect(o, rx, ry, Math.ceil(K * xb + BK.bx) - BK.ox - rx, Math.ceil(K * yb + BK.by) - BK.oy - ry);
+          }
+        }
+        // bolsão achado agora: refaz o retângulo dele
+        const fd = foundSig();
+        if (!full && fd !== BK.fd) {
+          for (let k = 0; k < heap.pockets.length; k++) {
+            if (fd[k] === BK.fd[k]) continue;
+            const p = heap.pockets[k], rr = p.r * 1.3 + 8 + 6 / K;
+            const rx = Math.floor(K * (p.x - rr) + BK.bx) - BK.ox, ry = Math.floor(K * (y0 - p.y - rr) + BK.by) - BK.oy;
+            bakeRect(o, rx, ry, Math.ceil(K * rr * 2) + 2, Math.ceil(K * rr * 2) + 2);
+          }
+          BK.fd = fd;
+        }
+      }
+      if (full || !inside) {
+        // nova janela: centrada na vista, presa à montanha
+        let nx0 = cx - BK.w / K / 2, ny0 = cy - BK.h / K / 2;
+        const lx0 = x0 - padW, lx1 = x0 + n * colW + padW + 2 / K, b2 = bot + 2 / K;   // +2 px: o arredondamento pra baixo não corta a borda
+        if (nx0 + BK.w / K > lx1) nx0 = lx1 - BK.w / K; if (nx0 < lx0) nx0 = lx0;
+        if (ny0 + BK.h / K > b2) ny0 = b2 - BK.h / K; if (ny0 < top) ny0 = top;
+        const nox = Math.floor(K * nx0 + BK.bx), noy = Math.floor(K * ny0 + BK.by);
+        const dx = BK.ox - nox, dy = BK.oy - noy;
+        if (!full && Math.abs(dx) < BK.w * 0.75 && Math.abs(dy) < BK.h * 0.75) {
+          // câmera andou: copia o que já está pronto e desenha só as faixas novas
+          const c = BK.g;
+          c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'copy'; c.drawImage(BK.cv, dx, dy); c.globalCompositeOperation = 'source-over';
+          BK.ox = nox; BK.oy = noy;
+          if (dx > 0) bakeRect(o, 0, 0, dx, BK.h); else if (dx < 0) bakeRect(o, BK.w + dx, 0, -dx, BK.h);
+          if (dy > 0) bakeRect(o, 0, 0, BK.w, dy); else if (dy < 0) bakeRect(o, 0, BK.h + dy, BK.w, -dy);
+        } else {
+          BK.ox = nox; BK.oy = noy;
+          bakeRect(o, 0, 0, BK.w, BK.h);
+          BK.hs.set(h); BK.fd = foundSig();
+        }
+      }
+      // carimba só o pedaço que aparece, pixel com pixel (translação inteira, sem suavizar)
+      const cvw = g.canvas.width, cvh = g.canvas.height;
+      const D = Math.round(mir ? BK.bx + m.e - BK.ox : BK.ox - BK.bx + m.e), Dy = Math.round(BK.oy - BK.by + m.f);
+      let u0 = mir ? D - cvw : -D, u1 = mir ? D : cvw - D, v0 = -Dy, v1 = cvh - Dy;
+      if (u0 < 0) u0 = 0; if (v0 < 0) v0 = 0; if (u1 > BK.w) u1 = BK.w; if (v1 > BK.h) v1 = BK.h;
+      if (u1 > u0 && v1 > v0) {
+        g.save(); g.setTransform(mir ? -1 : 1, 0, 0, 1, D, Dy); g.imageSmoothingEnabled = false;
+        g.drawImage(BK.cv, u0, v0, u1 - u0, v1 - v0, u0, v0, u1 - u0, v1 - v0);
+        g.restore();
+      }
+      if (sample(view, S)) drawLive(g, view, time, o, S, dt, true);
+      return true;
+    }
+
+    function drawPockets(g, view, time, S, mode, dt, live) {
       const P = heap.pockets, pxw = 1 / S;
       for (let k = 0; k < P.length; k++) {
         const p = P[k];
-        if (p.flash > 0) p.flash = Math.max(0, p.flash - dt * 1.6);
+        if (live && p.flash > 0) p.flash = Math.max(0, p.flash - dt * 1.6);
         if (mode === 'found' && !p.found) continue;
         if (view && (p.x + p.r * 1.2 < view.x0 || p.x - p.r * 1.2 > view.x1 || y0 - p.y + p.r < view.y0 || y0 - p.y - p.r > view.y1)) continue;
         // só o que ainda está enterrado aparece (o recorte do corpo cuida do resto)
@@ -5866,21 +6051,42 @@
         g.strokeStyle = PAL.goldD || '#B4852A'; g.lineWidth = Math.max(1.6, 2 * pxw); g.stroke();
         pocketPath(g, p, 1 - Math.min(0.3, Math.max(3.2 * pxw, 3) / p.r));
         g.strokeStyle = 'rgba(255,246,190,.75)'; g.lineWidth = Math.max(1, 1.2 * pxw); g.stroke();
-        // brilhos que piscam em posições que trocam
-        g.fillStyle = '#FFFFFF';
-        for (let j = 0; j < 3; j++) {
-          const ph0 = time * (0.7 + j * 0.23) + p.seed * 9 + j * 2.1, cyc = Math.floor(ph0), f = ph0 - cyc;
-          const a = E.hash(cyc * 7 + j + k * 13) * TAU, rr = E.hash(cyc * 11 + j * 5 + k) * p.r * 0.72;
-          const sz = Math.sin(f * Math.PI) * Math.max(2.2 * pxw, Math.min(5, p.r * 0.11));
-          sparkle(g, p.x + Math.cos(a) * rr, y0 - p.y + Math.sin(a) * rr * 0.8, sz);
-        }
-        if (p.flash > 0) {
-          g.globalAlpha = p.flash;
-          pocketPath(g, p, 1 + (1 - p.flash) * 0.25);
-          g.strokeStyle = '#FFFFFF'; g.lineWidth = Math.max(3, 4 * pxw) * (0.5 + p.flash); g.stroke();
-        }
+        if (live) pocketFx(g, p, k, time, pxw);
         g.globalAlpha = 1;
       }
+    }
+    // brilhos que piscam em posições que trocam + flash de quando foi achado
+    function pocketFx(g, p, k, time, pxw) {
+      const pa = g.globalAlpha;
+      g.fillStyle = '#FFFFFF';
+      for (let j = 0; j < 3; j++) {
+        const ph0 = time * (0.7 + j * 0.23) + p.seed * 9 + j * 2.1, cyc = Math.floor(ph0), f = ph0 - cyc;
+        const a = E.hash(cyc * 7 + j + k * 13) * TAU, rr = E.hash(cyc * 11 + j * 5 + k) * p.r * 0.72;
+        const sz = Math.sin(f * Math.PI) * Math.max(2.2 * pxw, Math.min(5, p.r * 0.11));
+        sparkle(g, p.x + Math.cos(a) * rr, y0 - p.y + Math.sin(a) * rr * 0.8, sz);
+      }
+      if (p.flash > 0) {
+        g.globalAlpha = p.flash;
+        pocketPath(g, p, 1 + (1 - p.flash) * 0.25);
+        g.strokeStyle = '#FFFFFF'; g.lineWidth = Math.max(3, 4 * pxw) * (0.5 + p.flash); g.stroke();
+      }
+      g.globalAlpha = pa;
+    }
+    // só a parte viva dos bolsões (montanha guardada), recortada pelo corpo da vista atual
+    function livePockets(g, view, time, S, mode, dt) {
+      const P = heap.pockets, pxw = 1 / S;
+      let clip = false;
+      for (let k = 0; k < P.length; k++) {
+        const p = P[k];
+        if (p.flash > 0) p.flash = Math.max(0, p.flash - dt * 1.6);
+        if (mode === 'found' && !p.found) continue;
+        if (view && (p.x + p.r * 1.2 < view.x0 || p.x - p.r * 1.2 > view.x1 || y0 - p.y + p.r < view.y0 || y0 - p.y - p.r > view.y1)) continue;
+        if (p.y - p.r > heap.height(p.x) + p.r) continue;
+        if (!clip) { g.save(); bodyPath(g, 0); g.clip(); clip = true; }
+        g.globalAlpha = mode === 'hint' && !p.found ? 0.4 : 1;
+        pocketFx(g, p, k, time, pxw);
+      }
+      if (clip) { g.globalAlpha = 1; g.restore(); }
     }
 
     if (opts.layers) heap.setLayers(opts.layers);
@@ -6174,6 +6380,11 @@
     let spawnAcc = 0, lastUpd = 0, vx0 = -1e9, vx1 = 1e9;
     const pool = new Map();                                  // coluna -> massa emprestada esperando virar grão
     const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const cols = [];
+    function grainPath(g, p, r) {
+      if (p.clump) { for (let j = 0; j < 3; j++) { const an = p.rot + j * 2.1; g.moveTo(p.x + Math.cos(an) * r * 0.55 + r * 0.55, p.y - r + Math.sin(an) * r * 0.45); g.arc(p.x + Math.cos(an) * r * 0.55, p.y - r + Math.sin(an) * r * 0.45, r * 0.55, 0, TAU); } }
+      else { g.moveTo(p.x + r * Math.cos(p.rot), p.y - r * 0.6 + r * Math.sin(p.rot)); g.ellipse(p.x, p.y - r * 0.6, r, r * 0.5, p.rot, 0, TAU); }
+    }
     function giveBack(x, m) { if (m > 0) heap.add(x, m, heap.colW * 2); }
     if (carry > 0) heap.divert = (i, area) => {
       if (now() - lastUpd > 200 || list.length >= max || (o.active && !o.active())) return 0;          // sem update recente (jogo acelerado/pausado): não empresta
@@ -6238,15 +6449,22 @@
       draw(g, z) {
         if (!list.length) return;
         const k = Math.max(1, 0.9 / (z || 1));                // longe: grão um pouco maior pra continuar visível
-        g.save(); g.lineJoin = 'round';
-        for (const p of list) {
-          const fade = p.still > 0 ? 1 - p.still / 0.35 : 1, r = p.r * k;
-          g.globalAlpha = Math.max(0, fade);
-          g.fillStyle = p.c; g.strokeStyle = LINE; g.lineWidth = Math.max(0.5, 0.7 * k);
+        g.save(); g.lineJoin = 'round'; g.strokeStyle = LINE; g.lineWidth = Math.max(0.5, 0.7 * k);
+        // grãos parados de vez (sem sumir): em lote por cor, 1 preenchimento + 1 contorno por cor (eram 2 chamadas por grão:
+        // ~150 grãos = ~300 desenhos por quadro). Só muda a ordem de quem se sobrepõe.
+        cols.length = 0;
+        for (let i = 0; i < list.length; i++) { const p = list[i]; if (!(p.still > 0) && cols.indexOf(p.c) < 0) cols.push(p.c); }
+        g.globalAlpha = 1;
+        for (let c = 0; c < cols.length; c++) {
           g.beginPath();
-          if (p.clump) { for (let j = 0; j < 3; j++) { const an = p.rot + j * 2.1; g.moveTo(p.x + Math.cos(an) * r * 0.55 + r * 0.55, p.y - r + Math.sin(an) * r * 0.45); g.arc(p.x + Math.cos(an) * r * 0.55, p.y - r + Math.sin(an) * r * 0.45, r * 0.55, 0, TAU); } }
-          else g.ellipse(p.x, p.y - r * 0.6, r, r * 0.5, p.rot, 0, TAU);
-          g.fill(); g.stroke();
+          for (let i = 0; i < list.length; i++) { const p = list[i]; if (p.c === cols[c] && !(p.still > 0)) grainPath(g, p, p.r * k); }
+          g.fillStyle = cols[c]; g.fill(); g.stroke();
+        }
+        // os que estão sumindo (alfa próprio), um a um
+        for (let i = 0; i < list.length; i++) {
+          const p = list[i]; if (!(p.still > 0)) continue;
+          g.globalAlpha = Math.max(0, 1 - p.still / 0.35);
+          g.fillStyle = p.c; g.beginPath(); grainPath(g, p, p.r * k); g.fill(); g.stroke();
         }
         g.restore();
       },
