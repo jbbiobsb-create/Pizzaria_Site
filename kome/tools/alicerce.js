@@ -71,13 +71,13 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   // 7) Cidade (game/cidade.js): MIGR[7] cria S.stats.city; abre no 1º mochi vendido; entrega dá coração; amizade = grão no Coração + obra
   const r7 = await p.evaluate(() => { const K = __kome, S = K.S, G = KomeGame, C = G.City; const mig = !!(S.stats.city && typeof S.stats.city === 'object' && !S.stats.city.on);
     S.ended = true; K.step(0.3); const fab = G.Fab.on();
-    C.take('onigiri'); const still = !C.on(); C.take('mochi'); const on = C.on();
+    const still = !C.on(); S.earned = Math.max(S.earned, G.Data.CITY.OPEN_EARN); K.step(0.3); const on = C.on();
     C.step(3); const o = S.stats.city.ord.findIndex(Boolean); const okD = o >= 0 && C.deliver(o);
     const h0 = G.Patio.heart(); C.levelUp('kiku'); C.choose(); const st = C.state;
     const obra = S.stats.city.lots.some(l => l.obra > 0); KomeGame.Game.saveNow();
     return { mig, fab, still, on, okD, del: st.delivered, hearts: st.hearts, grains: st.grains, obra, dh: G.Patio.heart() - h0, view: !!C.view() }; });
   ok(r7.mig, 'migração criou S.stats.city (Cidade fechada)');
-  ok(r7.still && r7.on && r7.view, 'Cidade abre no 1º mochi vendido pela fábrica (não no onigiri)');
+  ok(r7.still && r7.on && r7.view, 'Cidade abre cedo: fechada antes, aberta ao ganhar D.CITY.OPEN_EARN');
   ok(r7.okD && r7.del === 1 && r7.hearts >= 1, 'entrega na hora com a tela fechada: ' + r7.del + ' entrega, ♥' + r7.hearts);
   ok(r7.grains >= 1 && r7.dh > 0.009 && r7.obra, 'amizade: +1 grão no Arroz do Coração (+' + (r7.dh * 100).toFixed(1) + '%) e obra começou');
   await open(p, URL + '?nointro&nofont');
