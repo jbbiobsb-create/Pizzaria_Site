@@ -436,10 +436,10 @@
     CAP_SEC: 300,                        // teto da despensa: 5 min do que chega
     ORDER_SEC: [70, 110],                // pedido ≈ 90 s do que chega daquele item
     ORDER_PAY: 2, ORDER_GAP: 45, SENTO_GAP: 0.5, FAV_CHANCE: 0.6,
-    HEART_LV: [4, 7, 11, 15, 20, 25], HEART_STEP: 5,   // corações por nível de amizade (depois do último: +HEART_STEP)
-    BUILD_SEC: [120, 600],               // obra: 1º prédio 2 min → 10 min a partir do 10º
+    HEART_LV: [4, 9, 15, 22, 30, 40], HEART_STEP: 10,  // corações por nível de amizade (depois do último: +HEART_STEP)
+    BUILD_SEC: [150, 1800],              // obra (UMA de cada vez: um carpinteiro só): 1º prédio 2,5 min → 30 min a partir do 10º
     SHOP_EVERY: 6, SHOP_LINE: 0.55, SHOP_PAY: 1.5,
-    FEST_NEED: 40, FEST_SEC: 240, FEST_HEART: 2, TEMPLO_FEST: 1.5,
+    FEST_NEED: 150, FEST_SEC: 240, FEST_HEART: 2, TEMPLO_FEST: 1.5,
     LOTS: 10, LOTS2: 6,                  // 1º quarteirão (6 casas + 4 terrenos) e o 2º, que abre quando o 1º lota
     RES: [   // moradores: id, nome, paleta do shiba, chapéu, prato favorito, lote, arte da casa, profissão, falas, 2 prédios dos sonhos
       { id: 'kiku', nome: 'Vó Kiku', pal: 'goma', hat: false, fav: 'mochi', lot: 0, art: 'cid_casa_kiku', job: 'aposentada, rainha do karaokê',
@@ -462,13 +462,13 @@
     BUILD: {   // o que a amizade abre (1 de 2 por nível): loja = compra o que sobra · heart = +1 ♥ nos pedidos daquele prato · gap = pedidos mais rápidos · mora = morador novo
       onigiriya: { nome: 'Onigiri-ya', art: 'lojinha_onigiri', loja: ['onigiri'], fx: 'compra o onigiri que sobra na despensa' },
       mochiya: { nome: 'Mochiya', art: 'loja_mochiya', loja: ['mochi', 'mochid'], fx: 'compra o mochi que sobra na despensa' },
-      bentoya: { nome: 'Bentô-ya', art: 'cid_bentoya', loja: ['onigiri', 'mochi'], fx: 'monta bentô com o onigiri e o mochi que sobram' },
+      bentoya: { nome: 'Bentô-ya', art: 'cid_bentoya', loja: ['onigiri', 'mochi'], fx: 'monta bentô com o que sobra na despensa' },
       konbini: { nome: 'Konbini', art: 'loja_konbini', loja: ['onigiri', 'mochi', 'mochid'], fx: 'compra um pouco de tudo que sobra' },
       chaya: { nome: 'Casa de Chá', art: 'cid_chaya', heart: 'mochi', fx: 'pedidos de mochi: +1 coração' },
       fliperama: { nome: 'Fliperama', art: 'cid_fliperama', heart: 'onigiri', fx: 'pedidos de onigiri: +1 coração' },
       sento: { nome: 'Sentô', art: 'cid_sento', gap: 1, fx: 'pedidos novos chegam 2× mais rápido' },
       casa_kuro: { nome: 'Casa nova', art: 'cid_casa_kuro', mora: 'kuro', fx: 'Kuro, músico de rua, se muda' },
-      templo: { nome: 'Templo', art: 'cid_templo', mora: 'matcha', fest: 1, fx: 'Monge Matcha se muda · festival enche 50% mais rápido' },
+      templo: { nome: 'Templo', art: 'cid_templo', mora: 'matcha', fest: 1, fx: 'Monge Matcha se muda · festival +50%' },
     },
     SEASONS: [
       { nome: 'Primavera', fest: 'Hanami', tree: 'sakura', grass: '#8FAE62', sub: 'piquenique debaixo das cerejeiras' },

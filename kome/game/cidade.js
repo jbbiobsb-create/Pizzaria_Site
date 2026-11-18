@@ -175,12 +175,22 @@
     p.def.build.forEach(add); Object.keys(BUILD).forEach(add);
     return freeLot(lots[p.rec.lot].x) ? opts : [];
   }
+  const obraOn = () => P().lots.some(l => l.obra > 0);   // um carpinteiro só: uma obra de cada vez
+  const canBuildMore = () => !!freeLots().length && Object.keys(BUILD).some(id => !built(id) && !(BUILD[id].mora && P().ppl.some(q => q.id === BUILD[id].mora)));
   function levelUp(p) {
     const c = P();
     c.grains++;
     news('marco', p.def.nome + ' amizade ' + p.rec.lv);
     if (api.recompute) api.recompute();                     // Arroz do Coração: +1 grão
-    c.pend.push({ id: p.rec.id, lv: p.rec.lv });
+    const ticket = canBuildMore() && c.pend.length < 3;
+    if (ticket) c.pend.push({ id: p.rec.id, lv: p.rec.lv });
+    if (!ticket || obraOn()) banner(p.def.nome + ': amizade nível ' + p.rec.lv + '!', '+1 grão no Arroz do Coração (renda +1%)' + (ticket ? ' · prédio novo quando a obra atual terminar' : ''));
+  }
+  // próximo cartão de construção (quando o carpinteiro está livre); pula pedido que não tem mais o que construir
+  function nextChoice() {
+    const c = P(); if (obraOn()) return null;
+    while (c.pend.length) { const pe = c.pend.shift(), p = byId(pe.id); if (!p) continue; const opts = buildOpts(p); if (opts.length) return { id: pe.id, lv: pe.lv, opts }; }
+    return null;
   }
   function choose(id) {
     const ch = R.choice; R.choice = null; if (!ch) return;
@@ -302,7 +312,7 @@
     const c = P();
     if (!chipEl) { chipEl = G.HUD.chip({ id: 'cidade', icon: 'house', label: 'Cidade', order: 21, tone: '#FFE6D2', show: false, onClick: () => open() }); if (!chipEl) return; }
     if (!c.on) { chipEl.set({ show: false }); return; }
-    const ready = c.ord.filter((o, i) => o && canDeliver(i)).length, fest = c.fest >= CFG.FEST_NEED && !(c.festOn > 0), pend = c.pend.length;
+    const ready = c.ord.filter((o, i) => o && canDeliver(i)).length, fest = c.fest >= CFG.FEST_NEED && !(c.festOn > 0), pend = c.pend.length && !obraOn();
     const hint = pend ? 'amizade nova!' : fest ? 'festival pronto!' : ready ? ready + (ready > 1 ? ' entregas prontas' : ' entrega pronta') : '';
     chipEl.set({ show: true, hint: c.delivered ? hint : 'nova! toque', prio: c.delivered ? (hint ? 1 : 0) : 2, tip: '♥ ' + U.fmt(c.hearts) + ' · ' + people.length + ' moradores · Arroz do Coração +' + c.grains + '%', act: 'Abrir' });
   }
@@ -896,7 +906,7 @@
     const now = performance.now() / 1000, dt = Math.min(0.05, lastT ? now - lastT : 0.016); lastT = now;
     R.t += dt;
     const c = P();
-    if (!R.choice && c.pend.length) { const pe = c.pend.shift(), p = byId(pe.id); if (p) { R.choice = { id: pe.id, lv: pe.lv, opts: buildOpts(p) }; sfx('levelup'); } }
+    if (!R.choice && c.pend.length && !obraOn()) { R.choice = nextChoice(); if (R.choice) sfx('levelup'); }
     if (R.camT !== null) { R.camX += (R.camT - R.camX) * Math.min(1, dt * 4); if (Math.abs(R.camT - R.camX) < 1) R.camT = null; }
     R.camX = U.clamp(R.camX, 0, world() - W);
     ps.update(dt); fl.update(dt);
@@ -968,7 +978,7 @@
       const c = P(); R.news.length = 0; if (!c.on) return [];
       for (let i = 0; i < 3; i++) if (canDeliver(i)) deliver(i);
       if (c.fest >= CFG.FEST_NEED) startFest();
-      while (c.pend.length) { const pe = c.pend.shift(), p = byId(pe.id); if (!p) continue; const opts = buildOpts(p); if (opts.length) { R.choice = { id: pe.id, lv: pe.lv, opts }; choose(opts[0]); } }
+      const ch = nextChoice(); if (ch) { R.choice = ch; choose(ch.opts[0]); }
       return R.news.splice(0);
     },
     news: () => R.news.splice(0),
@@ -981,6 +991,7 @@
       if (G.Sim) G.Sim.add('cidade', { tick, offline });
       // tempo fora: o game.js calcula antes de a Cidade se registrar (igual à Fábrica), então ela anda aqui
       const aw = GS().away;
+      if (/[?&]cidade=(\w+)/.test(location.search) && /[?&]dev\b/.test(location.search)) setTimeout(() => G.City.demo(RegExp.$1), 1200);
       if (aw && aw.sec > 5 && P().on) { const r = offline(aw.sec); if (aw.res) aw.res.cidade = r; if (r && (r.yen > 0 || r.built > 0) && api.toast) api.toast('Enquanto você estava fora', 'Cidade: as lojas venderam ¥' + U.fmt(r.yen) + (r.built ? ' · ' + r.built + ' obra(s) terminaram' : '')); }
     },
     // toque na Vila (game.js): na rua da Cidade (torii até o último lote) entra nela
@@ -996,7 +1007,17 @@
       return { lots: out, fest: c.festOn > 0, season: c.season, ready: c.ord.some((o, i) => o && canDeliver(i)) };
     },
     sim,
-    deliver, startFest, choose: id => { if (!R.choice) { const pe = P().pend.shift(); if (pe) R.choice = { id: pe.id, lv: pe.lv, opts: buildOpts(byId(pe.id)) }; } choose(id || (R.choice && R.choice.opts[0])); },
+    // demo (?dev&cidade=demo e tools/sweep.js): rua já andando — 3 prédios prontos, 1 obra, pedidos, despensa cheia
+    demo(cena) {
+      const c = P(); if (!c.on) unlock();
+      ['kiku', 'yuki', 'momo'].forEach(id => { G.City.levelUp(id); G.City.choose(); G.City.step(3000); });
+      G.City.levelUp('taro'); G.City.choose();
+      for (const k of ITEM_IDS) { c.rate[k] = k === 'mochid' ? 0.01 : k === 'mochi' ? 0.1 : 0.2; c.stock[k] = cap(k) * 0.8; }
+      c.ord = [null, null, null]; c.gap = [0, 0, 0]; G.City.step(1); c.hearts += 40; c.fest = cena === 'festa' ? CFG.FEST_NEED : 90;
+      if (cena === 'festa') { open(); startFest(); } else if (cena === 'escolha') { G.City.levelUp('hana'); c.lots.forEach(l => { if (l.obra) l.obra = 0.01; }); G.City.step(0.1); open(); } else open();
+      return G.City.state;
+    },
+    deliver, startFest, choose: id => { if (!R.choice) R.choice = nextChoice(); if (R.choice) choose(id || R.choice.opts[0]); },
     levelUp(id) { const p = byId(id); if (p) addHearts(p, lvNeed(p.rec.lv) - p.rec.h); },
     step(sec) { let l = sec; while (l > 1e-6) { const st = Math.min(l, 1 / 20); logic(st); l -= st; } return G.City.state; },
     get state() {
