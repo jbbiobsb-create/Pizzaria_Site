@@ -129,7 +129,7 @@
   // = campanha × (ganho no Pátio / ganho da campanha)^0,15 (ficar ×100 mais no Pátio ≈ só ×2). Antes do final: o total.
   const seedsBase = () => (S = S || G.S, Math.floor(Math.sqrt(Math.max(0, S.stats.earnedEnd || S.earned) / 1e6)));
   const seedsPatio = () => { const e0 = S.stats.earnedEnd || 0, r = e0 > 0 ? Math.max(0, S.earned - e0) / e0 : 0; return r > 0 ? Math.floor(seedsBase() * Math.pow(r, EG.patioExp || 0.15)) : 0; };
-  const gain = () => (S = S || G.S, Math.floor((S.stats.earnedEnd ? seedsBase() + seedsPatio() : seedsBase()) * (G.Faixas ? G.Faixas.seedMul() : 1)));   // faixa: ×1,5 por faixa
+  const gain = () => (S = S || G.S, Math.floor((S.stats.earnedEnd ? seedsBase() + seedsPatio() : seedsBase()) * (G.Faixas ? G.Faixas.seedMul() : 1) * (G.Modos ? G.Modos.seedMul() : 1)));   // faixa: ×1,5 por faixa · modo de partida: 0
   const seedCost = s => Math.ceil(s.base * Math.pow(EG.seedGrow || 1.45, lvl(s.id)));
   const recs = () => (S.stats.isl || (S.stats.isl = {}));
   const rec = id => recs()[id] || null;
@@ -157,16 +157,19 @@
   function medalFor(i, sec) { const m = sec / 60; return m <= EG.medal.ouro[i] ? 3 : m <= EG.medal.prata[i] ? 2 : 1; }
   // chamado pelo game.js no final de cada ilha: guarda tempo/medalha e dá as sementes extras da medalha nova
   function onEnding(sec) {
+    if (G.Modos && G.Modos.on()) return G.Modos.onEnding(sec);   // modo de partida (modos.js): recorde do modo, sem sementes/medalha da ilha
     const i = idx(), id = D.ISLANDS[i].id, r = recs()[id] || (recs()[id] = { best: 0, medal: 0, n: 0 });
     const m = medalFor(i, sec), was = r.medal | 0, newBest = !r.best || sec < r.best;
     r.n = (r.n | 0) + 1; if (newBest) r.best = Math.round(sec);
     let bonus = 0;
     if (m > was) { for (let k = was + 1; k <= m; k++) bonus += EG.medal.seeds[MEDALS[k]] | 0; r.medal = m; S.stats.seeds = Math.floor(S.stats.seeds || 0) + bonus; S.stats.seedsAll = Math.floor(S.stats.seedsAll || 0) + bonus; }
-    return { medal: m, was, bonus, best: r.best, newBest, sec, island: D.ISLANDS[i], last: i === D.ISLANDS.length - 1 };
+    const rf = G.Modos ? G.Modos.record(i, sec, S.earned) : null;   // recorde por ilha E por faixa (tempo e ¥)
+    return { medal: m, was, bonus, best: r.best, newBest, sec, island: D.ISLANDS[i], last: i === D.ISLANDS.length - 1, rf };
   }
 
   function buy(s) {
     const c = seedCost(s);
+    if (G.Modos && G.Modos.on()) { UI.toast('No modo de partida as sementes ficam guardadas', { icon: 'lock', sub: 'gaste quando voltar pra sua partida' }); return false; }
     if (capped(s)) return false;
     if (s.req && !lvl(s.req)) { const r = D.SEEDS.find(x => x.id === s.req); UI.toast('Antes: ' + (r ? r.n : s.req), { icon: 'lock', tone: 'bad' }); return false; }
     if (Math.floor(S.stats.seeds || 0) < c) { UI.toast('Faltam ' + U.fmt(c - Math.floor(S.stats.seeds || 0)) + ' sementes', { icon: 'star', tone: 'bad' }); return false; }
@@ -175,6 +178,7 @@
     return true;
   }
   function travel() {
+    if (G.Modos && G.Modos.travel()) return;   // modo de partida: maratona segue / volta pra partida
     if (!S.ended) { UI.toast('Termine a casa nesta ilha primeiro', { icon: 'lock', sub: 'depois o barco te leva pra ' + D.ISLANDS[nextIdx()].n }); return; }
     const next = nextIdx(), g = gain(), to = D.ISLANDS[next], wrap = next === 0;
     UI.confirm((wrap ? 'Volta ' + (lap() + 2) + ' ao Japão! ' : '') + 'O Kome vai de barco pra ' + to.n + ' (' + to.d + '). Montanha, frota, árvore, casa e dinheiro recomeçam; você ganha ' + U.fmt(g) + ' Sementes Douradas' + (S.stats.earnedEnd && seedsPatio() > 0 ? ' (' + U.fmt(seedsBase()) + ' da ilha + ' + U.fmt(seedsPatio()) + ' do Pátio)' : '') + '. Roupas, quintal e conquistas vão junto.' + (wrap && G.Faixas ? ' ' + G.Faixas.nextTxt() : ''), () => {

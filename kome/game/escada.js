@@ -35,7 +35,7 @@
     { id: 'oni', s: 'Onigiris', icon: 'star', get: () => st().onigiri | 0, thr: pw(22, 1.5), n: v => 'Pegue ' + fmt(v) + ' onigiris da sorte' },
     { id: 'dourado', s: 'Eventos', icon: 'bolt', get: () => st().goldEv | 0, thr: pw(7, 1.4), n: v => 'Aproveite ' + fmt(v) + ' eventos dourados' },
     { id: 'ilhas', s: 'Ilhas', icon: 'boat', get: () => st().islandsDone | 0, thr: pw(1, 1.15), n: v => 'Conclua ' + fmt(v) + (v > 1 ? ' ilhas' : ' ilha') },
-    { id: 'faixas', s: 'Faixas', icon: 'trophy', get: () => (G.Faixas ? G.Faixas.best() : st().lap | 0), thr: lin(1), n: v => 'Chegue na ' + (G.Faixas ? G.Faixas.name(v) : 'faixa ' + v) },
+    { id: 'faixas', s: 'Faixas', icon: 'trophy', get: () => (G.Modos && G.Modos.on() ? 0 : G.Faixas ? G.Faixas.best() : st().lap | 0), thr: lin(1), n: v => 'Chegue na ' + (G.Faixas ? G.Faixas.name(v) : 'faixa ' + v) },   // faixa jogada num modo (Desafio do Dia) não conta
     { id: 'amuletos', s: 'Amuletos', icon: 'star', get: () => st().amPick | 0, thr: pw(3, 1.45), n: v => 'Escolha ' + fmt(v) + ' amuletos' },
     { id: 'coracoes', s: 'Corações', icon: 'house', get: city, thr: pw(75, 1.5), n: v => 'Junte ♥ ' + fmt(v) + ' na Cidade' },
   ];

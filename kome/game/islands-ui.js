@@ -36,7 +36,8 @@
     const here = I().island(), nx = I().next(), n = I().index() + 1, lap = I().lap(), ev = I().event(), g = I().gain();
     chip.title = here.n + ' · ilha ' + n + '/' + D.ISLANDS.length + (lap ? ' · volta ' + (lap + 1) : '') + ' · casa ' + S.house + '/' + D.HOUSE.length;
     // viagem liberada ganha de tudo (prio 3); evento da ilha rolando avisa (prio 1.5); senão é só o atalho "Ilhas"
-    if (S.ended) chipH.set({ show: true, prio: 3, hot: 'Partir pra ' + shortIsl(nx.n), hint: g > 0 ? '+' + g + (g === 1 ? ' semente' : ' sementes') : 'toque!' });
+    if (S.ended && G.Modos && G.Modos.on()) chipH.set({ show: true, prio: 3, hot: G.Modos.chipHot(), hint: 'toque!' });
+    else if (S.ended) chipH.set({ show: true, prio: 3, hot: 'Partir pra ' + shortIsl(nx.n), hint: g > 0 ? '+' + g + (g === 1 ? ' semente' : ' sementes') : 'toque!' });
     else if (ev) chipH.set({ show: true, prio: 1.5, hot: ev.n.replace('!', ''), hint: '×' + String(ev.mult).replace('.', ',') + ' · ' + Math.ceil(I().eventLeft()) + 's' });
     else chipH.set({ show: true, prio: 0, hint: '' });
   }
@@ -93,6 +94,7 @@
       }
     }
     if (G.Faixas) G.Faixas.mapInfo(info);   // faixa da volta: regras e sementes
+    if (G.Modos) G.Modos.mapInfo(info, i);   // recordes por faixa + modos de partida (modos.js)
     // partir
     const nx = I().next(), go = el('button', 'k-btn k-isl-go' + (S.ended ? ' k-pulse' : ''), side);
     go.innerHTML = '<b>Partir pra ' + nx.n.replace('Ilha Flutuante de ', 'Ilha de ') + '</b><small>' + (S.ended ? '+' + U.fmt(I().gain()) + ' sementes agora' : 'termine a casa de ' + I().island().n.replace('Ilha Flutuante de ', '') + ' primeiro (' + S.house + '/' + D.HOUSE.length + ')') + '</small>';

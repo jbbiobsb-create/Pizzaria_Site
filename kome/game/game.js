@@ -932,6 +932,7 @@
   function buyTool() {
     const t = TOOLS[S.tool + 1]; if (!t) return false;
     if (t.needs) for (const id of t.needs) if (!S.own[id]) { ui(() => UI.toast('Precisa: ' + D.nodeById[id].n, { icon: 'lock', tone: 'bad' })); return false; }
+    if (G.Modos && G.Modos.lockTool(t)) { ui(() => UI.toast('Só na Pata: nada de motor', { icon: 'lock', sub: 'compre árvore, ajudantes e casa' })); return false; }   // modo de partida (modos.js)
     const c = toolCost(t);
     if (S.money < c) { ui(() => UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: t.name })); sfx('error'); return false; }
     S.money -= c; S.stats.buys++;
@@ -1096,13 +1097,15 @@
   // final de uma ilha (2ª em diante): cena curta com a medalha; na Ilha de Mochi da 1ª volta, o Grande Final do Kome-Oh
   function islandEnd(res) {
     S.islandRes = res;
-    const then = () => { S.endOpen = true; HUD.endCard({ rank: ['', 'C', 'A', 'S'][res.medal] || 'B', list: [
+    const rf = res.rf, list = res.list || [   // modo de partida (modos.js) traz a lista dele
       { icon: 'clock', label: 'Tempo nesta ilha', value: U.fmtTime(res.sec) + (res.newBest ? ' (recorde!)' : '') },
       { icon: 'star', label: 'Medalha', value: ['', 'bronze', 'prata', 'ouro'][res.medal] + (res.bonus ? ' · +' + res.bonus + ' sementes' : '') },
       { icon: 'yen', label: 'Ienes ganhos', value: '¥ ' + U.fmt(S.earned) },
       { icon: 'star', label: 'Sementes na próxima viagem', value: '+' + G.Islands.gain() },
-    ] }, () => { S.endOpen = false; if (G.IslandsUI) G.IslandsUI.open(); else pickMountain(); }); };
-    if (res.last && !S.stats.legend) csPlay('finale', () => { S.stats.legend = 1; if (S.closet.indexOf('nihon') < 0) S.closet.push('nihon'); computeStats(); saveNow(); then(); });
+    ];
+    if (rf && rf.f > 0) list.splice(1, 0, { icon: 'clock', label: 'Recorde na ' + (G.Faixas ? G.Faixas.name(rf.f) : 'faixa'), value: rf.newT ? (rf.prev ? 'novo! antes ' + U.fmtTime(rf.prev) : 'primeiro tempo') : U.fmtTime(rf.best) + ' (bater o próprio tempo)' });
+    const then = () => { S.endOpen = true; HUD.endCard({ rank: ['', 'C', 'A', 'S'][res.medal] || 'B', list }, () => { S.endOpen = false; if (res.modo && G.Modos) G.Modos.after(); else if (G.IslandsUI) G.IslandsUI.open(); else pickMountain(); }); };
+    if (res.last && !S.stats.legend && !res.modo) csPlay('finale', () => { S.stats.legend = 1; if (S.closet.indexOf('nihon') < 0) S.closet.push('nihon'); computeStats(); saveNow(); then(); });
     else csPlay('ilhafim', then);
   }
   function welcome(i) { ui(() => UI.banner('Bem-vindo a ' + i.n + '!', i.hook || i.d, { icon: 'star', tone: 'gold', dur: 3.5 })); sfx('fanfare'); }
@@ -2209,6 +2212,9 @@
       onEvent: e => { if (!FAST && e.erupt) quake(0.5); if (!FAST && e.frost) sfx('whoosh'); },
       // viagem: reescreve o save e recarrega; testes (?nointro) continuam sem cutscene na chegada
       travel: (next, gain) => { saveNow(); const d = save.data || save.load(); G.Islands.makeSave(d, next, gain); save.save(); saveNow = () => {}; location.href = location.pathname + (/nointro/.test(location.search) ? '?nointro' : ''); } });
+    // modos de partida (modos.js): reescreve o save (retrato/volta) e recarrega, igual à viagem
+    if (G.Modos) G.Modos.init({ sfx, fast: () => FAST, save: () => saveNow(), busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()),
+      rewrite: fn => { saveNow(); const d = save.data || save.load(); fn(d); save.save(); saveNow = () => {}; location.href = location.pathname + (/nointro/.test(location.search) ? '?nointro' : ''); } });
     setMirror();
     if (G.IslandsUI) G.IslandsUI.init({ sfx, save: () => saveNow(), play: (id, then) => csPlay(id, then), pickMountain, busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()) });
     // chegou numa ilha nova: cutscene da chegada (com o cenário da ilha) ou só o aviso nos testes

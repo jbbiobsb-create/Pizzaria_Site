@@ -364,6 +364,7 @@
     if (nt) {
       let lock = null;
       if (nt.needs) for (const id of nt.needs) if (!S.own[id]) { lock = 'precisa: ' + D.nodeById[id].n; break; }
+      if (!lock && G.Modos && G.Modos.lockTool(nt)) lock = 'Só na Pata: sem motor';   // modo de partida (modos.js)
       goalBtn(toolBtn, nt.name, api.toolCost(nt), lock, toolBtn._id !== nt.id ? icon(nt.id) : null); toolBtn._id = nt.id;
     } else toolBtn.set(S.ended ? ofiBtn() : { title: 'Bagger 293', sub: 'a maior máquina do mundo', progress: 1, state: '' });
     const h = D.HOUSE[S.house];
