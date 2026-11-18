@@ -166,23 +166,33 @@
   const MO_HOP = [[-104, -150], [-96, -150], [-78, -34], [58, -34], [96, -66], [104, -66], [70, -8], [-90, -8]];
   const MO_BACK = [[-104, -150], [-96, -150], [-86, -66], [96, -66], [96, -60], [-92, -60]];
   // moega móvel: 300 x 160. A boca fica do lado +x*face (o caminhão chega de ré por ali), a correia sai pro lado oposto.
+  // o.layer (chave): partes paradas guardadas em imagem (Draw.layer; ~130 traços por quadro viram 3 carimbos); só o coletor usa
   function drawMoega(g, x, y, o) {
-    o = o || PKO; const f = o.face < 0 ? -1 : 1, t = o.t || 0, fill = clamp(o.fill || 0, 0, 1);
+    o = o || PKO; const f = o.face < 0 ? -1 : 1, t = o.t || 0, fill = clamp(o.fill || 0, 0, 1), lk = o.layer;
     g.save(); g.translate(x, y); g.scale(f, 1);
-    Draw.shadow(g, -20, 1, 140, 5, 0.2);
-    Draw.truss(g, pa(-60, -22), pb(-190, -112), 14, 2.2, PAL.yel, TRUSS_S);       // correia que sobe
+    if (lk && Draw.layer) Draw.layer(g, lk + 'a', -212, -136, 126, 10, 0, moegaA); else moegaA(g);
     g.strokeStyle = LINE; g.lineWidth = 5; g.beginPath(); g.moveTo(-58, -34); g.lineTo(-190, -124); g.stroke();
     g.strokeStyle = PAL.blkL; g.lineWidth = 3; g.setLineDash(DASH_B); g.lineDashOffset = -t * 40; g.stroke(); g.setLineDash(NODASH);
     Rig.pulley(g, -190, -122, 7, t * 5, PUL_S);
+    if (lk && Draw.layer) Draw.layer(g, lk + 'b', -186, -158, 106, 4, 0, moegaB); else moegaB(g);
+    if (fill > 0) { g.fillStyle = PAL.rice; g.strokeStyle = LINE; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-88, -62); g.quadraticCurveTo(0, -66 - fill * 46, 92, -64); g.lineTo(60, -34); g.lineTo(-78, -34); g.closePath(); g.fill(); g.stroke(); }
+    if (lk && Draw.layer) Draw.layer(g, lk + 'c', -114, -156, 114, 8, 0, moegaC); else moegaC(g);
+    Draw.light(g, -100, -156, 2.6, PAL.ora, 0.5 + 0.5 * Math.sin(t * 6));
+    g.restore();
+  }
+  function moegaA(g) {
+    Draw.shadow(g, -20, 1, 140, 5, 0.2);
+    Draw.truss(g, pa(-60, -22), pb(-190, -112), 14, 2.2, PAL.yel, TRUSS_S);       // correia que sobe
+  }
+  function moegaB(g) {
     Draw.beam(g, ln(-176, -104, -176, -2), 3.4, PAL.steelD, NOHI); Draw.beam(g, ln(-150, -86, -176, -2), 2.4, PAL.steelD, NOHI);
     Draw.poly(g, MO_BACK, sh(PAL.yel, -0.25), PLAIN);
-    if (fill > 0) { g.fillStyle = PAL.rice; g.strokeStyle = LINE; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-88, -62); g.quadraticCurveTo(0, -66 - fill * 46, 92, -64); g.lineTo(60, -34); g.lineTo(-78, -34); g.closePath(); g.fill(); g.stroke(); }
+  }
+  function moegaC(g) {
     Draw.poly(g, MO_HOP, PAL.yel);
     g.fillStyle = sh(PAL.yel, -0.25); for (let i = 0; i < 4; i++) g.fillRect(-60 + i * 34, -32, 3, 22);
     Draw.hazard(g, 60, -74, 44, 7, HAZ0);
     Draw.track(g, -84, -16, 150, 18, 0, TRK_S);
-    Draw.light(g, -100, -156, 2.6, PAL.ora, 0.5 + 0.5 * Math.sin(t * 6));
-    g.restore();
   }
   const HAZ0 = { ol: 0 }, WIN_S = { r: 1.5, ol: 1.2 }, TRUSS_S = { taper: 1, bays: 7 }, DASH_B = [5, 4], NODASH = [], PUL_S = { col: PAL.steel, holes: 3 }, TRK_S = { col: PAL.grayD };
   G.Scale.pickup = { w: 128, h: 46, draw: drawPickup };

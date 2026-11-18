@@ -858,26 +858,17 @@
   }
   // frota no segundo plano: menor, um pouco mais alta e escurecida, atrás da máquina grande do Kome
   const BG_K = 0.8, BG_UP = 26;
+  // escurecidas: o filtro vai pra dentro da imagem guardada de cada máquina (refeita a cada poucos quadros), não pro quadro inteiro.
+  // Antes: tudo numa tela de apoio do tamanho da frota + UM filtro por quadro = ~15-30 ms por quadro no celular (pós-final).
+  const BG_FLT = 'brightness(0.72) saturate(0.7)';
   function drawFleetBg(g) {
-    const L = [];
     for (let i = 0; i < S.fleet.length; i++) {
       const f = S.fleet[i]; if (!f.bg || !f.st || f.st === 'park' || !f.warm || !cam.visible(f.x, f.y - 150, 800)) continue;
-      // sobe pra encosta conforme chega no lugar dela; lá tem uma bancada (degrau de arroz) embaixo
-      const e = 0, rise = 0;   // sem degrau (o dono não gostou): no chão, atrás da máquina grande. Visual de verdade: com o Fable
-      L.push([f, rise, e, (G.Tools[f.id].w || 120) * BG_K]);
+      // sem degrau (o dono não gostou): no chão, atrás da máquina grande, menor e um pouco mais alta
+      const h = f._bgc || (f._bgc = { always: true, flt: BG_FLT });
+      g.save(); g.translate(f.x, f.y - BG_UP); g.scale(BG_K, BG_K); g.translate(-f.x, -f.y); drawMach(g, f.id, f.m, h); g.restore();
     }
-    if (!L.length) return;
-    // escurecidas por UM filtro só (tela de apoio do Wd.filtered): filtro por traço deixava o celular lento com a frota trabalhando
-    const bx = BGBOX; bx[0] = bx[1] = Infinity; bx[2] = bx[3] = -Infinity;
-    for (const [f, rise, e] of L) {
-      const T0 = G.Tools[f.id], mk = (f.m && f.m.k) || 1, hw = (T0.w || 300) * 0.8 * mk * BG_K + 20, top = (T0.h || 200) * 1.7 * mk * BG_K + 20, oy = f.y - rise - BG_UP * (1 - e);
-      if (f.x - hw < bx[0]) bx[0] = f.x - hw; if (f.x + hw > bx[2]) bx[2] = f.x + hw; if (oy - top < bx[1]) bx[1] = oy - top; if (oy + 40 > bx[3]) bx[3] = oy + 40;
-    }
-    Wd.filtered(g, 'brightness(0.72) saturate(0.7)', bx, c => {
-      for (const [f, rise, e] of L) { c.save(); c.translate(f.x, f.y - rise - BG_UP * (1 - e)); c.scale(BG_K, BG_K); c.translate(-f.x, -f.y); drawMach(c, f.id, f.m, f); c.restore(); }
-    });
   }
-  const BGBOX = [0, 0, 0, 0];
   function fleetTick(dt) {
     // só com o Kome a pé e sem gigante na frente as pequenas vão até o barranco; senão trabalham na vaga (bancada de rechego)
     const k = cur.kind, atFace = (k === 'hand' || k === 'push' || k === 'jack') && !S.bag;   // Bagger na frente (montando ou pronta): ninguém passa por cima dela
@@ -1787,16 +1778,28 @@
     g.fillStyle = sh; g.fillRect(fx - 30, 0, Math.min(WL.MX1, v.x1 + 50) - fx + 30, 10);          // faixa de sombra ao longo da base
     g.fillStyle = 'rgba(70,50,30,.14)'; g.beginPath(); g.ellipse(fx - 12, 2, 46, 5, 0, 0, 6.3); g.fill();   // sombra mais forte no pezinho
     g.lineWidth = Math.max(0.35, 0.9 / Math.max(1, cam.z)); g.strokeStyle = PAL.line;
-    for (const q of FOOT_G) { const x = fx - 6 - q.d; if (x < v.x0 || x > v.x1) continue; g.fillStyle = q.a > 2 ? PAL.riceS : PAL.rice; g.beginPath(); g.ellipse(x, q.y * 0.6, 1.5 * q.s, 0.62 * q.s, q.a, 0, 6.3); g.fill(); g.stroke(); }   // do tamanho do grão da textura
+    // grãos do tamanho do grão da textura: em lote (1 caminho por cor + 1 contorno; eram 140 desenhos por quadro). Quase não se
+    // encostam, então a ordem de quem fica por cima não aparece
+    for (let pass = 0; pass < 3; pass++) {
+      g.beginPath();
+      for (let i = 0; i < FOOT_G.length; i++) {
+        const q = FOOT_G[i], x = fx - 6 - q.d; if (x < v.x0 || x > v.x1 || (pass < 2 && (q.a > 2) !== (pass === 1))) continue;
+        const rx = 1.5 * q.s; g.moveTo(x + rx * Math.cos(q.a), q.y * 0.6 + rx * Math.sin(q.a)); g.ellipse(x, q.y * 0.6, rx, 0.62 * q.s, q.a, 0, 6.3);
+      }
+      if (pass < 2) { g.fillStyle = pass ? PAL.riceS : PAL.rice; g.fill(); } else g.stroke();
+    }
     g.restore();
   }
   // máquina de fundo com zoom aberto: desenha numa imagem e reaproveita por alguns quadros (celular ficava lento com a Bagger)
-  let machFrame = 0; const BAGC = {};
+  let machFrame = 0, machSeq = 0; const BAGC = {};
   // force = imagem mesmo de perto (frota estacionada parada: redesenha a cada 3 quadros; até zoom 1,5 a imagem tem a resolução da tela)
   function drawMach(g, id, m, f, force) {
     const T0 = G.Tools[id], z = cam.z;
     if ((z > 0.55 && !f.always && !(force && z <= 1.5)) || !T0.w) { T0.draw(g, m); return; }
-    const k = Math.min(1.5, z * (f.res || 1)) * stage.dpr, mk = m.k || 1, W0 = (T0.w || 300) * 1.6 * mk, H0 = (T0.h || 200) * 1.7 * mk, x0 = m.x - W0 / 2, y0 = m.y - H0, bw = Math.ceil(W0 * k), bh = Math.ceil((H0 + 40) * k);
+    // sem f.res: a imagem nasce na escala do aparelho (transformação atual de g) e entra pixel com pixel, sem reamostrar
+    // (carimbo esticado/suavizado custava ~0,6 ms por máquina no celular). Mais de 1,5x de zoom: imagem limitada e esticada.
+    const tm = f.res ? null : g.getTransform(), td = tm && !tm.b && !tm.c ? Math.abs(tm.d) : 0;
+    const k = td && td <= 1.5 * stage.dpr ? td : Math.min(1.5, z * (f.res || 1)) * stage.dpr, mk = m.k || 1, W0 = (T0.w || 300) * 1.6 * mk, H0 = (T0.h || 200) * 1.7 * mk, x0 = m.x - W0 / 2, y0 = m.y - H0, bw = Math.ceil(W0 * k), bh = Math.ceil((H0 + 40) * k);
     const c = f._cv || (f._cv = document.createElement('canvas')), mir = cam.mx < 0;
     if (c.width !== bw || c.height !== bh || !f._ok || f._mir !== mir || (machFrame - (f._fr || 0)) > (f.every || (z < 0.3 ? 6 : 3)) || Math.abs(m.x - f._mx) > 60) {
       if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
@@ -1804,9 +1807,15 @@
       // ilha espelhada: a imagem já é desenhada espelhada (assim placas e textos da máquina saem legíveis) e carimbada sem espelhar
       if (mir) cg.setTransform(-k, 0, 0, k, (x0 + W0) * k, -y0 * k); else cg.setTransform(k, 0, 0, k, -x0 * k, -y0 * k);
       T0.draw(cg, m);
-      f._ok = true; f._fr = machFrame; f._mx = m.x; f._x0 = x0; f._y0 = y0; f._mir = mir;
+      if (f.flt) { cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'copy'; try { cg.filter = f.flt; } catch (e) { /* sem filter: cor normal */ } cg.drawImage(c, 0, 0); cg.filter = 'none'; cg.globalCompositeOperation = 'source-over'; }   // cor filtrada 1x na imagem
+      if (f._ph === undefined) f._ph = (machSeq++) % 4;   // cada imagem refaz num quadro diferente (não todas juntas no mesmo quadro)
+      f._ok = true; f._fr = f._fr === undefined ? machFrame - f._ph : machFrame; f._mx = m.x; f._x0 = x0; f._y0 = y0; f._mir = mir;
     }
     const bx = f._x0 + (m.x - f._mx);
+    if (k === td && Math.abs(Math.abs(tm.a) - td) < 1e-6 * td) {
+      const X = Math.round(tm.a < 0 ? tm.a * (bx + W0) + tm.e : tm.a * bx + tm.e), Y = Math.round(tm.d * f._y0 + tm.f);
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(c, X, Y); g.restore(); return;
+    }
     if (mir) { g.save(); g.translate(bx + W0 / 2, 0); g.scale(-1, 1); g.drawImage(c, -W0 / 2, f._y0, W0, H0 + 40); g.restore(); }
     else g.drawImage(c, bx, f._y0, W0, H0 + 40);
   }
@@ -1814,7 +1823,7 @@
   let HEAP_CACHE = !/[?&]nocache\b/.test(location.search);   // ?nocache = montanha desenhada inteira todo quadro (comparar)
   function render() {
     machFrame++;
-    stage.begin();
+    stage.begin(); E.drawShiba.loose = false;
     // cena de fim do dia já opaca: o mundo todo ficaria escondido atrás dela (economiza ~5 s de quadros pesados por dia)
     if (S.dayEnd > 0 && !cs && !S.oni.on && !(S.stamp > 0) && !(G.Home && G.Home.isOpen()) && Math.min(1, (DAY_SCENE - S.dayEnd) / 0.5, S.dayEnd / 0.5) >= 1) { drawDayEnd(g, S.time); fx.draw(g); return; }
     const t = S.time, z = cam.z;
@@ -1842,6 +1851,7 @@
     cam.begin(g);
     cam.view(view, 30 / z);
     Draw.lod(z, 0.6);
+    E.drawShiba.loose = true;   // shibas de fundo (ajudantes, pilotos da frota) em laço guardado; Kome e a máquina dele: exatos
     // 1. Bagger em montagem (atrás de tudo) e pátio
     if (G.Ind) G.Ind.drawBack(g, t);
     if (S.bag && S.bag.m !== S.m) {
@@ -1894,6 +1904,7 @@
     for (let i = 0; i < S.sacks.length; i++) drawSack(S.sacks[i], t);
     drawFleetBg(g);
     // 5. ferramenta atual
+    E.drawShiba.loose = false;
     if (S.loader) G.Tools.escav.draw(g, S.loader);
     const twinPaint = S.twinPlay && cur.kind === 'bagger' && G.Ind && G.Ind.paintFilter ? G.Ind.paintFilter() : '';
     // Gêmea pilotada: a máquina vai pra uma tela de apoio e entra com UM filtro de cor (filtro por traço = celular a 3 quadros/s)
@@ -1901,7 +1912,9 @@
     else if (cur.kind === 'bagger' && cam.z < 0.3) { BAGC.every = 1; drawMach(g, 'bagger', S.m, BAGC); } else if (!drawFeel(g, t)) T.draw(g, S.m);   // zoom bem aberto: Bagger em cache
     if (c.kind === 'cesto' && cur.kind === 'hand') drawBackpack(g, c, t);
     p2Draw(g, t);
-    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && !f.bay && !f.bg && f.warm && cam.visible(f.x, f.y - 150, 800)) drawMach(g, f.id, f.m, f); }   // frota indo cavar no barranco (Kome a pé), na faixa da frente
+    E.drawShiba.loose = true;
+    for (let i = 0; i < S.fleet.length; i++) { const f = S.fleet[i]; if (f.st && f.st !== 'park' && !f.bay && !f.bg && f.warm && cam.visible(f.x, f.y - 150, 800)) drawMach(g, f.id, f.m, f); }
+    E.drawShiba.loose = false;   // frota indo cavar no barranco (Kome a pé), na faixa da frente
     if (crack.k > 0.05 && cur.kind === 'jack') drawCrack(g);
     if (S.own.c6 && S.autoMode && cur.kind === 'hand') { drawSweat(g, t); if (S.own.c6b) drawSweat(g, t + 0.45); }
     if (cur.kind === 'hand' || cur.kind === 'push' || cur.kind === 'jack') { drawAcc(g, t); drawDizzy(g, t); }   // acessório também com carrinho e britadeira
@@ -2246,7 +2259,10 @@
   }
 
   function boot() {
-    stage = E.Stage({ width: W, height: H, bg: PAL.sky, fit: MOB0 ? (aw, ah) => (aw / ah >= 1.6 ? 'cover' : 'contain') : 'contain' });
+    // celular: começa em 5/3 pixels por unidade (canvas ~30% menor que em 2: no Pixel 5 deitado 2133x900 em vez de 2560x1080;
+    // a tela tem ~2,0 pixels reais por unidade, a diferença quase não aparece). ?dpr=2 (ou __kome.res(2)) volta pro máximo.
+    const dprQ = +(location.search.match(/[?&]dpr=([\d.]+)/) || [])[1];
+    stage = E.Stage({ width: W, height: H, bg: PAL.sky, maxDpr: dprQ || (MOB0 ? 5 / 3 : 2), fit: MOB0 ? (aw, ah) => (aw / ah >= 1.6 ? 'cover' : 'contain') : 'contain' });
     if (Wd.setSize) Wd.setSize(W, H);   // cenário desenha na mesma largura lógica do jogo
     setTimeout(() => { try { mobileInit(); } catch (e) { console.warn('[kome] celular', e); } }, 0);
     g = stage.g; input = E.Input(stage);

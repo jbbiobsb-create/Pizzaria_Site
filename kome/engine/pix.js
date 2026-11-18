@@ -440,6 +440,37 @@
     return Draw;
   };
 
+  /* Draw.layer(g, key, x0, y0, x1, y1, sig, fn): pedaço PARADO de um desenho guardado numa tela de apoio na escala do aparelho.
+     fn(c) desenha no retângulo (x0,y0)-(x1,y1) das coordenadas atuais de g; a imagem é refeita quando muda a escala/espelho
+     da transformação, Draw.zoom/minPx ou `sig` (qualquer valor comparável com ===), e entra pixel com pixel (posição
+     arredondada: no máximo meio pixel de diferença). Zoom andando (escala mudou 2 quadros seguidos) = desenha direto.
+     Transformação com giro/escala desigual também desenha direto. Use pra peças com dezenas de traços que não mexem
+     (ex.: estrutura do coletor), deixando por cima só o que anima. key: string ou objeto. */
+  const LAYERS = new Map();
+  Draw.layer = function (g, key, x0, y0, x1, y1, sig, fn) {
+    const m = g.getTransform && g.getTransform();
+    if (!m || m.b || m.c || !(m.d > 0) || Math.abs(Math.abs(m.a) - m.d) > m.d * 1e-6 || typeof document === 'undefined') { fn(g); return; }
+    const k = m.d, mir = m.a < 0 ? 1 : 0;
+    let L = LAYERS.get(key);
+    if (!L) { L = { cv: null, k: 0, mir: 0, sig: undefined, z: 0, mp: 0, pk: 0, x0: 0, y0: 0, x1: 0, y1: 0 }; LAYERS.set(key, L); }
+    if (!L.cv || L.k !== k || L.mir !== mir || L.sig !== sig || L.z !== Draw.zoom || L.mp !== Draw.minPx || L.x0 !== x0 || L.y0 !== y0 || L.x1 !== x1 || L.y1 !== y1) {
+      if (L.k !== k && L.pk !== k) { L.pk = k; fn(g); return; }   // escala mudando: espera assentar
+      const P = 2, w = Math.ceil((x1 - x0) * k) + P * 2, h = Math.ceil((y1 - y0) * k) + P * 2;
+      if (!(w > 0 && h > 0) || w * h > 2e6) { fn(g); return; }
+      if (!L.cv) L.cv = document.createElement('canvas');
+      L.cv.width = w; L.cv.height = h;
+      const c = L.cv.getContext('2d');
+      c.setTransform(mir ? -k : k, 0, 0, k, (mir ? x1 * k : -x0 * k) + P, -y0 * k + P);
+      c.imageSmoothingEnabled = g.imageSmoothingEnabled; c.lineJoin = g.lineJoin; c.lineCap = g.lineCap;
+      fn(c);
+      L.k = k; L.pk = k; L.mir = mir; L.sig = sig; L.z = Draw.zoom; L.mp = Draw.minPx; L.x0 = x0; L.y0 = y0; L.x1 = x1; L.y1 = y1;
+    }
+    const X = Math.round((mir ? m.a * x1 : m.a * x0) + m.e) - 2, Y = Math.round(m.d * y0 + m.f) - 2;
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(L.cv, X, Y); g.restore();
+  };
+  // Draw.dropLayers(): solta todas as telas de apoio do Draw.layer (memória)
+  Draw.dropLayers = function () { LAYERS.clear(); };
+
   /* ---------- helpers internos ---------- */
   function olOf(o) {
     const v = o.ol !== undefined ? o.ol : Draw.OL;

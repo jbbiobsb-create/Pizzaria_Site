@@ -520,30 +520,39 @@
 
   /* ================= ar: partículas em tela ================= */
   const AIR = Array.from({ length: 200 }, (_, i) => ({ x: hash(i, 1), y: hash(i, 2), s: 0.5 + hash(i, 3), p: hash(i, 4) * 6.3, d: 0.4 + hash(i, 5) * 0.6 }));
+  const AIR_PET = ['#FFFFFF', '#F6B6C8', '#F29CB4'];
   function air(g, W, H, cam, t, S) {
     const sc = prof(), ev = evNow(); if (!sc) return;
     const kind = (ev && ev.air) || sc.air; if (!kind) return;
     const L = lightOf(S), mx = cam.mx || 1, n = Math.min(AIR.length, Math.round((sc.airN || 50) * (ev && ev.air ? (kind === 'snow' ? 2.2 : 1.8) : 1)));
     const camOff = cam.x * cam.z * 0.6 * mx, wind = ev && ev.frost ? 160 : 0;
     g.save();
-    for (let i = 0; i < n; i++) {
-      const a = AIR[i], dep = a.d;
-      let vx = 0, vy = 0, sway = 0;
-      if (kind === 'snow') { vy = 34 + 30 * dep; vx = -8 - wind * dep; sway = 14; }
-      else if (kind === 'ash') { vy = 18 + 16 * dep; vx = 10; sway = 6; }
-      else if (kind === 'petals') { vy = 26 + 16 * dep; vx = 22; sway = 18; }
-      else if (kind === 'spray') { vy = -10 - 8 * dep; vx = 6; sway = 4; }
-      const x = (((a.x * (W + 80) + vx * t - camOff * dep) % (W + 80)) + W + 80) % (W + 80) - 40 + Math.sin(t * 1.3 + a.p) * sway;
-      const y = (((a.y * (H + 60) + vy * t) % (H + 60)) + H + 60) % (H + 60) - 30;
-      if (kind === 'snow') { g.globalAlpha = 0.85; g.fillStyle = '#FFFFFF'; const r = (1.2 + 2.2 * a.s * dep); g.beginPath(); g.arc(x, y, r, 0, 6.3); g.fill(); }
-      else if (kind === 'ash') { g.globalAlpha = 0.6; g.fillStyle = i % 7 === 0 ? '#F08A3A' : '#6E6662'; g.fillRect(x, y, 1.5 + a.s * 1.5, 1.5 + a.s); }
-      else if (kind === 'petals') {
-        g.globalAlpha = 0.9; g.fillStyle = i % 5 === 0 ? '#FFFFFF' : i % 2 ? '#F6B6C8' : '#F29CB4';
-        g.beginPath(); if (i % 9 === 0) g.arc(x, y, 3.4 * a.s, 0, 6.3); else g.ellipse(x, y, 3.2 * a.s, 1.6 * a.s, t * 2 + a.p, 0, 6.3); g.fill();
-      } else if (kind === 'spray') {   // brilhinhos de sol no ar do mar
-        const tw = Math.sin(t * 3 + a.p); if (tw < 0.4) continue; g.globalAlpha = (tw - 0.4) * 1.4; g.fillStyle = '#FFFFFF'; const r = 1 + 2 * a.s * dep;
-        g.fillRect(x - r, y, r * 2 + 1, 1); g.fillRect(x, y - r, 1, r * 2 + 1);
+    // neve/cinza/pétalas em lote por cor (1 preenchimento por cor em vez de 1 por floco: ~50-110 desenhos a menos por quadro)
+    const groups = kind === 'snow' ? 1 : kind === 'ash' ? 2 : kind === 'petals' ? 3 : 1;
+    for (let gi = 0; gi < groups; gi++) {
+      if (kind !== 'spray') { g.beginPath(); g.globalAlpha = kind === 'snow' ? 0.85 : kind === 'ash' ? 0.6 : 0.9; g.fillStyle = kind === 'snow' ? '#FFFFFF' : kind === 'ash' ? (gi ? '#F08A3A' : '#6E6662') : AIR_PET[gi]; }
+      for (let i = 0; i < n; i++) {
+        if (kind === 'ash' && (i % 7 === 0 ? 1 : 0) !== gi) continue;
+        if (kind === 'petals' && (i % 5 === 0 ? 0 : i % 2 ? 1 : 2) !== gi) continue;
+        const a = AIR[i], dep = a.d;
+        let vx = 0, vy = 0, sway = 0;
+        if (kind === 'snow') { vy = 34 + 30 * dep; vx = -8 - wind * dep; sway = 14; }
+        else if (kind === 'ash') { vy = 18 + 16 * dep; vx = 10; sway = 6; }
+        else if (kind === 'petals') { vy = 26 + 16 * dep; vx = 22; sway = 18; }
+        else if (kind === 'spray') { vy = -10 - 8 * dep; vx = 6; sway = 4; }
+        const x = (((a.x * (W + 80) + vx * t - camOff * dep) % (W + 80)) + W + 80) % (W + 80) - 40 + Math.sin(t * 1.3 + a.p) * sway;
+        const y = (((a.y * (H + 60) + vy * t) % (H + 60)) + H + 60) % (H + 60) - 30;
+        if (kind === 'snow') { const r = (1.2 + 2.2 * a.s * dep); g.moveTo(x + r, y); g.arc(x, y, r, 0, 6.3); }
+        else if (kind === 'ash') g.rect(x, y, 1.5 + a.s * 1.5, 1.5 + a.s);
+        else if (kind === 'petals') {
+          if (i % 9 === 0) { g.moveTo(x + 3.4 * a.s, y); g.arc(x, y, 3.4 * a.s, 0, 6.3); }
+          else { const an = t * 2 + a.p; g.moveTo(x + 3.2 * a.s * Math.cos(an), y + 3.2 * a.s * Math.sin(an)); g.ellipse(x, y, 3.2 * a.s, 1.6 * a.s, an, 0, 6.3); }
+        } else if (kind === 'spray') {   // brilhinhos de sol no ar do mar
+          const tw = Math.sin(t * 3 + a.p); if (tw < 0.4) continue; g.globalAlpha = (tw - 0.4) * 1.4; g.fillStyle = '#FFFFFF'; const r = 1 + 2 * a.s * dep;
+          g.fillRect(x - r, y, r * 2 + 1, 1); g.fillRect(x, y - r, 1, r * 2 + 1);
+        }
       }
+      if (kind !== 'spray') g.fill();
     }
     g.globalAlpha = 1;
     if (kind === 'spray') for (let i = 0; i < 3; i++) {   // gaivotas grandes

@@ -582,11 +582,13 @@
     g.fillStyle = 'rgba(70,50,30,.16)'; g.fillRect(L - 4, 0, R - L + 8, 3);
     g.fillStyle = '#8B8F96'; g.fillRect(L, 1, R - L, 38); g.fillStyle = '#A3A7AD'; g.fillRect(L, 1, R - L, 3); g.fillStyle = '#6E737B'; g.fillRect(L, 36, R - L, 3);
     // cerca de tela atrás (baixa e clara: não briga com as máquinas)
-    g.fillStyle = '#B9C0C8'; for (let x = L; x <= R; x += 46) g.fillRect(x - 1.5, -30, 3, 31);
-    g.fillRect(L, -30, R - L, 2.5); g.fillRect(L, -16, R - L, 1.5);
+    // (retângulos da mesma cor num caminho só: 1 preenchimento em vez de ~60 por quadro)
+    g.fillStyle = '#B9C0C8'; g.beginPath(); for (let x = L; x <= R; x += 46) g.rect(x - 1.5, -30, 3, 31);
+    g.rect(L, -30, R - L, 2.5); g.rect(L, -16, R - L, 1.5); g.fill();
     // vagas pintadas (linha amarela entre uma máquina e outra)
-    g.fillStyle = '#F3C94A'; g.fillRect(R - 6, 4, 4, 32);
-    for (const [id] of BAYS) if ((TI[id] || 99) <= S.tool) g.fillRect(X.park[id + '_L'] - 2, 4, 4, 32);
+    g.fillStyle = '#F3C94A'; g.beginPath(); g.rect(R - 6, 4, 4, 32);
+    for (const [id] of BAYS) if ((TI[id] || 99) <= S.tool) g.rect(X.park[id + '_L'] - 2, 4, 4, 32);
+    g.fill();
     const fl = S.fleet || [];
     for (let i = 0; i < fl.length; i++) { const f = fl[i]; if (f.bayOn) { const w = (BAYS.find(b => b[0] === f.id) || [0, 150])[1]; drawBin(g, X.park[f.id] + w / 2 + 28, G.S ? G.S.time : 0, i, f.bay); } }
   }
@@ -601,7 +603,7 @@
     if (X.vilaX1 < v.x0 || X.vilaX0 - 200 > v.x1) return;
     const a = Math.max(v.x0, X.vilaX0 - 300), b = Math.min(v.x1, X.vilaX1 + 120);
     g.fillStyle = '#E4D8BF'; g.fillRect(a, 5, b - a, 13); g.fillStyle = '#CDBE9F'; g.fillRect(a, 16, b - a, 2);
-    g.fillStyle = '#F3EBDB'; for (let x = Math.ceil(a / 44) * 44; x < b; x += 44) g.fillRect(x, 7, 26, 3);
+    g.fillStyle = '#F3EBDB'; g.beginPath(); for (let x = Math.ceil(a / 44) * 44; x < b; x += 44) g.rect(x, 7, 26, 3); g.fill();
     const sx = X.vilaX0 - 120;   // placa de entrada, antes da sakura
     Draw.box(g, sx - 62, -52, 4, 52, PAL.wood, { ol: 1 }); Draw.box(g, sx + 58, -52, 4, 52, PAL.wood, { ol: 1 });
     Draw.sign(g, sx - 72, -88, 144, 36, 'VILA DO KOME', { col: PAL.cream, ink: PAL.red });
@@ -924,8 +926,8 @@
       const s = P ? P.sack(S.own.s8 ? 'golden' : 'plain') : null;
       if (s) { g.imageSmoothingEnabled = false; g.drawImage(s.cv, -s.ax * 1.4, -s.ay * 1.4, s.cv.width * 1.4, s.cv.height * 1.4); }
     } else if (c.kind === 'kei' && G.Scale && G.Scale.keitruck) G.Scale.keitruck.draw(g, 0, 0, { face: 1, t });
-    else if (c.kind === 'moega' && G.Scale && G.Scale.moega) G.Scale.moega.draw(g, 0, 0, { face: 1, t, fill: 0.3 + 0.5 * (c.pulse || 0) });
-    else if (c.kind === 'silo' && G.Scale && G.Scale.moega) { g.scale(0.6, 0.6); G.Scale.moega.draw(g, 0, 0, { face: 1, t, fill: 0.3 + 0.5 * (c.pulse || 0) }); }   // moega pequena (o silo de verdade fica no pátio)
+    else if (c.kind === 'moega' && G.Scale && G.Scale.moega) G.Scale.moega.draw(g, 0, 0, { face: 1, t, fill: 0.3 + 0.5 * (c.pulse || 0), layer: 'col' });
+    else if (c.kind === 'silo' && G.Scale && G.Scale.moega) { g.scale(0.6, 0.6); G.Scale.moega.draw(g, 0, 0, { face: 1, t, fill: 0.3 + 0.5 * (c.pulse || 0), layer: 'col' }); }   // moega pequena (o silo de verdade fica no pátio)
     g.restore();
   }
 

@@ -1610,6 +1610,37 @@
     return Draw;
   };
 
+  /* Draw.layer(g, key, x0, y0, x1, y1, sig, fn): pedaço PARADO de um desenho guardado numa tela de apoio na escala do aparelho.
+     fn(c) desenha no retângulo (x0,y0)-(x1,y1) das coordenadas atuais de g; a imagem é refeita quando muda a escala/espelho
+     da transformação, Draw.zoom/minPx ou `sig` (qualquer valor comparável com ===), e entra pixel com pixel (posição
+     arredondada: no máximo meio pixel de diferença). Zoom andando (escala mudou 2 quadros seguidos) = desenha direto.
+     Transformação com giro/escala desigual também desenha direto. Use pra peças com dezenas de traços que não mexem
+     (ex.: estrutura do coletor), deixando por cima só o que anima. key: string ou objeto. */
+  const LAYERS = new Map();
+  Draw.layer = function (g, key, x0, y0, x1, y1, sig, fn) {
+    const m = g.getTransform && g.getTransform();
+    if (!m || m.b || m.c || !(m.d > 0) || Math.abs(Math.abs(m.a) - m.d) > m.d * 1e-6 || typeof document === 'undefined') { fn(g); return; }
+    const k = m.d, mir = m.a < 0 ? 1 : 0;
+    let L = LAYERS.get(key);
+    if (!L) { L = { cv: null, k: 0, mir: 0, sig: undefined, z: 0, mp: 0, pk: 0, x0: 0, y0: 0, x1: 0, y1: 0 }; LAYERS.set(key, L); }
+    if (!L.cv || L.k !== k || L.mir !== mir || L.sig !== sig || L.z !== Draw.zoom || L.mp !== Draw.minPx || L.x0 !== x0 || L.y0 !== y0 || L.x1 !== x1 || L.y1 !== y1) {
+      if (L.k !== k && L.pk !== k) { L.pk = k; fn(g); return; }   // escala mudando: espera assentar
+      const P = 2, w = Math.ceil((x1 - x0) * k) + P * 2, h = Math.ceil((y1 - y0) * k) + P * 2;
+      if (!(w > 0 && h > 0) || w * h > 2e6) { fn(g); return; }
+      if (!L.cv) L.cv = document.createElement('canvas');
+      L.cv.width = w; L.cv.height = h;
+      const c = L.cv.getContext('2d');
+      c.setTransform(mir ? -k : k, 0, 0, k, (mir ? x1 * k : -x0 * k) + P, -y0 * k + P);
+      c.imageSmoothingEnabled = g.imageSmoothingEnabled; c.lineJoin = g.lineJoin; c.lineCap = g.lineCap;
+      fn(c);
+      L.k = k; L.pk = k; L.mir = mir; L.sig = sig; L.z = Draw.zoom; L.mp = Draw.minPx; L.x0 = x0; L.y0 = y0; L.x1 = x1; L.y1 = y1;
+    }
+    const X = Math.round((mir ? m.a * x1 : m.a * x0) + m.e) - 2, Y = Math.round(m.d * y0 + m.f) - 2;
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(L.cv, X, Y); g.restore();
+  };
+  // Draw.dropLayers(): solta todas as telas de apoio do Draw.layer (memória)
+  Draw.dropLayers = function () { LAYERS.clear(); };
+
   /* ---------- helpers internos ---------- */
   function olOf(o) {
     const v = o.ol !== undefined ? o.ol : Draw.OL;
@@ -3307,7 +3338,7 @@
     if (mode === 'walk') { ph = t * 9.5; amp = 3.5; lift = 2.7; bob = Math.abs(s(ph)) * 1.15; headDY = s(ph * 2 + 1.2) * 0.55; tailW = s(ph) * 1.5; tailY = -Math.abs(Math.cos(ph)) * 0.8; tw = LF.tw; }
     else if (mode === 'run') { ph = t * 16; amp = 5; lift = 2.6; gal = 1; bob = Math.max(0, s(ph - 0.5)) * 3.2; stretch = 1 + Math.max(0, s(ph - 0.5)) * 1.3; ears = 'back'; mouth = 'tongue'; headDY = -s(ph - 0.5) * 0.8; tailW = s(ph) * 0.9; }
     else if (mode === 'jump') { amp = 0; lift = 0; stretch = 1; }
-    else if (mode === 'dig') { ph = t * 22; headDY = 3 + s(ph * 0.5) * 0.7; mouth = 'open'; bob = -0.6 + s(ph) * 0.35; tailW = s(t * 24) * 1.6; ears = s(t * 3) > 0.6 ? 'back' : 'up'; }
+    else if (mode === 'dig') { ph = t * 22; headDY = 3 + s(ph * 0.5) * 0.7; mouth = 'open'; bob = -0.6 + s(ph) * 0.35; tailW = s(t * 24) * 1.6; ears = s((LIFE_T === null ? t : LIFE_T) * 3) > 0.6 ? 'back' : 'up'; }
     else if (mode === 'sniff') { ph = t * 5; amp = 1.6; lift = 1; headDY = 4 + s(t * 14) * 0.5; mouth = 'closed'; tailW = s(t * 9) * 1.1; tw = LF.tw; }
     else if (mode === 'surprise') { bob = 1.5; eyes = 'wide'; mouth = 'open'; }
     else if (mode === 'dizzy') { bob = s(t * 4) * 0.6; eyes = 'spiral'; mouth = 'tongue'; ears = 'back'; }
@@ -3421,7 +3452,7 @@
      já está velho ganha vida nova (refresh). É isso que faz uma multidão na mesma pose/paleta, cada um na sua
      fase, custar quase só o shiba "da frente": os outros reaproveitam os frames que ele já rasterizou. */
   const KEY_MUL = 33554432, TQ_MAX = 134217727;          // tq acima disso não cabe na chave (2^53): desenha sem cache
-  let CACHE_N = 640, CACHE_FPS = 30;
+  let CACHE_N = 1024, CACHE_FPS = 30;   // 1024 x 48x44 ≈ 8,6 MB (cabe a multidão + os laços de fundo)
   let slotKey = new Float64Array(CACHE_N).fill(NaN), slotCv = new Array(CACHE_N).fill(null), slotG = new Array(CACHE_N).fill(null);
   let slotSeq = new Float64Array(CACHE_N), cacheSeq = 0;   // "idade" de cada slot (nº de ordem da última inserção/refresh)
   const cacheMap = new Map();
@@ -3434,6 +3465,16 @@
      correndo, cada um no seu t, passa a reaproveitar ~20 frames por paleta em vez de rasterizar 1 frame novo por shiba a
      cada 1/30 s. walk: fase 9,5t · run: fase 16t (o resto dessas poses só usa a piscada/orelha). Desenho igual. */
   const LOOP = { walk: 2 * Math.PI / 9.5, run: 2 * Math.PI / 16 };
+  /* Laço APROXIMADO (só com drawShiba.loose ligado: o jogo liga pra shibas de fundo — ajudantes, pilotos da frota, Pátio —
+     e desliga pro Kome e a máquina dele): poses com frequências misturadas (dig/drive/sit/climb/wave) viram um laço de
+     período p (escolhido pra emenda ficar com ~1 px de salto) a fps quadros/s; o que não fecha no laço (orelha do dig,
+     cabeça torta/olhar/rabo feliz do sit) entra na chave como estado, como a piscada. Frota e Pátio se refazem a ~15 qps,
+     então 15 quadros por segundo de laço não perdem nada. Medido: ~7 falhas de cache por quadro -> ~0 no pós-final. */
+  const LOOSE = {
+    dig: { p: 2 * Math.PI / 11, fps: 30, ex: t => (s(t * 3) > 0.6 ? 1 : 0) },
+    drive: { p: 3.04, fps: 15 }, sit: { p: 2.513, fps: 15, life: 1 }, climb: { p: 0.897, fps: 15 }, wave: { p: 2.856, fps: 15 },
+  };
+  let looseOn = false;
   const LOOP_KEY = TQ_MAX + 1;                             // chaves de laço ficam acima de qualquer tq absoluto (cabe em 2^53)
   const idOf = (arr, v) => { const i = arr.indexOf(v); return i < 0 ? 15 : i + 1; };
 
@@ -3490,9 +3531,19 @@
       frameFast(exactCv, exactG, mode, t, K, shadow);
       stats.exact++; cv = exactCv;
     } else {
-      const lp = LOOP[mode];
+      let lp = LOOP[mode];
+      const LZ = lp === undefined && looseOn ? LOOSE[mode] : undefined;
       let tq, tr;
-      if (lp !== undefined) {
+      if (LZ) {                                              // laço aproximado (fundo): ver LOOSE
+        lp = LZ.p; life(t);
+        const N = Math.max(1, Math.round(lp * LZ.fps));
+        let ph = (t / lp) % 1; if (ph < 0) ph += 1;
+        const fi = Math.round(ph * N) % N;
+        let st = (LF.blink ? 1 : LF.half ? 2 : 0) + ((LF.tw + 1) << 2) + ((LZ.ex ? LZ.ex(t) : 0) << 4);
+        if (LZ.life) st += ((LF.tilt + 1) << 5) + ((LF.look ? 1 + (LF.look[0] > 0 ? 2 : 0) + (LF.look[1] ? 1 : 0) : 0) << 7) + (Math.round(LF.wagK * 4) << 10);
+        tq = LOOP_KEY + fi * 8192 + st;
+        tr = (fi / N) * lp;
+      } else if (lp !== undefined) {
         life(t);                                             // vida ociosa no t de verdade: entra na chave
         const N = Math.max(1, Math.round(lp * CACHE_FPS));
         let ph = (t / lp) % 1; if (ph < 0) ph += 1;
@@ -3539,9 +3590,11 @@
   // drawShiba.clear(): esvazia o cache de frames ; drawShiba.stats -> {hits, misses, exact}
   drawShiba.clear = function () { cacheMap.clear(); slotKey.fill(NaN); };
   drawShiba.stats = stats;
+  // drawShiba.loose (get/set): liga o laço aproximado das poses de fundo (ver LOOSE); o jogo desliga pro Kome e a máquina dele
+  Object.defineProperty(drawShiba, 'loose', { get() { return looseOn; }, set(v) { looseOn = !!v; } });
   drawShiba.frameT = frameT;
   // drawShiba.cacheSize -> frames guardados agora ; drawShiba.cacheMax (get/set, 64..4096): limite de canvases 48x44 do cache
-  //   (cada um ~8 KB; 640 = ~5 MB). Aumente se tiver muitos shibas fora de fase na MESMA pose/paleta: quem vem atrás reaproveita
+  //   (cada um ~8 KB; padrão 1024 = ~8,6 MB). Aumente se tiver muitos shibas fora de fase na MESMA pose/paleta: quem vem atrás reaproveita
   //   os frames de quem vai na frente enquanto eles ainda estiverem no anel.
   Object.defineProperty(drawShiba, 'cacheSize', { get() { return cacheMap.size; } });
   Object.defineProperty(drawShiba, 'cacheMax', {
