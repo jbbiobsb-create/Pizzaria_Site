@@ -113,6 +113,22 @@
 .k-px-ok::before{content:'✔ '}
 /* ---- Loja de Sementes ---- */
 .k-px-count{font-size:calc(var(--pxt) + 6px);font-weight:900;color:var(--ink);background:#F2C230;border:3px solid var(--ink);border-radius:14px;box-shadow:0 3px 0 var(--ink);padding:4px 14px;white-space:nowrap;flex:0 0 auto}
+.k-px-count{display:flex;flex-direction:column;align-items:center;line-height:1;padding:4px 16px}
+.k-px-count b{font-size:calc(var(--pxt) + 12px);font-weight:900}
+.k-px-count small{font-size:var(--pxs);font-weight:900}
+.k-cui .k-px-hint{font-size:var(--pxt);font-weight:900;text-align:center;background:#FFF0B8}
+.k-px-stools{justify-content:center}
+.k-px-sfoot{justify-content:space-between}
+.k-cui .k-px-sback{flex:0 1 auto;min-width:150px}
+.k-px-seed{position:relative;padding:10px}
+.k-px-seed .k-cui-ico{width:72px;height:72px}
+.k-px-seed.rec{border-color:#B07A00;box-shadow:0 4px 0 #B07A00,0 0 0 3px #FFE58A}
+.k-px-recb{display:inline-block;font-size:var(--pxs);font-weight:900;background:#F2C230;border:2px solid var(--ink);border-radius:10px;padding:1px 8px;margin-bottom:3px;transform:rotate(-2deg)}
+.k-px-seed .k-px-lv{display:inline-block;margin-top:3px;background:#FFFAEE;border:2px solid var(--ink);border-radius:999px;padding:1px 10px;color:var(--ink)}
+.k-px-seed.full .k-px-lv::before{content:'✔ ';color:#2F6B2A}
+.k-px-seed.locked .k-px-lv::before{content:'🔒 '}
+.k-px-seed .k-px-fx{font-size:var(--pxt);margin-top:4px}
+.k-cui .k-px-seedb{min-height:76px}
 .k-px-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;background:#F3E5C4;border-bottom:3px solid var(--ink);flex:0 0 auto}
 .k-px-sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:0 10px}
 .k-px-seed{align-items:stretch}

@@ -401,7 +401,7 @@
     const up = upgrades(api, list), top = upSort(up.list, m);
     for (let i = 0; i < 3; i++) P.slots[i].set(top[i] || null, m);
     P.upBox.style.display = top.length ? '' : 'none';
-    setT(P.upT, 'Melhorias' + (up.of ? ' · ' + up.done + ' de ' + up.of : ''));
+    setT(P.upT, 'Próximas melhorias' + (up.of ? ' · ' + up.done + ' de ' + up.of : ''));
     const upCan = top.length && top[0].ready && m >= top[0].price;
     setT(P.hint, upCan ? 'Pegue a melhoria dourada: a turma rende mais!' : anyBuy ? 'Toque no botão dourado: cada turma dá ¥ sozinha.' : isFinite(cheap) ? 'Junte ¥: a turma mais barata custa ' + yen(cheap) + '.' : 'Cada turma dá ¥ sozinha, sem parar.');
     if (upsAll.isOpen && force) renderUps();
@@ -574,16 +574,18 @@
   {
     const c = seedsS.card, hd = el('div', 'k-cui-head', c);
     try { hd.appendChild(iconCv(ART() && ART().seedIcon ? ART().seedIcon() : 'star', 40)); } catch (e) { /* sem arte */ }
-    const h2 = el('h2', null, hd); el('span', null, h2, 'SEMENTES DOURADAS'); el('small', null, h2, 'Melhorias que nunca somem');
-    SD.count = el('div', 'k-px-count', hd, '★ 0');
+    const h2 = el('h2', null, hd); el('span', null, h2, 'SEMENTES DOURADAS'); el('small', null, h2, 'Deixam tudo mais forte pra sempre');
+    SD.count = el('div', 'k-px-count', hd); SD.countN = el('b', null, SD.count, '★ 0'); el('small', null, SD.count, 'sementes');
     closeBtn(hd, () => seedsS.close());
     SD.hint = el('div', 'ux-hint k-px-hint', c, '');
     SD.tabs = el('div', 'k-px-tabs', c);
+    const tl = el('div', 'k-cui-tools k-px-stools', c);
+    el('span', 'k-px-lbl', tl, 'Quantos níveis:');
+    const seg = el('div', 'k-cui-seg', tl);
     SD.pane = el('div', 'k-cui-pane', c);
     const ft = el('div', 'k-cui-foot k-px-sfoot', c);
-    el('span', 'k-px-lbl', ft, 'Comprar de:');
-    const seg = el('div', 'k-cui-seg', ft);
-    SD.seg = CFG.MULTS.map(m => { const b = el('button', null, seg, m === 'max' ? 'máximo' : String(m)); b.type = 'button';
+    const bk = button(ft, '', 'k-px-fb k-px-sback', () => { sfx('click'); seedsS.close(); }); el('span', null, bk, '← Fechar');
+    SD.seg = CFG.MULTS.map(m => { const b = el('button', null, seg, m === 'max' ? 'Máx' : '×' + m); b.type = 'button';
       b.addEventListener('click', () => { SD.mult = m; sfx('click'); SD.seg.forEach(x => x.classList.toggle('on', x === b)); tickSeeds(true); }); return b; });
     SD.seg[0].classList.add('on');
     el('div', 'k-cui-sp', ft);
@@ -610,15 +612,15 @@
     const open = SD.nodes.map(n => ({ n, s: seedState(n, have, 1) })).filter(x => !x.s.full && !x.s.lockId);
     const can = open.filter(x => x.s.can).sort((a, b) => (b.n.absurd ? 1 : 0) - (a.n.absurd ? 1 : 0) || (a.s.L ? 1 : 0) - (b.s.L ? 1 : 0) || a.s.cost - b.s.cost);
     const rest = open.filter(x => !x.s.can).sort((a, b) => a.s.cost - b.s.cost);
-    const cheap = open.slice().sort((a, b) => a.s.cost - b.s.cost)[0];
-    return { top: can.concat(rest).slice(0, 3).map(x => x.n), nCan: can.length, cheap: cheap ? cheap.n : null };
+    const byCost = open.slice().sort((a, b) => a.s.cost - b.s.cost), cheap = byCost[0];
+    return { top: byCost.slice(0, 3).map(x => x.n), nCan: can.length, cheap: cheap ? cheap.n : null };
   }
   function seedCard(parent, n) {
     const br = SD.br[n.branch] || {};
     const c = { n, el: el('div', 'k-px-seed', parent) };
     c.ico = el('div', 'k-cui-ico', c.el); c.ico.appendChild(iconCv(n.icon || br.icon || 'star', 36)); if (br.color) c.ico.style.background = br.color;
     const mid = el('div', 'k-px-mid', c.el);
-    c.nm = el('div', 'k-px-nm', mid, n.n); c.lv = el('div', 'k-px-lv', mid);
+    c.rec = el('div', 'k-px-recb', mid, '★ Recomendado'); c.nm = el('div', 'k-px-nm', mid, n.n); c.lv = el('div', 'k-px-lv', mid);
     c.desc = el('div', 'k-px-what', mid, n.desc || '');
     c.fx = el('div', 'k-px-fx', mid);
     c.bt = btn2(c.el, 'k-px-seedb', () => seedBuy(n, c.bt.el));
@@ -628,14 +630,15 @@
     const n = c.n, s = seedState(n, have, SD.mult), L = s.L;
     setT(c.lv, s.max === 1 ? (L ? 'Já é seu' : 'Compra uma vez só') : 'Nível ' + L + (s.max ? ' de ' + s.max : ''));
     let fx = '';
-    if (n.fxAt) { const now = L > 0 ? n.fxAt(L) : '', nx = s.full ? '' : n.fxAt(L + s.plan.n); fx = (now ? 'Agora: ' + now : '') + (now && nx ? '  →  ' : '') + (nx ? 'Depois: ' + nx : ''); }
+    if (n.fxAt) { const now = L > 0 ? n.fxAt(L) : '', nx = s.full ? '' : n.fxAt(L + s.plan.n); fx = nx ? (L ? (s.plan.n > 1 ? 'Com +' + s.plan.n + ' níveis: ' : 'Próximo nível: ') : 'Ao comprar: ') + nx : now ? 'Agora: ' + now : ''; }
     else if (n.now) { const now = n.now(); if (now) fx = 'Agora: ' + now; }
     setT(c.fx, fx); c.fx.style.display = fx ? '' : 'none';
+    const rec = !!SD.rec && SD.rec.indexOf(n) >= 0; c.el.classList.toggle('rec', rec); c.rec.style.display = rec ? '' : 'none';
     c.el.classList.toggle('can', s.can); c.el.classList.toggle('full', s.full); c.el.classList.toggle('locked', !!s.lockId && !s.full);
     if (s.full) c.bt.set('green', s.max === 1 ? 'Já é seu' : 'Completo');
     else if (s.lockId) c.bt.set('off', 'Antes compre', (SD.by[s.lockId] || {}).n || '');
     else if (s.can) c.bt.set('gold', L && s.max !== 1 ? (s.plan.n > 1 ? 'Subir ' + s.plan.n + ' níveis' : 'Subir nível') : 'Comprar', '★ ' + fmt(s.plan.cost));
-    else c.bt.set('off', 'Faltam ★ ' + fmt(s.plan.cost - have), 'custa ★ ' + fmt(s.plan.cost));
+    else { const f = s.plan.cost - have; c.bt.set('off', 'Faltam ' + fmt(f) + (f === 1 ? ' semente' : ' sementes'), 'custa ★ ' + fmt(s.plan.cost)); }
   }
   function seedBuy(n, btnEl, k) {
     const api = A(), have = api.seeds(), s = seedState(n, have, k || SD.mult);
@@ -652,15 +655,15 @@
   function tickSeeds(force) {
     if (!seedsS.isOpen) return;
     const api = A(), have = api.seeds(), pk = seedPick(have);
-    setT(SD.count, '★ ' + fmt(have));
-    setT(SD.hint, pk.nCan ? 'Toque num botão dourado: cada semente te faz ganhar mais ¥, pra sempre.' : SD.nodes.length ? 'Viaje pra outra ilha pra ganhar sementes. Elas te dão mais ¥ pra sempre.' : 'Sementes aparecem depois da primeira viagem.');
+    setT(SD.countN, '★ ' + fmt(have)); SD.rec = pk.top;
+    setT(SD.hint, 'Sementes deixam tudo mais forte pra sempre' + (pk.nCan ? ' · toque no botão dourado' : SD.nodes.length ? ' · viaje de ilha pra ganhar mais' : ' · ganhe na primeira viagem'));
     for (const id in SD.tabB) { const b = SD.tabB[id]; b.classList.toggle('on', id === SD.tab);
       const dot = id === 'rec' ? pk.nCan > 0 : SD.nodes.some(n => n.branch === id && seedState(n, have, 1).can); b.classList.toggle('dot', dot); }
     const list = SD.tab === 'rec' ? pk.top : SD.nodes.filter(n => n.branch === SD.tab);
     const sig = SD.tab + ':' + list.map(n => n.id).join(',');
     if (sig !== SD.sig) {
       SD.sig = sig; SD.pane.textContent = ''; SD.cards = [];
-      if (SD.tab === 'rec') { const h = el('div', 'k-px-h', SD.pane); h.appendChild(iconCv('star', 22)); el('span', null, h, pk.nCan ? 'Recomendado pra você agora' : 'As mais perto de comprar'); }
+      if (SD.tab === 'rec') { const h = el('div', 'k-px-h', SD.pane); h.appendChild(iconCv('star', 22)); el('span', null, h, 'As 3 mais baratas pra comprar'); }
       const grid = el('div', 'k-px-sgrid' + (SD.tab === 'rec' ? ' rec' : ''), SD.pane);
       for (const n of list) SD.cards.push(seedCard(grid, n));
       if (!list.length) el('div', 'k-cui-note', SD.pane, 'Você já comprou tudo daqui. Uau.');
