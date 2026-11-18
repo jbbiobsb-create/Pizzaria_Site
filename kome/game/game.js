@@ -46,7 +46,7 @@
   const ptr = { wx: WL.START_X + 40, wy: -20, down: false, has: false };
   const hook = { on: false, wx: 0, wy: 0, use: false };
 
-  let pixCv = null, pixG = null;
+  let pixCv = null, pixG = null; const BGC = { sig: '', n: 0, every: 2 };
   let stage, g, input, cam, parts, floaters, fx, heap, save, loop, cur, T, st;
   let extra = 1, celeCard = null, loopH = null, loopT = 0, sndT = 0, coinT = 0, saveT = 0, tapEat = false, audioOn = false;
 
@@ -1792,9 +1792,10 @@
   }
   // máquina de fundo com zoom aberto: desenha numa imagem e reaproveita por alguns quadros (celular ficava lento com a Bagger)
   let machFrame = 0; const BAGC = {};
-  function drawMach(g, id, m, f) {
+  // force = imagem mesmo de perto (frota estacionada parada: redesenha a cada 3 quadros; até zoom 1,5 a imagem tem a resolução da tela)
+  function drawMach(g, id, m, f, force) {
     const T0 = G.Tools[id], z = cam.z;
-    if ((z > 0.55 && !f.always) || !T0.w) { T0.draw(g, m); return; }
+    if ((z > 0.55 && !f.always && !(force && z <= 1.5)) || !T0.w) { T0.draw(g, m); return; }
     const k = Math.min(1.5, z * (f.res || 1)) * stage.dpr, mk = m.k || 1, W0 = (T0.w || 300) * 1.6 * mk, H0 = (T0.h || 200) * 1.7 * mk, x0 = m.x - W0 / 2, y0 = m.y - H0, bw = Math.ceil(W0 * k), bh = Math.ceil((H0 + 40) * k);
     const c = f._cv || (f._cv = document.createElement('canvas')), mir = cam.mx < 0;
     if (c.width !== bw || c.height !== bh || !f._ok || f._mir !== mir || (machFrame - (f._fr || 0)) > (f.every || (z < 0.3 ? 6 : 3)) || Math.abs(m.x - f._mx) > 60) {
@@ -1822,11 +1823,18 @@
     if (pf > 1) {
       const main = g, pw = Math.ceil(W * stage.dpr / pf), ph = Math.ceil(H * stage.dpr / pf);
       if (!pixCv) { pixCv = document.createElement('canvas'); pixG = pixCv.getContext('2d'); }
-      if (pixCv.width !== pw || pixCv.height !== ph) { pixCv.width = pw; pixCv.height = ph; }
-      const k = stage.dpr / pf; pixG.setTransform(k, 0, 0, k, 0, 0); pixG.globalAlpha = 1; pixG.imageSmoothingEnabled = false;
-      pixG.fillStyle = PAL.sky; pixG.fillRect(0, 0, W, H);
-      if (cam.mx < 0) pixG.setTransform(-k, 0, 0, k, W * k, 0);   // ilha espelhada: o fundo vira junto com o mundo
-      g = pixG; Wd.drawBack(g, cam, t, S); g = main;
+      if (pixCv.width !== pw || pixCv.height !== ph) { pixCv.width = pw; pixCv.height = ph; BGC.n = 0; }
+      // imagem do fundo guardada: com a câmera parada, só redesenha a cada 2 quadros (nuvens/pássaros andam menos de 1 pixel
+      // grosso por quadro); câmera mexeu, hora mudou ou tamanho mudou = redesenha na hora
+      const bsig = cam.x + '|' + cam.y + '|' + cam.z + '|' + cam.mx + '|' + Math.round((S.tod || 0) * 400) + '|' + (S.island | 0);
+      if (BGC.n <= 0 || bsig !== BGC.sig) {
+        BGC.sig = bsig; BGC.n = BGC.every;
+        const k = stage.dpr / pf; pixG.setTransform(k, 0, 0, k, 0, 0); pixG.globalAlpha = 1; pixG.imageSmoothingEnabled = false;
+        pixG.fillStyle = PAL.sky; pixG.fillRect(0, 0, W, H);
+        if (cam.mx < 0) pixG.setTransform(-k, 0, 0, k, W * k, 0);   // ilha espelhada: o fundo vira junto com o mundo
+        g = pixG; Wd.drawBack(g, cam, t, S); g = main;
+      }
+      BGC.n--;
       g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
       g.drawImage(pixCv, 0, 0, pixCv.width * pf, pixCv.height * pf); g.restore();
     } else if (cam.mx < 0) { g.save(); g.translate(W, 0); g.scale(-1, 1); Wd.drawBack(g, cam, t, S); g.restore(); } else Wd.drawBack(g, cam, t, S);
@@ -1859,7 +1867,7 @@
     // 3. frota estacionada (faixa da frente)
     for (let i = 0; i < S.fleet.length; i++) {
       const f = S.fleet[i]; if (!f.warm || !cam.visible(f.x, -150, 800) || (f.st && f.st !== 'park' && !f.bay)) continue;
-      drawMach(g, f.id, f.m, f);
+      drawMach(g, f.id, f.m, f, !f.st || f.st === 'park');
       if (!st.pilots[f.id]) { const w = 86, hh = 22; Draw.sign(g, f.x - w / 2, f.y - G.Tools[f.id].h - 44, w, hh, 'PRECISA-SE PILOTO', { col: PAL.cream, ink: PAL.red }); Draw.text(g, 'z z z', f.x + 30, f.y - G.Tools[f.id].h - 54 - 6 * Math.sin(t * 2), { size: 13, col: PAL.cream, sw: 3 }); }
     }
     // 4. coletor, sacos, ajudantes
@@ -2226,7 +2234,7 @@
   const RES = { last: 0, avg: 16, slow: 0, hold: 3, steps: [2, 5 / 3, 4 / 3] };
   function adaptRes(now) {
     const R = RES, dt = R.last ? now - R.last : 16; R.last = now;
-    if (!stage || !stage.setMaxDpr || document.hidden || cs || dt > 1500) { R.slow = 0; return; }   // pausa longa (aba, alerta) não conta
+    if (R.off || !stage || !stage.setMaxDpr || document.hidden || cs || dt > 1500) { R.slow = 0; return; }   // pausa longa (aba, alerta) não conta
     if ((R.hold -= dt / 1000) > 0) { R.avg = 16; return; }
     R.avg += (dt - R.avg) * 0.05;
     R.slow = R.avg > 24 ? R.slow + dt / 1000 : 0;
@@ -2366,6 +2374,7 @@
     stats: () => st, nodeState: id => nodeState(D.nodeById[id]), nodeCost: id => nodeCost(D.nodeById[id]),
     reset() { save.clear(); saveNow = () => {}; location.reload(); },
     save: () => saveNow(), exportStr: () => save.exportStr(),
+    res(v) { RES.off = true; if (v) stage.setMaxDpr(v); return stage.dpr; },   // testes de desempenho: resolução fixa (desliga a adaptativa)
     patioTour: () => patioTour(), patioTourT: t => { if (ptour) ptour.t = t; return !!ptour; },   // testes/prints do Ver o Pátio
     view() { if (celeCard && celeCard.close) { celeCard.close(); celeCard = null; } S.stamp = 0; S.camX = P.x + 30 / cur.zoom; camTick(1); cam.snapTo(cam.tx, cam.ty, cur.zoom); },
     get heap() { return heap; }, get cam() { return cam; }, get tool() { return cur; }, get m() { return S.m; }, get loop() { return loop; },
