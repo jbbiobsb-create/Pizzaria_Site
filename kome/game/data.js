@@ -433,8 +433,12 @@
   D.CITY = {
     unlock: 'mochi',                     // abre quando a fábrica vende o 1º mochi
     share: 0.4,                          // fatia "Vila" da Doca de Venda (onigiri, mochi, mochi dourado)
-    start: { onigiri: 40, mochi: 8 },    // presente da abertura: 1ª entrega na hora
+    start: { arroz: 30 },                // presente da abertura: 1ª entrega na hora
+    OPEN_EARN: 5000,                     // a Cidade abre CEDO: quando você já ganhou isso no total (ou no 1º produto da fábrica)
+    ARROZ_RATE: 0.5, ARROZ_SEC: 0.5,     // a montanha manda sacos de arroz pra Despensa (por s); cada saco vale ARROZ_SEC s da sua renda
+    BUILD_RENDA: 2,                      // cada prédio pronto: +2% de renda pra sempre (soma no Arroz do Coração, igual à amizade)
     ITEMS: {
+      arroz: { nome: 'saco de arroz', plural: 'sacos de arroz', capMin: 60, qMin: 8 },
       onigiri: { nome: 'onigiri', plural: 'onigiris', capMin: 40, qMin: 6 },
       mochi: { nome: 'mochi', plural: 'mochis', capMin: 12, qMin: 3 },
       mochid: { nome: 'mochi dourado', plural: 'mochis dourados', capMin: 4, qMin: 1 },
@@ -482,6 +486,18 @@
       { nome: 'Outono', fest: 'Tsukimi', tree: 'maple', grass: '#A3A35A', sub: 'lua cheia e colheita' },
       { nome: 'Inverno', fest: 'Shōgatsu', tree: 'pine', grass: '#DCE4E8', sub: 'ano-novo com mochitsuki' },
     ],
+  };
+
+  /* ---------------- MISSÕES (game/missoes.js: jornada, missões rápidas, missões da ilha) ----------------
+     Só NÚMEROS aqui (os textos e as condições moram na tabela do missoes.js). Prêmio em SEGUNDOS da renda de agora
+     (¥/s), com piso em ienes. Nada expira, nada falha. Metas do playtest --auto continuam valendo (final 60–90 min):
+     se a campanha encurtar, baixar `jornada.sec` / `cap.sec` primeiro. */
+  D.MISSOES = {
+    piso: 30,                              // prêmio mínimo em ¥ (começo do jogo, renda ~0)
+    jornada: { sec: 4, cap: { sec: 10, renda: 0.01 },   // passo comum · último passo do capítulo: mais ¥ e +1% de renda pra sempre
+      seeds: 2, rr: 1 },                   // passos do pós-final marcados com `seeds`/`rr` na tabela: sementes / 1 troca grátis de amuletos
+    lado: { n: 3, sec: 6 },                // 3 missões rápidas ativas (igual antes: 6 s de renda)
+    ilha: { n: 3, from: 1, dig: 1.10, dur: 300, max: 900, sec: 10 },   // da 2ª ilha em diante: +10% de arroz cavado por 5 min (soma tempo, não força; teto 15 min) + ¥
   };
 
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });

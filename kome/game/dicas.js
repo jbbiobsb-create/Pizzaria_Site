@@ -217,10 +217,10 @@
     const box = document.createElement('div'); box.className = 'k-dica-aj';
     const jogo = [...aj.body.querySelectorAll('.k-h')].find(h => h.textContent === 'Salvar');
     aj.body.insertBefore(box, jogo || null);
-    UI.toggle(box, { icon: 'book', label: 'Dicas de mecânica nova', sub: 'um cartãozinho na 1ª vez que algo aparece', value: S().opts.dicas !== false,
+    UI.toggle(box, { icon: 'book', label: 'Dicas', sub: 'explica cada novidade na 1ª vez', value: S().opts.dicas !== false,
       onChange: v => { S().opts.dicas = !!v; if (!v) close(); } });
     const r = UI.el('div', 'k-row', box); r.style.padding = '2px 0 8px';
-    UI.button(r, { title: 'Rever dicas', size: 'sm', onClick: () => {
+    UI.button(r, { title: 'Ver as dicas de novo', icon: 'book', size: 'sm', onClick: () => {
       S().stats.dicas = {}; S().opts.dicas = true; queue = []; lastClose = 0;
       UI.toast('As dicas voltam a aparecer', { icon: 'book', sub: 'conforme cada coisa estiver na tela' });
     } });

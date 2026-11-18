@@ -51,13 +51,13 @@
   }
   /* FILEIRA = SÓ ALERTAS (rodada de UX): quem tem novidade (prio > 0) ou relógio correndo (ALWAYS). Atalho parado não mora
      mais aqui: toda função fica nos hubs da barra de navegação (Comprar · Lugares · Viagem · Mais). No máx. 3 chips, 1 linha. */
-  const ALWAYS = { modo: 1 };
+  const ALWAYS = { modo: 1, sementes: 1 };
   function chipLayout() {
     const isOn = c => c !== more && (c.on || chipDemo);
     const mob = document.body.classList.contains('k-mob');
     const rw = mob && innerHeight > innerWidth ? innerWidth - 24 : (chipRow && chipRow._w) || 400;
     const cap = Math.max(1, Math.min(3, Math.floor(rw / 140)));
-    const al = chips.filter(c => isOn(c) && (c.prio > 0 || ALWAYS[c.id] || chipDemo)).sort((x, y) => y.prio - x.prio).slice(0, cap);
+    const al = chips.filter(c => isOn(c) && (c.prio > 0 || ALWAYS[c.id] || chipDemo)).sort((x, y) => (ALWAYS[y.id] ? 99 : y.prio) - (ALWAYS[x.id] ? 99 : x.prio)).slice(0, cap);
     let top = null;
     for (const c of al) if (c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
     if (more && more.el.style.display !== 'none') more.el.style.display = 'none';
@@ -145,38 +145,6 @@
   HUD.chipDemo = function (on) { chipDemo = on !== false; chipLayout(); };
   function icon(id) { return G.Props ? G.Props.icon(id) : 'paw'; }
 
-  // descrição curta do efeito de um nó (a partir do fx)
-  function fxText(n) {
-    const f = n.fx, o = [];
-    const pc = v => '+' + Math.round((v - 1) * 100) + '%';
-    if (f.dig) o.push(pc(f.dig) + ' de arroz cavado');
-    if (f.sell) o.push(pc(f.sell) + ' no preço de venda');
-    if (f.val) o.push(pc(f.val) + ' no valor do arroz');
-    if (f.sack) o.push('sacos valem ' + pc(f.sack));
-    if (f.hm) o.push('ajudantes ' + pc(f.hm) + ' mais rápidos');
-    if (f.hv) o.push('arroz dos ajudantes vale ' + pc(f.hv));
-    if (f.pm) o.push('máquinas pilotadas ' + pc(f.pm));
-    if (f.help) o.push('+' + f.help + ' ajudante' + (f.help > 1 ? 's' : ''));
-    if (f.crit) o.push('+' + Math.round(f.crit * 100) + '% de chance de grão dourado (×5)');
-    if (f.gold) o.push('bolsões dourados valem ×' + f.gold);
-    if (f.comboCap) o.push('combo vai até ×' + String(f.comboCap).replace('.', ','));
-    if (f.spd) o.push('Kome anda ' + pc(f.spd) + ' mais rápido');
-    if (f.reach) o.push('alcance ' + pc(f.reach));
-    if (f.auto) o.push('Kome cava sozinho a ' + Math.round(f.auto * 100) + '% quando você solta');
-    if (f.oni) o.push('onigiri da sorte voando pela tela');
-    if (f.pilot) o.push('a máquina antiga cava sozinha');
-    if (f.part) o.push('uma parte da Bagger 293 chega no pátio');
-    if (f.powMul) o.push('força ×' + f.powMul + ': corta o Núcleo a 100%');
-    if (f.stomp) o.push('patada sísmica a cada 6 s');
-    if (f.furia) o.push('10 s de combo cheio = 5 s de iene ×2');
-    if (f.autosack) o.push('recolhe os sacos sozinho');
-    if (f.mordida) o.push('mordida perfeita mais larga e ×1,6');
-    if (f.horn) o.push('libera a BUZINA');
-    if (f.slide) o.push('avalanche grande vira evento ×1,5');
-    if (f.silo) o.push('silo no pátio');
-    if (f.boom) o.push('lança ' + pc(f.boom) + ' mais longa');
-    return (n.size === 2 ? 'KEYSTONE: ' : '') + (o.join(' · ') || 'melhoria');
-  }
 
   // init(api): monta o HUD. api = {stage, buyTool, buyNode, buyHouse, horn, nodeState, exportStr, importStr, reset, setOpt}
   // lane(out): faixa livre AO LADO do iene (entre o iene e a barra da montanha), em coords do palco: é onde os "+¥" grandes sobem
@@ -245,74 +213,11 @@
     HUD.homeEl = navTabs.lugares.el;
     HUD.homeBadge = n => { homeN = n ? 1 : 0; navDots(); };
 
-    // árvore: mapa de nós da engine
-    for (const n of D.TREE) { n.desc = fxText(n); n.icon = n.icon || undefined; }
-    treePanel = UI.panel({ title: 'Árvore do Kome', icon: 'tree', bare: true, onOpen: () => { HUD.treeOpen = true; if (tree) { if (tree.openAt) tree.openAt(); else tree.refresh(); } }, onClose: () => { HUD.treeOpen = false; } });
-    const kome = document.createElement('canvas'); kome.width = 48; kome.height = 46;
-    E.drawShiba(kome.getContext('2d'), 23, 44, 'sit', 0.5, { shadow: false });
-    tree = UI.tree(treePanel.body, {
-      nodes: D.TREE, branches: D.BRANCHES, synergies: D.SYN, center: { icon: kome, label: 'Kome', scale: 1.45, dy: -2 },
-      owned: id => !!S.own[id], money: () => S.money, rate: () => S.ips,
-      affordable: n => S.money >= api.nodeCost(n),
-      fmtCost: c => '¥ ' + U.fmt(Math.ceil(c * D.ECON.COST_NODE)),
-      locked: n => (S.tool + 1 < n.tier ? 'precisa: ' + D.TOOLS[n.tier - 1].name : null),
-      onBuy(n) { return api.buyNode(n.id) ? undefined : false; },
-    });
-    UI.el('div', 'k-tree-hint', tree.el, 'arraste pra andar · roda ou pinça pra zoom · toque num nó, toque de novo pra comprar');
-    HUD.tree = tree; HUD.treePanel = treePanel;
-
-    // ajustes
-    aj = UI.panel({ title: 'Ajustes', icon: 'gear', side: 'right' });
-    UI.el('div', 'k-h', aj.body, 'Som');
-    UI.toggle(aj.body, { icon: 'sound', label: 'Efeitos sonoros', value: !S.opts.mute, onChange: v => api.setOpt('mute', !v) });
-    UI.toggle(aj.body, { icon: 'music', label: 'Música', sub: 'koto, shakuhachi e taiko', value: !!S.opts.music, onChange: v => api.setOpt('music', v) });
-    UI.el('div', 'k-h', aj.body, 'Jogo');
-    UI.toggle(aj.body, { icon: 'bolt', label: 'Tremor de tela', value: !!S.opts.shake, onChange: v => api.setOpt('shake', v) });
-    UI.toggle(aj.body, { icon: 'star', label: 'Fundo em pixel', sub: 'céu, Fuji e morros no traço do Kome', value: S.opts.pixel !== false, onChange: v => api.setOpt('pixel', v) });
-    UI.el('div', 'k-h', aj.body, 'Salvar');
-    const r = UI.el('div', 'k-row', aj.body); r.style.flexWrap = 'wrap'; r.style.padding = '4px 0 8px';
-    UI.button(r, { title: 'Exportar', size: 'sm', onClick: () => {
-      const s = api.exportStr();
-      const done = () => UI.toast('Save copiado', { icon: 'check', sub: 'cole num lugar seguro' });
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(done, () => window.prompt('Copie o save:', s)); else window.prompt('Copie o save:', s);
-    } });
-    UI.button(r, { title: 'Importar', size: 'sm', onClick: () => {
-      const s = window.prompt('Cole o save aqui:'); if (!s) return;
-      if (!api.importStr(s.trim())) UI.toast('Esse save não abriu', { icon: 'x', tone: 'bad' });
-    } });
-    UI.button(r, { title: 'Baixar arquivo', size: 'sm', onClick: () => {
-      try {
-        const s = api.exportStr(), d = new Date(), stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([s], { type: 'text/plain' })); a.download = 'kome-save-' + stamp + '.txt';
-        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-        UI.toast('Save baixado', { icon: 'check', sub: 'guarda o arquivo kome-save' });
-      } catch (e) { UI.toast('Não deu pra baixar aqui', { icon: 'x', tone: 'bad', sub: 'use Exportar' }); }
-    } });
-    UI.button(r, { title: 'Abrir arquivo', size: 'sm', onClick: () => {
-      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.txt,.json,text/plain';
-      inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const fr = new FileReader();
-        fr.onload = () => { if (!api.importStr(String(fr.result || '').trim())) UI.toast('Esse save não abriu', { icon: 'x', tone: 'bad' }); }; fr.readAsText(f); };
-      inp.click();
-    } });
-    UI.button(r, { title: 'Apagar tudo', size: 'sm', tone: 'red', onClick: () => UI.confirm('Isso apaga a montanha, a árvore e a casa. O Kome começa do zero.', () => api.reset(), { title: 'Apagar o save?', yes: 'Apagar', no: 'Deixa pra lá', danger: true }) });
-    // modo infinito
-    UI.button(aj.body, { title: 'Nova montanha (depois do final)', size: 'sm', onClick: () => { if (api.newMountain && api.newMountain()) aj.close && aj.close(); } });
-    // guarda-roupa: achados enterrados (cores e acessórios do Kome)
-    const wrH = UI.el('div', 'k-h', aj.body, 'Guarda-roupa'); wrH.style.display = 'none';   // agora mora na Casa › Roupas (com ícones)
-    const wr = UI.el('div', 'k-row', aj.body); wr.style.display = 'none'; wr.style.flexWrap = 'wrap'; wr.style.padding = '4px 0 8px'; wr.style.gap = '4px';
-    HUD.refreshCloset = () => {
-      if (!api.closet) return; wr.innerHTML = '';
-      const have = api.closet(), look = api.look();
-      UI.button(wr, { title: (look.pal === 'kome' ? '✓ ' : '') + 'Kome clássico', size: 'sm', onClick: () => { api.wear('pal', 'kome'); HUD.refreshCloset(); } });
-      const order = D.CLOSET.filter(c => have.indexOf(c.id) >= 0).concat(D.CLOSET.filter(c => have.indexOf(c.id) < 0));   // achados primeiro
-      for (const c of order) {
-        const ok = have.indexOf(c.id) >= 0, on = ok && (c.kind === 'pal' ? look.pal === c.id : look.acc === c.id);
-        const b = UI.button(wr, { title: ok ? (on ? '✓ ' : '') + c.n : '???', size: 'sm', onClick: () => { if (!ok) return; api.wear(c.kind, c.id); HUD.refreshCloset(); } });
-        if (!ok && b && b.el) { b.el.style.opacity = '0.5'; } if (UI.tooltip && b) UI.tooltip(b.el || b, () => ok ? c.d : 'ache cavando bolsões de ouro');
-      }
-    };
-    HUD.refreshCloset();
-    HUD.settings = aj;
+    // Árvore (escada), Ajustes e Trocar moram em game/menu-ui.js (G.MenuUI)
+    const MU = G.MenuUI.init(api);
+    tree = MU.tree; treePanel = MU.treePanel; aj = MU.settings;
+    HUD.tree = tree; HUD.treePanel = treePanel; HUD.settings = aj;
+    HUD.refreshCloset = () => {};   // o guarda-roupa mora na Casa › Roupas
 
     HUD.ready = true;
     HUD.refreshSlots(); HUD.update(1, true);
@@ -331,30 +236,179 @@
     });
     if (tree && HUD.treeOpen) tree.refresh();
   };
-/*HUBS*/
-  // etapa 5: painel de troca (todas as ferramentas compradas; a atual marcada)
-  function openSwap() {
-    if (!swapPanel) swapPanel = UI.panel({ title: 'Trocar de lugar', icon: 'swap', side: 'right' });
-    const b = swapPanel.body; b.innerHTML = '';
-    const col = UI.el('div', 'k-col', b);
-    UI.el('div', 'k-homehint', col, 'Um amigo shiba assume a máquina e o Kome pega a que você escolher. A renda continua a da sua melhor.');
-    const now = api.playing && api.playing();
-    for (let i = S.tool; i >= 0; i--) {
-      const t = D.TOOLS[i], on = now === t;
-      const bt = UI.button(col, { title: (on ? '✓ ' : '') + t.name, sub: on ? 'jogando agora' : (i === S.tool ? 'a melhor' : t.size || ''), icon: icon(t.id), size: 'sm',
-        onClick: () => { if (api.playAs(i)) swapPanel.close(); } });
-      (bt.el || bt).style.width = '100%';
+  /* ======================================================================
+     NAVEGAÇÃO FIXA + HUBS (rodada de UX, docs/design/ux-guia.md)
+     Barra de baixo: Comprar · Lugares · Viagem · Mais (ícone + palavra, bolinha dourada = tem novidade lá dentro).
+     Cada aba abre o HUB: tela cheia com as 5 abas em cima (Cavar = volta pro jogo) e blocos grandes (desenho + nome +
+     1 linha de "como isso dá mais dinheiro" + bolinha de novidade; travado = cinza dizendo o que destrava).
+     TODA função do jogo tem bloco aqui (≤ 2 toques). Bloco novo = 1 linha em hubTiles(). G.HUD.hub(id) abre; G.HUD.hubClose().
+     ====================================================================== */
+  const NAV = [
+    { id: 'cavar', icon: 'mount', t: 'Cavar' },
+    { id: 'comprar', icon: 'yen', t: 'Comprar', hint: 'Toque no que quer comprar. Dourado = dá pra pagar agora.' },
+    { id: 'lugares', icon: 'house', t: 'Lugares', hint: 'Toque num lugar pra ir. Cada um rende mais ienes.' },
+    { id: 'viagem', icon: 'boat', t: 'Viagem', hint: 'Viaje de ilha, ganhe sementes e fique mais forte.' },
+    { id: 'mais', icon: 'book', t: 'Mais', hint: 'Metas, prêmios e ajustes do jogo.' },
+  ];
+  const GROUP = { tatuzao: 'comprar', socasa: 'comprar', vila: 'lugares', cidade: 'lugares', fabrica: 'lugares', patio: 'lugares', verpatio: 'lugares',
+    ilhas: 'viagem', partir: 'viagem', amuletos: 'viagem', modo: 'viagem', sementes: 'viagem', escada: 'mais', evento: 'mais' };
+  const navTabs = {};
+  let homeN = 0, homeNews = false, treeN = -1, hubEl = null, hubGrid = null, hubHint = null, hubTab = '', hubSig = '', hubT = 0, hubTabs = {}, seedChip = null, seedC = null, seedCT = -9;
+  const chipBy = id => chips.find(c => c.id === id && c.on) || null;
+  function navBuild(dock) {
+    for (const n of NAV) {
+      if (n.id === 'cavar') continue;
+      const b = UI.button(dock, { icon: n.icon, iconSize: 28, title: n.t, vertical: true, cls: 'k-nav k-nav-' + n.id, onClick: () => hubOpen(n.id) });
+      b.dot = UI.el('i', 'k-nav-dot', b.el); navTabs[n.id] = b;
     }
-    // Gêmea pronta: dá pra pilotar ela (a 293 fica na vaga ao lado com o Goma)
-    if (api.twinReady && api.twinReady()) {
-      const on = api.twinPlaying && api.twinPlaying();
-      const bt = UI.button(col, { title: (on ? '✓ ' : '') + 'Bagger Gêmea', sub: on ? 'pilotando agora' : '50% maior, duas rodas, cava 2x', icon: icon('bagger'), size: 'sm', tone: on ? '' : 'red',
-        onClick: () => { if (api.playAs(S.tool, true)) swapPanel.close(); } });
-      (bt.el || bt).style.width = '100%';
-      col.insertBefore(bt.el || bt, col.children[1]);
-    }
-    swapPanel.open();
   }
+  // sementes: quantas tem e se dá pra comprar algum nó (lido do adaptador da tela de Sementes; cache de 2 s)
+  function seedInfo() {
+    if (seedC && S.time - seedCT < 2 && S.time >= seedCT) return seedC;
+    const n = Math.floor((S.stats && S.stats.seeds) || 0); let can = false, any = n > 0 || (S.stats.islandsDone | 0) > 0;
+    try {
+      const A = G.CookieUI && G.CookieUI.api, nodes = A ? A.seedTree().nodes || [] : [];
+      for (const nd of nodes) { const L = A.seedLevel(nd.id) | 0; if (L > 0) any = true; if (n > 0 && A.seedCost(nd.id) <= n && !(nd.max && L >= nd.max) && !(nd.req || []).some(r => !(A.seedLevel(r) > 0))) can = true; }
+      seedC = { n, can, any, tree: nodes.length > 0 };
+    } catch (e) { seedC = { n, can: false, any, tree: false }; }
+    seedCT = S.time; return seedC;
+  }
+  function openSeeds() { const si = seedInfo(); if (si.tree && G.CookieUI && G.CookieUI.openSeeds) G.CookieUI.openSeeds(); else if (G.IslandsUI) G.IslandsUI.open(); }
+  // bolinha dourada nas abas: tem novidade em algum bloco daquele hub
+  function navNews(id) {
+    if (id === 'lugares' && (homeN || homeNews)) return true;
+    if (id === 'viagem' && seedC && seedC.can) return true;
+    for (const c of chips) if (c.on && c.prio > 0 && GROUP[c.id] === id) return true;
+    return false;
+  }
+  function navDots() {
+    for (const id in navTabs) { const on = navNews(id); if (navTabs[id]._dot !== on) { navTabs[id]._dot = on; navTabs[id].el.classList.toggle('k-nav-news', on); } if (hubTabs[id]) hubTabs[id].classList.toggle('k-nav-news', on); }
+  }
+  // bloco que espelha um chip (Vila, Fábrica, Cidade...): travado enquanto o chip não existe; a linha vira o aviso do chip quando tem
+  function chipTile(id, ic, t, s, lock) {
+    const c = chipBy(id);
+    return { icon: ic, t, s: c && c.prio > 0 && c.hint ? c.hint : s, lock: c ? '' : lock, dot: !!c && c.prio > 0, fn: () => { const q = chipBy(id); if (q && q.click) q.click({}); } };
+  }
+  function hubTiles(tab) {
+    const o = [], ended = !!S.ended, hd = S.homeData || {}, END = 'Abre quando a casa ficar pronta';
+    if (tab === 'comprar') {
+      const nt = D.TOOLS[S.tool + 1];
+      if (nt) {
+        let lock = ''; if (nt.needs) for (const id of nt.needs) if (!S.own[id]) { lock = 'Precisa: ' + D.nodeById[id].n; break; }
+        if (!lock && G.Modos && G.Modos.lockTool(nt)) lock = 'Só na Pata: sem motor';
+        const c = api.toolCost(nt), can = S.money >= c;
+        o.push({ icon: icon(nt.id), t: nt.name, s: can ? 'Máquina maior · custa ' + yen(c) : 'Máquina maior · falta ' + yen(c - S.money), lock, gold: can, need: !can, big: true, fn: () => gain(() => api.buyTool()) });
+      }
+      slotNodes.forEach(n => { const c = api.nodeCost(n), can = S.money >= c; o.push({ icon: D.BRANCHES[n.branch].icon, t: n.n, s: (can ? 'custa ' + yen(c) : 'falta ' + yen(c - S.money)) + ' · ' + n.desc, gold: can, need: !can, stay: true, fn: () => gain(() => api.buyNode(n.id)) }); });
+      const nA = Math.max(0, treeN);
+      o.push({ icon: 'tree', t: 'Árvore do Kome', s: nA ? nA + (nA > 1 ? ' melhorias pra comprar' : ' melhoria pra comprar') : 'Todas as melhorias: cavar e vender mais', dot: nA > 0, fn: () => treePanel.open() });
+      const h = D.HOUSE[S.house];
+      if (h) { const c = api.houseCost(h), lk = S.tool + 1 < h.tier ? 'Precisa: ' + D.TOOLS[h.tier - 1].name : '', can = S.money >= c; o.push({ icon: 'house', t: h.n, s: can ? 'Etapa da casa · custa ' + yen(c) : 'Etapa da casa · falta ' + yen(c - S.money), lock: lk, gold: can, need: !can, fn: () => api.buyHouse() }); }
+      o.push({ icon: 'swap', t: 'Trocar de máquina', s: 'Pilote qualquer uma que já comprou', lock: S.tool >= 1 || (api.twinReady && api.twinReady()) ? '' : 'Compre a 2ª ferramenta', fn: () => openSwap() });
+      o.push(chipTile('tatuzao', 'drill', 'Tatuzão', 'Cava por baixo sozinho: mais arroz', END));
+    } else if (tab === 'lugares') {
+      o.push({ icon: 'house', t: 'Casa do Kome', s: 'Jardim e bichinhos: enfeite dá bônus', dot: !!(hd.newAch || homeNews), fn: () => api.openHome && api.openHome('jardim') });
+      o.push({ icon: 'hat', t: 'Roupinhas', s: (S.closet || []).length + ' de ' + D.CLOSET.length + ' achadas cavando', dot: !!hd.newCloth, fn: () => api.openHome && api.openHome('roupa') });
+      const vc = chipBy('vila'), inV = vc && vc.label === 'Montanha';
+      o.push(Object.assign(chipTile('vila', inV ? 'mount' : 'house', inV ? 'Voltar pra montanha' : 'Vila', inV ? 'Volta a cavar o arroz' : 'Onde seu arroz é vendido', 'Abre em 30 segundos de jogo')));
+      o.push(chipTile('fabrica', 'factory', 'Fábrica', 'Vira arroz em comida: vende mais caro', END));
+      o.push(chipTile('cidade', 'house', 'Cidade', 'Entregue pedidos, ganhe ienes e amigos', 'Abre com a Fábrica fazendo comida'));
+      o.push({ icon: 'bolt', t: 'Oficina', s: 'Deixa cada máquina mais forte', lock: ended ? '' : END, fn: () => G.Inf && G.Inf.open() });
+      o.push(chipTile('patio', 'paw', 'Pátio', 'Turmas de máquinas rendendo sozinhas', END));
+      if (chipBy('verpatio')) o.push(chipTile('verpatio', 'paw', 'Ver o Pátio', 'Passeio pra ver suas máquinas', ''));
+    } else if (tab === 'viagem') {
+      const si = seedInfo(), isl = chipBy('ilhas'), pt = chipBy('partir'), pOn = !!(G.Patio && G.Patio.on && G.Patio.on());
+      if (pt) o.push(Object.assign(chipTile('partir', 'boat', 'Hora de partir', 'Viaje agora e ganhe sementes', ''), { gold: true, big: true }));
+      o.push({ icon: 'boat', t: 'Ilhas', s: isl && isl.prio > 0 && isl.hint ? (isl.hot ? isl.hot + ' · ' : '') + isl.hint : 'Mapa: ilha nova, montanha maior', lock: isl ? '' : END, dot: !!isl && isl.prio > 0, fn: () => G.IslandsUI && G.IslandsUI.open() });
+      o.push({ icon: 'star', t: 'Sementes Douradas', s: si.can ? 'Você tem ' + U.fmt(si.n) + ' · dá pra comprar!' : si.any ? 'Você tem ' + U.fmt(si.n) + ' · bônus que não some' : 'Bônus que fica pra sempre', lock: si.any ? '' : 'Ganhe sementes viajando de ilha', dot: si.can, gold: si.can, fn: () => openSeeds() });
+      o.push({ icon: 'rice', t: 'Arroz do Coração', s: 'Cada grão dá +1% de renda', lock: pOn && G.CookieUI && G.CookieUI.openHeart ? '' : 'Abre junto com o Pátio', fn: () => G.CookieUI.openHeart() });
+      o.push(chipTile('amuletos', 'star', 'Amuletos', 'Poderes da ilha: escolha os seus', 'Ganhe o 1º chegando numa ilha'));
+      const fx = G.Faixas, lv = fx && fx.level ? fx.level() : 0;
+      o.push({ icon: 'trophy', t: 'Faixa do Kome', s: lv > 0 && fx.name ? String(fx.name(lv)) + ' · sementes valem mais' : 'Cada volta no Japão vale mais sementes', lock: lv > 0 ? '' : 'Dê a volta em todas as ilhas', fn: () => G.IslandsUI && G.IslandsUI.open() });
+      if (chipBy('modo')) o.push(chipTile('modo', 'clock', 'Modo de partida', 'Sua partida especial de agora', ''));
+      o.push({ icon: 'mount', t: 'Nova montanha', s: 'Montanha nova pra cavar tudo de novo', lock: ended ? '' : END, fn: () => api.newMountain && api.newMountain() });
+    } else {
+      const ach = S.stats.ach ? Object.keys(S.stats.ach).length : 0, ev = chipBy('evento');
+      o.push({ icon: 'check', t: 'Missões', s: 'Cumpra e ganhe ienes na hora', fn: () => api.openHome && api.openHome('caderno') });
+      o.push({ icon: 'book', t: 'Caderno', s: ach + ' conquistas · cada uma dá +1% de renda', dot: !!hd.newAch, fn: () => api.openHome && api.openHome('caderno') });
+      o.push(chipTile('escada', 'trophy', 'Escadas', 'Metas longas: cada degrau +1% de renda', 'Abre em 1 minuto de jogo'));
+      if (ev) o.push(chipTile('evento', 'star', 'Evento agora', 'Toque pra ganhar o bônus', ''));
+      o.push({ icon: 'star', t: 'Livro dos Eventos', s: 'Os eventos dourados que você já viu', lock: G.EventArt && G.EventArt.openBook ? '' : 'Em breve', fn: () => G.EventArt.openBook() });
+      o.push({ icon: 'gear', t: 'Ajustes', s: 'Som, letra, salvar o jogo', fn: () => aj.open() });
+    }
+    return o;
+  }
+  function hubBuild() {
+    hubEl = UI.el('div', 'k-hub', document.body);
+    const card = UI.el('div', 'k-hub-card', hubEl), head = UI.el('div', 'k-hub-head', card), tabs = UI.el('div', 'k-hub-tabs', head);
+    for (const n of NAV) {
+      const b = UI.el('button', 'k-hub-tab k-hub-tab-' + n.id, tabs); b.type = 'button';
+      const ic = UI.iconEl(n.icon, 26); if (ic) b.appendChild(ic); UI.el('b', null, b, n.t); UI.el('i', 'k-nav-dot', b);
+      b.addEventListener('click', () => { UI.sfx && UI.sfx('click'); if (n.id === 'cavar') hubClose(); else hubOpen(n.id); });
+      hubTabs[n.id] = b;
+    }
+    const x = UI.el('button', 'k-hub-x', head, '×'); x.type = 'button'; x.setAttribute('aria-label', 'Fechar'); x.addEventListener('click', () => { UI.sfx && UI.sfx('click'); hubClose(); });
+    hubHint = UI.el('div', 'ux-hint k-hub-hint', card);
+    hubGrid = UI.el('div', 'k-hub-grid', card);
+    hubEl.addEventListener('pointerdown', e => { if (e.target === hubEl) hubClose(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && hubTab) { hubClose(); e.stopPropagation(); } }, true);
+  }
+  function hubRender(force) {
+    const tiles = hubTiles(hubTab), sig = hubTab + '§' + tiles.map(t => t.t + '|' + t.s + '|' + (t.lock || '') + '|' + (t.dot ? 1 : 0) + (t.gold ? 1 : 0)).join('§');
+    if (sig === hubSig && !force) return; hubSig = sig;
+    hubGrid.textContent = '';
+    for (const t of tiles) {
+      const b = UI.el('button', 'k-tile' + (t.lock ? ' k-tile-lock' : t.gold ? ' k-tile-gold' : '') + (t.big ? ' k-tile-big' : '') + (t.dot && !t.lock ? ' k-tile-news' : ''), hubGrid); b.type = 'button';
+      b.setAttribute('aria-label', t.t);
+      const art = UI.el('span', 'k-tile-art', b), ic = UI.iconEl(t.lock ? t.icon : t.icon, 48); if (ic) art.appendChild(ic);
+      if (t.lock) { const lk = UI.iconEl('lock', 22); if (lk) { lk.classList.add('k-tile-lk'); art.appendChild(lk); } }
+      const tx = UI.el('span', 'k-tile-t', b); UI.el('b', null, tx, t.t); UI.el('small', null, tx, t.lock || t.s || '');
+      UI.el('i', 'k-nav-dot', b);
+      b.addEventListener('click', () => {
+        if (t.lock) { UI.sfx && UI.sfx('error'); b.classList.remove('ux-shake'); void b.offsetWidth; b.classList.add('ux-shake'); UI.toast(t.t + ' está fechado', { icon: 'lock', sub: t.lock }); return; }
+        if (t.need) { UI.sfx && UI.sfx('error'); b.classList.remove('ux-shake'); void b.offsetWidth; b.classList.add('ux-shake'); UI.toast(t.s.split(' · ').pop().replace(/^falta/, 'Falta'), { icon: 'yen', tone: 'bad', sub: t.t }); return; }
+        UI.sfx && UI.sfx('click');
+        if (t.stay) { t.fn(); hubRender(); return; }
+        hubClose(); t.fn();
+      });
+    }
+    const bk = UI.el('button', 'ux-btn ux-main k-hub-back', hubGrid); bk.type = 'button';
+    const bi = UI.iconEl('mount', 26); if (bi) bk.appendChild(bi); UI.el('span', null, bk, 'Voltar pra cavar');
+    bk.addEventListener('click', () => { UI.sfx && UI.sfx('click'); hubClose(); });
+  }
+  function hubOpen(id) {
+    if (!NAV.some(n => n.id === id && id !== 'cavar')) id = 'lugares';
+    if (!hubEl) hubBuild();
+    moreClose(); chipPopClose();
+    const was = hubTab; hubTab = id; hubT = 0;
+    for (const n of NAV) hubTabs[n.id].classList.toggle('k-sel', n.id === id);
+    hubHint.textContent = NAV.find(n => n.id === id).hint;
+    hubRender(true); hubGrid.scrollTop = 0;
+    if (!was) { hubEl.classList.add('k-open'); document.body.classList.add('k-hubopen'); }
+    navDots();
+  }
+  function hubClose() { if (!hubTab) return; hubTab = ''; hubEl.classList.remove('k-open'); document.body.classList.remove('k-hubopen'); }
+  // 2x por segundo: hub aberto acompanha os preços (só refaz se o texto mudou); contador de sementes no HUD; bolinhas das abas
+  function hubTick(dt) {
+    if ((hubT -= dt) > 0) return; hubT = 0.5;
+    if (hubTab) hubRender();
+    const si = seedInfo();
+    if (!seedChip && si.any && HUD.chip) seedChip = HUD.chip({ id: 'sementes', icon: 'star', label: 'Sementes', order: 1, tone: '#FFF0C4', show: false, onClick: () => openSeeds() });
+    if (seedChip) seedChip.set({ show: si.any && si.n > 0, label: U.fmt(si.n) + (si.n === 1 ? ' semente' : ' sementes'), prio: si.can ? 0.3 : 0, hint: si.can ? 'dá pra comprar!' : '' });
+    navDots();
+  }
+  HUD.hub = hubOpen; HUD.hubClose = hubClose; HUD.hubIsOpen = () => !!hubTab; HUD.openSeeds = openSeeds;
+  // toda compra mostra o salto da renda: "+¥ 1,2 mi/s" subindo do ¥/s (3 s depois, quando a média já pegou a compra)
+  function gain(fn) {
+    const before = S.ips, ok = fn();
+    if (ok && rate) setTimeout(() => {
+      const d = S.ips - before, re = rate.el || rate; if (!(d > 0.5) || !re || !re.appendChild) return;
+      const f = UI.el('span', 'k-gain', re, '+¥ ' + U.fmt(d) + '/s'); setTimeout(() => f.remove(), 1700);
+    }, 3000);
+    return ok;
+  }
+  // painel de troca: game/menu-ui.js
+  function openSwap() { swapPanel = G.MenuUI.openSwap(); }
   function quickBuy(i) {
     const n = slotNodes[i]; if (!n) return;
     if (gain(() => api.buyNode(n.id))) slots[i].pop && slots[i].pop();

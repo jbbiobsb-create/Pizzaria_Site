@@ -2420,7 +2420,7 @@
       banner: () => { sfx('fanfare'); ui(() => UI.banner('O galpão KOME PACK abriu!', 'toque em Fábrica, no topo da tela', { icon: 'star', tone: 'gold', dur: 4 })); },
       toast: (t, sub) => ui(() => UI.toast(t, { icon: 'yen', tone: 'gold', sub })) });
     if (G.City) G.City.init({ save: () => saveNow(), fast: () => FAST, recompute: () => computeStats(),
-      banner: () => { sfx('fanfare'); ui(() => UI.banner('A CIDADE ABRIU!', 'a Vila quer os seus mochis: toque em Cidade, no topo', { icon: 'house', tone: 'gold', dur: 4.5 })); },
+      banner: () => { sfx('fanfare'); ui(() => UI.banner('A CIDADE ABRIU!', 'os vizinhos pagam ¥ por entrega: toque em Cidade, no topo', { icon: 'house', tone: 'gold', dur: 4.5 })); },
       toast: (t, sub) => ui(() => UI.toast(t, { icon: 'house', tone: 'gold', sub })) });
     if (G.Islands) G.Islands.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), fast: () => FAST, gift: giftSacks,
       busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()),

@@ -24,7 +24,7 @@ const SCENES = [
   ['escavadeira+esteiras', `__kome.setTool(10); __kome.S.own.a9=true; ${DIG(8)}`],
   ['Bagger', `__kome.setTool(13); ${DIG(6)}`],
   ['Bagger zoom aberto', `__kome.S.zoomMul=0.55; __kome.step(1);`],
-  ['menu do Kome', `__kome.S.zoomMul=1; ${CLOSE} document.querySelector('[aria-label="Menu do Kome"]').click();`],
+  ['menu do Kome', `__kome.S.zoomMul=1; ${CLOSE} KomeGame.HUD.hub('lugares');`],
   ['árvore', `${CLOSE} document.querySelector('[aria-label="Árvore"]') ? document.querySelector('[aria-label="Árvore"]').click() : KomeGame.HUD.treePanel.open();`],
   ['ajustes', `${CLOSE} KomeGame.HUD.settings.open();`],
   ['Casa · jardim', `${CLOSE} __kome.addMoney(1e7); KomeGame.Home.open('jardim');`],

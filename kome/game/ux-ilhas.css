@@ -1,1 +1,193 @@
-/* UX: ilhas (docs/design/ux-guia.md) */
+/* UX: ilhas (docs/design/ux-guia.md) — mapa das ilhas (islands-ui.js), confirmação em 3 linhas (ask), quadro da faixa
+   (faixas.js · mapInfo), recordes e cartões dos modos (modos.js). Entra depois do game.css: as regras .k-isl-* daqui ganham.
+   Cores: dourado = dá pra fazer agora · cinza = fechado (e diz o que falta) · verde = feito. Só transform/opacity animam. */
+
+/* ---------- moldura ---------- */
+.k-isl{padding:8px}
+.k-isl-card{width:min(1180px,100%);height:min(700px,100%);animation:kislin .18s ease-out}
+@keyframes kislin{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.k-isl-head{gap:10px;padding:6px 8px 6px 14px;flex:0 0 auto}
+.k-isl-head>canvas{flex:0 0 auto}
+.k-isl-title{font-size:calc(22px*var(--k-fs));line-height:1.1;min-width:0}
+.k-isl-seeds{font-size:calc(16px*var(--k-fs));font-weight:900;background:#FFF8EA;padding:5px 12px;white-space:nowrap}
+.k-isl-x{min-height:56px;height:56px;width:56px;min-width:56px;font-size:30px;font-weight:900;line-height:1;background:#FFF8EA;border-radius:14px;flex:0 0 auto}
+.k-isl-hint{margin:8px 10px 0;flex:0 0 auto;border:2px solid var(--ux-ink)}
+.k-isl-body{margin-top:8px;border-top:2px solid var(--k-ink)}
+
+/* ---------- mapa com paradas grandes ---------- */
+.k-isl-map{flex:1.15;overflow:hidden}
+.k-isl-stops{position:absolute;inset:0;pointer-events:none}
+.k-isl-stop{position:absolute;width:60px;height:60px;margin:-30px 0 0 -30px;padding:0;border:0;background:none;cursor:pointer;pointer-events:auto;font-family:inherit;color:var(--ux-ink);-webkit-tap-highlight-color:transparent}
+.k-isl-stop:active .k-isl-dot{transform:scale(.9)}
+.k-isl-dot{position:absolute;left:8px;top:8px;width:44px;height:44px;border-radius:50%;border:3px solid var(--ux-ink);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;line-height:1;transition:transform .08s;box-shadow:0 3px 0 var(--ux-ink)}
+.k-s-done .k-isl-dot{background:var(--ux-done);color:#1F4A22}
+.k-s-locked .k-isl-dot{background:var(--ux-lock)}
+.k-s-open .k-isl-dot{background:var(--ux-ok)}
+.k-s-here .k-isl-dot{background:none;border-color:transparent;box-shadow:none}   /* o Kome pulando (desenho do mapa) é a marca */
+.k-s-open::before,.k-isl-stop.k-sel::before{content:"";position:absolute;left:2px;top:2px;width:56px;height:56px;border-radius:50%;border:4px solid #FFF3B0;box-sizing:border-box}
+.k-s-open::before{border-color:#FFD84A;animation:kislring 1.2s ease-out infinite}
+@keyframes kislring{from{transform:scale(.85);opacity:1}to{transform:scale(1.45);opacity:0}}
+.k-isl-md{position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:50%;border:2.5px solid var(--ux-ink)}
+.k-isl-md.k-m1{background:#C98A4A}.k-isl-md.k-m2{background:#DDE4EC}.k-isl-md.k-m3{background:#F3C94A}
+.k-isl-lbl{position:absolute;left:50%;top:56px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;white-space:nowrap;background:#FFF8EA;border:2.5px solid var(--ux-ink);border-radius:10px;padding:1px 8px 2px;line-height:1.15}
+.k-isl-lbl b{font-size:calc(16px*var(--k-fs));font-weight:900}
+.k-isl-lbl small{font-size:calc(14px*var(--k-fs));font-weight:800;color:#5A4430}
+.k-isl-stop.k-side .k-isl-lbl{left:56px;top:12px;transform:none;align-items:flex-start}   /* ilhas do sul: nome ao lado (embaixo sai da tela) */
+.k-s-here .k-isl-lbl{background:var(--ux-ok)}.k-s-here .k-isl-lbl small{color:var(--ux-ink)}
+.k-s-open .k-isl-lbl{background:#FFE9A8}
+.k-s-done .k-isl-lbl{background:#DDF2D6}
+.k-s-locked .k-isl-lbl{background:#E4DCCB}
+.k-isl-stop.k-sel .k-isl-lbl{border-width:3.5px}
+
+/* ---------- lado: abas + rolagem vertical + rodapé fixo ---------- */
+.k-isl-side{flex:1;padding:0;gap:0;overflow:hidden;min-width:0}
+.k-isl-tabs{display:flex;gap:6px;padding:8px 8px 0;flex:0 0 auto}
+.k-isl-tab{flex:1 1 0;min-width:0;min-height:48px;justify-content:center;gap:6px;padding:4px 6px;font-size:calc(16px*var(--k-fs));font-weight:900;background:#EFE6D2;border-radius:14px 14px 0 0;position:relative;opacity:.85}
+.k-isl-tab.k-on{background:var(--ux-ok);opacity:1}
+.k-isl-tab canvas{flex:0 0 auto}
+.k-isl-dotn{display:none;position:absolute;right:4px;top:4px;width:14px;height:14px;border-radius:50%;background:#F2C230;border:2.5px solid var(--ux-ink)}
+.k-isl-tab.k-new .k-isl-dotn{display:block}
+.k-isl-scrollw{flex:1;min-height:0;position:relative;border-top:3px solid var(--ux-ink)}
+.k-isl-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:10px 10px 14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.k-isl-scroll>*{flex:0 0 auto}
+.k-isl-more{display:none;position:absolute;left:50%;bottom:6px;transform:translateX(-50%);min-height:40px;padding:4px 16px;font:inherit;font-size:calc(16px*var(--k-fs));font-weight:900;color:var(--ux-ink);background:#FFE9A8;border:3px solid var(--ux-ink);border-radius:999px;cursor:pointer;box-shadow:0 3px 0 var(--ux-ink);white-space:nowrap}
+.k-isl-more.on{display:block}
+.k-isl-scrollw::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(rgba(255,248,234,0),rgba(90,68,48,.28));pointer-events:none;opacity:0}
+.k-isl-scrollw:has(.k-isl-more.on)::after{opacity:1}
+.k-isl-foot{flex:0 0 auto;display:flex;gap:8px;align-items:stretch;padding:8px;border-top:3px solid var(--ux-ink);background:#FFE9A8}
+
+/* botão principal: Viajar */
+.k-isl-close{flex:0 0 auto;justify-content:center}
+.k-isl-go{flex:1;min-width:0;min-height:64px;justify-content:center;gap:12px;text-align:left;box-shadow:0 4px 0 var(--ux-ink);color:var(--ux-ink);background:var(--ux-ok);flex-direction:row;align-items:center}
+.k-isl-go.ux-lock{background:var(--ux-lock);box-shadow:none}
+.k-isl-got{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.k-isl-go b{font-size:calc(21px*var(--k-fs));font-weight:900}
+.k-isl-go small{font-size:calc(16px*var(--k-fs));font-weight:800}
+.k-isl-go.k-glow{animation:kislgo 1.3s ease-in-out infinite}
+@keyframes kislgo{50%{transform:scale(1.025)}}
+@media (prefers-reduced-motion:reduce){.k-isl-go.k-glow,.k-s-open::before,.k-isl-card{animation:none}}
+
+/* ---------- aba Ilha ---------- */
+.k-isl-info{border:3px solid var(--ux-ink);border-radius:14px;background:#FFF8EA;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.k-isl-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.k-isl-name{font-size:calc(22px*var(--k-fs));font-weight:900;line-height:1.1}
+.k-isl-tag{margin:0;font-size:calc(15px*var(--k-fs));font-weight:900;padding:2px 10px}
+.k-isl-tag.k-isl-here{background:var(--ux-ok)}.k-isl-tag.k-isl-done{background:var(--ux-done)}.k-isl-tag.k-isl-open{background:#FFE9A8}.k-isl-tag.k-isl-locked{background:var(--ux-lock)}
+.k-isl-hook{font-size:calc(16px*var(--k-fs));opacity:1;color:#5A4430;line-height:1.25}
+.k-isl-best{font-size:calc(16px*var(--k-fs));margin:0;opacity:1}
+.k-isl-best b{font-weight:900}
+.k-isl-medals{gap:6px;margin:0}
+.k-isl-medal{flex:1 1 86px;display:flex;flex-direction:column;align-items:center;font-size:calc(15px*var(--k-fs));padding:4px 6px;border-radius:12px;opacity:1;background:#EEE6D6;position:relative;line-height:1.15}
+.k-isl-medal i{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--ux-ink);margin-bottom:2px}
+.k-isl-medal.k-m1 i{background:#C98A4A}.k-isl-medal.k-m2 i{background:#DDE4EC}.k-isl-medal.k-m3 i{background:#F3C94A}
+.k-isl-medal b{font-weight:900}.k-isl-medal small{font-size:calc(14px*var(--k-fs));font-weight:700;color:#5A4430}
+.k-isl-medal.k-got,.k-isl-medal.k-m1.k-got,.k-isl-medal.k-m2.k-got,.k-isl-medal.k-m3.k-got{background:#DDF2D6}
+.k-isl-sub{font-size:calc(16px*var(--k-fs));font-weight:900;margin:2px 0 0}
+.k-isl-mods{margin:0;padding-left:20px;font-size:calc(16px*var(--k-fs));line-height:1.3}
+.k-isl-ex{font-size:calc(15px*var(--k-fs));margin:0}
+.k-isl-row{gap:8px}
+.k-isl-small{flex:1 1 150px;min-height:48px;font-size:calc(16px*var(--k-fs));padding:6px 10px;justify-content:center}
+
+/* quadro da faixa (faixas.js) */
+.k-fx-side{padding:8px 10px;border:3px solid var(--ux-ink);border-radius:14px;background:#FFF6DE;display:flex;flex-direction:column;gap:6px}
+.k-fx-side>b{font-size:calc(18px*var(--k-fs));font-weight:900;display:flex;align-items:center;gap:8px}
+.k-fx-side>b i{display:inline-block;width:44px;height:14px;border:2.5px solid var(--ux-ink);border-radius:4px;flex:0 0 auto}
+.k-fx-side small{display:block;font-size:calc(16px*var(--k-fs));font-weight:700;color:#5A4430;line-height:1.25}
+.k-fx-rule{display:flex!important;gap:8px;align-items:flex-start}
+.k-fx-rule>i{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:#F4A340;border:2.5px solid var(--ux-ink);color:var(--ux-ink);font-style:normal;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center}
+.k-fx-rule b{display:block;color:var(--ux-ink);font-weight:900}
+.k-fx-side small.k-fx-gain{color:#2E6B3A;font-weight:900}
+.k-fx-all summary{min-height:44px;display:flex;align-items:center;font-size:calc(16px*var(--k-fs));font-weight:900;cursor:pointer;color:var(--ux-ink);text-decoration:underline}
+.k-fx-all small{margin-bottom:4px}
+
+/* recordes por faixa (modos.js) */
+.k-md-box{padding:8px 10px;border:3px solid var(--ux-ink);border-radius:14px;background:#FFF6DE;display:flex;flex-direction:column;gap:5px}
+.k-md-box>b{font-size:calc(18px*var(--k-fs));font-weight:900;display:flex;align-items:center;gap:8px}
+.k-md-box small{display:block;font-size:calc(16px*var(--k-fs));font-weight:700;color:#5A4430;line-height:1.25}
+.k-md-box small b{font-weight:900;color:var(--ux-ink)}
+.k-md-m1{color:#8A5A2A!important}.k-md-m2{color:#5E6C7A!important}.k-md-m3{color:#A87400!important}
+.k-md-back{align-self:stretch;justify-content:center;margin-top:4px}
+
+/* ---------- aba Sementes ---------- */
+.k-isl-tree{display:flex;flex-direction:column;gap:8px}
+.k-isl-tree .k-isl-sub{font-size:calc(16px*var(--k-fs));margin:0;padding:6px 10px;background:#FFE9A8;border-radius:10px}
+.k-isl-grid{grid-template-columns:1fr;gap:8px}
+.k-isl-seed{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;min-height:60px;padding:8px 10px;font-size:calc(16px*var(--k-fs));opacity:1;background:#EFE6D2;text-align:left;width:100%}
+.k-isl-seedt{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.k-isl-seed b{font-weight:900;white-space:normal}
+.k-isl-seed small{font-size:calc(15px*var(--k-fs));opacity:1;color:#5A4430;line-height:1.2;white-space:normal}
+.k-isl-pips{font-size:calc(14px*var(--k-fs));font-weight:800}
+.k-isl-pips i{width:10px;height:10px}
+.k-isl-cost{flex:0 0 auto;font-size:calc(16px*var(--k-fs));font-weight:900;padding:6px 10px;border:2.5px solid var(--ux-ink);border-radius:10px;background:var(--ux-lock);white-space:nowrap}
+.k-isl-seed.k-can{background:#FFF3C4}.k-isl-seed.k-can .k-isl-cost{background:var(--ux-ok)}
+.k-isl-seed.k-full{opacity:1;background:#DDF2D6}.k-isl-seed.k-full .k-isl-cost{background:var(--ux-done)}
+
+/* ---------- aba Modos: 3 cartões grandes ---------- */
+.k-md-note{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:#DDF2D6;border:2.5px solid var(--ux-ink);font-size:calc(16px*var(--k-fs));font-weight:800;line-height:1.2}
+.k-md-note i{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--ux-done);border:2.5px solid var(--ux-ink);font-style:normal;font-weight:900;display:flex;align-items:center;justify-content:center}
+.k-md-how{font-size:calc(16px*var(--k-fs));font-weight:900}
+.k-md-card{display:flex;align-items:center;gap:10px;width:100%;min-height:76px;padding:8px 10px;border:3px solid var(--ux-ink);border-radius:16px;background:#FFF3C4;box-shadow:0 4px 0 var(--ux-ink);cursor:pointer;font-family:inherit;color:var(--ux-ink);text-align:left;transition:transform .08s}
+.k-md-card:active{transform:translateY(2px) scale(.985)}
+.k-md-ic{flex:0 0 auto;width:52px;height:52px;border-radius:14px;background:#FFF8EA;border:2.5px solid var(--ux-ink);display:flex;align-items:center;justify-content:center}
+.k-md-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.k-md-tx b{font-size:calc(19px*var(--k-fs));font-weight:900;line-height:1.1}
+.k-md-tx small{font-size:calc(16px*var(--k-fs));font-weight:700;color:#5A4430;line-height:1.2}
+.k-md-tx small.k-md-best{color:#2E6B3A;font-weight:900}
+.k-md-play{flex:0 0 auto;font-size:calc(17px*var(--k-fs));font-weight:900;padding:8px 14px;border:3px solid var(--ux-ink);border-radius:12px;background:var(--ux-ok)}
+.k-md-card.k-off{background:#E9E1D0;box-shadow:none}.k-md-card.k-off .k-md-play{background:var(--ux-lock)}
+.k-md-locked{background:#E9E1D0}
+
+/* ---------- confirmação em 3 linhas ---------- */
+.k-ask{position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;background:rgba(30,20,12,.6);padding:10px;box-sizing:border-box;font-family:var(--k-font);font-weight:700;color:var(--ux-ink)}
+.k-ask *{box-sizing:border-box}
+.k-ask-card{position:relative;width:min(520px,100%);max-height:100%;overflow-y:auto;background:var(--ux-paper);border:4px solid var(--ux-ink);border-radius:20px;box-shadow:0 6px 0 var(--ux-ink);padding:12px 14px;display:flex;flex-direction:column;gap:8px;animation:kislin .18s ease-out}
+.k-ask-card>.k-isl-x{position:absolute;right:8px;top:8px}
+.k-ask-head{display:flex;align-items:center;gap:10px;padding-right:58px;min-height:48px}
+.k-ask-head b{font-size:calc(23px*var(--k-fs));font-weight:900;line-height:1.1}
+.k-ask-sub{font-size:calc(16px*var(--k-fs));color:#5A4430;line-height:1.25}
+.k-ask-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border:2.5px solid var(--ux-ink);border-radius:14px;background:#FFF}
+.k-ask-row>i{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:2.5px solid var(--ux-ink);font-style:normal;font-weight:900;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center}
+.k-ask-row>span{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.k-ask-row b{font-size:calc(15px*var(--k-fs));font-weight:900;text-transform:uppercase;letter-spacing:.5px}
+.k-ask-row span span{font-size:calc(17px*var(--k-fs));font-weight:800}
+.k-ask-keep{background:#E6F5E0}.k-ask-keep>i{background:var(--ux-done)}.k-ask-keep b{color:#2E6B3A}
+.k-ask-reset{background:#FFEBD6}.k-ask-reset>i{background:#F4A340}.k-ask-reset b{color:#9A4A10}
+.k-ask-gain{background:#FFF3C4}.k-ask-gain>i{background:var(--ux-ok)}.k-ask-gain b{color:#8A6200}
+.k-ask-info>i{background:#FFE9A8}
+.k-ask-foot{display:flex;gap:10px;margin-top:4px}
+.k-ask-foot .ux-btn{flex:1 1 0;justify-content:center;min-height:56px}
+.k-ask-foot .ux-main{flex:1.6 1 0;box-shadow:0 4px 0 var(--ux-ink)}
+
+/* tutorial do mapa: botões no tamanho de dedo */
+.k-coach-t{font-size:calc(16px*var(--k-fs))}
+.k-coach-row .k-btn{min-height:48px;font-size:calc(16px*var(--k-fs));padding:6px 14px}
+.k-coach-next{background:var(--ux-ok)}
+
+/* ---------- celular deitado / tela baixa: a frase "o que fazer" sobe pro cabeçalho ---------- */
+@media (max-width:760px),(max-height:460px){
+  .k-isl{padding:3px}
+  .k-isl-card{height:100%;position:relative}
+  .k-isl-head{padding:3px 4px 3px 10px;min-height:54px}
+  .k-isl-title{display:none}
+  .k-isl-head>canvas{display:none}
+  .k-isl-hint{position:absolute;left:8px;top:6px;right:calc(72px + 150px);margin:0;padding:4px 8px;font-size:calc(16px*var(--k-fs));line-height:1.15;min-height:42px;display:flex;align-items:center}
+  .k-isl-seeds{margin-left:auto;font-size:calc(16px*var(--k-fs))}
+  .k-isl-body{margin-top:0}
+  .k-isl-map{flex:.95}.k-isl-side{flex:1.15;padding:0;gap:0}
+  .k-isl-tabs{padding:4px 4px 0;gap:4px}
+  .k-isl-tab{min-height:56px;flex-direction:column;gap:0;font-size:calc(15px*var(--k-fs));line-height:1.1}
+  .k-isl-scroll{padding:8px 8px 12px;gap:8px}
+  .k-isl-foot{padding:5px 6px}
+  .k-isl-go{min-height:56px}.k-isl-go b{font-size:calc(18px*var(--k-fs))}
+  .k-isl-name{font-size:calc(19px*var(--k-fs))}
+  .k-isl-hook,.k-isl-mods,.k-fx-side small,.k-md-box small,.k-md-tx small,.k-isl-seed small{font-size:calc(18px*var(--k-fs))}
+  .k-isl-small{min-height:56px;font-size:calc(18px*var(--k-fs))}
+  .k-isl-lbl b{font-size:calc(15px*var(--k-fs))}.k-isl-lbl small{font-size:calc(14px*var(--k-fs))}
+  .k-ask-card{padding:8px 10px;gap:5px}
+  .k-ask-row{padding:4px 8px}.k-ask-row>i{width:32px;height:32px;font-size:19px}
+  .k-ask-head b{font-size:calc(20px*var(--k-fs))}
+}
+@media (orientation:portrait) and (max-width:760px){
+  .k-isl-map{flex:0 0 36%;min-height:0}.k-isl-side{flex:1}
+  .k-isl-tab{flex-direction:row;gap:6px}
+}

@@ -1,1 +1,161 @@
-/* UX: menu (docs/design/ux-guia.md) */
+/* UX: menu (docs/design/ux-guia.md) — Árvore (escada), Menu do Kome, Trocar de máquina, Ajustes e o acabamento comum de
+   painel/diálogo. Marcação em game/menu-ui.js. Cores: dourado = dá pra comprar · cinza = travado · verde = feito. */
+
+/* ---------- comum de painel e diálogo ---------- */
+.k-panel-head h2{font-size:calc(21px*var(--k-fs))}
+.k-panel .k-x{width:44px;height:44px;border-width:3px;border-radius:13px}
+.k-mob .k-panel .k-x{width:48px;height:48px}
+.k-dialog h2{font-size:calc(23px*var(--k-fs))}
+.k-dialog p{font-size:calc(15.5px*var(--k-fs));opacity:1;color:var(--ux-ink)}
+.k-dialog-btns .k-btn{min-height:56px}
+.ux-calm *,.ux-calm *::before,.ux-calm *::after{animation-iteration-count:1 !important}
+
+.mx-panel{color:var(--ux-ink)}
+.mx-panel button{font-family:inherit;color:var(--ux-ink)}
+.mx-panel .k-panel-body{position:relative}
+.mx-hint{display:block;margin:0 0 10px;line-height:1.25}
+.mx-hint.mx-hint-go{background:var(--ux-ok)}
+.mx-panel .k-h{font-size:calc(14px*var(--k-fs));opacity:.8;margin:16px 2px 8px;letter-spacing:.04em}
+.mx-note{font-size:calc(15px*var(--k-fs));font-weight:700;line-height:1.3;margin:0 2px 10px}
+.k-mob .mx-note{font-size:calc(16px*var(--k-fs))}
+.mx-note-sm{margin-top:12px;opacity:.8}
+
+/* botão grande: ícone + palavra + 1 linha */
+.mx-btn{justify-content:flex-start;text-align:left;box-shadow:0 4px 0 var(--ux-ink);line-height:1.15}
+.mx-btn:active{box-shadow:0 1px 0 var(--ux-ink)}
+.mx-btn-i{flex:none;display:inline-flex;align-items:center;justify-content:center}
+.mx-btn-i:empty{display:none}
+.mx-btn-t{display:flex;flex-direction:column;min-width:0}
+.mx-btn-t small{font-size:calc(13.5px*var(--k-fs));font-weight:700;opacity:.8}
+.mx-btn-t small:empty{display:none}
+.mx-btn.mx-danger{background:#E8756B;color:#fff}
+.mx-btn.mx-danger small{opacity:.95}
+
+/* ---------- ÁRVORE: escada ---------- */
+.mx-treepanel{background:#F6ECD4}
+.mx-treepanel .k-panel-body{padding-bottom:0}
+.mx-top{position:sticky;top:0;z-index:3;background:#F6ECD4;padding:0 0 8px;max-width:900px;margin:0 auto}
+.mx-top .mx-hint{margin-bottom:8px}
+.mx-topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mx-prog{position:relative;flex:1 1 180px;height:34px;border:3px solid var(--ux-ink);border-radius:12px;background:#fff;overflow:hidden}
+.mx-prog i{position:absolute;inset:0;background:var(--ux-done);transform-origin:0 50%;transform:scaleX(0);transition:transform .3s}
+.mx-prog span{position:relative;display:flex;align-items:center;justify-content:center;height:100%;font-weight:900;font-size:calc(15px*var(--k-fs))}
+.mx-filter{display:flex;gap:8px;flex:0 0 auto}
+.mx-seg{min-height:48px;padding:6px 12px;box-shadow:0 3px 0 var(--ux-ink)}
+.mx-seg.mx-on{background:var(--ux-done)}
+.mx-ladder{max-width:900px;margin:0 auto;padding:6px 2px 30px 50px}
+.mx-rung{position:relative;padding:0 0 18px}
+.mx-rung::before{content:'';position:absolute;left:-32px;top:0;bottom:0;width:8px;border-radius:4px;background:#CDBD9E}
+.mx-rung.mx-got::before{background:var(--ux-done)}
+.mx-rung:last-child::before{bottom:30px}
+.mx-step{position:absolute;left:-50px;top:14px;width:44px;height:44px;border-radius:50%;border:3px solid var(--ux-ink);background:var(--ux-lock);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:calc(18px*var(--k-fs));z-index:1}
+.mx-got>.mx-step{background:var(--ux-done)}
+.mx-nextrung>.mx-step{background:var(--ux-ok)}
+.mx-rungcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.mx-here{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:4px 14px 4px 8px;background:#fff;border:3px solid var(--ux-ink);border-radius:999px;font-size:calc(16px*var(--k-fs));box-shadow:0 3px 0 var(--ux-ink);animation:mxbob 1.6s ease-in-out infinite}
+.mx-kome{width:36px;height:34px;image-rendering:pixelated}
+@keyframes mxbob{50%{transform:translateY(-4px)}}
+.mx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.mx-soon{font-size:calc(15px*var(--k-fs));font-weight:800;opacity:.7;padding:2px 6px}
+.mx-empty{display:none;text-align:center;font-size:calc(18px*var(--k-fs));font-weight:900;padding:30px 10px}
+.mx-more{position:sticky;bottom:0;height:22px;margin-top:-22px;pointer-events:none;background:linear-gradient(rgba(246,236,212,0),#F6ECD4);z-index:2}
+.mx-onlycan .mx-card:not(.is-can),.mx-onlycan .mx-soon,.mx-onlycan .mx-here,.mx-onlycan .mx-rung:not(.mx-hascan){display:none}
+
+/* cartão: desenho + nome + 1 linha + UM estado */
+.mx-card{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-areas:'art tx' 'st st';gap:8px 12px;align-items:center;width:100%;min-width:0;padding:10px;text-align:left;cursor:pointer;background:var(--ux-paper);border:3px solid var(--ux-ink);border-radius:16px;box-shadow:0 4px 0 var(--ux-ink);transition:transform .08s}
+.mx-card:active{transform:translateY(3px)}
+.mx-art{grid-area:art;width:52px;height:52px;border:3px solid var(--ux-ink);border-radius:14px;display:flex;align-items:center;justify-content:center;background:#fff;flex:none}
+.mx-tool>.mx-art{width:76px;height:76px;background:#DFF1FA}
+.mx-tx{grid-area:tx;display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.2}
+.mx-tx b{font-size:calc(17px*var(--k-fs));font-weight:900}
+.mx-tool .mx-tx b{font-size:calc(20px*var(--k-fs))}
+.mx-tx small{font-size:calc(14.5px*var(--k-fs));font-weight:700}
+.k-mob .mx-tx small{font-size:calc(16px*var(--k-fs))}
+.mx-st{grid-area:st;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:4px 10px;border:3px solid var(--ux-ink);border-radius:12px;font-size:calc(17px*var(--k-fs));font-weight:900;background:var(--ux-lock)}
+.mx-st>span{position:relative;z-index:1;display:inline-flex;align-items:center}
+.mx-bar{position:absolute;inset:0;background:#E9D48A;transform-origin:0 50%;transform:scaleX(0);transition:transform .3s}
+.mx-tag{position:absolute;right:10px;top:-11px;padding:1px 10px;background:#E48FA5;border:2px solid var(--ux-ink);border-radius:999px;font-size:calc(12.5px*var(--k-fs));font-weight:900}
+.mx-card.is-can{background:#FFF3C4}
+.mx-card.is-can .mx-st{background:var(--ux-ok);min-height:52px;font-size:calc(19px*var(--k-fs))}
+.mx-card.is-poor,.mx-card.is-lock{background:#EFE8DA}
+.mx-card.is-lock .mx-art{filter:grayscale(1);opacity:.6}
+.mx-card.is-lock .mx-tx{opacity:.7}
+.mx-card.is-done{background:#E2F3DC;box-shadow:0 2px 0 var(--ux-ink)}
+.mx-card.is-done .mx-st{background:var(--ux-done);min-height:34px;font-size:calc(15px*var(--k-fs))}
+.mx-card.mx-next::after{content:'próximo passo';position:absolute;left:12px;top:-13px;padding:1px 10px;background:var(--ux-ok);border:2px solid var(--ux-ink);border-radius:999px;font-size:calc(13px*var(--k-fs));font-weight:900;animation:mxbob 1.2s ease-in-out infinite}
+.mx-card.mx-next{border-color:#B8860B;outline:3px solid var(--ux-ok);outline-offset:1px}
+.mx-stamp{animation:mxstamp .35s}
+.mx-bounce{animation:mxbounce .25s}
+@keyframes mxstamp{0%{transform:scale(1.08)}50%{transform:scale(.95)}100%{transform:none}}
+@keyframes mxbounce{50%{transform:scale(.97)}}
+
+/* ---------- MENU DO KOME ---------- */
+.mx-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:2px 2px 10px}
+.mx-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-height:118px;padding:10px 6px;text-align:center;cursor:pointer;background:var(--ux-paper);border:3px solid var(--ux-ink);border-radius:16px;box-shadow:0 4px 0 var(--ux-ink);transition:transform .08s;line-height:1.15}
+.mx-tile:active{transform:translateY(3px)}
+.mx-tile-i{width:52px;height:52px;border-radius:14px;border:3px solid var(--ux-ink);background:#FFE9A8;display:flex;align-items:center;justify-content:center}
+.mx-tile b{font-size:calc(16px*var(--k-fs));font-weight:900}
+.mx-tile small{font-size:calc(14px*var(--k-fs));font-weight:700;display:inline-flex;gap:4px;align-items:center;justify-content:center}
+.k-mob .mx-tile small{font-size:calc(15px*var(--k-fs))}
+.mx-tile.is-hot{background:#FFF3C4}
+.mx-tile.is-hot .mx-tile-i{background:var(--ux-ok)}
+.mx-tile.is-lock{background:#E6DFD0}
+.mx-tile.is-lock .mx-tile-i{background:var(--ux-lock);filter:grayscale(1)}
+.mx-tile.is-lock b{opacity:.65}
+.mx-dot{position:absolute;right:-4px;top:-8px;padding:1px 9px;background:var(--ux-ok);border:2px solid var(--ux-ink);border-radius:999px;font-size:calc(12.5px*var(--k-fs));font-weight:900}
+
+/* ---------- TROCAR ---------- */
+.mx-swaplist{display:flex;flex-direction:column;gap:10px;padding:2px 2px 12px}
+.mx-swap .mx-tool>.mx-art{width:64px;height:64px}
+
+/* ---------- AJUSTES ---------- */
+.mx-aj .k-setrow{min-height:60px;padding:6px 2px;gap:12px}
+.mx-aj .k-setrow-t{font-size:calc(17px*var(--k-fs));line-height:1.2}
+.mx-aj .k-setrow-t small{font-size:calc(14px*var(--k-fs));opacity:.85}
+.k-mob .mx-aj .k-setrow-t small{font-size:calc(15px*var(--k-fs))}
+.mx-aj .k-toggle{width:72px;height:40px;border-width:3px;background:var(--ux-lock)}
+.mx-aj .k-toggle i{width:32px;height:32px;left:1px;top:1px}
+.mx-aj .k-toggle.k-on{background:var(--ux-done)}
+.mx-aj .k-toggle.k-on i{transform:translateX(32px)}
+.mx-aj .k-toggle.k-on:active i{transform:translateX(32px) scale(.92)}
+.mx-aj .k-dica-aj .k-btn{min-height:48px;font-size:calc(15px*var(--k-fs))}
+.mx-fs{display:flex;gap:8px}
+.mx-fsbtn{flex:1 1 0;flex-direction:column;justify-content:flex-end;gap:2px;min-height:76px;padding:6px 4px;box-shadow:0 4px 0 var(--ux-ink)}
+.mx-fsbtn b{font-size:calc(14px*var(--k-fs))}
+.mx-fs-a{font-weight:900;line-height:1;font-size:20px}
+.mx-fs1 .mx-fs-a{font-size:27px}
+.mx-fs2 .mx-fs-a{font-size:35px}
+.mx-fsbtn.mx-on{background:var(--ux-done)}
+.mx-fsdemo{margin:10px 2px 0;padding:8px 10px;background:#fff;border:2px dashed var(--ux-ink);border-radius:10px;font-size:calc(16px*var(--k-fs));font-weight:700}
+.mx-save{display:flex;gap:10px;flex-wrap:wrap}
+.mx-save .mx-btn{flex:1 1 130px;min-height:60px}
+.mx-save2 .mx-btn{min-height:48px;font-size:calc(14.5px*var(--k-fs));box-shadow:0 3px 0 var(--ux-ink)}
+.mx-col{flex-direction:column;padding-bottom:10px}
+.mx-col .mx-btn{flex:none}
+
+/* ---------- telas pequenas ---------- */
+@media (max-height:480px){.mx-top{position:static}.mx-tile{min-height:104px}}
+@media (max-width:560px){.mx-ladder{padding-left:42px}.mx-step{left:-44px;width:38px;height:38px}.mx-rung::before{left:-29px}.mx-tool>.mx-art{width:60px;height:60px}.mx-seg .mx-btn-i{display:none}}
+
+/* ---------- guia atualizado (A1–A20, V1–V10): letra 16/18, título 22, nada < 14, X 56, "Fechar" embaixo ---------- */
+.k-panel-head h2{font-size:calc(22px*var(--k-fs))}
+.k-panel .k-x,.k-mob .k-panel .k-x{width:56px;height:56px;border-radius:15px}
+.mx-panel{border-color:var(--ux-ink);background:#FBF1DA}
+.mx-panel>.k-panel-head h2{background:var(--ux-ok);border:3px solid var(--ux-ink);border-radius:10px;padding:4px 14px;box-shadow:0 4px 0 var(--ux-ink);flex:0 1 auto;margin-right:auto}
+.mx-foot{flex:none;display:flex;justify-content:center;padding:8px 0 0}
+.mx-close{min-width:180px;justify-content:center}
+.mx-tx small,.mx-note,.mx-aj .k-setrow-t small,.mx-tile small,.mx-btn-t small{font-size:calc(16px*var(--k-fs));opacity:1}
+.k-mob .mx-tx small,.k-mob .mx-note,.k-mob .mx-aj .k-setrow-t small,.k-mob .mx-tile small{font-size:calc(18px*var(--k-fs))}
+.mx-tag,.mx-dot,.mx-card.mx-next::after,.mx-fsbtn b,.mx-panel .k-h,.mx-save2 .mx-btn{font-size:calc(14px*var(--k-fs))}
+.mx-card.is-lock .mx-tx,.mx-tile.is-lock b,.mx-soon,.mx-note-sm{opacity:1}
+.mx-soon,.mx-card.is-lock .mx-tx,.mx-tile.is-lock b{color:#5A4634}
+.mx-card.is-done .mx-st{transform:rotate(-1.5deg)}
+.mx-fs{flex-wrap:wrap}
+.mx-fsbtn{flex:1 1 64px}
+.mx-fs3 .mx-fs-a{font-size:42px}
+.mx-cavar .mx-fsbtn{justify-content:center;flex-basis:90px}
+.mx-cavar .mx-fsbtn small{font-size:calc(14px*var(--k-fs));font-weight:700}
+.ux-hc{--ux-ink:#1B0F06;--ux-lock:#CFC6B6;--ux-paper:#FFFFFF}
+.ux-hc .mx-card,.ux-hc .mx-tile,.ux-hc .ux-btn{border-width:4px}
+@media (prefers-reduced-motion:reduce){.mx-here,.mx-card.mx-next::after{animation:none}}
+.ux-calm .mx-here,.ux-calm .mx-card.mx-next::after{animation:none}

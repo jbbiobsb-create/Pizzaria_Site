@@ -376,7 +376,7 @@
     const k = 'tab_' + id + (id === 'casa' ? Math.min(S.house, NH()) : ''); if (icoCache[k]) return icoCache[k];
     let c = null;
     try {
-      if (id === 'casa') { c = mk(); NT().house(c.getContext('2d'), 56, 92, { stage: Math.max(1, Math.min(S.house, NH()) - 1), s: 0.52, t: 0, lit: false, garden: false, onsen: false }); }
+      if (id === 'casa') { c = mk(); NT().house(c.getContext('2d'), 56, 92, { stage: Math.max(3, Math.min(S.house, NH()) - 1), s: 0.6, t: 0, lit: false, garden: false, onsen: false }); }
       else
       if (id === 'jardim') c = itemIcon(D.decorById.bonsai);
       else if (id === 'bichos') { c = mk(); E.drawShibaHead(c.getContext('2d'), 56, 62, 0, { scale: 4, pal: 'shiro', still: true }); }
@@ -489,7 +489,7 @@
       const more = el('div', 'kh-more', body, '▼');
       const upd = () => more.classList.toggle('kh-off', body.scrollHeight - body.scrollTop - body.clientHeight < 12);
       body.addEventListener('scroll', upd, { passive: true });
-      if (anim && P.scrollTo) { const r = P.scrollTo; body.scrollTop = Math.max(0, r.offsetTop - body.offsetTop - 70); } else body.scrollTop = keep;
+      if (anim && P.scrollTo) { const r = P.scrollTo; body.scrollTop = Math.max(0, r.offsetTop - body.offsetTop - 12); } else body.scrollTop = keep;
       P.scrollTo = null; upd();
     } else {
       fillProp(card, c);
@@ -550,9 +550,10 @@
   }
   function fillHouse(body, c) {
     const n = houseNow(), done = Math.min(S.house, NH()), mp = mountPct();
-    hint(body, !n ? (mp >= 1 ? 'Casa pronta. Parabéns!' : 'Casa pronta! Agora acabe a montanha') : n.can ? 'Toque em Construir!' : n.lock ? 'Compre a ' + n.lock + ' antes' : 'Cave mais: faltam ' + yen(n.miss));
+    const top = el('div', 'kh-top'); c.insertBefore(top, body);   // fixo: não some na rolagem
+    hint(top, !n ? (mp >= 1 ? 'Casa pronta. Parabéns!' : 'Casa pronta! Agora acabe a montanha') : n.can ? 'Toque em Construir!' : n.lock ? 'Compre a ' + n.lock + ' antes' : 'Cave mais: faltam ' + yen(n.miss));
     // o que falta pro final, sempre à vista
-    const goal = el('div', 'kh-goal', body); el('b', '', goal, 'Pra zerar o jogo:');
+    const goal = el('div', 'kh-goal', top);
     el('span', done >= NH() ? 'kh-ok' : '', goal, (done >= NH() ? '✓ ' : '') + 'Casa pronta · ' + done + ' de ' + NH());
     el('span', mp >= 1 ? 'kh-ok' : '', goal, (mp >= 1 ? '✓ ' : '') + 'Montanha acabada · ' + Math.floor(mp * 100) + '%');
     const ladder = el('div', 'kh-ladder', body);

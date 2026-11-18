@@ -1,1 +1,5 @@
 /* UX: oficina (docs/design/ux-guia.md) */
+/* lista de reserva da Oficina (G.Inf.openList): linha inteira, dourada = dá pra comprar, cinza = falta ¥ */
+.ux-ofi-row{width:100%;min-height:56px}
+.ux-ofi-row.ux-ofi-can{background:var(--ux-ok)}
+.ux-ofi-row.ux-ofi-lock{background:var(--ux-lock);opacity:.9}

@@ -33,10 +33,10 @@
     max: 5, offer: 3, reroll: 1, peso: { comum: 60, raro: 28, lendario: 12 }, wait: 4,
     regrowEvery: 30, regrowFrac: 0.18, regrowCap: 0.03,
     sets: {
-      mao: { n: 'Trio da Pata', d: 'ferramentas de mão rendem ×1,5 e o combo enche 2× mais rápido', values: { mao: 1.5, comboGain: 2 } },
-      motor: { n: 'Ronco de Motor', d: 'máquinas a motor rendem ×1,5 e cavam 20% mais rápido', values: { motor: 1.5, motorDig: 1.2 } },
-      sorte: { n: 'Trio da Sorte', d: 'todo saco é pelo menos dourado', values: { sackFloor: 2 } },
-      fabrica: { n: 'Selo de Exportação', d: 'fábrica vende ×2 e todo arroz vale +15%', values: { fab: 2, val: 1.15 } },
+      mao: { n: 'Trio da Pata', d: 'Pata rende ×1,5 e o combo enche em dobro', values: { mao: 1.5, comboGain: 2 } },
+      motor: { n: 'Ronco de Motor', d: 'Motor rende ×1,5 e cava 20% mais rápido', values: { motor: 1.5, motorDig: 1.2 } },
+      sorte: { n: 'Trio da Sorte', d: 'Todo saco é pelo menos dourado', values: { sackFloor: 2 } },
+      fabrica: { n: 'Selo de Exportação', d: 'Fábrica vende em dobro e o arroz vale +15%', values: { fab: 2, val: 1.15 } },
       equipe: { n: 'Turma Completa', d: '+2 shibas ajudantes e a frota rende ×1,5', values: { help: 2, frota: 1.5 } },
     },
   }, D.AMULETO || {});

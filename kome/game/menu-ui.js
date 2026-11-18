@@ -4,7 +4,8 @@
      marcado. Cartão = desenho + nome + 1 linha + UM estado (dourado comprar / cinza "falta ¥X" / verde comprado).
    - Menu do Kome (blocos grandes), Trocar de máquina, Ajustes (chaves grandes, tamanho da letra, menos efeitos, cópia do save).
    game-ui.js chama G.MenuUI.init(api) dentro do HUD.init e usa openMenu/openSwap. Só mexe no DOM quando o estado muda.
-   Ajustes salvos em S.opts: fs (0 normal, 1 grande, 2 enorme -> --k-fs 1/1.2/1.4 no :root) e calm (menos efeitos). */
+   Ajustes salvos em S.opts: fs (0..3 -> --k-fs 1/1.25/1.5/2 no :root), calm (menos movimento), hc (cores fortes),
+   cavar ('segurar' | 'alternar' | 'auto': quem lê é o HUD/controles) e canhoto (classe ux-canhoto no :root). */
 (function () {
   'use strict';
   const E = window.Pixxel, G = (window.KomeGame = window.KomeGame || {});
@@ -27,12 +28,16 @@
     return { el: b, set(p) { if (p.title !== undefined && tt.textContent !== p.title) tt.textContent = p.title; if (p.sub !== undefined && ss.textContent !== p.sub) ss.textContent = p.sub; } };
   }
 
+  function foot(p) { const f = h('div', 'mx-foot', p.el); big(f, { icon: 'x', title: 'Fechar', cls: 'mx-close', iconSize: 20, onClick: () => p.close() }); }
+
   /* ---------- letra e efeitos (valem pro jogo todo, ligados no boot) ---------- */
-  const FS = [1, 1.2, 1.4];
+  const FS = [1, 1.25, 1.5, 2];
   function applyLook() {
     const r = document.documentElement;
     r.style.setProperty('--k-fs', String(FS[S.opts.fs | 0] || 1));
     r.classList.toggle('ux-calm', !!S.opts.calm);
+    r.classList.toggle('ux-hc', !!S.opts.hc);
+    r.classList.toggle('ux-canhoto', !!S.opts.canhoto);
   }
 
   /* ---------- textos simples ---------- */
@@ -90,6 +95,7 @@
     tp = UI.panel({ title: 'Árvore do Kome', icon: 'tree', full: true, cls: 'mx-panel mx-treepanel',
       onOpen: () => { G.HUD.treeOpen = true; treeOpenAt(); clearInterval(T.timer); T.timer = setInterval(treeSync, 500); },
       onClose: () => { G.HUD.treeOpen = false; clearInterval(T.timer); } });
+    foot(tp);
     const b = tp.body, top = h('div', 'mx-top', b);
     T.hint = h('div', 'ux-hint mx-hint', top, '');
     const bar = h('div', 'mx-topbar', top);
@@ -219,6 +225,7 @@
      ====================================================================== */
   function settingsInit() {
     aj = UI.panel({ title: 'Ajustes', icon: 'gear', side: 'right', cls: 'mx-panel mx-aj', onOpen: () => ajSync() });
+    foot(aj);
     const b = aj.body;
     h('div', 'ux-hint mx-hint', b, 'Toque pra ligar ou desligar.');
 
@@ -228,7 +235,7 @@
 
     h('div', 'k-h', b, 'Tamanho da letra');
     const seg = h('div', 'mx-fs', b), fsB = [];
-    ['Normal', 'Grande', 'Enorme'].forEach((nm, i) => {
+    ['Normal', 'Grande', 'Maior', 'Enorme'].forEach((nm, i) => {
       const bt = h('button', 'ux-btn mx-fsbtn mx-fs' + i, seg); bt.type = 'button'; bt.setAttribute('aria-label', 'Letra ' + nm);
       h('span', 'mx-fs-a', bt, 'A'); h('b', null, bt, nm);
       bt.addEventListener('click', () => { sfx('click', { pitch: 0.9 + i * 0.15 }); api.setOpt('fs', i); applyLook(); fsMark(); });
@@ -240,10 +247,25 @@
 
     h('div', 'k-h', b, 'Jogo');
     let tgShake = null;
-    UI.toggle(b, { icon: 'star', label: 'Menos efeitos', sub: 'sem tremor e sem coisa piscando', value: !!S.opts.calm, onChange: v => {
+    UI.toggle(b, { icon: 'star', label: 'Menos movimento', sub: 'sem tremor e sem coisa piscando', value: !!S.opts.calm, onChange: v => {
       api.setOpt('calm', !!v); if (v && S.opts.shake) { api.setOpt('shake', false); if (tgShake) tgShake.set(false, true); } applyLook(); } });
     tgShake = UI.toggle(b, { icon: 'bolt', label: 'Tela treme', sub: 'quando a máquina bate forte', value: !!S.opts.shake, onChange: v => api.setOpt('shake', v) });
     UI.toggle(b, { icon: 'mount', label: 'Fundo em quadradinhos', sub: 'céu e morros no estilo do Kome', value: S.opts.pixel !== false, onChange: v => api.setOpt('pixel', v) });
+    UI.toggle(b, { icon: 'check', label: 'Cores mais fortes', sub: 'letra e contorno mais escuros', value: !!S.opts.hc, onChange: v => { api.setOpt('hc', !!v); applyLook(); } });
+
+    h('div', 'k-h', b, 'Botão de cavar');
+    const cvS = h('div', 'mx-fs mx-cavar', b), cvB = [];
+    [['segurar', 'Segurar', 'aperta e segura'], ['alternar', 'Liga e desliga', 'um toque liga'], ['auto', 'Sozinho', 'cava sem apertar']].forEach(q => {
+      const bt = h('button', 'ux-btn mx-fsbtn', cvS); bt.type = 'button'; bt.setAttribute('aria-label', 'Cavar: ' + q[1]);
+      h('b', null, bt, q[1]); h('small', null, bt, q[2]);
+      bt.addEventListener('click', () => { sfx('click'); api.setOpt('cavar', q[0]); cvMark(); });
+      cvB.push([bt, q[0]]);
+    });
+    const cvMark = () => cvB.forEach(q => q[0].classList.toggle('mx-on', (S.opts.cavar || 'segurar') === q[1]));
+    cvMark();
+    UI.toggle(b, { icon: 'swap', label: 'Modo canhoto', sub: 'troca os botões de lado', value: !!S.opts.canhoto, onChange: v => { api.setOpt('canhoto', !!v); applyLook(); } });
+
+    h('div', 'k-h', b, 'Ajuda');
     // (dicas.js e cookie-ui.js penduram as chaves deles aqui, antes do título "Salvar")
 
     h('div', 'k-h', b, 'Salvar');
@@ -295,7 +317,7 @@
      ====================================================================== */
   M.openMenu = function () {
     if (!api) return null;
-    if (!menuPanel) menuPanel = UI.panel({ title: 'Menu do Kome', icon: 'chest', side: 'right', cls: 'mx-panel mx-menu k-menupanel' });
+    if (!menuPanel) (menuPanel = UI.panel({ title: 'Menu do Kome', icon: 'chest', side: 'right', cls: 'mx-panel mx-menu k-menupanel' })), foot(menuPanel);
     const b = menuPanel.body; b.textContent = '';
     h('div', 'ux-hint mx-hint', b, 'Toque aonde você quer ir.');
     const grid = h('div', 'mx-tiles', b);
@@ -332,7 +354,7 @@
      ====================================================================== */
   M.openSwap = function () {
     if (!api) return null;
-    if (!swapPanel) swapPanel = UI.panel({ title: 'Trocar de máquina', icon: 'swap', side: 'right', cls: 'mx-panel mx-swap' });
+    if (!swapPanel) (swapPanel = UI.panel({ title: 'Trocar de máquina', icon: 'swap', side: 'right', cls: 'mx-panel mx-swap' })), foot(swapPanel);
     const b = swapPanel.body; b.textContent = '';
     h('div', 'ux-hint mx-hint', b, 'Toque na máquina que você quer pilotar.');
     const col = h('div', 'mx-swaplist', b);
@@ -359,6 +381,7 @@
       UI.defineIcon('savedown', P => { P.rect(2, 12, 12, 3, '#3B2818').rect(3, 13, 10, 1, '#F2C230').rect(7, 1, 2, 7, '#3B2818').poly([[3, 7], [13, 7], [8, 12]], '#3B2818'); });
       UI.defineIcon('saveup', P => { P.rect(2, 12, 12, 3, '#3B2818').rect(3, 13, 10, 1, '#6DBF67').rect(7, 5, 2, 6, '#3B2818').poly([[3, 6], [13, 6], [8, 1]], '#3B2818'); });
     }
+    if (S.opts.calm === undefined && E.reducedMotion) S.opts.calm = true;   // o aparelho já pede menos movimento
     applyLook();
     for (const n of D.TREE) n.desc = fxText(n);
     treeInit(); settingsInit();

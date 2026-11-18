@@ -33,7 +33,7 @@
   let api = {};
   const GS = () => G.S;
   function fresh() {
-    return { on: 0, stock: { onigiri: 0, mochi: 0, mochid: 0 }, rate: { onigiri: 0, mochi: 0, mochid: 0 }, seen: {}, acc: {}, qa: {}, rt: 0,
+    return { on: 0, stock: { arroz: 0, onigiri: 0, mochi: 0, mochid: 0 }, rate: { arroz: 0, onigiri: 0, mochi: 0, mochid: 0 }, seen: {}, acc: {}, qa: {}, rt: 0,
       hearts: 0, fest: 0, festOn: 0, season: 0, festDone: 0, delivered: 0, yen: 0, grains: 0, blk2: 0, t: 0,
       ppl: [], lots: [], ord: [null, null, null], gap: [2, 8, 16], pend: [], q: [] };
   }
@@ -43,7 +43,7 @@
     if (!c.__ok) { const f = fresh(); for (const k in f) if (c[k] === undefined || c[k] === null && f[k] !== null) c[k] = f[k]; for (const k of ITEM_IDS) { c.stock[k] = +c.stock[k] || 0; c.rate[k] = +c.rate[k] || 0; } Object.defineProperty(c, '__ok', { value: 1, enumerable: false }); }
     return c;
   }
-  const R = { camX: 90, camT: null, sel: -1, choice: null, hint: 1, t: 0, toast: null, banner: null, news: [], heartPulse: 0, focoOpen: false };
+  const R = { camX: 90, camT: null, sel: -1, choice: null, hint: 1, t: 0, toast: null, banner: null, news: [], focoOpen: false, oy: 0, later: 0, dirty: 1, sr: null, hx: 0, hy: 0 };
   let people = [], lots = [];
   const kome = { x: DEPOT.x, y: DEPOT.y, face: 1, state: 'park', job: null, wait: 0 };
   const ps = E.Particles(900), fl = E.Floaters(120);
@@ -66,10 +66,11 @@
   const resOn = i => people.find(p => p.rec.lot === i);
 
   /* ---- valores: o produto vale o que a doca pagaria por ele (G.Fab.itemV), escala com o jogo ---- */
-  const val = t => (G.Fab && G.Fab.itemV ? G.Fab.itemV(t) * (P().qa[t] || 1) : 0);
+  const val = t => t === 'arroz' ? Math.max(1, GS().ips || 0) * CFG.ARROZ_SEC : (G.Fab && G.Fab.itemV ? G.Fab.itemV(t) * (P().qa[t] || 1) : 0);   // saco de arroz vale um pedaço da sua renda
   const cap = t => Math.max(CFG.ITEMS[t].capMin, Math.round(P().rate[t] * CFG.CAP_SEC));
   const has = t => P().rate[t] > 1e-4 || P().stock[t] >= CFG.ITEMS[t].qMin;
   function pay(v) { const s = GS(); if (!s || !(v > 0)) return; s.money += v; s.earned += v; s.dayEarn = (s.dayEarn || 0) + v; s.ipsAcc = (s.ipsAcc || 0) + v; P().yen += v; }
+  const renda = () => { const c = GS() && GS().stats.city; return c && c.on ? (c.grains | 0) + CFG.BUILD_RENDA * (c.lots || []).filter(l => l.b).length : 0; };   // % de renda que a Cidade dá (amizade + prédios)
   const quiet = () => !isOpen() || (api.fast && api.fast());
 
   /* ======================================================================
@@ -98,7 +99,7 @@
   function take(t, q) {
     if (!CFG.ITEMS[t]) return false;
     const c = P();
-    if (!c.on) { if (t === CFG.unlock || t === 'mochid') unlock(); return false; }
+    if (!c.on) { unlock(); return false; }   // 1º produto da fábrica também abre (normalmente já abriu por OPEN_EARN)
     c.seen[t] = (c.seen[t] || 0) + 1;
     c.acc[t] = (c.acc[t] || 0) + CFG.share;
     if (c.acc[t] < 1) return false;
@@ -126,7 +127,7 @@
     const avail = ITEM_IDS.filter(has); if (!avail.length) return false;
     let item = Math.random() < CFG.FAV_CHANCE && has(p.def.fav) ? p.def.fav : avail[Math.floor(Math.random() * avail.length)];
     let qty = Math.max(CFG.ITEMS[item].qMin, Math.round(c.rate[item] * U.lerp(CFG.ORDER_SEC[0], CFG.ORDER_SEC[1], Math.random())));
-    if (!c.delivered && !c.ord.some(Boolean)) { p = byId('taro') || p; item = 'onigiri'; qty = Math.min(24, Math.max(6, Math.floor(c.stock.onigiri * 0.6))); }   // 1º pedido sai na hora (presente da abertura)
+    if (!c.delivered && !c.ord.some(Boolean)) { p = byId('taro') || p; item = 'arroz'; qty = Math.min(24, Math.max(8, Math.floor(c.stock.arroz * 0.6))); }   // 1º pedido sai na hora (presente da abertura)
     c.ord[slot] = { id: p.rec.id, item, qty, hearts: (item === p.def.fav ? 2 : 1) + heartBonus(item) };
     p.rec.last = c.t; p.jump = 1;
     sfx('pop', { pitch: 1.3, vol: 0.4 });
@@ -136,7 +137,7 @@
   const orderPay = o => o.qty * val(o.item) * CFG.ORDER_PAY;
   function deliver(i) {
     const c = P(), o = c.ord[i]; if (!o) return false;
-    if (c.stock[o.item] < o.qty) { toast('Falta ' + (o.qty - Math.floor(c.stock[o.item])) + ' ' + CFG.ITEMS[o.item].plural + ' na despensa', 'bad'); sfx('error'); return false; }
+    if (c.stock[o.item] < o.qty) { toast('Faltam ' + qtd(o.qty - Math.floor(c.stock[o.item]), o.item) + ' na Despensa', 'bad'); sfx('error'); return false; }
     c.stock[o.item] -= o.qty;
     c.ord[i] = null; c.gap[i] = CFG.ORDER_GAP * (built('sento') ? CFG.SENTO_GAP : 1);
     R.sel = -1; R.hint = 0;
@@ -152,7 +153,7 @@
     const h = o.hearts * (c.festOn > 0 ? CFG.FEST_HEART : 1);
     if (!quiet()) {
       p.mode = 'happy'; p.timer = 1.6; p.jump = 1; p.glow = 1; p.face = kome.x < p.x ? -1 : 1;
-      fl.add(p.x, p.y - 64, '+¥' + U.fmt(v), { size: 18, c: C.goldL, life: 1.3 });
+      fl.add(p.x, p.y - 64, '+¥ ' + U.fmt(v), { size: 30, c: C.goldL, life: 1.6 });
       ps.burst(p.x, p.y - 30, 10, { c: [C.red, C.redL, C.sakura], shape: 'star', speed: [60, 180], life: 0.8 });
       sfx('kaching', { vol: 0.5 }); sfx('chirin', { vol: 0.4 }); if (Math.random() < 0.5) sfx('yip', { vol: 0.35 });
       chat(p, ['Valeu, Kome!', 'Itadakimasu!', 'Perfeito!', 'Que cheiro bom!'][Math.floor(Math.random() * 4)], 1.8);
@@ -184,7 +185,7 @@
     if (api.recompute) api.recompute();                     // Arroz do Coração: +1 grão
     const ticket = canBuildMore() && c.pend.length < 3;
     if (ticket) c.pend.push({ id: p.rec.id, lv: p.rec.lv });
-    if (!ticket || obraOn()) banner(p.def.nome + ': amizade nível ' + p.rec.lv + '!', '+1 grão no Arroz do Coração (renda +1%)' + (ticket ? ' · prédio novo quando a obra atual terminar' : ''));
+    if (!ticket || obraOn()) banner(p.def.nome + ' virou mais amigo!', 'Renda +1% pra sempre.' + (ticket ? ' Prédio novo quando a obra acabar.' : ''));
   }
   // próximo cartão de construção (quando o carpinteiro está livre); pula pedido que não tem mais o que construir
   function nextChoice() {
@@ -199,19 +200,20 @@
     const c = P(), n = c.lots.filter(l => l.b || l.obra).length;
     const sec = U.lerp(CFG.BUILD_SEC[0], CFG.BUILD_SEC[1], Math.min(1, n / 10));
     Object.assign(L.rec, { obra: sec, tot: sec, ob: id, by: p.rec.id });
-    if (!quiet()) { R.camT = U.clamp(L.x - W / 2, 0, world() - W); sfx('stomp', { vol: 0.4 }); sfx('buy', { vol: 0.4 }); toast('Obra começou: ' + BUILD[id].nome + ' fica pronta em ' + U.fmtTime(sec), 'gold'); }
+    if (!quiet()) { R.camT = U.clamp(L.x - W / 2, 0, world() - W); sfx('stomp', { vol: 0.4 }); sfx('buy', { vol: 0.4 }); toast('Obra começou! ' + BUILD[id].nome + ' fica pronta em ' + emPalavras(sec) + '.', 'gold'); }
     news('obra', BUILD[id].nome);
   }
   function finishBuild(L) {
     const r = L.rec, id = r.ob, B = BUILD[id]; if (!B) { r.obra = 0; r.ob = null; return; }
     r.b = id; r.obra = 0; r.ob = null; L.pop = 1;
+    if (api.recompute) api.recompute();   // prédio pronto: +BUILD_RENDA% de renda
     const by = RESBY[r.by];
     news('casa', B.nome);
     if (!quiet()) {
       ps.burst(L.x, BASE - 50, 28, { c: [C.gold, C.goldL, C.sakura, C.cream], shape: 'star', speed: [80, 260], life: 1.0 });
       ps.puff(L.x, BASE - 6, 14, 12, { c: C.sand });
       sfx('fanfare'); sfx('chirin');
-      banner(B.nome + (by ? ' — presente da amizade com ' + by.nome : '') + '!', B.fx);
+      banner(B.nome + ' ficou pronta!', 'Renda +' + CFG.BUILD_RENDA + '% pra sempre. ' + (FX[id] || B.fx));
     } else if (api.toast) api.toast('Cidade: ' + B.nome + ' ficou pronta!', B.fx);
     const c = P();
     if (B.mora && RESBY[B.mora] && !c.ppl.some(q => q.id === B.mora)) {
@@ -219,11 +221,11 @@
       const p = mkPerson(rec); people.push(p); p.x = L.x; p.y = BASE + 14; p.jump = 1;
       chat(p, 'Oi, vizinhos! Me mudei!', 3);
       news('novo', 'morador ' + RESBY[B.mora].nome);
-      toast(RESBY[B.mora].nome + ' se mudou pra rua! (' + RESBY[B.mora].job + ')', 'gold');
+      toast(RESBY[B.mora].nome + ' se mudou pra rua!', 'gold');
     }
     if (!c.blk2 && !freeLots().length) {   // a rua lotou: abre o 2º quarteirão
       c.blk2 = 1; news('novo', 'quarteirão novo');
-      if (!quiet()) banner('Quarteirão novo!', 'a rua cresceu: mais ' + CFG.LOTS2 + ' terrenos pros prédios da amizade');
+      if (!quiet()) banner('A rua cresceu!', 'Mais ' + CFG.LOTS2 + ' terrenos pra prédios novos.');
     }
   }
   function startFest() {
@@ -232,7 +234,7 @@
     const se = SEASONS[c.season];
     news('dourado', 'festival ' + se.fest);
     if (!quiet()) {
-      banner('Festival ' + se.fest + '!', se.sub + ' · pedidos valem corações em dobro');
+      banner('Festival ' + se.fest + '!', 'Cada entrega vale corações em dobro.');
       sfx('fanfare'); sfx('levelup');
       people.forEach((p, k) => { p.mode = 'dance'; p.slot = k; });
       R.camT = U.clamp(PRACA.cx - W / 2, 0, world() - W);
@@ -244,7 +246,7 @@
     c.festDone++; c.season = (c.season + 1) % 4;
     const se = SEASONS[c.season];
     people.forEach(p => { if (p.mode === 'dance') { p.mode = 'idle'; p.timer = U.rnd(0.5, 2); } });
-    toast('Chegou o ' + se.nome + '! Próximo festival: ' + se.fest, 'gold');
+    toast('Mudou a estação: ' + se.nome + '. Próxima festa: ' + se.fest + '.', 'gold');
     news('ilha', 'estação ' + se.nome);
   }
 
@@ -256,7 +258,8 @@
     c.t += dt;
     // ritmo do que chega na despensa (média de ~1 min, guardada no save: pedidos e teto já valem na volta)
     c.rt += dt;
-    if (c.rt >= 10) { for (const k of ITEM_IDS) { const r = ((c.seen[k] || 0) * CFG.share) / c.rt; c.rate[k] += (r - c.rate[k]) * (c.rate[k] ? 0.18 : 1); c.seen[k] = 0; } c.rt = 0; }
+    c.rate.arroz = CFG.ARROZ_RATE; c.stock.arroz = Math.min(cap('arroz'), c.stock.arroz + CFG.ARROZ_RATE * dt);   // a montanha manda sacos direto (antes e depois da fábrica)
+    if (c.rt >= 10) { for (const k of ITEM_IDS) { if (k === 'arroz') continue; const r = ((c.seen[k] || 0) * CFG.share) / c.rt; c.rate[k] += (r - c.rate[k]) * (c.rate[k] ? 0.18 : 1); c.seen[k] = 0; } c.rt = 0; }
     for (const L of lots) {
       const r = L.rec;
       if (r.obra) { r.obra -= dt; if (!quiet() && Math.random() < dt * 3) ps.puff(L.x + U.rnd(-50, 50), BASE - U.rnd(0, 40), 3, 6, { c: C.sand }); if (r.obra <= 0) finishBuild(L); continue; }
@@ -282,7 +285,7 @@
     if (!GS()) return;
     const c = P();
     chipTick(dt);
-    if (!c.on) return;
+    if (!c.on) { if ((GS().earned || 0) >= CFG.OPEN_EARN) unlock(); else return; }
     if (lots.length !== NL || people.length !== c.ppl.length) rebuild();
     if (quiet() && c.q.length) for (const o of c.q.slice()) arrive(o);   // tela fechada: o que estava no caminhão chega na hora
     let left = Math.min(dt, 1);
@@ -305,16 +308,35 @@
     return { yen: c.yen - s0, built: c.lots.filter(l => l.b).length - built0 };
   }
 
+  /* ---- barra do lugar (câmera na Vila = body.k-vila): o que dá pra fazer aqui + voltar. Nunca um passeio sem botão ---- */
+  let vb = null;
+  function vilaBar() {
+    if (!document.body.classList.contains('k-vila')) { if (vb && vb._on) { vb._on = 0; vb.classList.remove('cid-on'); } return; }
+    if (!vb) {
+      vb = mk('div', 'cid-vila');
+      vb.go = btn('ux-main cid-vila-go', 'Entrar na Cidade', () => { if (!open()) shake(vb.go); }, 'heart'); vb.sub = mk('small', 'cid-pay'); vb.go.appendChild(vb.sub);
+      vb.lock = mk('div', 'cid-vila-lock'); vb.lockT = mk('b'); vb.bar = mkBar(); vb.lockS = mk('span'); vb.lock.appendChild(vb.lockT); vb.lock.appendChild(vb.bar); vb.lock.appendChild(vb.lockS);
+      vb.back = btn('cid-vila-back', 'Voltar pra montanha', () => { if (G.Game && G.Game.vila) G.Game.vila(false); }, mk('span', 'cid-xi', '←'));
+      vb.appendChild(vb.go); vb.appendChild(vb.lock); vb.appendChild(vb.back); document.body.appendChild(vb);
+    }
+    if (!vb._on) { vb._on = 1; vb.classList.add('cid-on'); }
+    const c = P(), e = GS().earned || 0;
+    setC(vb, 'cid-locked', !c.on);
+    if (c.on) { const n = c.ord.filter((o, i) => o && canDeliver(i)).length; setT(vb.sub, n ? n + (n > 1 ? ' entregas prontas: ¥ na hora' : ' entrega pronta: ¥ na hora') : 'vizinhos pagam ¥ por entrega'); }
+    else { setT(vb.lockT, 'Cidade fechada'); setBar(vb.bar.fill, e / CFG.OPEN_EARN); setT(vb.lockS, 'Abre com ¥ ' + U.fmt(CFG.OPEN_EARN) + ' ganhos. Falta ¥ ' + U.fmt(Math.max(0, CFG.OPEN_EARN - e))); }
+  }
+
   /* ---- chip "Cidade" no topo (com a dica do que está pronto) ---- */
   function chipTick(dt) {
     if ((chipT -= dt) > 0) return; chipT = 0.4;
     if (!G.HUD || !G.HUD.chip || !G.HUD.ready) return;
     const c = P();
     if (!chipEl) { chipEl = G.HUD.chip({ id: 'cidade', icon: 'house', label: 'Cidade', order: 21, tone: '#FFE6D2', show: false, onClick: () => open() }); if (!chipEl) return; }
-    if (!c.on) { chipEl.set({ show: false }); return; }
+    vilaBar();
+    if (!c.on) { const e = GS().earned || 0; chipEl.set({ show: e >= CFG.OPEN_EARN * 0.1, hint: 'falta ¥ ' + U.fmt(Math.max(0, CFG.OPEN_EARN - e)), prio: 0, tip: 'Cidade fechada. Abre quando você ganhar ¥ ' + U.fmt(CFG.OPEN_EARN) + ' no total. Lá os vizinhos pagam ¥ por entrega.', act: 'Fechada' }); return; }
     const ready = c.ord.filter((o, i) => o && canDeliver(i)).length, fest = c.fest >= CFG.FEST_NEED && !(c.festOn > 0), pend = c.pend.length && !obraOn();
     const hint = pend ? 'amizade nova!' : fest ? 'festival pronto!' : ready ? ready + (ready > 1 ? ' entregas prontas' : ' entrega pronta') : '';
-    chipEl.set({ show: true, hint: c.delivered ? hint : 'nova! toque', prio: c.delivered ? (hint ? 1 : 0) : 2, tip: '♥ ' + U.fmt(c.hearts) + ' · ' + people.length + ' moradores · Arroz do Coração +' + c.grains + '%', act: 'Abrir' });
+    chipEl.set({ show: true, hint: c.delivered ? hint : 'nova! toque', prio: c.delivered ? (hint ? 1 : 0) : 2, tip: 'Entrega dá ¥ na hora. A Cidade já te dá +' + renda() + '% de renda.', act: 'Abrir' });
   }
 
   /* ======================================================================
@@ -386,6 +408,12 @@
   const XP = { Q: C.mochi, q: C.mochiD };
   const sp = (name, t) => E.spriteText('cid-' + name, t, { pal: XP });
   const ICON = {
+    arroz: sp('arroz', `
+      ..RR..
+      .YYYY.
+      YYYYYy
+      YYYYYy
+      .yyyy.`),
     onigiri: sp('onigiri', `
       ...A...
       ..AAA..
@@ -507,8 +535,8 @@
     g.fillStyle = INK; g.fillRect(x0, ROAD1, w, 2);
     g.fillStyle = C.stoneL; g.fillRect(x0, ROAD1 + 2, w, FRONT - ROAD1 - 2);
     g.fillStyle = C.stoneD; g.fillRect(x0, FRONT - 3, w, 3);
-    g.fillStyle = se.grass; g.fillRect(x0, FRONT, w, BOT - FRONT);
-    g.fillStyle = 'rgba(0,0,0,.06)'; for (let y = FRONT + 8; y < BOT; y += 12) g.fillRect(x0, y, w, 1);
+    g.fillStyle = se.grass; g.fillRect(x0, FRONT, w, H + 80 - FRONT);
+    g.fillStyle = 'rgba(0,0,0,.06)'; for (let y = FRONT + 8; y < H + 80; y += 12) g.fillRect(x0, y, w, 1);
     g.fillStyle = INK; D.rrect(g, PRACA.x0 - 3, FRONT + 6, PRACA.x1 - PRACA.x0 + 6, BOT - FRONT, 14); g.fill();
     g.fillStyle = C.sand; D.rrect(g, PRACA.x0, FRONT + 9, PRACA.x1 - PRACA.x0, BOT - FRONT, 12); g.fill();
     g.fillStyle = 'rgba(160,120,70,.25)';
@@ -532,7 +560,6 @@
           const k = 1 - r.obra / (r.tot || 1), st = k < 0.4 ? 1 : k < 0.8 ? 2 : 3;
           if (N.house) N.house(g, L.x, BASE, { stage: st, s: 0.95, t });
           E.drawShiba(g, L.x + 46, BASE + 2, 'dig', t * 1.6, { pal: 'cha', scale: 0.8, face: -1 });
-          txt('obra ' + U.fmtTime(Math.ceil(r.obra)), L.x, BASE - 98, TS(15));
           return;
         }
         const res = resOn(L.i), id = r.b ? BUILD[r.b].art : res ? res.def.art : null;
@@ -583,7 +610,7 @@
       D.shadow(g, 190, BASE - 4, 170, 6, 0.2);
       if (A) A.draw(g, 'fabrica_kome_pack', artFrame('fabrica_kome_pack', 'dia', t), 190, BASE - 4, { scale: 1.5 });
       const lx = U.clamp(R.camX + 120, 250, 300); txt('Fábrica KOME PACK', lx, 136, TS(16));
-      txt(Math.round(CFG.share * 100) + '% vem pra despensa', lx, 156, TS(14, C.goldL));
+      txt(G.Fab && G.Fab.on && G.Fab.on() ? 'manda ' + Math.round(CFG.share * 100) + '% da comida pra Despensa' : 'a montanha manda sacos de arroz', lx + 30, 156, TS(14, C.goldL));
     });
     if (night() > 0) {   // festival: barraquinhas, bandeiras, torre do taiko, turistas tanuki
       if (N.stall) { put(FRONT + 30, () => N.stall(g, PRACA.x0 + 70, FRONT + 30, { t, lit: true, col: C.red })); put(FRONT + 30, () => N.stall(g, PRACA.x1 - 70, FRONT + 30, { t, lit: true, col: C.bowl })); }
@@ -678,179 +705,287 @@
     }
   }
 
-  /* ---- HUD em canvas (botões imediatos, como a Fábrica) ---- */
-  let btns = [], pressBtn = null;
-  const hit = (x, y, w, h, fn) => btns.push({ x, y, w, h, fn });
-  function card(x, y, w, h, fill) {
-    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 6, 10); g.fill();
-    g.fillStyle = fill || C.cream; D.rrect(g, x, y, w, h, 8); g.fill();
+  /* ---- HUD em DOM (docs/design/ux-guia.md): letra grande, botão ≥ 56 px no celular, "o que fazer agora" no topo.
+     O canvas fica só com a rua; aqui o DOM só muda quando o valor muda (uiSync 4×/s ou depois de um toque). CSS: ux-cidade.css ---- */
+  const ui = {};
+  const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const setT = (e, s) => { if (e._t !== s) { e._t = s; e.textContent = s; } };
+  const setC = (e, c, on) => { on = !!on; const k = '_c_' + c; if (e[k] !== on) { e[k] = on; e.classList.toggle(c, on); } };
+  const setBar = (e, k) => { k = Math.round(U.clamp(k || 0, 0, 1) * 100) / 100; if (e._k !== k) { e._k = k; e.style.transform = 'scaleX(' + k + ')'; } };
+  const ICON_URL = {};
+  const icoUrl = k => { if (!ICON_URL[k]) { try { ICON_URL[k] = ICON[k].toDataURL(); } catch (e) { ICON_URL[k] = ''; } } return ICON_URL[k]; };
+  const ico = (k, cls) => { const i = mk('img', 'cid-ic' + (cls ? ' ' + cls : '')); i.src = icoUrl(k); i.alt = ''; i.draggable = false; i._k = k; return i; };
+  const setIco = (i, k) => { if (i._k !== k) { i._k = k; i.src = icoUrl(k); } };
+  const mkBar = cls => { const b = mk('div', 'cid-bar' + (cls ? ' ' + cls : '')); b.fill = mk('i'); b.appendChild(b.fill); return b; };
+  const qtd = (n, item) => U.fmt(n) + ' ' + (n === 1 ? CFG.ITEMS[item].nome : CFG.ITEMS[item].plural);
+  const emPalavras = s => { if (s < 90) return s < 45 ? 'menos de 1 min' : '1 min'; if (s < 3600) return Math.round(s / 60) + ' min'; const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60 / 5) * 5; return h + ' h' + (m ? ' e ' + m + ' min' : ''); };
+  const komePal = () => (GS().look && GS().look.pal) || 'kome';
+  function mkFace(cls) { const cv = mk('canvas', 'cid-face' + (cls ? ' ' + cls : '')); cv.width = cv.height = 96; return cv; }
+  function face(cv, pal, hat, expr) {
+    const k = pal + '|' + hat + '|' + expr; if (cv._k === k) return; cv._k = k;
+    const x = cv.getContext('2d'); x.clearRect(0, 0, 96, 96); x.imageSmoothingEnabled = false;
+    try { E.drawShibaHead(x, 48, 56, 0, { scale: 2.6, expr, pal, hat, still: true }); } catch (e) { /* sem rosto */ }
   }
-  function button(x, y, w, h, label, fn, o) {
-    o = o || {};
-    const pressed = pressBtn && pressBtn.x === x && pressBtn.y === y, dy = pressed ? 2 : 0;
-    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 6, 9); g.fill();
-    g.fillStyle = o.on ? C.gold : o.off ? '#E8DCC0' : (o.fill || C.cream); D.rrect(g, x, y + dy, w, h, 7); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.45)'; D.rrect(g, x + 3, y + 2 + dy, w - 6, 4, 2); g.fill();
-    const col = o.off ? '#7a6a56' : INK;
-    if (o.sub) { txt(label, x + w / 2, y + h / 2 - 8 + dy, T(o.size || 15, col)); txt(o.sub, x + w / 2, y + h / 2 + 10 + dy, T(o.subSize || 13, o.off ? '#7a6a56' : '#6B4A2E')); }
-    else txt(label, x + w / 2, y + h / 2 + 1 + dy, T(o.size || 15, col));
-    if (fn) hit(x, y, w, h, fn);
+  function btn(cls, label, fn, icon) {
+    const b = mk('button', 'ux-btn ' + cls); b.type = 'button';
+    if (icon) b.appendChild(typeof icon === 'string' ? ico(icon) : icon);
+    b.lab = mk('span', 'cid-lab', label); b.appendChild(b.lab);
+    b.addEventListener('click', e => { e.stopPropagation(); R.dirty = 1; fn(b); });
+    return b;
   }
-  function bar(x, y, w, h, k, col, bg) {
-    g.fillStyle = INK; g.fillRect(x - 1, y - 1, w + 2, h + 2);
-    g.fillStyle = bg || C.riceS; g.fillRect(x, y, w, h);
-    g.fillStyle = col; g.fillRect(x, y, Math.round(w * U.clamp(k, 0, 1)), h);
-    g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, y, Math.round(w * U.clamp(k, 0, 1)), 2);
+  const shake = e => { e.classList.remove('ux-shake'); void e.offsetWidth; e.classList.add('ux-shake'); };
+  const pop = e => { e.classList.remove('cid-pop'); void e.offsetWidth; e.classList.add('cid-pop'); };
+  const ORIGEM = () => (G.Fab && G.Fab.on && G.Fab.on() ? 'A Fábrica manda ' + Math.round(CFG.share * 100) + '% da comida pra cá. ' : '') + 'A montanha manda sacos de arroz.';
+  function focusOrd(i) {
+    const o = P().ord[i], p = o && byId(o.id); if (!p) return;
+    R.sel = i; R.camT = U.clamp(p.x - W / 2, 0, world() - W); p.jump = 1; pop(ui.ord[i]);
   }
-  function drawTopBar() {
-    const c = P();
-    g.fillStyle = INK; g.fillRect(0, 0, W, 54);
-    g.fillStyle = '#4A3020'; g.fillRect(0, 0, W, 51);
-    g.fillStyle = C.gold; g.fillRect(0, 51, W, 3);
-    button(8, 6, 120, 38, '← Montanha', close, { fill: '#F6B6B0', size: 16 });
-    card(140, 6, 140, 38);
-    blit(ICON.yen, 158, 35, 3);
-    txt(U.fmt(Math.floor(GS().money)), 176, 26, T(18, INK, 'left'));
-    card(292, 6, 340, 38, '#FFF3D6');
-    txt('Despensa', 302, 26, T(14, '#8A6A4A', 'left'));
-    ITEM_IDS.forEach((k, i) => {
-      const x = 384 + i * 82, v = c.stock[k], cp = cap(k);
-      blit(ICON[k], x + 10, 33, 3);
-      txt(U.fmt(Math.floor(v)), x + 26, 19, T(15, INK, 'left'));
-      bar(x + 26, 30, 50, 7, v / cp, v >= cp ? C.ora : C.grass);
+
+  function buildUI() {
+    if (ui.box) return;
+    const box = ui.box = mk('div', 'cid-ui'); root.appendChild(box);
+    /* topo: o que fazer agora + Vizinhos + Sair · prateleira da Despensa · obra · ¥ e corações */
+    const top = ui.top = mk('div', 'cid-top'); box.appendChild(top);
+    const r1 = mk('div', 'cid-r1'); top.appendChild(r1);
+    ui.now = mk('button', 'cid-now'); ui.now.type = 'button';
+    ui.nowFace = mkFace('cid-now-face'); ui.nowT = mk('span', 'cid-now-t');
+    ui.now.appendChild(ui.nowFace); ui.now.appendChild(ui.nowT);
+    ui.now.addEventListener('click', () => { R.dirty = 1; sfx('click'); if (ui.nowFn) ui.nowFn(); else pop(ui.now); });
+    r1.appendChild(ui.now);
+    r1.appendChild(btn('cid-viz', 'Vizinhos', () => { sfx('click'); openViz(); }, 'heart'));
+    r1.appendChild(btn('cid-x', 'Sair', () => { sfx('click'); close(); }, mk('span', 'cid-xi', '✕')));
+    const r2 = mk('div', 'cid-r2'); top.appendChild(r2);
+    const shelf = ui.shelf = mk('button', 'cid-shelf'); shelf.type = 'button';
+    shelf.appendChild(mk('b', 'cid-shelf-t', 'Despensa'));
+    ui.jar = {};
+    ITEM_IDS.forEach(k => {
+      const j = mk('span', 'cid-jar'); j.appendChild(ico(k));
+      j.n = mk('b', 'cid-jar-n'); j.cap = mk('small', 'cid-jar-cap'); j.bar = mkBar('cid-jar-bar');
+      const tx = mk('span', 'cid-jar-tx'); tx.appendChild(j.n); tx.appendChild(j.cap); tx.appendChild(j.bar);
+      j.appendChild(tx); shelf.appendChild(j); ui.jar[k] = j;
     });
-    R.heartPulse = Math.max(0, R.heartPulse - 0.04);
-    card(644, 6, 112, 38);
-    blit(ICON.heart, 664, 36 + R.heartPulse * 2, 3 + R.heartPulse);
-    txt(U.fmt(c.hearts), 682, 26, T(18, C.redD, 'left'));
-    const se = season();
-    card(768, 6, 184, 38, '#FFF3D6');
-    blit(ICON[SEASON_ICON[c.season]], 786, 36, 3);
-    txt(se.nome, 804, 18, T(15, INK, 'left'));
-    txt('Coração +' + c.grains + '% renda', 804, 35, T(13, '#8A6A4A', 'left'));
+    shelf.addEventListener('click', () => {
+      sfx('click'); pop(shelf);
+      const cheia = ITEM_IDS.some(k => has(k) && P().stock[k] >= cap(k));
+      toast(cheia ? 'Despensa cheia! O que sobra a Fábrica vende. Nada se perde.' : ORIGEM() + ' O resto ela vende.');
+    });
+    r2.appendChild(shelf);
+    ui.note = mk('span', 'cid-note', 'Entrega dá ¥ na hora. Amigo e prédio aumentam sua renda pra sempre.'); r2.appendChild(ui.note);
+    const ob = ui.obra = mk('div', 'cid-obra');
+    ob.t = mk('b', 'cid-obra-t'); ob.bar = mkBar(); ob.s = mk('span', 'cid-obra-s');
+    ob.appendChild(ob.t); ob.appendChild(ob.bar); ob.appendChild(ob.s);
+    ob.addEventListener('click', () => { const L = lots.find(l => l.rec.obra > 0); if (L) { R.camT = U.clamp(L.x - W / 2, 0, world() - W); L.bounce = 1; sfx('click'); } });
+    r2.appendChild(ob);
+    const st = (k, cls) => { const d = mk('span', 'cid-stat ' + cls); d.appendChild(ico(k)); d.n = mk('b'); d.appendChild(d.n); r2.appendChild(d); return d; };
+    ui.yen = st('yen', 'cid-yen'); ui.hearts = st('heart', 'cid-hearts'); ui.renda = mk('span', 'cid-stat cid-renda'); ui.renda.n = mk('b'); ui.renda.appendChild(mk('small', '', 'Renda')); ui.renda.appendChild(ui.renda.n); r2.appendChild(ui.renda);
+
+    /* setas da rua (arrastar também vale, mas não é o único caminho) */
+    ui.arL = btn('cid-ar cid-ar-l', '', () => { R.camT = U.clamp((R.camT === null ? R.camX : R.camT) - 340, 0, world() - W); sfx('click'); }, mk('span', 'cid-xi', '◀'));
+    ui.arR = btn('cid-ar cid-ar-r', '', () => { R.camT = U.clamp((R.camT === null ? R.camX : R.camT) + 340, 0, world() - W); sfx('click'); }, mk('span', 'cid-xi', '▶'));
+    ui.arL.setAttribute('aria-label', 'Andar pra esquerda'); ui.arR.setAttribute('aria-label', 'Andar pra direita');
+    box.appendChild(ui.arL); box.appendChild(ui.arR);
+
+    /* plaquinha da obra em cima do terreno (segue a rua: só transform) */
+    const tag = ui.tag = mk('div', 'cid-tag'); tag.t = mk('b'); tag.bar = mkBar(); tag.s = mk('span');
+    tag.appendChild(tag.t); tag.appendChild(tag.bar); tag.appendChild(tag.s); box.appendChild(tag);
+
+    ui.banner = mk('div', 'cid-banner'); ui.banner.t = mk('b'); ui.banner.s = mk('span'); ui.banner.appendChild(ui.banner.t); ui.banner.appendChild(ui.banner.s); box.appendChild(ui.banner);
+    ui.toast = mk('div', 'cid-toast'); box.appendChild(ui.toast);
+
+    /* embaixo: 3 pedidos + festival */
+    const bot = ui.bot = mk('div', 'cid-bot'); box.appendChild(bot);
+    ui.ord = [0, 1, 2].map(i => {
+      const c = mk('div', 'cid-ord');
+      const head = mk('div', 'cid-ord-head'); c.face = mkFace();
+      const tx = mk('div', 'cid-ord-tx'); c.nome = mk('b', 'cid-nome'); c.rew = mk('span', 'cid-rew');
+      const l1 = mk('div', 'cid-ord-l1'); l1.appendChild(c.nome); l1.appendChild(c.rew);
+      const want = mk('div', 'cid-want'); c.ic = ico('onigiri'); c.want = mk('span'); want.appendChild(c.ic); want.appendChild(c.want);
+      tx.appendChild(l1); tx.appendChild(want); head.appendChild(c.face); head.appendChild(tx); c.appendChild(head);
+      c.go = btn('ux-main cid-go', 'Entregar', () => { if (deliver(i)) pop(c); }, 'yen'); c.pay = mk('small', 'cid-pay'); c.go.appendChild(c.pay);
+      c.appendChild(c.go);
+      c.wait = mk('div', 'cid-wait'); c.bar = mkBar(); c.waitT = mk('span', '', 'Enchendo a Despensa…'); c.wait.appendChild(c.bar); c.wait.appendChild(c.waitT); c.appendChild(c.wait);
+      c.empty = mk('div', 'cid-empty'); c.emptyT = mk('span'); c.empty.appendChild(mk('b', '', 'Sem pedido')); c.empty.appendChild(c.emptyT); c.appendChild(c.empty);
+      c.addEventListener('click', () => {
+        const o = P().ord[i]; if (!o) { pop(c); return; }
+        sfx('click'); focusOrd(i); R.dirty = 1;
+        if (!canDeliver(i)) { shake(c); toast('Faltam ' + qtd(o.qty - Math.floor(P().stock[o.item]), o.item) + '. Já tá chegando!'); }
+      });
+      bot.appendChild(c); return c;
+    });
+    const f = ui.fest = mk('div', 'cid-fest');
+    const fh = mk('div', 'cid-ord-head'); f.ic = ico('flower', 'cid-fest-ic'); const ftx = mk('div', 'cid-ord-tx'); f.nome = mk('b', 'cid-nome'); f.sub = mk('div', 'cid-want');
+    ftx.appendChild(f.nome); ftx.appendChild(f.sub); fh.appendChild(f.ic); fh.appendChild(ftx); f.appendChild(fh);
+    f.go = btn('ux-main cid-go', 'Começar a festa', () => { if (startFest()) pop(f); }, 'heart'); f.appendChild(f.go);
+    f.wait = mk('div', 'cid-wait'); f.bar = mkBar('cid-bar-fest'); f.line = mk('span'); f.wait.appendChild(f.bar); f.wait.appendChild(f.line); f.appendChild(f.wait);
+    f.addEventListener('click', () => { const c = P(); if (c.festOn > 0 || c.fest >= CFG.FEST_NEED) return; sfx('click'); shake(f); toast('Faltam ' + U.fmt(Math.ceil(CFG.FEST_NEED - c.fest)) + ' corações pra festa. Entregue pedidos!'); });
+    bot.appendChild(f);
+
+    /* janela (escolha de prédio · vizinhos): X em cima à direita + tocar fora + Esc */
+    ui.modal = mk('div', 'cid-modal'); ui.sheet = mk('div', 'cid-sheet'); ui.modal.appendChild(ui.sheet); box.appendChild(ui.modal);
+    ui.modal.addEventListener('click', e => { if (e.target === ui.modal) closeModal(); });
+    stage.on('resize', () => { R.dirty = 1; });
   }
-  function drawOrders(t) {
+
+  // o que fazer agora: [tipo, frase, toque]
+  function agora() {
     const c = P();
-    g.fillStyle = INK; g.fillRect(0, BOT, W, H - BOT);
-    g.fillStyle = '#5A3A22'; g.fillRect(0, BOT + 3, W, H - BOT);
-    for (let x = 0; x < W; x += 40) { g.fillStyle = '#4E3220'; g.fillRect(x, BOT + 3, 2, H - BOT); }
+    if (R.choice || (c.pend.length && !obraOn())) return ['go', 'Escolha um prédio novo pra rua', () => { R.later = 0; }];
+    const ri = c.ord.findIndex((o, i) => o && canDeliver(i));
+    if (ri >= 0) return ['go', 'Tem pedido pronto: toque em Entregar', () => focusOrd(ri)];
+    if (c.fest >= CFG.FEST_NEED && !(c.festOn > 0)) return ['go', 'A festa tá pronta: toque em Começar a festa', () => pop(ui.fest)];
+    if (c.q.length) return ['', 'O Kome tá levando a entrega…', null];
+    if (c.festOn > 0) return ['', 'É festa! Cada entrega vale corações em dobro', null];
+    if (c.ord.some(Boolean)) return ['', (G.Fab && G.Fab.on && G.Fab.on() ? 'Esperando a Fábrica' : 'Esperando a montanha') + ' encher a Despensa', () => { pop(ui.shelf); toast(ORIGEM() + ' Pode voltar daqui a pouco.'); }];
+    return ['', 'Tudo entregue! Os vizinhos já vão pedir mais', null];
+  }
+  function uiSync() {
+    const c = P();
+    const a = agora();
+    setT(ui.nowT, a[1]); setC(ui.now, 'cid-now-go', a[0] === 'go'); ui.nowFn = a[2];
+    face(ui.nowFace, komePal(), true, a[0] === 'go' ? 'happy' : 'normal');
+    // despensa
+    for (const k of ITEM_IDS) {
+      const j = ui.jar[k], v = Math.floor(c.stock[k]), cp = cap(k);
+      setC(j, 'cid-off', !has(k) && v < 1);
+      setT(j.n, U.fmt(v)); setT(j.cap, v >= cp ? 'cheia!' : 'de ' + U.fmt(cp)); setBar(j.bar.fill, v / cp); setC(j, 'cid-full', v >= cp);
+    }
+    // obra (um carpinteiro só: no máximo uma)
+    const L = lots.find(l => l.rec.obra > 0 && BUILD[l.rec.ob]); ui.obraL = L || null;
+    setC(ui.top, 'cid-has-obra', !!L); setC(ui.tag, 'cid-on', !!L);
+    if (L) {
+      const nome = 'Obra: ' + BUILD[L.rec.ob].nome, quando = 'pronta em ' + emPalavras(L.rec.obra), k = 1 - L.rec.obra / (L.rec.tot || 1);
+      setT(ui.obra.t, nome); setT(ui.obra.s, quando); setBar(ui.obra.bar.fill, k);
+      setT(ui.tag.t, BUILD[L.rec.ob].nome); setT(ui.tag.s, 'fica ' + quando); setBar(ui.tag.bar.fill, k);
+    }
+    setT(ui.yen.n, U.fmt(Math.floor(GS().money))); setT(ui.hearts.n, U.fmt(c.hearts)); setT(ui.renda.n, '+' + renda() + '%');
+    // pedidos
     for (let i = 0; i < 3; i++) {
-      const x = 8 + i * 236, y = BOT + 8, w = 226, h = 74, o = c.ord[i];
-      if (!o) {
-        card(x, y, w, h, '#E8DCC0');
-        txt('novo pedido em ' + Math.max(1, Math.ceil(c.gap[i])) + ' s', x + w / 2, y + h / 2, T(15, '#7a6a56'));
-        continue;
-      }
-      const p = byId(o.id); if (!p) { c.ord[i] = null; continue; }
-      const sel = R.sel === i, ok = c.stock[o.item] >= o.qty;
-      card(x, y, w, h, sel ? '#FFF1BF' : C.cream);
-      hit(x, y, w - 90, h, () => { R.sel = R.sel === i ? -1 : i; R.camT = U.clamp(p.x - W / 2, 0, world() - W); p.jump = 1; sfx('click'); });
-      g.fillStyle = INK; D.rrect(g, x + 6, y + 6, 58, 62, 8); g.fill();
-      g.fillStyle = sel ? C.goldL : '#F6E4C4'; D.rrect(g, x + 8, y + 8, 54, 58, 6); g.fill();
-      g.save(); D.rrect(g, x + 8, y + 8, 54, 58, 6); g.clip();
-      E.drawShibaHead(g, x + 35, y + 40, t + i, { scale: 1.25, expr: ok ? 'happy' : 'normal', pal: p.def.pal, hat: p.def.hat });
-      g.restore();
-      txt(p.def.nome, x + 70, y + 17, T(15, INK, 'left'));
-      blit(ICON[o.item], x + 82, y + 46, 3);
-      txt('×' + U.fmt(o.qty), x + 96, y + 38, T(17, INK, 'left'));
-      for (let k = 0; k < Math.min(4, o.hearts); k++) blit(ICON.heart, x + 78 + k * 16, y + 70, 2);
+      const e = ui.ord[i], o = c.ord[i], p = o && byId(o.id);
+      if (o && !p) { c.ord[i] = null; }
+      const on = !!(o && p), ok = on && canDeliver(i);
+      setC(e, 'cid-is-empty', !on); setC(e, 'cid-is-ready', ok); setC(e, 'cid-is-wait', on && !ok); setC(e, 'cid-sel', on && R.sel === i);
+      if (!on) { setT(e.emptyT, 'Novo em ' + Math.max(1, Math.ceil(c.gap[i])) + ' s'); continue; }
+      face(e.face, p.def.pal, p.def.hat, ok ? 'happy' : 'normal');
+      setT(e.nome, p.def.nome); setIco(e.ic, o.item);
+      const hk = 'h' + o.hearts; if (e.rew._t !== hk) { e.rew._t = hk; e.rew.textContent = ''; e.rew.appendChild(document.createTextNode('+' + o.hearts)); e.rew.appendChild(ico('heart')); }
       const have = Math.min(o.qty, Math.floor(c.stock[o.item]));
-      if (ok) button(x + w - 84, y + 14, 76, 46, 'Entregar', () => deliver(i), { on: true, size: 15, sub: '+¥' + U.fmt(orderPay(o)), subSize: 13 });
-      else {
-        button(x + w - 84, y + 14, 76, 46, U.fmt(have) + '/' + U.fmt(o.qty), () => { R.sel = i; toast('A fábrica tá fazendo: faltam ' + U.fmt(o.qty - have) + ' ' + CFG.ITEMS[o.item].plural + ' na despensa'); sfx('click'); }, { off: true, size: 15, sub: 'fazendo…', subSize: 13 });
-        bar(x + w - 80, y + 64, 68, 5, have / o.qty, C.grass);
-      }
+      setT(e.want, ok ? qtd(o.qty, o.item) : U.fmt(have) + ' de ' + qtd(o.qty, o.item));
+      if (ok) setT(e.pay, '+¥ ' + U.fmt(orderPay(o))); else setBar(e.bar.fill, have / o.qty);
     }
-    const x = 716, y = BOT + 8, w = 236, h = 74, se = season(), full = c.fest >= CFG.FEST_NEED;
-    card(x, y, w, h, full ? '#FFE9B0' : '#FFF3D6');
-    blit(ICON[SEASON_ICON[c.season]], x + 22, y + 32, 4);
-    if (c.festOn > 0) {
-      txt('Festival ' + se.fest, x + 44, y + 18, T(16, C.redD, 'left'));
-      txt('corações ×2 nos pedidos', x + 44, y + 38, T(13, '#6B4A2E', 'left'));
-      bar(x + 44, y + 54, w - 56, 8, c.festOn / CFG.FEST_SEC, C.red);
-    } else if (full) {
-      button(x + 44, y + 10, w - 54, 54, 'Começar o ' + se.fest + '!', startFest, { on: true, size: 16, sub: 'quando você quiser', subSize: 13 });
-    } else {
-      txt('Festival ' + se.fest, x + 44, y + 18, T(16, INK, 'left'));
-      txt(Math.floor(c.fest) + ' de ' + CFG.FEST_NEED + ' corações', x + 44, y + 37, T(13, '#6B4A2E', 'left'));
-      bar(x + 44, y + 52, w - 56, 10, c.fest / CFG.FEST_NEED, C.sakuraD);
+    // festival
+    const f = ui.fest, se = season(), full = c.fest >= CFG.FEST_NEED, on = c.festOn > 0;
+    setIco(f.ic, SEASON_ICON[c.season]); setT(f.nome, 'Festival ' + se.fest);
+    setC(f, 'cid-is-ready', full && !on); setC(f, 'cid-is-wait', !full || on); setC(f, 'cid-fest-on', on);
+    if (on) { setT(f.sub, 'Tá rolando!'); setT(f.line, 'Corações em dobro · acaba em ' + emPalavras(c.festOn)); setBar(f.bar.fill, c.festOn / CFG.FEST_SEC); }
+    else if (full) setT(f.sub, 'Corações em dobro por ' + emPalavras(CFG.FEST_SEC));
+    else { setT(f.sub, Math.floor(c.fest) + ' de ' + CFG.FEST_NEED + ' corações'); setT(f.line, 'Entregue pedidos pra encher'); setBar(f.bar.fill, c.fest / CFG.FEST_NEED); }
+    // setas
+    setC(ui.arL, 'cid-on', R.camX > 10); setC(ui.arR, 'cid-on', R.camX < world() - W - 10);
+    // janela da escolha
+    if ((R.choice || null) !== (ui.shown || null)) { ui.shown = R.choice || null; if (R.choice) openChoice(); else if (ui.kind === 'choice') hideModal(); }
+    layout();
+  }
+  // encaixa a rua no espaço livre entre a faixa de cima e a de baixo (celular deitado: a tela é baixa)
+  function layout() {
+    const r = stage.el.getBoundingClientRect(); if (!(r.height > 0)) return;
+    const s = r.height / H, mob = document.body.classList.contains('k-mob');
+    const z = mob ? 1 : Math.round(U.clamp(s, 1, 1.5) * 20) / 20;
+    if (ui.z !== z) { ui.z = z; root.style.setProperty('--cz', z); }
+    const a = Math.max(0, (ui.top.getBoundingClientRect().bottom - r.top) / s), b = Math.min(H, (ui.bot.getBoundingClientRect().top - r.top) / s);
+    R.oy = a <= 118 && b >= BOT ? 0 : Math.round(U.clamp((a + b) / 2 - 240, -70, 70));
+    R.sr = { l: r.left, t: r.top, s };
+    const hr = ui.hearts.getBoundingClientRect();
+    R.hx = (hr.left + 14 - r.left) / s; R.hy = Math.max(8, (hr.top + hr.height / 2 - r.top) / s);
+  }
+  function uiFollow() {      // plaquinha da obra acompanha o terreno
+    const L = ui.obraL, sr = R.sr; if (!L || !sr) return;
+    const x = Math.round(sr.l + (L.x - R.camX) * sr.s), y = Math.round(sr.t + (BASE - 92 + R.oy) * sr.s), k = x + ',' + y;
+    if (ui.tag._p !== k) { ui.tag._p = k; ui.tag.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-100%)'; }
+  }
+  function uiNotes(dt) {     // aviso grande e recado curto (aparecem na hora)
+    if (R.banner) { R.banner.life -= dt; if (R.banner.life <= 0) R.banner = null; }
+    if (R.toast) { R.toast.life -= dt; if (R.toast.life <= 0) R.toast = null; }
+    if ((R.banner || null) !== (ui.bShown || null)) {
+      ui.bShown = R.banner || null;
+      if (R.banner) { ui.banner.t.textContent = R.banner.t; ui.banner.s.textContent = R.banner.sub; ui.banner.classList.remove('cid-on'); void ui.banner.offsetWidth; }
+      ui.banner.classList.toggle('cid-on', !!R.banner);
+    }
+    if ((R.toast || null) !== (ui.tShown || null)) {
+      ui.tShown = R.toast || null;
+      if (R.toast) { ui.toast.textContent = R.toast.t; ui.toast.className = 'cid-toast' + (R.toast.tone ? ' cid-' + R.toast.tone : ''); void ui.toast.offsetWidth; }
+      ui.toast.classList.toggle('cid-on', !!R.toast);
     }
   }
-  function drawChoice(t) {
-    const ch = R.choice; if (!ch) return;
-    const p = byId(ch.id); if (!p) { R.choice = null; return; }
-    g.fillStyle = 'rgba(42,26,16,.55)'; g.fillRect(0, 0, W, H);
-    const opts = ch.opts, w = opts.length ? 640 : 520, h = opts.length ? 340 : 170, x = (W - w) / 2, y = opts.length ? 84 : 170;
-    card(x, y, w, h, '#FFF3D6');
-    g.fillStyle = INK; D.rrect(g, x + 16, y + 14, 72, 72, 10); g.fill();
-    g.fillStyle = C.goldL; D.rrect(g, x + 18, y + 16, 68, 68, 8); g.fill();
-    g.save(); D.rrect(g, x + 18, y + 16, 68, 68, 8); g.clip();
-    E.drawShibaHead(g, x + 52, y + 54, t, { scale: 1.6, expr: 'love', pal: p.def.pal, hat: p.def.hat }); g.restore();
-    txt(p.def.nome + ': amizade nível ' + ch.lv + '!', x + 100, y + 34, T(21, INK, 'left'));
-    txt('+1 grão no Arroz do Coração (renda +1%)', x + 100, y + 58, T(14, C.redD, 'left'));
-    if (!opts.length) {
-      txt(freeLots().length ? 'Todos os prédios já estão na rua!' : 'Sem terreno livre: a casa ganhou flores.', x + 100, y + 80, T(14, '#6B4A2E', 'left'));
-      button(x + w / 2 - 70, y + h - 54, 140, 40, 'Oba!', () => { R.choice = null; sfx('click'); }, { on: true, size: 16 });
-      hit(0, 0, W, H, () => {});
-      return;
-    }
-    txt('"Kome, dá pra gente construir uma coisa na rua?"', x + 100, y + 79, T(14, '#6B4A2E', 'left'));
-    opts.forEach((id, i) => {
-      const B = BUILD[id], bx = x + 20 + i * 306, by = y + 104, bw = 294, bh = 220;
-      card(bx, by, bw, bh, C.cream);
-      g.fillStyle = '#CFE8F2'; g.fillRect(bx + 10, by + 10, bw - 20, 108);
-      g.fillStyle = season().grass; g.fillRect(bx + 10, by + 100, bw - 20, 18);
-      drawArt(B.art, bx + bw / 2, by + 112, B.art === 'cid_templo' ? 1.1 : 1.6, t);
-      txt(B.nome, bx + bw / 2, by + 138, T(18));
-      txt(B.fx, bx + bw / 2, by + 160, T(13, '#6B4A2E'));
-      button(bx + 40, by + 176, bw - 80, 36, 'Construir', () => { choose(id); sfx('click'); }, { on: true, size: 16 });
+
+  /* ---- janelas ---- */
+  function showModal(kind, titulo, sub, faceCv) {
+    ui.kind = kind; const s = ui.sheet; s.textContent = ''; s.className = 'cid-sheet cid-sheet-' + kind;
+    const head = mk('div', 'cid-sheet-head'); if (faceCv) head.appendChild(faceCv);
+    const tx = mk('div', 'cid-sheet-tx'); tx.appendChild(mk('b', 'cid-sheet-t', titulo)); if (sub) tx.appendChild(mk('span', 'cid-sheet-s', sub)); head.appendChild(tx);
+    const x = btn('cid-close', '', () => { sfx('click'); closeModal(); }, mk('span', 'cid-xi', '✕')); x.setAttribute('aria-label', 'Fechar'); head.appendChild(x);
+    s.appendChild(head);
+    ui.modal.classList.add('cid-on');
+    return s;
+  }
+  function hideModal() { ui.kind = null; ui.modal.classList.remove('cid-on'); }
+  function closeModal() {   // X, tocar fora, Esc. Escolha de prédio: fica guardada ("Escolher depois")
+    if (ui.kind === 'choice' && R.choice) { P().pend.unshift({ id: R.choice.id, lv: R.choice.lv }); R.choice = null; ui.shown = null; R.later = 1; toast('Tudo bem! O presente fica guardado. Toque na frase lá em cima pra escolher.'); }
+    hideModal(); R.dirty = 1;
+  }
+  function openChoice() {
+    const ch = R.choice, p = ch && byId(ch.id); if (!p || !ch.opts.length) { R.choice = null; ui.shown = null; return; }
+    const fc = mkFace('cid-sheet-face'); face(fc, p.def.pal, p.def.hat, 'love');
+    const s = showModal('choice', p.def.nome + ' virou mais amigo!', 'Escolha 1 prédio de presente pra rua:', fc);
+    const row = mk('div', 'cid-opts');
+    ch.opts.forEach(id => {
+      const B = BUILD[id], c = mk('div', 'cid-opt');
+      const cv = mk('canvas', 'cid-opt-art'); cv.width = 300; cv.height = 150;
+      const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
+      x.fillStyle = '#CFE8F2'; x.fillRect(0, 0, 300, 150); x.fillStyle = season().grass; x.fillRect(0, 124, 300, 26);
+      try { if (A) A.draw(x, B.art, artFrame(B.art, B.art === 'cid_sento' ? 'fumaca' : 'dia', 0), 150, 138, { scale: B.art === 'cid_templo' ? 1.15 : 1.7 }); } catch (e) { /* sem arte */ }
+      c.appendChild(cv); c.appendChild(mk('b', 'cid-opt-t', B.nome)); c.appendChild(mk('b', 'cid-opt-r', '+' + CFG.BUILD_RENDA + '% de renda pra sempre')); c.appendChild(mk('span', 'cid-opt-s', FX[id] || B.fx));
+      c.appendChild(btn('ux-main cid-go', 'Construir', () => { sfx('click'); choose(id); hideModal(); ui.shown = null; }, mk('span', 'cid-xi', '🔨')));
+      row.appendChild(c);
     });
-    hit(0, 0, W, H, () => {});      // modal: engole o resto
+    s.appendChild(row);
+    s.appendChild(btn('cid-later', 'Escolher depois', () => { sfx('click'); closeModal(); }));
+  }
+  // 1 linha por prédio, em português simples (a regra é a de D.CITY.BUILD)
+  const FX = {
+    onigiriya: 'Compra o onigiri que sobra. Mais ¥!', mochiya: 'Compra o mochi que sobra. Mais ¥!', bentoya: 'Compra onigiri e mochi que sobram.',
+    konbini: 'Compra um pouco de tudo que sobra.', chaya: 'Pedido de mochi dá +1 coração.', fliperama: 'Pedido de onigiri dá +1 coração.',
+    sento: 'Pedidos novos chegam 2× mais rápido.', casa_kuro: 'Kuro, o músico, vem morar na rua.', templo: 'Monge Matcha vem morar. Festa enche +50%.',
+  };
+  function openViz() {
+    const c = P();
+    const s = showModal('viz', 'Vizinhos', 'Entregou pedido, ganhou coração. Nível novo = prédio de presente e +1% de renda.');
+    s.appendChild(mk('div', 'cid-viz-tot', 'Sua amizade já dá +' + c.grains + '% de renda no jogo todo.'));
+    const list = mk('div', 'cid-viz-list');
+    people.forEach(p => {
+      const r = mk('div', 'cid-viz-row'), fc = mkFace(); face(fc, p.def.pal, p.def.hat, 'happy'); r.appendChild(fc);
+      const tx = mk('div', 'cid-viz-tx');
+      const l1 = mk('div', 'cid-viz-l1'); l1.appendChild(mk('b', 'cid-nome', p.def.nome));
+      const gosta = mk('span', 'cid-gosta', 'gosta de '); gosta.appendChild(ico(p.def.fav)); l1.appendChild(gosta); tx.appendChild(l1);
+      const hs = mk('div', 'cid-hs'); hs.appendChild(mk('span', 'cid-hs-t', 'Amizade'));
+      const lv = p.rec.lv; for (let k = 0; k < Math.min(6, lv); k++) hs.appendChild(ico('heart'));
+      if (lv > 6) hs.appendChild(mk('b', '', '+' + (lv - 6)));
+      tx.appendChild(hs);
+      const need = lvNeed(lv), b = mkBar(); setBar(b.fill, p.rec.h / need); tx.appendChild(b);
+      tx.appendChild(mk('span', 'cid-viz-s', 'Faltam ' + (need - p.rec.h) + ' corações pro próximo presente'));
+      r.appendChild(tx);
+      r.addEventListener('click', () => { sfx('yip', { vol: 0.4 }); hideModal(); R.camT = U.clamp(p.x - W / 2, 0, world() - W); p.jump = 1; chat(p, p.def.fala[Math.floor(Math.random() * p.def.fala.length)], 2.6); });
+      list.appendChild(r);
+    });
+    s.appendChild(list);
   }
   function drawHeartsFly(dt) {
+    const tx = R.hx || 664, ty = R.hy || 26;
     for (let i = hearts.length - 1; i >= 0; i--) {
       const h = hearts[i]; h.t += dt;
       if (h.t < 0) continue;
-      const k = Math.min(1, h.t / 0.8), sx = h.wx - R.camX, sy = h.wy;
-      blit(ICON.heart, U.lerp(sx, 664, k * k), U.lerp(sy, 26, k) - Math.sin(k * Math.PI) * 60 + 8, 3);
-      if (k >= 1) { hearts.splice(i, 1); R.heartPulse = 1; sfx('pop', { pitch: 1.6, vol: 0.3 }); }
-    }
-  }
-  function drawHint(t) {
-    if (!R.hint || R.choice) return;
-    const i = P().ord.findIndex((o, k) => o && canDeliver(k)); if (i < 0) return;
-    const x = 8 + i * 236 + 226 - 46, y = BOT - 6 + Math.sin(t * 6) * 4;
-    g.fillStyle = INK; g.beginPath(); g.moveTo(x - 10, y - 14); g.lineTo(x + 10, y - 14); g.lineTo(x, y); g.closePath(); g.fill();
-    g.fillStyle = C.gold; g.beginPath(); g.moveTo(x - 7, y - 12); g.lineTo(x + 7, y - 12); g.lineTo(x, y - 3); g.closePath(); g.fill();
-    g.fillStyle = 'rgba(42,26,16,.85)'; D.rrect(g, x - 170, y - 48, 196, 28, 8); g.fill();
-    txt('a despensa tem! toque Entregar', x - 72, y - 34, T(14, C.cream));
-  }
-  function drawEdges(t) {
-    const a = 0.6 + Math.sin(t * 4) * 0.25;
-    g.globalAlpha = a;
-    if (R.camX > 10) txt('◀', 18, 290, TS(24));
-    if (R.camX < world() - W - 10) txt('▶', W - 18, 290, TS(24));
-    g.globalAlpha = 1;
-  }
-  function drawNotes(dt) {
-    if (R.banner) {
-      const b = R.banner; b.life -= dt;
-      const a = Math.min(1, b.life * 2, (3.6 - b.life) * 4);
-      g.globalAlpha = Math.max(0, a);
-      g.font = '900 22px system-ui, sans-serif'; const w = Math.max(360, Math.min(900, g.measureText(b.t).width + 60));
-      card(W / 2 - w / 2, 82, w, b.sub ? 70 : 48, '#FFE9B0');
-      txt(b.t, W / 2, 106, T(22, INK)); if (b.sub) txt(b.sub, W / 2, 132, T(14, '#6B4A2E'));
-      g.globalAlpha = 1;
-      if (b.life <= 0) R.banner = null;
-    }
-    if (R.toast) {
-      const o = R.toast; o.life -= dt;
-      g.globalAlpha = Math.max(0, Math.min(1, o.life * 2));
-      g.font = '900 15px system-ui, sans-serif'; const w = Math.min(920, g.measureText(o.t).width + 36);
-      card(W / 2 - w / 2, BOT - 50, w, 34, o.tone === 'bad' ? '#F6C8C0' : o.tone === 'gold' ? '#FFE9B0' : C.cream);
-      txt(o.t, W / 2, BOT - 33, T(15, INK));
-      g.globalAlpha = 1;
-      if (o.life <= 0) R.toast = null;
+      const k = Math.min(1, h.t / 0.8), sx = h.wx - R.camX, sy = h.wy + R.oy;
+      blit(ICON.heart, U.lerp(sx, tx, k * k), U.lerp(sy, ty, k) - Math.sin(k * Math.PI) * 60 + 8, 3);
+      if (k >= 1) { hearts.splice(i, 1); if (ui.hearts) pop(ui.hearts); sfx('pop', { pitch: 1.6, vol: 0.3 }); }
     }
   }
 
@@ -858,55 +993,51 @@
   let drag = null;
   input.on('down', (x, y) => {
     if (!isOpen()) return;
-    const b = btns.slice().reverse().find(b => x >= b.x - 3 && x <= b.x + b.w + 3 && y >= b.y - 3 && y <= b.y + b.h + 6);
-    drag = { x, y, cam: R.camX, moved: false, b };
-    if (b && b.w < W) pressBtn = { x: b.x, y: b.y };
+    drag = { x, y, cam: R.camX, moved: false };
   });
   input.on('move', (x, y) => {
     if (!drag || !isOpen()) return;
     if (Math.abs(x - drag.x) > 8) drag.moved = true;
-    if (drag.moved && !R.choice && drag.y > 54 && drag.y < BOT) { R.camX = U.clamp(drag.cam - (x - drag.x), 0, world() - W); R.camT = null; }
+    if (drag.moved && !R.choice) { R.camX = U.clamp(drag.cam - (x - drag.x), 0, world() - W); R.camT = null; }
   });
   input.on('up', (x, y) => {
-    const d = drag; drag = null; pressBtn = null;
-    if (!d || !isOpen()) return;
-    if (d.b && (!d.moved || d.b.w < W)) { if (!d.moved) d.b.fn(); return; }
-    if (d.moved || y < 54 || y >= BOT) return;
-    const wx = x + R.camX;
+    const d = drag; drag = null;
+    if (!d || !isOpen() || d.moved) return;
+    const wx = x + R.camX; y -= R.oy; R.dirty = 1;
     const p = people.slice().sort((a, b) => b.y - a.y).find(p => Math.abs(p.x - wx) < 24 && y > p.y - 70 && y < p.y + 8);
     if (p) {
       const oi = orderOf(p);
       p.jump = 1; sfx('yip', { vol: 0.4 });
       if (oi >= 0) R.sel = oi; else chat(p, p.def.fala[Math.floor(Math.random() * p.def.fala.length)], 2.6);
-      toast(p.def.nome + ' · ' + p.def.job + ' · ama ' + CFG.ITEMS[p.def.fav].nome + ' · amizade nv ' + p.rec.lv + ' (' + p.rec.h + '/' + lvNeed(p.rec.lv) + ' ♥)');
+      toast(p.def.nome + ', ' + p.def.job.split(',')[0].split(' (')[0] + '. Gosta de ' + CFG.ITEMS[p.def.fav].nome + '. Faltam ' + (lvNeed(p.rec.lv) - p.rec.h) + ' corações pro próximo presente.');
       return;
     }
     if (wx < 360 && y < BASE + 10) { if (G.Fab && G.Fab.on && G.Fab.on()) { close(); G.Fab.open(); } return; }
     const L = lots.find(l => Math.abs(l.x - wx) < 76 && y < BASE + 6 && y > BASE - 110);
     if (L && L.i < nOpen()) {
       const r = L.rec, res = resOn(L.i);
-      if (r.b) toast(BUILD[r.b].nome + ': ' + BUILD[r.b].fx);
-      else if (r.obra) toast('Obra: ' + BUILD[r.ob].nome + ' fica pronta em ' + U.fmtTime(Math.ceil(r.obra)));
+      if (r.b) toast(BUILD[r.b].nome + ': ' + (FX[r.b] || BUILD[r.b].fx));
+      else if (r.obra) toast('Obra: ' + BUILD[r.ob].nome + ' fica pronta em ' + emPalavras(r.obra) + '.');
       else if (res) toast('Casa de ' + res.def.nome);
-      else toast('Terreno livre: abre quando um morador sobe de amizade');
+      else toast('Terreno livre. Faça amizade com um vizinho pra ganhar um prédio aqui.');
       L.bounce = 1; sfx('click');
     }
   });
   document.addEventListener('keydown', e => {
     if (!isOpen()) return;
-    if (e.key === 'Escape') { if (R.choice && !R.choice.opts.length) R.choice = null; else if (!R.choice) close(); }
+    if (e.key === 'Escape') { if (ui.kind) closeModal(); else close(); }
     if (e.key === 'ArrowLeft' || e.key === 'a') R.camT = U.clamp(R.camX - 300, 0, world() - W);
     if (e.key === 'ArrowRight' || e.key === 'd') R.camT = U.clamp(R.camX + 300, 0, world() - W);
   });
 
   /* ---- quadro ---- */
-  let lastT = 0, raf = 0;
+  let lastT = 0, raf = 0, uiT = 0;
   function frame() {
     if (!isOpen()) { raf = 0; return; }
     const now = performance.now() / 1000, dt = Math.min(0.05, lastT ? now - lastT : 0.016); lastT = now;
     R.t += dt;
     const c = P();
-    if (!R.choice && c.pend.length && !obraOn()) { R.choice = nextChoice(); if (R.choice) sfx('levelup'); }
+    if (!R.choice && !R.later && c.pend.length && !obraOn()) { R.choice = nextChoice(); if (R.choice) { sfx('levelup'); R.dirty = 1; } }
     if (R.camT !== null) { R.camX += (R.camT - R.camX) * Math.min(1, dt * 4); if (Math.abs(R.camT - R.camX) < 1) R.camT = null; }
     R.camX = U.clamp(R.camX, 0, world() - W);
     ps.update(dt); fl.update(dt);
@@ -920,6 +1051,9 @@
       const vis = people.filter(p => p.x > R.camX + 40 && p.x < R.camX + W - 40 && p.chatT <= 0 && p.mode !== 'dance');
       if (vis.length) { const p = vis[Math.floor(Math.random() * vis.length)]; chat(p, p.def.fala[Math.floor(Math.random() * p.def.fala.length)], 3); }
     }
+    uiNotes(dt);
+    if ((uiT -= dt) <= 0 || R.dirty) { uiT = 0.25; R.dirty = 0; uiSync(); }
+    uiFollow();
     render(dt);
     raf = requestAnimationFrame(frame);
   }
@@ -932,8 +1066,10 @@
   }
   function render(dt) {
     const t = performance.now() / 1000;
-    btns = []; drawList = [];
+    drawList = [];
     g.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0);
+    if (R.oy) { g.fillStyle = '#4A3020'; g.fillRect(0, 0, W, H); }
+    g.save(); g.translate(0, R.oy);   // a rua sobe/desce pra caber entre as faixas do HUD (layout())
     drawSky(t);
     g.save(); g.translate(-Math.round(R.camX), 0);
     drawGroundBack(t); drawStreet();
@@ -943,10 +1079,11 @@
     streetLanterns(t);
     ps.draw(g);
     g.restore();
-    if (N.grade) N.grade(g, W, BOT, { tod: tod(), horizon: 216, strength: 0.8 });
+    if (N.grade) N.grade(g, W, H, { tod: tod(), horizon: 216, strength: 0.8 });
     if (ff && night() > 0.5) { g.save(); g.translate(-Math.round(R.camX), 0); ff.draw(g, night()); g.restore(); }
     g.save(); g.translate(-Math.round(R.camX), 0); drawBubbles(t); fl.draw(g); g.restore();
-    drawEdges(t); drawTopBar(); drawOrders(t); drawHint(t); drawHeartsFly(dt); drawNotes(dt); drawChoice(t);
+    g.restore();
+    drawHeartsFly(dt);
   }
 
   /* ---- abrir / fechar ---- */
@@ -956,6 +1093,7 @@
     if (lots.length !== NL) rebuild();
     for (const p of people) { const L = lots[p.rec.lot] || lots[0]; p.x = L.x + U.rnd(-40, 40); p.y = U.rnd(ROAD0 + 12, ROAD1 - 10); p.tx = p.x; p.ty = p.y; p.mode = 'idle'; }
     kome.x = DEPOT.x; kome.y = DEPOT.y; kome.state = 'park'; kome.job = null;
+    buildUI(); hideModal(); ui.shown = null; R.later = 0; R.dirty = 1; R.toast = R.banner = null;
     root.classList.add('k-city-open'); stage.resize(); lastT = 0;
     const o = P().ord.find(Boolean), op = o && byId(o.id);
     R.camX = U.clamp(op ? op.x - W / 2 : 90, 0, world() - W); R.camT = null;
@@ -965,7 +1103,7 @@
   }
   function close() {
     if (!isOpen()) return;
-    root.classList.remove('k-city-open'); drag = null; R.sel = -1;
+    root.classList.remove('k-city-open'); drag = null; R.sel = -1; if (ui.box) hideModal();
     if (R.choice) { P().pend.unshift({ id: R.choice.id, lv: R.choice.lv }); R.choice = null; }   // escolha fica guardada pra próxima vez
     for (const o of P().q.slice()) arrive(o);
     kome.job = null; hearts.length = 0;
@@ -997,7 +1135,7 @@
     // toque na Vila (game.js): na rua da Cidade (torii até o último lote) entra nela
     tapVila(wx) { const X = G.World && G.World.X; if (!X || !X.cid0 || !GS() || !P().on || wx < X.cid0 - 330 || wx > X.cid1 + 40) return false; return open(); },
     take, open, close, isOpen, on: () => !!(GS() && P().on), unlock,
-    grains: () => (GS() && GS().stats.city && GS().stats.city.grains) | 0,
+    grains: () => renda(),
     // o que a Vila (game-world.js) desenha: arte de cada lote aberto, obra (0..1) e quem mora
     view() {
       const c = GS() && GS().stats.city; if (!c || !c.on) return null;

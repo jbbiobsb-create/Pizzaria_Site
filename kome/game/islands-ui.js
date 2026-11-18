@@ -50,6 +50,7 @@
   const stateOf = i => {
     const cur = I().index(), r = I().rec(D.ISLANDS[i].id), lap = I().lap();
     if (i === cur) return 'here';
+    if (i === (cur + 1) % D.ISLANDS.length && !(G.Modos && G.Modos.on())) return 'open';   // a próxima parada sempre brilha (mesmo já feita em outra volta)
     if (r && r.n) return 'done';
     if (lap > 0 || i < cur) return 'done';
     return i === (cur + 1) % D.ISLANDS.length ? 'open' : 'locked';
@@ -98,7 +99,7 @@
     const box = root.querySelector('.k-isl-stops'); box.innerHTML = '';
     D.ISLANDS.forEach((isl, i) => {
       const st = stateOf(i), r = I().rec(isl.id), md = r ? r.medal | 0 : 0, mp = isl.map;
-      const b = el('button', 'k-isl-stop k-s-' + st + (i === sel ? ' k-sel' : '') + (mp[1] > 0.8 ? ' k-up' : '') + (mp[0] < 0.16 ? ' k-left' : ''), box);
+      const b = el('button', 'k-isl-stop k-s-' + st + (i === sel ? ' k-sel' : '') + (mp[1] > 0.7 ? ' k-side' : ''), box);
       b.style.left = Math.round(B.x + mp[0] * B.mw) + 'px'; b.style.top = Math.round(B.y + mp[1] * B.mh) + 'px';
       b.setAttribute('aria-label', st === 'locked' ? 'Ilha fechada' : isl.n);
       const d = el('span', 'k-isl-dot', b);
@@ -133,6 +134,7 @@
       if (coach) coachEnd();
       I().travel();   // abre a confirmação (askTravel) por cima do mapa; "Viajar" fecha o mapa
     };
+    const cl = el('button', 'ux-btn k-isl-close', ft, 'Fechar'); cl.onclick = () => close();   // fechar também embaixo (guia de UX)
     stopsKey = ''; placeStops();
     sc.scrollTop = keep; moreTick();
   }
@@ -173,7 +175,7 @@
   }
   function paneSeeds(side) {
     const sd = el('div', 'k-isl-tree', side), have = Math.floor(S.stats.seeds || 0), modo = !!(G.Modos && G.Modos.on());
-    el('div', 'k-isl-sub', sd, modo ? 'No modo, as sementes ficam guardadas.' : 'Sementes nunca somem. Gaste pra ficar mais forte.');
+    el('div', 'k-isl-sub', sd, modo ? 'No modo, as sementes ficam guardadas.' : 'Sementes nunca somem. Gaste aqui pra ganhar mais ¥ em toda ilha.');
     const grid = el('div', 'k-isl-grid', sd);
     for (const s of D.SEEDS) {
       const L = I().lvl(s.id), full = !!s.max && L >= s.max, c = I().seedCost(s), req = s.req && !I().lvl(s.req) ? D.SEEDS.find(x => x.id === s.req) : null, can = !modo && !full && !req && have >= c;

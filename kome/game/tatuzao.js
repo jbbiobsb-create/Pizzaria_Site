@@ -58,12 +58,12 @@
     const on = s.ended && !owned() && !!T(); if (!on) { chip.set({ show: false }); return; }
     const c = price(), can = s.money >= c;
     chip.el.title = 'Tatuzão: ¥' + U.fmt(c);
-    chip.set({ show: true, tip: 'Tatuzão: ¥' + U.fmt(c) + (can ? '' : ' · faltam ¥' + U.fmt(c - s.money)), act: 'Comprar', prio: can ? 2.2 : 0, hint: can ? '¥' + U.fmt(c) + ' · comprar!' : '' });
+    chip.set({ show: true, tip: 'Tatuzão fura um túnel e paga sozinho · ' + (can ? '¥ ' + U.fmt(c) : 'falta ¥ ' + U.fmt(c - s.money)), act: 'Comprar', prio: can ? 2.2 : 0, hint: can ? '¥' + U.fmt(c) + ' · comprar!' : '' });
   }
   function buy() {
     const s = S(), c = price();
     if (owned()) return false;
-    if (s.money < c) { if (E.UI) E.UI.toast('Faltam ¥' + U.fmt(c - s.money) + ' pro Tatuzão', { icon: 'yen', tone: 'bad' }); return false; }
+    if (s.money < c) { if (E.UI) E.UI.toast('Falta ¥ ' + U.fmt(c - s.money) + ' pro Tatuzão', { icon: 'yen', tone: 'bad' }); return false; }
     s.money -= c; s.stats.tatu = 1; if (G.priceBump) G.priceBump(); spawn();
     if (api.bought) api.bought(m ? m.x : 0);
     return true;

@@ -5,7 +5,7 @@
      - Bagger Gêmea, fábrica do pátio, lojas, pintura, escolha do marco: game/industry.js (G.Ind.buy.* / G.Ind.spec).
    Nenhuma fórmula nem chave de save mudou. G.Inf.open() abre esta tela; se ela falhar (ou com ?oficina=lista) abre a lista antiga.
    Como funciona: as máquinas que você tem estão na garagem (painel, vagas, pátio lá fora). Tocar numa leva ela pro elevador;
-   "Melhorar" chama a equipe de mecânicos (segurar repete). Prancheta azul = Gêmea, quadro = fábrica do pátio, cortiça = lojas.
+   "Melhorar" chama a equipe de mecânicos (x1 / x10 / máx: compra em lote, sem segurar). Abas em cima: Máquinas, Gêmea, Galpão, Lojas. Prancheta azul = Gêmea, quadro = fábrica do pátio, cortiça = lojas.
    Arte: game/oficina-arte.js (G.OfiArt). Ganchos de teste: G.Ofi (open, close, isOpen, select, board, upgrade, pick, state). */
 (function () {
   'use strict';
@@ -29,7 +29,7 @@
   const V = {
     tool: null, board: null, live: null, enter: 1, sq: 0, sqV: 0, liftH: 0, burst: 0, burstN: 0, kick: 0,
     stamp: null, mile: null, banner: null, toast: null, help: false, shop: null, hover: -1, hold: null, t: 0, flash: 0, boardFx: null,
-    tinkT: 4, tinkWho: 0, tinkLeft: 0, pops: [],
+    tinkT: 4, tinkWho: 0, tinkLeft: 0, pops: [], qty: 1, shake: 0, page: 0, shopFx: null,
   };
   const ps = E.Particles(700), fl = E.Floaters(80);
   // a equipe do elevador: onde descansam e que ferramenta usam
@@ -105,16 +105,29 @@
     return [[cx - half + 4, LIFT.y + 22, 1], [cx + half - 4, LIFT.y + 20, -1], [cx + Math.min(40, half * 0.4), LIFT.y + 32, -1]];
   }
   function sparksAt(x, y, n) { ps.sparks(x, y, n, { speed: [120, 380], life: [0.25, 0.6], w: [5, 9] }); V.pops.push({ x, y, t: 0 }); if (V.pops.length > 12) V.pops.shift(); }
+  /* COMPRA EM LOTE sem segurar o botão: V.qty = 1 | 10 | 'max'. O lote nunca passa do próximo marco (pra festa e o presente
+     aparecerem) nem do dinheiro. O preço mostrado é a soma pela fórmula de sempre (×1,12 por nível); quem cobra é o G.Inf.up. */
+  function plan(tl) {
+    const inf = G.Inf.info(tl), want = V.qty === 'max' ? 999 : V.qty, cap = Math.max(1, Math.min(want, inf.nextMile ? inf.nextMile - inf.L : want)), m = money();
+    let n = 0, tot = 0;
+    while (n < cap) { const ci = n ? Math.ceil(inf.cost * Math.pow(1.12, n) / 10) * 10 : inf.cost; if (n && tot + ci > m) break; tot += ci; n++; }
+    const gain = G.Inf.multAt ? G.Inf.multAt(tl, inf.L + n) / inf.mult - 1 : inf.multNext / inf.mult - 1;
+    return { inf, n, tot, can: m >= inf.cost, gain, mile: !!inf.nextMile && inf.L + n >= inf.nextMile };
+  }
+  const gainTxt = r => (r >= 1 ? 'arroz ×' + fx1(1 + r) : '+' + (r < 0.1 ? (r * 100).toFixed(1).replace('.', ',') : Math.round(r * 100)) + '% de arroz');
+  function deny(c) { toast('Falta ¥ ' + U.fmt(c - money())); sfx('error'); V.shake = 0.3; V.hold = null; return false; }
   function upgrade() {
     const t = toolOf(V.tool); if (!t || V.mile || !G.Inf) return false;
-    const inf = G.Inf.info(t);
-    if (money() < inf.cost) { toast('Faltam ¥' + U.fmt(inf.cost - money())); sfx('error'); V.hold = null; return false; }
-    const r = G.Inf.up(t, { quiet: true }); if (!r) return false;
-    V.burst = 0.6; V.burstN++; V.sqV = -2.6; V.kick = 1;
+    const p = plan(t);
+    if (!p.can) return deny(p.inf.cost);
+    let done = 0, r = null;
+    for (let i = 0; i < p.n; i++) { const q = G.Inf.up(t, { quiet: true }); if (!q) break; r = q; done++; if (q.mile) break; }
+    if (!r) return false;
+    V.burst = 0.6; V.burstN++; V.sqV = -2.6; V.kick = 1; yenBump = 1;
     const lp = A.liftPos(V.tool);
-    V.stamp = { t: 0, txt: '+1', x: LIFT.x + Math.min(120, lp.w * 0.32), y: LIFT.y - Math.min(190, lp.h * 0.8) - 6 };
+    V.stamp = { t: 0, txt: '+' + done, x: LIFT.x + Math.min(120, lp.w * 0.32), y: LIFT.y - Math.min(190, lp.h * 0.8) - 6 };
     sfx(V.burstN % 2 ? 'ofi-catraca' : 'ofi-solda', { pitch: 0.94 + (V.burstN % 5) * 0.04 }); sfx('ofi-carimbo', { delay: 0.1 });
-    fl.add(GEO.card.x + 120, GEO.card.y + 150, 'Nv ' + r.L, { size: 20, c: K.goldL, life: 0.9 });
+    fl.add(CARD.x + 130, CARD.y + 70, 'nível ' + r.L, { size: 20, c: K.goldL, life: 0.9 });
     if (r.mile) milestone(t, r.L);
     return true;
   }
@@ -136,7 +149,7 @@
   }
   function later() {
     const m = V.mile; if (!m || m.t < 0.9) return false;
-    V.mile = null; sfx('click', { pitch: 0.9 }); toast('Guardado! Escolha quando quiser na ★ da máquina');
+    V.mile = null; sfx('click', { pitch: 0.9 }); toast('Guardado! O presente espera na ★');
     return true;
   }
   function pick(ch) {
@@ -144,27 +157,27 @@
     G.Ind.spec(m.tool, ch); G.Inf.recompute();
     V.mile = null; V.sqV = -3; V.flash = 0.6; sfx('ofi-peca'); sfx('chirin');
     ps.burst(LIFT.x, LIFT.y - 100, 34, { c: ch === 'd' ? [C.gold, C.goldL, C.cream] : [C.red, C.yel, C.cream], shape: 'star', speed: [120, 360], life: 1 });
-    banner(ch === 'd' ? 'Mais dourada!' : 'Mais rápida!', ch === 'd' ? '+10% em todos os bolsões dourados' : m.tool.name + ': bônus +50%', ch === 'd' ? K.gold : K.red);
+    banner(ch === 'd' ? 'Mais dourada!' : 'Mais rápida!', ch === 'd' ? 'arroz dourado vale +10%' : m.tool.name + ' rende +50%', ch === 'd' ? K.gold : K.red);
     return true;
   }
   // "Usar esta máquina": a troca de lugar de sempre do jogo (game.js playAs), sem sair da Oficina
   function useTool() {
     const i = idxOf(V.tool), GM = G.Game; if (i < 0 || !GM || !GM.playAs) return false;
     if (GM.playIndex && GM.playIndex() === i && !(GS() && GS().twinPlay)) return false;
-    if (!GM.playAs(i)) { toast('Agora não dá pra trocar'); sfx('error'); return false; }
+    if (!GM.playAs(i)) { toast('Agora não dá pra trocar'); sfx('error'); V.shake = 0.3; return false; }
     V.flash = 0.5; V.sqV = 3.6; sfx('chirin');
     return true;
   }
   function boardFx(b, s) { const r = b === 'gemea' ? GEO.plan : b === 'fab' ? GEO.fab : GEO.cork; V.boardFx = { b, t: 0 }; ps.burst(r.x + r.w / 2, r.y + r.h / 2, 22, { c: [C.gold, C.goldL, C.cream], shape: 'star', speed: [80, 260], life: 0.9 }); V.stamp = { t: 0, txt: s, x: r.x + r.w / 2, y: r.y + r.h / 2 + 8 }; sfx('ofi-peca'); sfx('ofi-carimbo', { delay: 0.08 }); }
   function buyGiant() {
     const I = G.Ind, r = I.run(), gp = Math.min(4, r.giant | 0), part = DATA.GIANT[gp]; if (!part) return;
-    const c = I.cost.giant(); if (money() < c) { toast('Faltam ¥' + U.fmt(c - money())); sfx('error'); return; }
+    const c = I.cost.giant(); if (money() < c) { deny(c); return; }
     if (!I.buy.giant(true)) return;
     boardFx('gemea', 'PEÇA ' + (gp + 1) + '/4');
-    if (gp + 1 >= 4) { banner('BAGGER GÊMEA!', 'duas rodas, 50% maior que a 293', K.gold); sfx('ofi-marco'); sfx('fanfare', { vol: 0.6 }); V.flash = 1; }
+    if (gp + 1 >= 4) { banner('BAGGER GÊMEA!', 'pronta: ela cava do seu lado', K.gold); sfx('ofi-marco'); sfx('fanfare', { vol: 0.6 }); V.flash = 1; }
   }
-  function buyFab() { const I = G.Ind, c = I.cost.fab(); if (money() < c) { toast('Faltam ¥' + U.fmt(c - money())); sfx('error'); return; } if (I.buy.fab(true)) boardFx('fab', '+12%'); }
-  function buyShop(id) { const I = G.Ind, c = I.cost.shop(id); if (money() < c) { toast('Faltam ¥' + U.fmt(c - money())); sfx('error'); return; } if (I.buy.shop(id, true)) boardFx('lojas', '+4%'); }
+  function buyFab() { const I = G.Ind, c = I.cost.fab(); if (money() < c) { deny(c); return; } if (I.buy.fab(true)) boardFx('fab', '+12%'); }
+  function buyShop(id) { const I = G.Ind, c = I.cost.shop(id); if (money() < c) { deny(c); return; } if (I.buy.shop(id, true)) { V.shopFx = { id, t: 0 }; yenBump = 1; sfx('ofi-peca'); sfx('ofi-carimbo', { delay: 0.08 }); } }
 
   /* ======================================================================
      HUD em canvas (mesmo jeito da Fábrica: pílulas creme com contorno e sombra)
@@ -205,25 +218,43 @@
   function iconAt(id, x, y, s) { g.imageSmoothingEnabled = false; const cv = A.icon(id); g.drawImage(cv, Math.round(x - cv.width * s / 2), Math.round(y - cv.height * s / 2), cv.width * s, cv.height * s); }
 
   let yenBump = 0;
-  function drawTopBar(t) {
-    button(8, 6, 116, 38, '← Montanha', close, { fill: '#F6B6B0', size: 17 });
-    pill(132, 6, 150, 38);
+  // botão de aba / de seletor: o ativo fica escuro (dourado é só "dá pra comprar"); dot = bolinha dourada de novidade
+  function seg(x, y, w, h, label, active, fn, o) {
+    o = o || {};
+    const pressed = pressBtn && pressBtn.x === x && pressBtn.y === y, dy = pressed ? 2 : 0;
+    g.fillStyle = 'rgba(40,22,8,.30)'; D.rrect(g, x - 2, y + 2, w + 4, h + 6, 11); g.fill();
+    g.fillStyle = INK; D.rrect(g, x - 2.5, y - 2.5, w + 5, h + 7.5, 11); g.fill();
+    g.fillStyle = active ? '#5A3E28' : C.cream; D.rrect(g, x, y + dy, w, h, 9); g.fill();
+    if (!active) { g.fillStyle = 'rgba(255,255,255,.5)'; D.rrect(g, x + 4, y + 2.5 + dy, w - 8, 3, 1.5); g.fill(); }
+    if (o.icon) o.icon(x + 24, y + h / 2 + dy);
+    txt(label, x + w / 2 + (o.icon ? 14 : 0), y + h / 2 + 1 + dy, T(o.size || 18, active ? '#FFF6DE' : INK));
+    if (o.dot && !active) { const by = y - 2 + Math.sin(V.t * 5) * 1.5; g.fillStyle = INK; g.beginPath(); g.arc(x + w - 8, by + 4, 8, 0, TAU); g.fill(); g.fillStyle = C.gold; g.beginPath(); g.arc(x + w - 8, by + 4, 5.5, 0, TAU); g.fill(); }
+    hit(x, y, w, h, fn, { x, y });
+  }
+  // X de fechar (sempre igual: canto de cima à direita)
+  function xBtn(x, y, w, h, fn, label) {
+    button(x, y, w, h, label || '', fn, { fill: '#F6B6B0', size: 18, dx: label ? 12 : 0 });
+    const cx = label ? x + 22 : x + w / 2, cy = y + h / 2 + (pressBtn && pressBtn.x === x && pressBtn.y === y ? 2 : 0);
+    g.strokeStyle = INK; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx - 7, cy - 7); g.lineTo(cx + 7, cy + 7); g.moveTo(cx + 7, cy - 7); g.lineTo(cx - 7, cy + 7); g.stroke(); g.lineCap = 'butt';
+  }
+  const TABS = [['', 'Máquinas'], ['gemea', 'Gêmea'], ['fab', 'Galpão'], ['lojas', 'Lojas']];
+  function setTab(b) { if ((V.board || '') === b) return; if (b) { V.board = null; openBoard(b); } else { V.board = null; sfx('click', { pitch: 1.1 }); } }
+  function drawTopBar(t, can) {
+    pill(8, 6, 148, 42);
     const bump = Math.sin(Math.min(1, yenBump) * Math.PI) * 0.12;
-    blit(SPR.coin, 152, 36 - bump * 20, 2 + bump * 2);
-    txt(U.fmt(Math.floor(money())), 170, 26, T(18, INK, 'left'));
-    // a máquina que você está usando na montanha e o que ela ganha da Oficina
-    const cur = G.Inf && G.Inf.playing ? G.Inf.playing() : null, ct = cur && toolOf(cur.id) ? toolOf(cur.id) : toolOf(V.tool);
-    pill(290, 6, 662, 38);
-    txt('Usando', 302, 26, T(17, '#8A6A4A', 'left'));
-    if (ct) {
-      const inf = G.Inf.info(ct);
-      iconAt(ct.id, 388, 25, 2);
-      fit(ct.name, 410, 26, 214, 18, INK, 'left');
-      nvBadge(630, 12, inf.L, inf.miles);
-      txt('renda ×' + fx2(G.Inf.mult(ct.id)), 708, 26, T(17, C.grassD, 'left'));
-      txt('força ×' + fx1(G.Inf.powK(ct.id)), 940, 26, T(17, C.oraD, 'right'));
-      hit(290, 6, 662, 38, () => { if (!V.mile) select(ct.id); }, null);
-    }
+    blit(SPR.coin, 28, 38 - bump * 20, 2 + bump * 2);
+    txt(U.fmt(Math.floor(money())), 46, 28, T(18, INK, 'left'));
+    const r = G.Ind.run(), cur = V.board || '';
+    TABS.forEach(([id, name], i) => {
+      const x = 166 + i * 172;
+      seg(x, 6, 164, 42, name, cur === id, () => { if (!V.mile) setTab(id); }, { dot: id && can && can[id], icon: (ix, iy) => {
+        if (!id) iconAt(V.tool || 'pata', ix, iy, 1.5);
+        else if (id === 'gemea') iconAt('bagger', ix, iy, 1.5);
+        else if (id === 'fab') blit(SPR.up, ix, iy + 9, 2);
+        else blit(A.flyerOf(r.client || DATA.SHOPS[0].id), ix, iy + 13, 1.6);
+      } });
+    });
+    xBtn(858, 6, 94, 42, close, 'Sair');
   }
 
   /* ---- régua de baixo: uma ficha por máquina (ícone + nível) ---- */
@@ -253,7 +284,7 @@
         txt(label, lx + tw / 2, y - 20.5, T(17, C.cream));
       }
     });
-    button(890, 476, 62, 58, '?', () => { V.help = !V.help; sfx('click'); }, { size: 26, on: V.help });
+    button(886, 476, 66, 58, '?', () => { V.help = !V.help; sfx('click'); }, { size: 24, sub: 'Ajuda', subSize: 17 });
   }
 
   /* ---- cartões flutuantes ---- */
@@ -275,113 +306,123 @@
   }
   // quebra em até 2 linhas de n letras (texto de cartão estreito, sempre 17 px)
   function wrap2(str, n) { if (str.length <= n) return [str, '']; const w = str.split(' '); let a = '', i = 0; while (i < w.length && (a + ' ' + w[i]).trim().length <= n) { a = (a + ' ' + w[i]).trim(); i++; } return [a, w.slice(i).join(' ')]; }
+  /* CARTÃO DA MÁQUINA (coluna da direita, guia de UX): dica "o que fazer agora" · nome · barra do nível até o próximo marco ·
+     fileira de medalhas · seletor x1/x10/máx · UM botão dourado grande (preço + ganho em palavras) · "Usar na montanha". */
+  const CARD = { x: 672, y: 156, w: 280, h: 306 };
+  function hintStrip(x, y, w, s) { g.fillStyle = '#FFE9A8'; D.rrect(g, x, y, w, 30, 8); g.fill(); txt(s, x + w / 2, y + 16, T(17, INK)); }
+  // botão de compra: dourado = dá pra comprar agora · cinza = falta dinheiro (e diz quanto)
+  function buyBtn(x, y, w, h, label, cost, fn, extra, size) {
+    const can = money() >= cost;
+    button(x, y, w, h, label, fn, { fill: C.gold, off: !can, size: size || 20, sub: can ? '¥ ' + U.fmt(cost) + (extra ? ' · ' + extra : '') : 'falta ¥ ' + U.fmt(cost - money()), subCol: can ? INK : '#6B4A2E' });
+  }
   function drawToolCard(t) {
     const tl = toolOf(V.tool); if (!tl) return;
-    const c = GEO.card, x = c.x + 12, w = c.w - 24, y = c.y, inf = G.Inf.info(tl), cur = G.Inf.playing ? G.Inf.playing() : null, using = cur && cur.id === tl.id, pend = Math.max(0, inf.miles - inf.spec.length);
-    card(c.x, c.y, c.w, c.h, 0, c.y + 120, 'l');
-    fit(tl.name, x, y + 20, w, 19, INK, 'left');
-    nvBadge(x, y + 34, inf.L, inf.miles);
-    if (pend) {   // marco pendente: o botão dourado reabre a escolha
-      button(x + 76, y + 33, w - 76, 28, '★ escolher', () => openMile(tl.id), { fill: Math.sin(t * 6) > 0 ? C.goldL : '#FFF0B8', size: 17 });
-      txt('marco ' + G.Inf.mileAt(inf.spec.length) + ' pendente', x + w, y + 78, T(17, C.goldD, 'right'));
-    } else {      // régua dos marcos: 10, 25 e 50 viram estrela; depois do 50 a régua anda de 25 em 25 (3 marcos à vista)
-      const rx = x + 82, rw = w - 96, ry = y + 42, L0 = inf.L < 50 ? 0 : 50 + 25 * Math.max(0, Math.floor((inf.L - 50) / 25) - 1), L1 = inf.L < 50 ? 50 : L0 + 75;
-      const MIL = inf.L < 50 ? G.Inf.MILES : [L0 + 25, L0 + 50, L0 + 75];
-      meter(rx, ry, rw, 9, Math.min(1, (inf.L - L0) / (L1 - L0)), C.gold);
-      MIL.forEach(m => {
-        const mx = rx + rw * (m - L0) / (L1 - L0), got = inf.L >= m, nxt = inf.nextMile === m;
-        blit(got ? SPR.star : SPR.starOff, mx - 2, ry + 15 + (nxt ? Math.sin(t * 4) * 1.5 : 0), 2);
-        txt(String(m), mx - 2, ry + 30, T(17, got ? C.goldD : nxt ? INK : '#9a8a76'));
-      });
-    }
-    const row = (lab, a, b, col, yy) => { txt(lab, x, yy, T(17, '#6B4A2E', 'left')); txt('×' + a + '  ▸  ×' + b, c.x + c.w - 12, yy, T(17, col, 'right')); };
-    row('renda', fx2(inf.mult), fx2(inf.multNext), C.grassD, y + 96);
-    row('força', fx1(inf.pow), fx1(inf.powNext), C.oraD, y + 116);
-    const can = money() >= inf.cost, soon = inf.nextMile && inf.L + 1 === inf.nextMile;
-    button(x, y + 128, w, 48, soon ? 'Melhorar ★' : 'Melhorar', () => { if (upgrade()) V.hold = { t: 0.38, n: 0 }; }, { fill: soon ? '#FFE9A8' : '#DDF0C2', off: !can, size: 19, sub: '¥' + U.fmt(inf.cost), subCol: can ? C.grassD : C.redD, hold: true });
-    button(x, y + 186, w, 30, using ? 'usando agora' : 'Usar esta máquina', useTool, { on: using, fill: '#D6E8F7', size: 17 });
+    const c = CARD, x = c.x + 12, w = c.w - 24, y = c.y, p = plan(tl), inf = p.inf, cur = G.Inf.playing ? G.Inf.playing() : null, using = cur && cur.id === tl.id, pend = Math.max(0, inf.miles - inf.spec.length);
+    card(c.x, c.y, c.w, c.h, 0, c.y + 200, 'l');
+    if (pend) button(x, y + 8, w, 30, '★ Pegue o presente do marco', () => openMile(tl.id), { fill: Math.sin(t * 6) > 0 ? C.gold : C.goldL, size: 17 });
+    else hintStrip(x, y + 8, w, p.can ? 'Toque em Melhorar' : 'Cave mais arroz pra melhorar');
+    fit(tl.name, x, y + 60, using ? w - 70 : w, 20, INK, 'left');
+    if (using) txt('em uso', x + w, y + 60, T(17, C.grassD, 'right'));
+    // nível: barra do marco anterior até o próximo, com a estrela do marco na ponta
+    txt('nível ' + inf.L + ' · marco no ' + inf.nextMile, x, y + 84, T(17, '#6B4A2E', 'left'));
+    meter(x, y + 96, w - 24, 14, (inf.L - inf.prevMile) / Math.max(1, inf.nextMile - inf.prevMile), C.gold);
+    blit(SPR.starOff, x + w - 9, y + 111 + Math.sin(t * 4) * 1.5, 2);
+    // medalhas: uma por marco batido
+    txt('medalhas', x, y + 128, T(17, '#6B4A2E', 'left'));
+    if (inf.miles) { const mw = A.medalSlots(inf.miles, inf.spec) * 11 + 8; A.medals(g, x + w - mw / 2 - 2, y + 136, inf.miles, inf.spec, t, 2); }
+    else txt('nenhuma ainda', x + w, y + 128, T(17, '#9a8a76', 'right'));
+    // quantos níveis por toque (sem segurar)
+    const sw = (w - 12) / 3;
+    [[1, 'x1'], [10, 'x10'], ['max', 'máx']].forEach(([q, lab], i) => seg(x + i * (sw + 6), y + 146, sw, 34, lab, V.qty === q, () => { V.qty = q; sfx('click', { pitch: 1.2 }); }));
+    const lab = 'Melhorar' + (p.n > 1 ? ' +' + p.n : '') + (p.mile ? ' ★' : '');
+    button(x, y + 190, w, 64, lab, upgrade, { fill: C.gold, off: !p.can, size: 22, sub: p.can ? '¥ ' + U.fmt(p.tot) + ' · ' + gainTxt(p.gain) : 'falta ¥ ' + U.fmt(inf.cost - money()), subCol: p.can ? INK : '#6B4A2E' });
+    button(x, y + 264, w, 32, using ? 'Em uso na montanha' : 'Usar na montanha', useTool, { fill: using ? '#BFE3B4' : '#D6E8F7', size: 17 });
   }
-  /* cartões dos quadros da parede (Gêmea, fábrica do pátio, lojas): moram na COLUNA DA DIREITA, no lugar do cartão da máquina,
-     e o quadro deles acende na parede. Assim nunca tapam a máquina que está no elevador. */
-  const RC = { x: 708, w: 244, bottom: 460 };
-  function boardCard(h, p, t) {
-    const y = RC.bottom - h, k = 0.5 + 0.5 * Math.sin(t * 5);
+  /* cartões dos quadros da parede (Gêmea e Galpão): moram na COLUNA DA DIREITA, no lugar do cartão da máquina, e o quadro
+     deles acende na parede. Abrem pela aba de cima ou tocando no quadro; fecham no X, na aba Máquinas, tocando fora ou Esc. */
+  const RC = { x: 672, w: 280, bottom: 462 };
+  function boardCard(h, p, t, title, hint) {
+    const y = RC.bottom - h, k = 0.5 + 0.5 * Math.sin(t * 5), x = RC.x + 12, w = RC.w - 24;
     g.strokeStyle = INK; g.lineWidth = 7; D.rrect(g, p.x - 4, p.y - 4, p.w + 8, p.h + 8, 8); g.stroke();
     g.strokeStyle = k > 0.5 ? C.goldL : C.gold; g.lineWidth = 3.5; D.rrect(g, p.x - 4, p.y - 4, p.w + 8, p.h + 8, 8); g.stroke();
-    card(RC.x, y, RC.w, h, U.clamp(p.x + p.w / 2, RC.x + 22, RC.x + RC.w - 22), 0, 'u');
-    return y;
+    card(RC.x, y, RC.w, h, 0, y + 60, 'l');
+    txt(title, x, y + 26, T(20, INK, 'left'));
+    xBtn(x + w - 42, y + 7, 42, 34, () => setTab(''));
+    hintStrip(x, y + 50, w, hint);
+    return y + 62;
   }
   function drawGemeaCard(t) {
     const I = G.Ind, r = I.run(), gp = Math.min(4, r.giant | 0), part = DATA.GIANT[gp], x = RC.x + 12, w = RC.w - 24;
-    const y = boardCard(part ? 266 : 240, GEO.plan, t);
-    txt('Bagger Gêmea', x, y + 22, T(19, INK, 'left'));
-    txt(gp + '/4', x + w, y + 22, T(17, gp >= 4 ? C.goldD : '#8A6A4A', 'right'));
-    for (let i = 0; i < 4; i++) {
-      const tx = x + i * 56, on = i < gp, nx = i === gp;
-      g.fillStyle = INK; D.rrect(g, tx - 2, y + 36, 54, 44, 9); g.fill();
-      g.fillStyle = on ? '#34558C' : nx ? '#FFE9A8' : '#E0D4BA'; D.rrect(g, tx, y + 38, 50, 40, 7); g.fill();
-      txt(String(i + 1), tx + 13, y + 59, T(20, on ? C.cream : nx ? INK : '#9a8a76'));
-      if (on) blit(SPR.star, tx + 36, y + 70, 2); else if (!nx) blit(SPR.lock, tx + 36, y + 69, 2, { alpha: 0.7 });
-      else blit(SPR.up, tx + 36, y + 69 + Math.sin(t * 5) * 2, 2);
+    const y = boardCard(part ? 300 : 262, GEO.plan, t, 'Bagger Gêmea', part ? 'Compre as 4 peças dela' : 'Pronta! Escolha a cor');
+    const tw = (w - 18) / 4;
+    for (let i = 0; i < 4; i++) {   // progresso: 4 peças (verde = comprada, dourada = a próxima, cinza = depois)
+      const tx = x + i * (tw + 6), on = i < gp, nx = i === gp;
+      g.fillStyle = INK; D.rrect(g, tx - 2, y + 30, tw + 4, 44, 9); g.fill();
+      g.fillStyle = on ? '#6DBF67' : nx ? C.gold : '#D9CFBB'; D.rrect(g, tx, y + 32, tw, 40, 7); g.fill();
+      txt(String(i + 1), tx + 16, y + 53, T(20, on || nx ? INK : '#8a7a66'));
+      if (on) blit(SPR.star, tx + tw - 16, y + 64, 2); else if (!nx) blit(SPR.lock, tx + tw - 16, y + 63, 2, { alpha: 0.7 });
+      else blit(SPR.up, tx + tw - 16, y + 63 + Math.sin(t * 5) * 2, 2);
     }
     if (part) {
-      const c = I.cost.giant(), can = money() >= c, m0 = gp ? DATA.GIANT[gp - 1].mult : 1, ds = wrap2(part.d, 23);
-      txt('Peça ' + (gp + 1) + ' de 4', x, y + 100, T(17, '#8A6A4A', 'left'));
-      fit(part.n, x, y + 122, w, 18, INK, 'left');
-      txt(ds[0], x, y + 144, T(17, '#6B4A2E', 'left')); if (ds[1]) fit(ds[1], x, y + 164, w, 17, '#6B4A2E', 'left');
-      txt('renda', x, y + 188, T(17, '#6B4A2E', 'left')); txt('×' + String(m0).replace('.', ',') + '  ▸  ×' + String(part.mult).replace('.', ','), x + w, y + 188, T(17, C.grassD, 'right'));
-      button(x, y + 202, w, 50, 'Comprar a peça', buyGiant, { fill: '#DDF0C2', off: !can, size: 18, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
+      const m0 = gp ? DATA.GIANT[gp - 1].mult : 1;
+      txt('peça ' + (gp + 1) + ' de 4', x, y + 96, T(17, '#6B4A2E', 'left'));
+      fit(part.n, x, y + 120, w, 19, INK, 'left');
+      txt('arroz', x, y + 146, T(17, '#6B4A2E', 'left')); txt('×' + String(m0).replace('.', ',') + '  ▸  ×' + String(part.mult).replace('.', ','), x + w, y + 146, T(17, C.grassD, 'right'));
+      buyBtn(x, y + 162, w, 64, 'Comprar a peça', I.cost.giant(), buyGiant);
     } else {
-      txt('completa!', x, y + 102, T(19, C.grassD, 'left'));
-      txt('cava ao lado da 293', x, y + 124, T(17, '#6B4A2E', 'left'));
-      txt('renda ×' + String(DATA.GIANT[3].mult).replace('.', ',') + ' · pintura:', x, y + 148, T(17, '#6B4A2E', 'left'));
-      const cur = r.paint || 'kawaii', cols = { kawaii: '#F4B8C5', dino: '#9BC47A', normal: '#EDB93A' }, names = { kawaii: 'Kawaii', dino: 'Dino', normal: 'Normal' };
+      txt('Ela cava do seu lado.', x, y + 96, T(17, '#6B4A2E', 'left'));
+      txt('Arroz ×' + String(DATA.GIANT[3].mult).replace('.', ',') + ' pra sempre.', x, y + 118, T(17, C.grassD, 'left'));
+      const cur = r.paint || 'kawaii', cols = { kawaii: '#F4B8C5', dino: '#9BC47A', normal: '#EDB93A' }, names = { kawaii: 'Kawaii', dino: 'Dino', normal: 'Normal' }, bw = (w - 12) / 3;
       I.PAINTS.forEach(([id], i) => {
-        const bx = x + i * 75;
-        button(bx, y + 164, 70, 62, names[id], () => { I.buy.paint(id, true); sfx('pop'); boardFx('gemea', names[id].toUpperCase()); }, { on: cur === id, size: 17, sub: ' ' });
-        g.fillStyle = INK; D.rrect(g, bx + 13, y + 196, 44, 22, 7); g.fill(); g.fillStyle = cols[id]; D.rrect(g, bx + 15, y + 198, 40, 18, 5); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(bx + 18, y + 200, 34, 3);
+        const bx = x + i * (bw + 6);
+        button(bx, y + 132, bw, 58, names[id], () => { I.buy.paint(id, true); sfx('pop'); boardFx('gemea', names[id].toUpperCase()); }, { fill: cur === id ? '#BFE3B4' : C.cream, size: 17, sub: ' ' });
+        g.fillStyle = INK; D.rrect(g, bx + bw / 2 - 22, y + 162, 44, 20, 7); g.fill(); g.fillStyle = cols[id]; D.rrect(g, bx + bw / 2 - 20, y + 164, 40, 16, 5); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(bx + bw / 2 - 17, y + 166, 34, 3);
       });
     }
   }
   function drawFabCard(t) {
-    const I = G.Ind, r = I.run(), L = r.fab | 0, x = RC.x + 12, w = RC.w - 24, c = I.cost.fab(), can = money() >= c;
-    const y = boardCard(186, GEO.fab, t);
-    txt('Fábrica do pátio', x, y + 22, T(19, INK, 'left'));
-    nvBadge(x, y + 36, L, 0); txt('KOME PACK', x + w, y + 49, T(17, '#8A6A4A', 'right'));
-    txt('renda', x, y + 84, T(17, '#6B4A2E', 'left')); txt(pct(0.12 * L) + '  ▸  ' + pct(0.12 * (L + 1)), x + w, y + 84, T(17, C.grassD, 'right'));
-    txt('chega', x, y + 106, T(17, '#6B4A2E', 'left')); fit(I.nextFab(L), x + w, y + 106, w - 56, 17, C.oraD, 'right');
-    button(x, y + 120, w, 50, 'Ampliar', buyFab, { fill: '#DDF0C2', off: !can, size: 18, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
+    const I = G.Ind, r = I.run(), L = r.fab | 0, x = RC.x + 12, w = RC.w - 24;
+    const y = boardCard(252, GEO.fab, t, 'Galpão do pátio', 'Cada nível: +12% de arroz');
+    txt('nível ' + L, x, y + 46, T(19, INK, 'left'));
+    txt('arroz', x, y + 72, T(17, '#6B4A2E', 'left')); txt(pct(0.12 * L) + '  ▸  ' + pct(0.12 * (L + 1)), x + w, y + 72, T(17, C.grassD, 'right'));
+    txt('chega', x, y + 96, T(17, '#6B4A2E', 'left')); fit(I.nextFab(L), x + w, y + 96, w - 56, 17, C.oraD, 'right');
+    buyBtn(x, y + 114, w, 64, 'Ampliar', I.cost.fab(), buyFab, '+12%');
   }
-  // lojas: funciona com qualquer número delas (as fichas de conteudo/ podem somar lojas novas, ex.: Barraca de Ramen)
-  const shopName = sh => { const n = sh.n || sh.id; return n.indexOf(' de ') > 0 ? n.split(' de ').pop() : n; };
-  function shopDesc(sh) {
-    const d = String(sh.d || '').replace(/^cliente:\s*/, '').replace(/\s*\(.*\)\s*$/, ''), words = d.split(' ');
-    if (d.length <= 16) return [d, ''];
-    let best = 1, bl = 1e9;                                   // quebra em duas linhas o mais iguais possível
-    for (let k = 1; k < words.length; k++) { const a = words.slice(0, k).join(' ').length, b = words.slice(k).join(' ').length, m = Math.max(a, b); if (m < bl) { bl = m; best = k; } }
-    return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
-  }
+  /* LOJAS DA CIDADE: janela grande com um cartão por loja (desenho, nome, nível, 1 linha, botão de preço e "Favoritar").
+     Funciona com qualquer número de lojas (fichas de conteudo/ somam lojas): 6 por página, botão "Mais lojas".
+     Cores: dourado = dá pra comprar · cinza = falta dinheiro / fechada · verde = a favorita. */
+  const SHOP_KN = { sell: 'de arroz', val: 'no preço', gold: 'no dourado' };
+  const shopLine = sh => (G.Ind.shopLine ? G.Ind.shopLine(sh) : 'Favorita: +' + Math.round((sh.r || 0) * 100) + '% ' + (SHOP_KN[sh.k] || 'de arroz'));
   function drawShopCard(t) {
-    // uma loja por linha, com o NOME escrito (antes eram 2 colunas só com ícone e nível: ninguém sabia qual era qual)
-    const I = G.Ind, r = I.run(), list = DATA.SHOPS, n = list.length, x = RC.x + 12, w = RC.w - 24, rh = Math.max(22, Math.min(32, Math.floor((RC.bottom - 86 - 36 - 140) / n)));
-    const gh = n * rh, y = boardCard(36 + gh + 140, GEO.cork, t);   // topo do cartão abaixo da placa LOJAS (celular: ela sumia)
-    txt('Cidade que compra', x, y + 22, T(19, INK, 'left'));
-    list.forEach((sh, i) => {
-      const cx = x, cy = y + 36 + i * rh, on = V.shop === sh.id, L = r.shops[sh.id] | 0, cl = r.client === sh.id, bh = rh - 6;
-      g.fillStyle = INK; D.rrect(g, cx - 2, cy - 2, w + 4, bh + 4, 9); g.fill();
-      g.fillStyle = on ? C.goldL : '#F3E7CC'; D.rrect(g, cx, cy, w, bh, 7); g.fill();
-      blit(A.flyerOf(sh.id), cx + 17, cy + bh - 1, bh >= 26 ? 2 : 1.6, { alpha: L ? 1 : 0.6 });
-      let nm = shopName(sh); const mx = Math.floor((w - 36 - 58 - (cl ? 18 : 0)) / (17 * 0.56)); if (nm.length > mx) nm = nm.slice(0, mx - 1) + '…';
-      txt(nm, cx + 36, cy + bh / 2 + 1, T(17, L ? INK : '#6E5A44', 'left'));
-      if (cl) blit(SPR.star, cx + w - 66, cy + bh / 2 + 8, 2);
-      txt('Nv ' + L, cx + w - 8, cy + bh / 2 + 1, T(17, L ? INK : '#9a8a76', 'right'));
-      hit(cx - 2, cy - 2, w + 4, rh, () => { V.shop = sh.id; sfx('click', { pitch: 1.2 }); }, null);
+    const I = G.Ind, r = I.run(), list = DATA.SHOPS, pages = Math.max(1, Math.ceil(list.length / 6)), px = 18, py = 56, pw = 924, ph = 408;
+    if (V.page >= pages) V.page = 0;
+    g.fillStyle = 'rgba(30,18,10,.5)'; g.fillRect(0, 52, W, BAR.y - 62);
+    hit(0, 52, W, BAR.y - 62, () => setTab(''), null);                       // tocar fora fecha
+    pill(px, py, pw, ph, '#FFF6DE', 14); hit(px, py, pw, ph, () => {}, null);
+    blit(A.flyerOf(r.client || list[0].id), px + 28, py + 44, 2);
+    txt('Lojas da cidade', px + 50, py + 28, T(22, INK, 'left'));
+    const hw = pages > 1 ? 330 : 500; hintStrip(px + 232, py + 12, hw, pages > 1 ? 'Cada nível de loja: +4% de arroz' : 'Abra e melhore lojas: cada nível dá +4% de arroz');
+    if (pages > 1) button(px + 574, py + 9, 280, 36, 'Mais lojas ▸  (' + (V.page + 1) + ' de ' + pages + ')', () => { V.page = (V.page + 1) % pages; sfx('click'); }, { size: 17 });
+    xBtn(px + pw - 60, py + 8, 48, 40, () => setTab(''));
+    const cw = 292, ch = 164;
+    list.slice(V.page * 6, V.page * 6 + 6).forEach((sh, i) => {
+      const cx = px + 12 + (i % 3) * (cw + 12), cy = py + 58 + Math.floor(i / 3) * (ch + 12), L = r.shops[sh.id] | 0, cl = r.client === sh.id, c = I.cost.shop(sh.id), can = money() >= c;
+      g.fillStyle = INK; D.rrect(g, cx - 2.5, cy - 2.5, cw + 5, ch + 6, 13); g.fill();
+      g.fillStyle = cl ? '#E4F3D8' : L ? '#FFFDF2' : '#EDE4D0'; D.rrect(g, cx, cy, cw, ch, 10); g.fill();
+      g.fillStyle = INK; D.rrect(g, cx + 8, cy + 8, 76, 76, 9); g.fill(); g.fillStyle = L ? '#FFE9A8' : '#D9CFBB'; D.rrect(g, cx + 10, cy + 10, 72, 72, 7); g.fill();
+      blit(A.flyerOf(sh.id), cx + 46, cy + 78, 4, { alpha: L ? 1 : 0.55 });
+      fit(sh.n || sh.id, cx + 94, cy + 26, cw - 104, 19, INK, 'left');
+      txt(L ? 'nível ' + L : 'fechada', cx + 94, cy + 52, T(17, L ? C.grassD : '#8a7a66', 'left'));
+      if (cl) { blit(SPR.star, cx + cw - 20, cy + 62, 2); txt('favorita', cx + cw - 34, cy + 52, T(17, C.grassD, 'right')); }
+      txt(shopLine(sh), cx + 10, cy + 98, T(17, C.oraD, 'left'));
+      button(cx + 8, cy + 112, 172, 44, can ? (L ? 'Subir ¥ ' : 'Abrir ¥ ') + U.fmt(c) : 'falta ¥ ' + U.fmt(c - money()), () => buyShop(sh.id), { fill: C.gold, off: !can, size: 17 });
+      button(cx + 188, cy + 112, 96, 44, cl ? 'Favorita' : 'Favoritar', () => {
+        if (!L) { toast('Abra a loja primeiro'); sfx('error'); V.shake = 0.3; return; }
+        if (cl) { toast('Ela já é a favorita'); return; }
+        if (I.buy.client(sh.id)) { sfx('chirin'); V.shopFx = { id: sh.id, t: 0, txt: '★' }; }
+      }, { fill: cl ? '#BFE3B4' : C.cream, off: !L, size: 17 });
+      if (V.shopFx && V.shopFx.id === sh.id) A.stamp(g, cx + cw / 2 + 40, cy + 56, V.shopFx.t, V.shopFx.txt || '+4%', K.red, 30);
     });
-    const sh = list.find(q => q.id === V.shop) || list[0], L = r.shops[sh.id] | 0, c = I.cost.shop(sh.id), can = money() >= c, cl = r.client === sh.id, by = y + 36 + gh + 6, ds = shopDesc(sh);
-    fit(sh.n || sh.id, x, by + 12, w, 18, INK, 'left');
-    fit('cliente: ' + ds[0], x, by + 34, w, 17, C.oraD, 'left'); if (ds[1]) fit(ds[1], x, by + 54, w, 17, C.oraD, 'left');
-    button(x, by + 68, 128, 50, L ? 'Subir nível' : 'Abrir loja', () => buyShop(sh.id), { fill: '#DDF0C2', off: !can, size: 17, sub: '¥' + U.fmt(c), subCol: can ? C.grassD : C.redD });
-    button(x + 136, by + 68, w - 136, 50, 'Cliente', () => { if (!L) { toast('Abra a loja primeiro'); sfx('error'); return; } if (I.buy.client(sh.id)) { sfx('chirin'); boardFx('lojas', 'CLIENTE'); } }, { on: cl, off: !L, size: 17 });
   }
 
   /* ---- escolha do marco: dois cartões ilustrados ---- */
@@ -390,12 +431,12 @@
     const k = U.clamp((m.t - 0.9) / 0.35, 0, 1); if (k <= 0) return;
     g.fillStyle = 'rgba(30,18,10,' + (0.6 * k).toFixed(2) + ')'; g.fillRect(0, 0, W, H);
     hit(0, 0, W, H, () => {}, null);
-    const e = U.ease.out(k), cw = 268, ch = 286, gap = 28, x0 = W / 2 - cw - gap / 2, y0 = 138 + (1 - e) * 40;
+    const e = U.ease.out(k), cw = 290, ch = 286, gap = 28, x0 = W / 2 - cw - gap / 2, y0 = 132 + (1 - e) * 40;
     g.globalAlpha = k;
     pill(W / 2 - 300, 54 - (1 - e) * 20, 600, 66, '#FFF6DE', 14);
     fit('Marco! ' + m.tool.name + ' nível ' + m.L, W / 2, 76 - (1 - e) * 20, 570, 21, INK);
-    txt(m.again ? 'marco guardado · escolha um caminho quando quiser' : 'o bônus desta máquina DOBROU · escolha um caminho', W / 2, 102 - (1 - e) * 20, T(17, C.oraD));
-    const opts = [['r', 'Mais rápida', ['bônus desta', 'máquina +50%'], K.red, '#FBD9D2'], ['d', 'Mais dourada', ['+10% em todos os', 'bolsões dourados'], K.goldD, '#FFF0B8']];
+    txt(m.again ? 'Seu presente do marco: escolha 1' : 'Ela ficou 2x mais forte! Agora escolha 1 presente:', W / 2, 102 - (1 - e) * 20, T(18, C.oraD));
+    const opts = [['r', 'Mais rápida', 'esta máquina rende +50%', K.red, '#FBD9D2'], ['d', 'Mais dourada', 'arroz dourado vale +10%', K.goldD, '#FFF0B8']];
     opts.forEach(([id, name, sub, col, bgc], i) => {
       const x = x0 + i * (cw + gap), pressed = pressBtn && pressBtn.x === x, y = y0 + (pressed ? 2 : 0) + Math.sin(t * 2.4 + i * 2) * 2;
       g.fillStyle = 'rgba(40,22,8,.35)'; D.rrect(g, x - 2, y + 4, cw + 4, ch + 8, 18); g.fill();
@@ -420,25 +461,28 @@
         A.twinkle(g, x + 24, y + 26, cw - 48, 120, t, 9, i + 3);
       }
       g.restore();
-      txt(name, x + cw / 2, y + 186, T(22, col));
-      txt(sub[0], x + cw / 2, y + 214, T(17, '#6B4A2E')); txt(sub[1], x + cw / 2, y + 236, T(17, '#6B4A2E'));
-      g.fillStyle = INK; D.rrect(g, x + 60, y + 250, cw - 120, 28, 10); g.fill(); g.fillStyle = id === 'r' ? '#F6B6B0' : C.goldL; D.rrect(g, x + 62, y + 252, cw - 124, 24, 8); g.fill();
-      txt('escolher', x + cw / 2, y + 264.5, T(17, INK));
+      txt(name, x + cw / 2, y + 182, T(24, col));
+      txt(sub, x + cw / 2, y + 210, T(18, '#6B4A2E'));
+      g.fillStyle = INK; D.rrect(g, x + 28, y + 228, cw - 56, 48, 12); g.fill(); g.fillStyle = C.gold; D.rrect(g, x + 31, y + 231, cw - 62, 40, 9); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.5)'; D.rrect(g, x + 36, y + 233.5, cw - 72, 3, 1.5); g.fill();
+      txt('Quero esta', x + cw / 2, y + 252, T(20, INK));
       hit(x, y0, cw, ch, () => pick(id), { x, y: y0 });
     });
-    button(W / 2 - 130, y0 + ch + 20, 260, 40, 'decidir depois', later, { fill: '#F3E7CC', size: 18 });
+    txt('Não tem escolha errada. As duas são boas!', W / 2, y0 + ch + 24, T(18, '#FFF6DE'));
+    button(W / 2 - 130, y0 + ch + 44, 260, 44, 'Decidir depois', later, { fill: '#F3E7CC', size: 18 });
     g.globalAlpha = 1;
   }
   function drawHelp() {
-    g.fillStyle = 'rgba(30,18,10,.55)'; g.fillRect(0, 0, W, H);
-    const w = 780, h = 330, x = (W - w) / 2, y = 96;
+    g.fillStyle = 'rgba(30,18,10,.6)'; g.fillRect(0, 0, W, H);
+    hit(0, 0, W, H, () => { V.help = false; sfx('click'); });
+    const w = 700, h = 372, x = (W - w) / 2, y = 84;
     pill(x, y, w, h, '#FFF6DE', 14);
     E.drawShibaHead(g, x + 52, y + 50, performance.now() / 1000, { scale: 1.1, expr: 'happy' });
-    txt('Oficina do Kome', x + 100, y + 34, T(22, INK, 'left'));
-    txt('cada máquina sua mora aqui e pode ficar mais forte', x + 100, y + 62, T(17, '#6B4A2E', 'left'));
-    const tips = ['Toque numa máquina (ou na régua de baixo): ela sobe na plataforma', 'Melhorar: +5% de renda e mais força. Segure pra repetir', 'Nível 10, 25, 50 e depois a cada 25: o bônus DOBRA; escolha o caminho na hora ou depois', '“Usar esta máquina” troca a que o Kome pilota na montanha', 'Prancheta azul: Bagger Gêmea · Quadro: fábrica do pátio', 'Cortiça: as lojas da cidade e a cliente preferida'];
-    tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 104 + i * 34, 5, 0, TAU); g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke(); txt(s, x + 50, y + 105 + i * 34, T(18, INK, 'left')); });
-    hit(0, 0, W, H, () => { V.help = false; sfx('click'); });
+    txt('Como funciona a Oficina', x + 100, y + 36, T(24, INK, 'left'));
+    txt('Aqui suas máquinas ficam mais fortes.', x + 100, y + 66, T(18, '#6B4A2E', 'left'));
+    const tips = ['Toque numa máquina (fileira de baixo).', 'Aperte o botão dourado Melhorar.', 'x10 e máx compram vários níveis de uma vez.', 'No marco (★) ela dobra a força e dá um presente.', 'O nível vale pra máquina que está em uso.', 'Em cima: Gêmea, Galpão e Lojas dão mais arroz.'];
+    tips.forEach((s, i) => { g.fillStyle = INK; g.beginPath(); g.arc(x + 40, y + 112 + i * 38, 13, 0, TAU); g.fill(); g.fillStyle = C.gold; g.beginPath(); g.arc(x + 40, y + 112 + i * 38, 10.5, 0, TAU); g.fill(); txt(String(i + 1), x + 40, y + 113 + i * 38, T(17, INK)); txt(s, x + 64, y + 113 + i * 38, T(20, INK, 'left')); });
+    xBtn(x + w - 58, y + 10, 48, 44, () => { V.help = false; sfx('click'); });
   }
   function drawOverlayMsgs(t, dt) {
     if (V.banner) {
@@ -469,7 +513,7 @@
   input.on('down', (x, y) => {
     for (let i = btns.length - 1; i >= 0; i--) { const b = btns[i]; if (x >= b.x - 3 && y >= b.y - 3 && x < b.x + b.w + 3 && y < b.y + b.h + 6) { pressBtn = b.o; b.fn(); return; } }
     if (V.mile || V.help) return;
-    for (let i = zones.length - 1; i >= 0; i--) { const z = zones[i]; if (inR(x, y, z)) { z.fn(); return; } }
+    if (V.board !== 'lojas') for (let i = zones.length - 1; i >= 0; i--) { const z = zones[i]; if (inR(x, y, z)) { z.fn(); return; } }
     if (V.board) { V.board = null; sfx('click', { pitch: 0.9 }); }
   });
   input.on('move', (x, y) => {
@@ -499,6 +543,7 @@
     // mola do amassa-e-estica da máquina
     for (let left = dt; left > 1e-6; left -= 1 / 120) { const h = Math.min(1 / 120, left); V.sqV += (-260 * V.sq - 15 * V.sqV) * h; V.sq += V.sqV * h; }
     V.sq = U.clamp(V.sq, -0.2, 0.2);
+    V.shake = Math.max(0, V.shake - dt); if (V.shopFx) { V.shopFx.t += dt * 1.6; if (V.shopFx.t >= 1) V.shopFx = null; }
     V.burst = Math.max(0, V.burst - dt); V.kick = Math.max(0, V.kick - dt * 2.2); V.flash = Math.max(0, V.flash - dt * 1.6);
     V.liftH += ((V.burst > 0 ? 12 : 0) - V.liftH) * Math.min(1, dt * 12);
     if (V.stamp) { V.stamp.t += dt / (V.stamp.big ? 1.5 : 0.75); if (V.stamp.t >= 1) V.stamp = null; }
@@ -536,8 +581,9 @@
     if (day > 0.03) { g.globalAlpha = day; g.drawImage(A.sun(), 0, 0, W, H); g.globalAlpha = 1; }
     A.yardPoke(g, { dpr, show });
     // qual quadro ganha a setinha verde (só o mais barato que dá pra comprar)
-    const can = { gemea: false, fab: false, lojas: false };
+    const can = { gemea: false, fab: false, lojas: false }, canAll = {};
     { const opt = []; if ((r.giant | 0) < 4) opt.push(['gemea', I.cost.giant()]); opt.push(['fab', I.cost.fab()]); opt.push(['lojas', Math.min.apply(null, DATA.SHOPS.map(q => I.cost.shop(q.id)))]);
+      for (const q of opt) canAll[q[0]] = money() >= q[1];
       opt.sort((a, b) => a[1] - b[1]); if (opt[0] && money() >= opt[0][1] && !V.board) can[opt[0][0]] = true; }
     A.wall(g, t, { tod, dusk, L: Lg, owned: own, sel: onLift, giant: Math.min(4, r.giant | 0), fabLv: r.fab | 0, shops: r.shops, shopIds: DATA.SHOPS.map(q => q.id), client: r.client, can, hot: V.hot });
     // áreas tocáveis da parede e do pátio
@@ -629,11 +675,13 @@
     if (V.stamp && !V.stamp.big) A.stamp(g, V.stamp.x, V.stamp.y, V.stamp.t, V.stamp.txt, K.red, V.stamp.txt.length > 3 ? 24 : 34);
     fl.draw(g);
     // ---- HUD
-    drawTopBar(t);
+    drawTopBar(t, canAll);
     drawBottomBar(t);
-    if (V.board === 'gemea') drawGemeaCard(t); else if (V.board === 'fab') drawFabCard(t); else if (V.board === 'lojas') drawShopCard(t); else if (V.tool) drawToolCard(t);
+    { const sk = V.shake > 0 ? Math.sin(V.shake * 42) * 5 * (V.shake / 0.3) : 0; if (sk) { g.save(); g.translate(sk, 0); }
+      if (V.board === 'gemea') drawGemeaCard(t); else if (V.board === 'fab') drawFabCard(t); else if (V.board === 'lojas') drawShopCard(t); else if (V.tool) drawToolCard(t);
+      if (sk) g.restore(); }
     if (V.stamp && V.stamp.big) A.stamp(g, V.stamp.x, V.stamp.y, V.stamp.t, V.stamp.txt, K.red, 44);
-    if (G.News) G.News.draw(g, 10, 54, dt, { maxW: 400 });   // evento do modo infinito + avisos do jogo (banner, toast, conquista)
+    if (G.News && V.board !== 'lojas') G.News.draw(g, 10, 58, dt, { maxW: 400 });   // evento do modo infinito + avisos do jogo (banner, toast, conquista)
     drawOverlayMsgs(t, dt);
     if (V.mile) drawMile(t, dt);
     if (V.help) drawHelp();
@@ -652,7 +700,7 @@
     const s = GS(); if (!s || !s.ended || !G.Inf || !G.Ind || !G.Inf.info || !G.Ind.buy) return false;
     const cur = G.Inf.playing ? G.Inf.playing() : null, list = owned();
     const first = cur && list.some(q => q.id === cur.id) ? cur.id : list[list.length - 1].id;
-    V.tool = null; V.live = null; V.board = null; V.mile = null; V.help = false; V.hold = null; V.stamp = null; V.banner = null; V.toast = null; V.burst = 0;
+    V.shake = 0; V.shopFx = null; V.tool = null; V.live = null; V.board = null; V.mile = null; V.help = false; V.hold = null; V.stamp = null; V.banner = null; V.toast = null; V.burst = 0;
     select(first, true); V.enter = 1;
     CREW.forEach(c => { c.x = c.hx; c.y = c.hy; c.work = 0; });
     A.bg();                                                  // se a arte tiver erro, estoura aqui e o G.Inf.open cai na lista
@@ -674,6 +722,7 @@
     select: id => select(id, true), board: b => { V.board = b || null; if (b === 'lojas' && !V.shop) V.shop = DATA.SHOPS[0].id; }, upgrade, pick: ch => { if (V.mile) V.mile.t = Math.max(V.mile.t, 2); return pick(ch); },
     help: on => { V.help = !!on; }, shop: id => { V.shop = id; }, later: () => { if (V.mile) V.mile.t = Math.max(V.mile.t, 2); return later(); }, openMile, pending: pendOf, use: useTool,
     step(sec) { let left = sec, n = 0; const t0 = performance.now(); while (left > 1e-6) { const d = Math.min(1 / 30, left); tick(d); render(d); left -= d; n++; } return +((performance.now() - t0) / n).toFixed(2); },   // avança sem esperar o relógio (prints); devolve ms por quadro
-    get state() { return { open: isOpen(), tool: V.tool, board: V.board, mile: !!V.mile, lv: V.tool ? lvOf(V.tool) : 0, burst: V.burst, pend: V.tool ? pendOf(V.tool) : 0, hold: !!V.hold }; },
+    qty: q => { V.qty = q === 'max' ? 'max' : q === 10 ? 10 : 1; }, plan: () => { const t = toolOf(V.tool); return t ? plan(t) : null; },
+    get state() { return { open: isOpen(), tool: V.tool, board: V.board, qty: V.qty, mile: !!V.mile, lv: V.tool ? lvOf(V.tool) : 0, burst: V.burst, pend: V.tool ? pendOf(V.tool) : 0, hold: !!V.hold }; },
   };
 })();

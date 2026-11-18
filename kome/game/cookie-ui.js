@@ -125,43 +125,6 @@
 @keyframes kcuishake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .k-cui-ico{display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .k-cui-ico canvas{image-rendering:pixelated}
-/* ---- Pátio ---- */
-.k-cui-patio{top:10px;bottom:10px;right:10px;width:500px;max-width:calc(100% - 20px)}
-.k-cui-tools{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F3E5C4;border-bottom:3px solid ${INK};flex:0 0 auto}
-.k-cui-seg{display:flex;border:3px solid ${INK};border-radius:14px;overflow:hidden;box-shadow:0 3px 0 ${INK};flex:0 0 auto}
-.k-cui-seg button{min-width:62px;height:46px;font-size:19px;font-weight:900;background:#FFFAEE;border-left:3px solid ${INK}}
-.k-cui-seg button:first-child{border-left:0}
-.k-cui-seg button.on{background:#FFD866}
-.k-cui-seg button:last-child{min-width:76px}
-.k-cui-sp{flex:1 1 auto}
-.k-cui-list{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:8px 8px 14px;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-.k-cui-list::-webkit-scrollbar{width:10px}.k-cui-list::-webkit-scrollbar-thumb{background:#C9A974;border-radius:8px;border:2px solid #FFFAEE}
-.k-cui-row{display:grid;grid-template-columns:58px 1fr auto;gap:4px 10px;align-items:center;padding:8px 8px 8px 8px;margin-bottom:8px;border:3px solid ${INK};border-radius:14px;background:#FBF3DF;box-shadow:0 3px 0 rgba(59,40,24,.55);position:relative}
-.k-cui-row.can{background:linear-gradient(90deg,#FFF0B8,#FFF8DC 60%);box-shadow:0 3px 0 ${INK},0 0 0 3px #F3C94A inset}
-.k-cui-row.locked{background:#E9E1D0;opacity:.85}
-.k-cui-row .k-cui-ico{width:58px;height:58px;border-radius:12px;background:#FFFAEE;border:2px solid rgba(59,40,24,.35);grid-row:1 / span 2;align-self:start;position:relative}
-.k-cui-n{position:absolute;right:-6px;bottom:-8px;min-width:30px;height:24px;padding:0 5px;border-radius:12px;background:${INK};color:#FFE9A8;font-size:17px;font-weight:900;line-height:24px;text-align:center}
-.k-cui-nm{font-size:20px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.k-cui-rt{font-size:17px;font-weight:800;color:#6B5640;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.k-cui-buy{grid-column:3;grid-row:1 / span 2;min-width:124px;min-height:62px;flex-direction:column;gap:1px;padding:4px 10px}
-.k-cui-buy b{font-size:17px;font-weight:900}
-.k-cui-buy span{font-size:19px;font-weight:900}
-.k-cui-mile{grid-column:1 / span 3;display:flex;align-items:center;gap:8px;min-width:0}
-.k-cui-bar{position:relative;flex:1 1 auto;height:24px;border:2px solid ${INK};border-radius:12px;background:#E9DCC0;overflow:hidden;min-width:0}
-.k-cui-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#FFE58A,#E9B23E);border-right:2px solid rgba(59,40,24,.4)}
-.k-cui-bar span{position:relative;display:block;padding:0 8px;font-size:17px;font-weight:900;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.k-cui-mb{min-height:44px!important;padding:2px 10px!important;font-size:17px!important;flex:0 0 auto}
-.k-cui-low{grid-column:1 / span 3;display:flex;align-items:center;gap:8px;min-width:0}
-.k-cui-joke{flex:1 1 auto;font-size:17px;font-weight:700;color:#6B5640;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;min-width:0}
-.k-cui-syn{flex:0 0 auto;display:flex;gap:6px}
-.k-cui-syn:empty{display:none}
-.k-cui-badge{display:inline-flex;align-items:center;gap:4px;min-height:44px;min-width:44px;padding:2px 7px;border:2px solid ${INK};border-radius:12px;font-size:17px;font-weight:900;background:#EDE3CF;color:#6B5640;white-space:nowrap}
-.k-cui-badge.on{background:#D7EBC0;color:#33502A}
-.k-cui-badge.ready{background:linear-gradient(#FFE58A,#F0BE48);color:#2A1A10;box-shadow:0 3px 0 ${INK};cursor:pointer}
-.k-cui-foot{display:flex;gap:8px;padding:8px 10px;border-top:3px solid ${INK};background:#F3E5C4;flex:0 0 auto}
-.k-cui-foot .k-cui-b{flex:1 1 0;font-size:18px!important;min-width:0}
-.k-cui-float{position:absolute;pointer-events:none;font-size:24px;font-weight:900;color:#FFE16A;-webkit-text-stroke:5px ${INK};paint-order:stroke;animation:kcuifl .9s ease-out forwards;white-space:nowrap}
-@keyframes kcuifl{0%{transform:translate(-50%,0) scale(.7);opacity:0}15%{transform:translate(-50%,-8px) scale(1.15);opacity:1}100%{transform:translate(-50%,-56px);opacity:0}}
 /* ---- Pegar ---- */
 .k-cui-away{left:50%;top:50%;width:600px;max-width:calc(100% - 20px);transform:translate(-50%,-46%) scale(.96)}
 .k-cui-away.on{transform:translate(-50%,-50%)}
@@ -172,44 +135,6 @@
 .k-cui-arow b{margin-left:auto;font-weight:900;font-size:21px;white-space:nowrap}
 .k-cui-note{font-size:17px;font-weight:700;color:#6B5640}
 .k-cui-pegar{min-height:76px!important;font-size:34px!important;letter-spacing:1px;margin-top:4px}
-/* ---- Coração ---- */
-.k-cui-heart{left:50%;top:10px;bottom:10px;width:940px;max-width:calc(100% - 20px);transform:translate(-50%,10px) scale(.97)}
-.k-cui-heart.on{transform:translate(-50%,0)}
-.k-cui-tabs{display:flex;gap:6px;flex:0 0 auto}
-.k-cui-tab{white-space:nowrap;flex:0 0 auto}
-.k-cui-tab{min-height:48px;padding:4px 16px;border-radius:12px!important;border:3px solid ${INK}!important;background:#C9A974!important;font-size:19px!important;font-weight:900!important;color:${INK}!important}
-.k-cui-tab.on{background:#FFFAEE!important}
-.k-cui-pane{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:10px 12px 14px;touch-action:pan-y;overscroll-behavior:contain}
-.k-cui-hgrid{display:flex;gap:14px;flex-wrap:wrap}
-.k-cui-hl{flex:0 0 300px;display:flex;flex-direction:column;align-items:center;gap:6px}
-.k-cui-hr{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px}
-.k-cui-sum{font-size:22px;font-weight:900;text-align:center;line-height:1.15}
-.k-cui-sum small{display:block;font-size:17px;font-weight:800;color:#6B5640}
-.k-cui-h3{font-size:19px;font-weight:900;margin:2px 0 0;display:flex;align-items:center;gap:6px}
-.k-cui-h3 small{font-size:17px;font-weight:800;color:#6B5640}
-.k-cui-bowls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.k-cui-bowl{border:3px solid ${INK};border-radius:14px;background:#FBF3DF;padding:4px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;min-width:0}
-.k-cui-bowl.owned{background:#FFF0C4}
-.k-cui-bowl canvas{width:96px;height:64px}
-.k-cui-bowl b{font-size:17px;font-weight:900;line-height:1.05;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.k-cui-bowl .k-cui-b{min-height:44px;font-size:17px!important;padding:2px 6px;width:100%}
-.k-cui-recent{display:flex;flex-direction:column;gap:6px}
-.k-cui-ach{display:flex;align-items:center;gap:10px;padding:6px 10px;border:2px solid rgba(59,40,24,.4);border-radius:12px;background:#FBF3DF;min-width:0;text-align:left;width:100%}
-.k-cui-ach>div{min-width:0;flex:1 1 auto}
-.k-cui-ach b{display:block;font-size:18px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.k-cui-ach span{display:block;font-size:17px;font-weight:700;color:#6B5640;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.k-cui-fams{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.k-cui-fam{min-height:46px;padding:2px 12px;border:3px solid ${INK}!important;border-radius:12px!important;background:#F6ECD4!important;font-size:17px!important;font-weight:900!important;display:inline-flex;align-items:center;gap:6px}
-.k-cui-fam.on{background:#FFD866!important;box-shadow:0 3px 0 ${INK}}
-.k-cui-fam small{font-size:17px;font-weight:800;color:#6B5640}
-.k-cui-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:6px}
-.k-cui-cell{display:flex;align-items:center;gap:8px;min-height:56px;padding:4px 8px;border:2px solid rgba(59,40,24,.45);border-radius:12px;background:#EFE6D3;text-align:left;min-width:0}
-.k-cui-cell.got{background:#FFF4CF;border-color:${INK}}
-.k-cui-cell.sel{box-shadow:0 0 0 3px #F3C94A}
-.k-cui-cell b{font-size:17px;font-weight:900;line-height:1.1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-width:0}
-.k-cui-cell:not(.got) b{color:#7A6A58}
-.k-cui-detail{position:sticky;bottom:-14px;margin:8px -12px -14px;padding:8px 14px;background:#3B2818;color:#FFF6E6;font-size:18px;font-weight:800;min-height:48px;display:flex;align-items:center;gap:10px}
-.k-cui-detail b{color:#FFE16A;white-space:nowrap}
 /* ---- Cochilo ---- */
 .k-cui-nap{left:12px;bottom:96px;width:430px;max-width:calc(100% - 24px);flex-direction:row;align-items:center;gap:6px;padding:8px 10px 8px 6px}
 .k-cui-nap canvas{width:128px;height:96px;flex:0 0 auto;image-rendering:pixelated}
@@ -245,24 +170,24 @@
     try { E.Sfx.play(name, o); } catch (e) { /* sem áudio */ }
   }
   function pop(e, cls) { cls = cls || 'k-cui-pop'; e.classList.remove(cls); void e.offsetWidth; e.classList.add(cls); }
-  function float(txt, x, y) { const f = el('div', 'k-cui-float', V, txt); f.style.left = x + 'px'; f.style.top = y + 'px'; setTimeout(() => f.remove(), 950); }
+  function float(txt, x, y, cls) { const f = el('div', 'k-cui-float' + (cls ? ' ' + cls : ''), V, txt); f.style.left = x + 'px'; f.style.top = y + 'px'; setTimeout(() => f.remove(), 950); }
   function rectV(e) { const r = e.getBoundingClientRect(); return { x: r.left / k, y: r.top / k, w: r.width / k, h: r.height / k, cx: (r.left + r.width / 2) / k, cy: (r.top + r.height / 2) / k }; }
-  function closeBtn(parent, fn) { const x = el('button', 'k-cui-x', parent, '×'); x.type = 'button'; x.setAttribute('aria-label', 'fechar'); x.addEventListener('click', () => { sfx('click'); fn(); }); return x; }
+  function closeBtn(parent, fn) { const x = el('button', 'k-cui-x', parent, '✕'); x.type = 'button'; x.setAttribute('aria-label', 'fechar'); x.addEventListener('click', () => { sfx('click'); fn(); }); return x; }
   function button(parent, txt, cls, fn) { const b = el('button', 'k-cui-b' + (cls ? ' ' + cls : ''), parent); b.type = 'button'; if (txt) b.textContent = txt; if (fn) b.addEventListener('click', e => { e.stopPropagation(); fn(e); }); return b; }
   // card(cls) -> {card, dim, open(), close()} com fundo escurecido opcional
   const opened = [];
   addEventListener('keydown', e => { if (e.key !== 'Escape' || !opened.length) return; const top = opened[opened.length - 1];   // mapa/amuletos por cima: eles fecham primeiro
-    if (!top.esc || document.querySelector('.k-isl.k-open, .k-am-dim.on')) return; top.close(); });
+    if (!top.esc || (!top.top && document.querySelector('.k-isl.k-open, .k-am-dim.on'))) return; if (top.top) e.stopImmediatePropagation(); top.close(); }, true);
   function sheet(cls, o) {
     o = o || {};
     const dim = o.dim === false ? null : el('div', 'k-cui-dim', null);
     const card = el('div', 'k-cui-card ' + cls, null);
     const s = { card, dim, isOpen: false,
-      open() { if (s.isOpen) return s; s.isOpen = true; opened.push(s); if (dim) V.appendChild(dim); V.appendChild(card); void card.offsetWidth; if (dim) dim.classList.add('on'); card.classList.add('on'); if (o.onOpen) o.onOpen(); return s; },
-      close() { if (!s.isOpen) return s; s.isOpen = false; const i = opened.indexOf(s); if (i >= 0) opened.splice(i, 1); if (dim) dim.classList.remove('on'); card.classList.remove('on'); setTimeout(() => { if (!s.isOpen) { card.remove(); if (dim) dim.remove(); } }, 260); if (o.onClose) o.onClose(); return s; },
+      open() { if (s.isOpen) return s; s.isOpen = true; opened.push(s); if (o.top) root.classList.add('k-cui-top'); if (dim) V.appendChild(dim); V.appendChild(card); void card.offsetWidth; if (dim) dim.classList.add('on'); card.classList.add('on'); if (o.onOpen) o.onOpen(); return s; },
+      close() { if (!s.isOpen) return s; s.isOpen = false; if (o.top) root.classList.remove('k-cui-top'); const i = opened.indexOf(s); if (i >= 0) opened.splice(i, 1); if (dim) dim.classList.remove('on'); card.classList.remove('on'); setTimeout(() => { if (!s.isOpen) { card.remove(); if (dim) dim.remove(); } }, 260); if (o.onClose) o.onClose(); return s; },
     };
     if (dim && o.dismiss !== false) dim.addEventListener('pointerdown', e => { if (e.target === dim) s.close(); });
-    s.esc = !!dim && o.dismiss !== false;   // Esc fecha igual ao toque fora (só a carta de cima)
+    s.top = !!o.top; s.esc = !!dim && o.dismiss !== false;   // Esc fecha igual ao toque fora (só a carta de cima)
     return s;
   }
   function head(card, title, sub, onX) {
@@ -274,65 +199,156 @@
 
   /* ======================================================================
      3. PAINEL DO PÁTIO (lateral, o pátio continua aparecendo à esquerda)
+        Uma linha por turma (desenho, "você tem 12", quanto cada uma rende, botão dourado com preço e o salto de renda).
+        Melhorias (marcos + sinergias): só as 3 mais perto no topo; o resto em "Ver todas" (lista por turma, dobrável).
      ====================================================================== */
-  const P = { mult: 1, rows: {}, t: 0 };
-  const patio = sheet('k-cui-patio', { dim: false, onOpen: () => { buildRows(); tickPatio(true); } });
+  const yen = n => '¥ ' + fmt(n);
+  const perS = n => '+¥ ' + fmt(n) + ' por segundo';
+  function fmtMul(v) { return String(Math.round(v * 100) / 100).replace('.', ','); }
+  const multTxt = v => (v === 2 ? 'o dobro' : v === 3 ? 'o triplo' : '×' + fmtMul(v));
+  const pct1 = v => String(Math.round(v * 1000) / 10).replace('.', ',') + '%';
+  // botão de duas linhas (o que faz / quanto custa ou o que falta): dourado = dá agora, cinza = falta, verde = feito
+  function btn2(parent, cls, fn) {
+    const b = el('button', 'k-cui-b k-px-b2 ' + (cls || ''), parent); b.type = 'button';
+    const o = { el: b, a: el('b', null, b), c: el('span', null, b), st: '',
+      set(st, l1, l2) { if (o.st !== st) { o.st = st; b.classList.remove('gold', 'off', 'green'); b.classList.add(st); } setT(o.a, l1); setT(o.c, l2 || ''); o.c.style.display = l2 ? '' : 'none'; } };
+    if (fn) b.addEventListener('click', e => { e.stopPropagation(); fn(e); });
+    return o;
+  }
+  function nope(e, why) { sfx('error'); pop(e, 'k-cui-shake'); if (why) { const r = rectV(e); float(why, U.clamp(r.cx, 150, vw - 150), r.y, 'bad'); } }
+  const tName = id => { try { const f = A().shortName; return (f && f(id)) || id; } catch (e) { return id; } };
+  // sinergia numa frase só: "Pata + Hashi: os dois rendem ×1,5" · "Trator rende +1% pra cada Pata"
+  function synLine(s) {
+    if (s.kind === 'par') return s.aName + ' + ' + s.bName + ': os dois rendem ×' + fmtMul(s.v);
+    if (s.kind === 'por') return s.bName + ' rende +' + pct1(s.v) + ' pra cada ' + s.aName;
+    return s.desc || s.name;
+  }
+  const P = { mult: 1, rows: {}, t: 0, ups: [], slots: [] };
+  const patio = sheet('k-cui-patio', { dim: false, onOpen: () => { buildRows(); tickPatio(true); }, onClose: () => { if (upsAll.isOpen) upsAll.close(); } });
   {
     const c = patio.card;
     const hd = head(c, 'PÁTIO DA FROTA', '', () => patio.close());
     P.sub = hd.sm;
+    P.hint = el('div', 'ux-hint k-px-hint', c, '');
     const tools = el('div', 'k-cui-tools', c);
+    el('span', 'k-px-lbl', tools, 'Comprar de:');
     const seg = el('div', 'k-cui-seg', tools);
     P.seg = CFG.MULTS.map(m => {
-      const b = el('button', null, seg, m === 'max' ? '×máx' : '×' + m); b.type = 'button';
+      const b = el('button', null, seg, m === 'max' ? 'máximo' : String(m)); b.type = 'button';
       b.addEventListener('click', () => { P.mult = m; sfx('click'); P.seg.forEach(x => x.classList.toggle('on', x === b)); tickPatio(true); });
       return b;
     });
     P.seg[0].classList.add('on');
-    el('div', 'k-cui-sp', tools);
-    P.money = el('div', 'k-cui-rt', tools); P.money.style.fontSize = '19px'; P.money.style.color = '#2A1A10';
     P.list = el('div', 'k-cui-list', c);
+    // melhorias: as 3 mais perto
+    P.upBox = el('div', 'k-px-ups', P.list);
+    const uh = el('div', 'k-px-h', P.upBox); uh.appendChild(iconCv('star', 22)); P.upT = el('span', null, uh, 'Melhorias');
+    P.upAll = button(uh, 'Ver todas', 'k-px-sm', () => { sfx('click'); openUps(); });
+    for (let i = 0; i < 3; i++) P.slots.push(upCard(P.upBox, () => tickPatio(true)));
+    const th = el('div', 'k-px-h', P.list); th.appendChild(iconCv('paw', 22)); el('span', null, th, 'Suas turmas');
+    P.rowsBox = el('div', null, P.list);
     const foot = el('div', 'k-cui-foot', c);
-    button(foot, 'Arroz do Coração', '', () => openHeart());
-    button(foot, 'Sementes', '', () => openSeeds());
+    const fb = (txt, ic, fn) => { const b = button(foot, '', 'k-px-fb', fn); b.appendChild(iconCv(ic, 24)); el('span', null, b, txt); return b; };
+    fb('Arroz do Coração', 'trophy', () => openHeart());
+    P.seedB = fb('Sementes', 'star', () => openSeeds());
     // Livro dos Eventos (eventos-arte.js): abre por cima do painel (z 57 > 56) e, ao fechar, volta pro Pátio
-    const bk = button(foot, 'Eventos', 'k-cui-book', () => { sfx('click'); const EA = G.EventArt; if (!(EA && EA.openBook && EA.openBook())) { sfx('error'); pop(bk, 'k-cui-shake'); } });
-    bk.title = 'Livro dos Eventos'; bk.setAttribute('aria-label', 'Livro dos Eventos'); bk.insertBefore(iconCv('book', 22), bk.firstChild);
+    const bk = fb('Eventos', 'book', () => { sfx('click'); const EA = G.EventArt; if (!(EA && EA.openBook && EA.openBook())) nope(bk, 'Ainda não tem evento'); });
+    bk.setAttribute('aria-label', 'Livro dos Eventos');
   }
   const qty = id => { const m = P.mult; if (m === 'max') return Math.max(1, A().maxBuy(id) | 0); return m; };
+  /* ---- cartão de melhoria (marco ou sinergia): desenho, nome, o que dá em palavras simples, botão ---- */
+  function upCard(parent, after) {
+    const c = { el: el('div', 'k-px-up', parent), u: null, key: '' };
+    c.ico = el('div', 'k-cui-ico', c.el);
+    const mid = el('div', 'k-px-mid', c.el); c.nm = el('div', 'k-px-nm', mid); c.what = el('div', 'k-px-what', mid);
+    c.bt = btn2(c.el, 'k-px-upb', () => {
+      const u = c.u; if (!u) return;
+      if (u.on) return;
+      if (!u.ready) return nope(c.bt.el, u.lackTxt);
+      if (A().money() < u.price) return nope(c.bt.el, 'Falta ' + yen(u.price - A().money()));
+      const ok = u.kind === 'marco' ? A().buyMarco(u.id) : A().buySinergia(u.sid);
+      if (!ok) return nope(c.bt.el);
+      sfx(u.kind === 'marco' ? 'levelup' : 'unlock'); burstAt(c.bt.el, 26); const r = rectV(c.bt.el); float(u.gain > 0 ? perS(u.gain) : 'Feito!', U.clamp(r.cx, 150, vw - 150), r.y);
+      after();
+    });
+    c.set = (u, m) => {
+      c.u = u; c.el.style.display = u ? '' : 'none'; if (!u) return;
+      if (c.key !== u.key) { c.key = u.key; c.ico.textContent = ''; const art = u.kind === 'marco' && ART() && ART().machineIcon ? ART().machineIcon(u.id, 40) : null; c.ico.appendChild(art || iconCv(u.icon, 34)); }
+      setT(c.nm, u.name); setT(c.what, u.what);
+      const can = u.ready && m >= u.price;
+      c.el.classList.toggle('can', can); c.el.classList.toggle('on', !!u.on);
+      if (u.on) c.bt.set('green', 'Ligada');
+      else if (can) c.bt.set('gold', 'Pegar', yen(u.price));
+      else if (u.ready) c.bt.set('off', 'Falta', yen(u.price - m));
+      else c.bt.set('off', u.lackBtn, '');
+    };
+    return c;
+  }
+  // todas as melhorias que ainda dá pra ter (próximo marco de cada turma + sinergias), da mais perto pra mais longe
+  function upgrades(api, list, withOn) {
+    const out = [], seen = {}; let done = 0, of = 0;
+    for (const t of list) {
+      if (t.locked) continue;
+      const mk = api.marco(t.id), sn = tName(t.id), mc = api.marcos ? api.marcos(t.id) : null;
+      if (mc) { done += mc.done; of += mc.of; }
+      if (mk) {
+        const lack = Math.max(0, mk.at - t.n), gain = t.rate * (mk.mult - 1);
+        out.push({ key: 'm:' + t.id + ':' + mk.at, kind: 'marco', id: t.id, tid: t.id, icon: t.id, name: mk.name, joke: mk.desc, gain,
+          what: sn + ' rende ' + multTxt(mk.mult) + (mk.ready && gain > 0 ? ' (' + perS(gain) + ')' : ''),
+          ready: mk.ready, price: mk.price, frac: mk.ready ? 1 : t.n / mk.at, lackTxt: 'Junte ' + fmt(mk.at) + ' de ' + sn + ' (tem ' + fmt(t.n) + ')', lackBtn: 'Faltam ' + fmt(lack) });
+      }
+      for (const s of api.sinergias(t.id)) {
+        if (seen[s.id]) continue; seen[s.id] = 1; of++;
+        if (s.state === 'on') { done++; if (!withOn) continue; }
+        out.push({ key: 's:' + s.id, kind: 'syn', sid: s.id, tid: t.id, icon: 'swap', name: s.name, joke: s.desc, gain: 0, what: synLine(s), on: s.state === 'on',
+          ready: s.state === 'ready', price: s.price, frac: s.state === 'need' ? s.have / Math.max(1, s.need) : 1, lackTxt: 'Junte ' + fmt(s.need) + ' de cada (a menor tem ' + fmt(s.have) + ')', lackBtn: 'Faltam ' + fmt(Math.max(0, s.need - s.have)) });
+      }
+    }
+    return { list: out, done, of };
+  }
+  function upSort(list, m) {
+    const rank = u => (u.on ? 3 : u.ready && m >= u.price ? 0 : u.ready ? 1 : 2);
+    return list.slice().sort((a, b) => rank(a) - rank(b) || (rank(a) < 2 ? a.price - b.price : b.frac - a.frac));
+  }
   function buildRows() {
-    P.list.textContent = ''; P.rows = {};
+    P.rowsBox.textContent = ''; P.rows = {};
     for (const t of A().patio()) {
-      const r = { id: t.id, el: el('div', 'k-cui-row', P.list) };
+      const r = { id: t.id, el: el('div', 'k-cui-row', P.rowsBox) };
       r.ico = el('div', 'k-cui-ico', r.el);
       const art = ART() && ART().machineIcon ? ART().machineIcon(t.id, 48) : null;
       r.ico.appendChild(art || iconCv(t.id, 40));
-      r.n = el('div', 'k-cui-n', r.ico, '0');
-      const mid = el('div', null, r.el); mid.style.minWidth = '0';
-      r.nm = el('div', 'k-cui-nm', mid); r.rt = el('div', 'k-cui-rt', mid);
-      r.buy = button(r.el, '', 'k-cui-buy'); r.bq = el('b', null, r.buy); r.bp = el('span', null, r.buy);
-      holdable(r.buy, () => doBuy(r));
+      const mid = el('div', 'k-px-mid', r.el);
+      r.nm = el('div', 'k-cui-nm', mid); r.have = el('div', 'k-px-have', mid); r.rt = el('div', 'k-cui-rt', mid);
+      r.buy = btn2(r.el, 'k-cui-buy');
+      holdable(r.buy.el, () => doBuy(r));
+      r.lock = button(r.el, '', 'k-px-lockb', () => { sfx('click'); openSeeds(r.lockSeed); }); r.lock.appendChild(iconCv('star', 22)); el('span', null, r.lock, 'Ver Sementes');
       r.mile = el('div', 'k-cui-mile', r.el);
       r.bar = el('div', 'k-cui-bar', r.mile); r.fill = el('i', null, r.bar); r.bt = el('span', null, r.bar);
-      r.mb = button(r.mile, '', 'gold k-cui-mb', () => { if (A().buyMarco(r.id)) { sfx('levelup'); burstAt(r.mb, 26); const m = rectV(r.mb); float('MARCO!', m.cx, m.y); } else { sfx('error'); pop(r.mb, 'k-cui-shake'); } tickPatio(true); });
-      r.low = el('div', 'k-cui-low', r.el);
-      r.joke = el('div', 'k-cui-joke', r.low);
-      r.syn = el('div', 'k-cui-syn', r.low); r.synKey = '';
+      r.mb = btn2(r.mile, 'k-cui-mb', () => {
+        const mk = A().marco(r.id), g = r.gain || 0;
+        if (mk && mk.ready && A().money() < mk.price) return nope(r.mb.el, 'Falta ' + yen(mk.price - A().money()));
+        if (A().buyMarco(r.id)) { sfx('levelup'); burstAt(r.mb.el, 26); const m = rectV(r.mb.el); float(g > 0 ? perS(g) : 'Rende mais!', U.clamp(m.cx, 150, vw - 150), m.y); } else nope(r.mb.el);
+        tickPatio(true);
+      });
+      r.syn = el('div', 'k-px-syn', r.el);
       P.rows[t.id] = r;
     }
   }
   function doBuy(r) {
-    const want = qty(r.id), got = A().buy(r.id, want) | 0;
-    if (!got) { sfx('error'); pop(r.buy, 'k-cui-shake'); return false; }
+    const api = A(), want = qty(r.id), pr = api.price(r.id, want);
+    if (!(api.money() >= pr)) { nope(r.buy.el, isFinite(pr) ? 'Falta ' + yen(pr - api.money()) : ''); return false; }
+    const got = api.buy(r.id, want) | 0;
+    if (!got) { nope(r.buy.el); return false; }
     P.chain = (P.chainT > 0 ? (P.chain || 0) + 1 : 0); P.chainT = 1.2;
     sfx(got >= 10 ? 'kaching' : 'buy', { pitch: Math.min(1.6, 1 + P.chain * 0.03) });
-    pop(r.buy); pop(r.n);
-    const b = rectV(r.buy); float('+' + got, b.cx, b.y);
-    if (got >= 10) burstAt(r.buy, Math.min(40, 8 + got));
+    pop(r.buy.el); pop(r.have);
+    const b = rectV(r.buy.el); float(r.each > 0 ? perS(r.each * got) : '+' + got, U.clamp(b.cx, 150, vw - 150), b.y);   // o salto de renda da compra
+    if (got >= 10) burstAt(r.buy.el, Math.min(40, 8 + got));
+    pop(P.sub);
     tickPatio(true);
     return true;
   }
-  // segurar repete (acelerando); solta, sai ou cancela para. Nada de click duplo: só pointer.
+  // segurar repete (acelerando); solta, sai ou cancela para. É atalho: um toque já compra.
   function holdable(btn, fn) {
     let tm = 0, gap = 0, on = false;
     const stop = () => { on = false; clearTimeout(tm); };
@@ -344,51 +360,78 @@
   function tickPatio(force) {
     if (!patio.isOpen) return;
     const api = A(), m = api.money(), tot = api.total();
-    setT(P.sub, '¥ ' + fmt(tot.rate) + '/s · ' + fmt(tot.n) + ' na frota');
-    setT(P.money, '¥ ' + fmt(m));
+    setT(P.sub, 'Rende ¥ ' + fmt(tot.rate) + ' por segundo');
     const list = api.patio();
     if (list.length !== Object.keys(P.rows).length || list.some(t => !P.rows[t.id])) buildRows();
+    let anyBuy = false, cheap = Infinity;
     for (const t of list) {
       const r = P.rows[t.id]; if (!r) continue;
       r.el.classList.toggle('locked', !!t.locked);
+      r.lock.style.display = t.locked ? '' : 'none';
       if (t.locked) {
-        setT(r.nm, '???'); setT(r.rt, t.lockTxt || 'destrave na Árvore de Sementes'); setT(r.n, '?');
-        r.buy.style.display = 'none'; r.mile.style.display = 'none'; setT(r.joke, ''); r.syn.textContent = ''; r.el.classList.remove('can');
+        r.lockSeed = t.lockSeed || '';
+        setT(r.nm, '???'); setT(r.have, 'Máquina secreta'); setT(r.rt, t.lockTxt || 'Destrava nas Sementes Douradas');
+        r.buy.el.style.display = 'none'; r.mile.style.display = 'none'; r.syn.style.display = 'none'; r.el.classList.remove('can');
         r.ico.style.filter = 'brightness(0) opacity(.35)';
         continue;
       }
-      r.ico.style.filter = ''; r.buy.style.display = ''; r.mile.style.display = '';
-      setT(r.nm, t.name); setT(r.n, fmt(t.n)); setT(r.rt, '¥ ' + fmt(t.rate) + '/s' + (t.absurd ? ' · máquina absurda' : ''));
-      const q = qty(t.id), pr = api.price(t.id, q), can = m >= pr && isFinite(pr);
+      r.ico.style.filter = ''; r.buy.el.style.display = ''; r.mile.style.display = '';
+      const each = t.each || (t.n > 0 ? t.rate / t.n : 0); r.each = each;
+      setT(r.nm, t.name); setT(r.have, t.n > 0 ? 'Você tem ' + fmt(t.n) : 'Você ainda não tem');
+      setT(r.rt, each > 0 ? 'Cada uma: ' + perS(each) : '');
+      const q = qty(t.id), pr = api.price(t.id, q), can = m >= pr && isFinite(pr), p1 = api.price(t.id, 1);
+      if (can) anyBuy = true; if (p1 < cheap) cheap = p1;
       r.el.classList.toggle('can', can);
-      r.buy.className = 'k-cui-b k-cui-buy ' + (can ? 'gold' : 'off');
-      setT(r.bq, 'Comprar ×' + fmt(q)); setT(r.bp, isFinite(pr) ? '¥ ' + fmt(pr) : '—');
+      if (can) r.buy.set('gold', 'Comprar ' + fmt(q), yen(pr));
+      else r.buy.set('off', 'Falta', isFinite(pr) ? yen(pr - m) : '—');
       const mk = api.marco(t.id);
       if (mk) {
         const from = mk.prev ? mk.prev.at : 0, f = U.clamp((t.n - from) / Math.max(1, mk.at - from), 0, 1);
-        r.fill.style.width = (mk.ready ? 100 : f * 100).toFixed(1) + '%';
-        setT(r.bt, mk.ready ? 'Marco ' + mk.at + ': ' + mk.name : fmt(t.n) + '/' + fmt(mk.at) + ' → ×' + fmtMul(mk.mult) + ' · ' + mk.name);
-        setT(r.joke, mk.desc || '');
-        r.mb.style.display = mk.ready ? '' : 'none';
-        if (mk.ready) { const ok = m >= mk.price; r.mb.className = 'k-cui-b k-cui-mb ' + (ok ? 'gold' : 'off'); setT(r.mb, '×' + fmtMul(mk.mult) + ' · ¥ ' + fmt(mk.price)); }
-      } else { r.fill.style.width = '100%'; setT(r.bt, 'todos os marcos!'); setT(r.joke, ''); r.mb.style.display = 'none'; }
-      synBadges(r, api.sinergias(t.id), m);
+        r.gain = t.rate * (mk.mult - 1);
+        r.bar.style.display = mk.ready ? 'none' : ''; r.mb.el.style.display = mk.ready ? '' : 'none';
+        if (mk.ready) { const ok = m >= mk.price; r.mb.set(ok ? 'gold' : 'off', 'Prêmio: rende ' + multTxt(mk.mult), ok ? yen(mk.price) : 'falta ' + yen(mk.price - m)); }
+        else { r.fill.style.width = (f * 100).toFixed(1) + '%'; setT(r.bt, 'Prêmio com ' + fmt(mk.at) + ': rende ' + multTxt(mk.mult) + ' · tem ' + fmt(t.n)); }
+      } else { r.bar.style.display = ''; r.fill.style.width = '100%'; setT(r.bt, 'Todos os prêmios pegos!'); r.mb.el.style.display = 'none'; }
+      // uma sinergia por linha, numa frase: a pronta primeiro, senão a mais perto
+      const sy = api.sinergias(t.id).filter(s => s.state !== 'on').sort((a, b) => (a.state === 'ready' ? -1 : 0) - (b.state === 'ready' ? -1 : 0) || b.have / b.need - a.have / a.need)[0];
+      r.syn.style.display = sy ? '' : 'none';
+      if (sy) { setT(r.syn, 'Dupla · ' + synLine(sy) + (sy.state === 'ready' ? ' · pronta, pegue em Melhorias!' : ' · junte ' + fmt(sy.need) + ' de cada')); r.syn.classList.toggle('ready', sy.state === 'ready'); }
     }
+    // melhorias: as 3 mais perto
+    const up = upgrades(api, list), top = upSort(up.list, m);
+    for (let i = 0; i < 3; i++) P.slots[i].set(top[i] || null, m);
+    P.upBox.style.display = top.length ? '' : 'none';
+    setT(P.upT, 'Melhorias' + (up.of ? ' · ' + up.done + ' de ' + up.of : ''));
+    const upCan = top.length && top[0].ready && m >= top[0].price;
+    setT(P.hint, upCan ? 'Pegue a melhoria dourada: a turma rende mais!' : anyBuy ? 'Toque no botão dourado: cada turma dá ¥ sozinha.' : isFinite(cheap) ? 'Junte ¥: a turma mais barata custa ' + yen(cheap) + '.' : 'Cada turma dá ¥ sozinha, sem parar.');
+    if (upsAll.isOpen && force) renderUps();
   }
-  function fmtMul(v) { return String(Math.round(v * 100) / 100).replace('.', ','); }
-  function synBadges(r, list, money) {
-    list = list.slice().sort((a, b) => ({ ready: 0, on: 1, need: 2 })[a.state] - ({ ready: 0, on: 1, need: 2 })[b.state]).slice(0, 2);
-    const key = list.map(s => s.id + s.state + (s.state === 'need' ? s.have : '') + (s.state === 'ready' ? (money >= s.price ? 1 : 0) : '')).join('|');
-    if (key === r.synKey) return; r.synKey = key; r.syn.textContent = '';
-    for (const s of list) {
-      const b = el(s.state === 'ready' ? 'button' : 'div', 'k-cui-badge ' + s.state, r.syn);
-      const ic = iconCv(s.other, 20); b.appendChild(ic);
-      if (s.state === 'on') el('span', null, b, '×' + fmtMul(s.mult));
-      else if (s.state === 'ready') { el('span', null, b, '¥ ' + fmt(s.price)); if (money < s.price) b.style.opacity = '.65';
-        b.addEventListener('click', () => { if (A().buySinergia(s.id)) { sfx('unlock'); burstAt(b, 22); r.synKey = ''; tickPatio(true); } else { sfx('error'); pop(b, 'k-cui-shake'); } }); }
-      else el('span', null, b, fmt(s.have) + '/' + fmt(s.need));
-      b.title = 'Sinergia com ' + s.otherName + ': ' + s.name + (s.state === 'on' ? ' (ativa)' : s.state === 'ready' ? ' · toque pra comprar' : ' · falta ' + fmt(s.need - s.have)) + ' · ' + (s.desc || '');
+  /* ---- "Ver todas": lista por turma, dobrável ---- */
+  const upsAll = sheet('k-cui-ups', { onOpen: () => renderUps() });
+  const UA = { open: {} };
+  {
+    const c = upsAll.card, hd = head(c, 'MELHORIAS', '', () => upsAll.close());
+    UA.sub = hd.sm;
+    el('div', 'ux-hint k-px-hint', c, 'Cada melhoria faz uma turma render mais ¥. Dourado = dá pra pegar agora.');
+    UA.pane = el('div', 'k-cui-pane', c);
+    const ft = el('div', 'k-cui-foot', c); const bk = button(ft, '', 'k-px-fb', () => { sfx('click'); upsAll.close(); }); el('span', null, bk, '← Voltar pro Pátio');
+  }
+  function openUps() { if (upsAll.isOpen) return; upsAll.open(); }
+  function renderUps() {
+    const api = A(), m = api.money(), list = api.patio(), up = upgrades(api, list, true), sc = UA.pane.scrollTop;
+    setT(UA.sub, up.of ? 'Você já tem ' + up.done + ' de ' + up.of : '');
+    UA.pane.textContent = '';
+    for (const t of list) {
+      if (t.locked) continue;
+      const mine = upSort(up.list.filter(u => u.tid === t.id), m); if (!mine.length) continue;
+      const mc = api.marcos ? api.marcos(t.id) : null, can = mine.some(u => !u.on && u.ready && m >= u.price);
+      const d = el('details', 'k-px-det' + (can ? ' can' : ''), UA.pane); if (UA.open[t.id] || (can && UA.open[t.id] !== false)) d.open = true;
+      const s = el('summary', null, d); const art = ART() && ART().machineIcon ? ART().machineIcon(t.id, 36) : null; s.appendChild(art || iconCv(t.id, 30));
+      el('b', null, s, t.name); el('span', null, s, (mc ? 'prêmios ' + mc.done + ' de ' + mc.of : '') + (can ? ' · tem pra pegar!' : ''));
+      d.addEventListener('toggle', () => { UA.open[t.id] = d.open; });
+      for (const u of mine) upCard(d, () => { tickPatio(true); renderUps(); }).set(u, m);
     }
+    UA.pane.scrollTop = sc;
   }
 
   /* ======================================================================
@@ -432,174 +475,234 @@
   }
 
   /* ======================================================================
-     5. ARROZ DO CORAÇÃO (+ 8 Tigelas) e GALERIA de conquistas
+     5. ARROZ DO CORAÇÃO (número grande + Tigelas) e CONQUISTAS (barra, "quase lá", lista dobrável por família)
      ====================================================================== */
   const FAMS = [
     ['turmas', 'Turmas', 'paw'], ['riqueza', 'Riqueza', 'yen'], ['eventos', 'Eventos', 'bolt'], ['viagem', 'Viagem', 'boat'],
-    ['mini', 'Minijogos', 'gear'], ['coracao', 'Coração e tempo', 'clock'], ['segredo', 'Segredos', 'book'],
+    ['mini', 'Fábrica e oficina', 'gear'], ['coracao', 'Coração e tempo', 'clock'], ['segredo', 'Segredos', 'book'],
   ];
-  const H = { tab: 'coracao', fam: 'turmas', sel: null };
+  const H = { tab: 'coracao', open: {} };
   const heart = sheet('k-cui-heart', { onOpen: () => renderHeart(), onClose: () => { if (H.art) H.art.stop(); } });
   {
     const c = heart.card, hd = el('div', 'k-cui-head', c);
     const h2 = el('h2', null, hd); H.title = el('span', null, h2, 'ARROZ DO CORAÇÃO'); H.sub = el('small', null, h2, '');
     const tabs = el('div', 'k-cui-tabs', hd);
-    H.tabs = [['coracao', 'Coração'], ['galeria', 'Galeria']].map(([id, t]) => { const b = el('button', 'k-cui-tab', tabs, t); b.type = 'button'; b.addEventListener('click', () => { H.tab = id; sfx('click'); renderHeart(); }); b._id = id; return b; });
+    H.tabs = [['coracao', 'Coração', 'star'], ['galeria', 'Conquistas', 'trophy']].map(([id, t, ic]) => { const b = el('button', 'k-cui-tab', tabs); b.type = 'button'; b.appendChild(iconCv(ic, 22)); el('span', null, b, t); b.addEventListener('click', () => { H.tab = id; sfx('click'); renderHeart(); }); b._id = id; return b; });
     closeBtn(hd, () => heart.close());
+    H.hint = el('div', 'ux-hint k-px-hint', c, '');
     H.pane = el('div', 'k-cui-pane', c);
   }
+  const pctTxt = v => fmt(Math.round(v * 1000) / 10).replace(/\.(\d)$/, ',$1') + '%';
+  function bar(parent, have, need, txt) {
+    const b = el('div', 'k-cui-bar k-px-bar', parent), i = el('i', null, b); i.style.width = (U.clamp(have / Math.max(1, need), 0, 1) * 100).toFixed(1) + '%';
+    el('span', null, b, txt); return b;
+  }
   function renderHeart() {
-    const api = A(), co = api.coracao();
-    setT(H.sub, co.n + ' conquistas · +' + pctTxt(co.bonus) + ' de renda');
+    const api = A(), co = api.coracao(), bonus = co.bonusAll != null ? co.bonusAll : co.bonus;
+    setT(H.sub, 'Tudo rende +' + pctTxt(bonus));
+    setT(H.hint, H.tab === 'coracao' ? 'Cada conquista faz TUDO render +' + pctTxt(co.per) + ' de ¥. Pra sempre.' : 'Pegue conquistas: cada uma faz tudo render +' + pctTxt(co.per) + ' de ¥.');
     H.tabs.forEach(b => b.classList.toggle('on', b._id === H.tab));
     if (H.art) { H.art.stop(); H.art = null; }
-    H.pane.textContent = ''; H.pane.scrollTop = 0;
-    if (H.tab === 'coracao') heartPane(api, co); else galleryPane(api);
+    const sc = H.pane.scrollTop, same = H.last === H.tab; H.last = H.tab;
+    H.pane.textContent = '';
+    if (H.tab === 'coracao') heartPane(api, co, bonus); else galleryPane(api, co);
+    H.pane.scrollTop = same ? sc : 0;
   }
-  const pctTxt = v => fmt(Math.round(v * 1000) / 10).replace(/\.(\d)$/, ',$1') + '%';
-  function heartPane(api, co) {
+  function heartPane(api, co, bonus) {
     const g = el('div', 'k-cui-hgrid', H.pane), L = el('div', 'k-cui-hl', g), R = el('div', 'k-cui-hr', g);
-    if (ART() && ART().heart) { H.art = ART().heart(co.n, co.total || 418, 280, 230); L.appendChild(H.art.cv); }
-    const s = el('div', 'k-cui-sum', L);
-    s.innerHTML = '';
-    el('span', null, s, co.n + ' × ' + pctTxt(co.per) + ' = +' + pctTxt(co.bonus));
-    el('small', null, s, 'cada conquista é um grão: +' + pctTxt(co.per) + ' de renda pra sempre');
-    if (co.next) el('small', null, s, 'próxima tigela em ' + co.next.need + ' (faltam ' + Math.max(0, co.next.need - co.n) + ')');
-    const h3 = el('div', 'k-cui-h3', R); h3.appendChild(iconCv('star', 22)); el('span', null, h3, 'Tigelas do Coração');
-    const tg = api.tigelas(); el('small', null, h3, tg.filter(t => t.owned).length + ' de ' + tg.length + ' · cada uma: +1% por conquista');
+    if (ART() && ART().heart) { H.art = ART().heart(co.n, co.total || 418, 250, 200); L.appendChild(H.art.cv); }
+    el('div', 'k-px-bignum', L, '+' + pctTxt(bonus));
+    el('div', 'k-px-biglbl', L, 'de ¥ em tudo, pra sempre');
+    bar(R, co.n, co.total || 1, 'Conquistas: ' + co.n + ' de ' + (co.total || '?'));
+    if (co.extra > 0) el('div', 'k-cui-note', R, '+ ' + fmt(co.extra) + ' grãos da Cidade e das Escadas (contam igual).');
+    const go = button(R, '', 'gold k-px-fb', () => { H.tab = 'galeria'; sfx('click'); renderHeart(); }); go.appendChild(iconCv('trophy', 24)); el('span', null, go, 'Ver o que falta pegar');
+    const tg = api.tigelas(), own = tg.filter(t => t.owned).length, v = tg.length && tg[0].v ? tg[0].v : 0.01, m = api.money();
+    const h3 = el('div', 'k-px-h', R); h3.appendChild(iconCv('star', 22)); el('span', null, h3, 'Tigelas · ' + own + ' de ' + tg.length);
+    el('div', 'k-cui-note', R, 'Cada tigela faz toda conquista valer +' + pctTxt(v) + ' a mais.');
     const bowls = el('div', 'k-cui-bowls', R);
     tg.forEach((t, i) => {
-      const b = el('div', 'k-cui-bowl' + (t.owned ? ' owned' : ''), bowls);
-      if (ART() && ART().bowl) b.appendChild(ART().bowl(i, t.owned, t.can));
+      const lackC = Math.max(0, t.need - co.n), can = !t.owned && !lackC && m >= t.price;
+      const b = el('div', 'k-cui-bowl' + (t.owned ? ' owned' : '') + (can ? ' can' : ''), bowls);
+      if (ART() && ART().bowl) b.appendChild(ART().bowl(i, t.owned, can));
       el('b', null, b, t.name.replace(/^Tigela do Coração [IVX]+: /, ''));
-      const bt = button(b, '', t.owned ? 'green' : t.can && api.money() >= t.price ? 'gold' : 'off');
-      if (t.owned) bt.textContent = 'cheia!';
-      else if (co.n < t.need) bt.textContent = co.n + '/' + t.need;
-      else bt.textContent = '¥ ' + fmt(t.price);
-      b.title = t.desc || '';
-      bt.addEventListener('click', () => {
+      const bt = btn2(b, '', () => {
         if (t.owned) return;
-        if (api.buyTigela(i)) { sfx('levelup'); burstAt(b, 30); setTimeout(renderHeart, 380); }
-        else { sfx('error'); pop(b, 'k-cui-shake'); }
+        if (lackC) return nope(bt.el, 'Faltam ' + lackC + ' conquistas');
+        if (m < t.price) return nope(bt.el, 'Falta ' + yen(t.price - m));
+        if (api.buyTigela(i)) { sfx('levelup'); burstAt(b, 30); const r = rectV(bt.el); float('Tudo rende mais!', U.clamp(r.cx, 150, vw - 150), r.y); setTimeout(renderHeart, 380); } else nope(bt.el);
       });
+      if (t.owned) bt.set('green', 'Cheia'); else if (lackC) bt.set('off', 'Faltam ' + lackC, 'conquistas'); else if (can) bt.set('gold', 'Encher', yen(t.price)); else bt.set('off', 'Falta', yen(t.price - m));
     });
-    const h4 = el('div', 'k-cui-h3', R); h4.appendChild(iconCv('trophy', 22)); el('span', null, h4, 'Pegou agora há pouco');
-    const rec = el('div', 'k-cui-recent', R), all = api.conquistas(), by = {};
-    for (const c of all) by[c.id] = c;
-    const ids = (co.recent || []).slice(0, 4);
-    if (!ids.length) el('div', 'k-cui-note', rec, 'Nenhuma ainda nesta sessão. Elas aparecem aqui quando chegarem.');
-    for (const id of ids) { const c = by[id]; if (c) achRow(rec, c); }
-    const all2 = button(R, 'Ver todas na Galeria', '', () => { H.tab = 'galeria'; renderHeart(); }); all2.style.alignSelf = 'flex-start';
   }
   function achRow(parent, c) {
-    const r = el('div', 'k-cui-ach', parent); r.appendChild(iconCv(c.icon || 'trophy', 30));
-    const t = el('div', null, r); el('b', null, t, c.name); el('span', null, t, c.desc); return r;
+    const hidden = c.secret && !c.got;
+    const r = el('div', 'k-cui-ach' + (c.got ? ' got' : ''), parent), ic = iconCv(hidden ? 'book' : c.icon || 'trophy', 30); if (!c.got) ic.style.opacity = '0.45'; r.appendChild(ic);
+    const t = el('div', null, r); el('b', null, t, hidden ? '???' : c.name);
+    el('span', null, t, hidden ? (c.hint ? 'Dica: ' + c.hint : 'Segredo. Continue jogando pra descobrir.') : c.desc);
+    if (c.got) el('i', 'k-px-ok', r, 'feita');
+    return { r, t };
   }
-  function galleryPane(api) {
-    const all = api.conquistas(), fams = el('div', 'k-cui-fams', H.pane);
+  function galleryPane(api, co) {
+    const all = api.conquistas(), got = all.filter(c => c.got).length;
+    bar(H.pane, got, all.length, 'Você pegou ' + got + ' de ' + all.length).classList.add('big');
+    // quase lá: as 5 mais perto (só as que o jogo sabe medir)
+    const fr = c => { const p = c.prog; if (!p || !(p[1] > 0)) return -1; return p[1] > 1e6 ? Math.log(Math.max(1, p[0])) / Math.log(p[1]) : p[0] / p[1]; };
+    let near = all.filter(c => !c.got && !c.secret && fr(c) >= 0).sort((a, b) => fr(b) - fr(a)).slice(0, 5);
+    if (!near.length) near = all.filter(c => !c.got && !c.secret).slice(0, 5);
+    if (near.length) {
+      const h = el('div', 'k-px-h', H.pane); h.appendChild(iconCv('bolt', 22)); el('span', null, h, 'Quase lá');
+      const box = el('div', 'k-px-near', H.pane);
+      for (const c of near) { const a = achRow(box, c); if (c.prog) bar(a.t, c.prog[0], c.prog[1], fmt(Math.min(c.prog[0], c.prog[1])) + ' de ' + fmt(c.prog[1])); }
+    }
+    const h = el('div', 'k-px-h', H.pane); h.appendChild(iconCv('book', 22)); el('span', null, h, 'Todas as conquistas');
     for (const [id, nm, ic] of FAMS) {
-      const list = all.filter(c => c.fam === id), got = list.filter(c => c.got).length;
-      if (!list.length) continue;
-      const b = el('button', 'k-cui-fam' + (H.fam === id ? ' on' : ''), fams); b.type = 'button';
-      b.appendChild(iconCv(ic, 20)); el('span', null, b, nm); el('small', null, b, got + '/' + list.length);
-      b.addEventListener('click', () => { H.fam = id; H.sel = null; sfx('click'); renderHeart(); });
+      const list = all.filter(c => c.fam === id); if (!list.length) continue;
+      const g = list.filter(c => c.got).length;
+      const d = el('details', 'k-px-det', H.pane), s = el('summary', null, d); s.appendChild(iconCv(ic, 28)); el('b', null, s, nm); el('span', null, s, g + ' de ' + list.length);
+      const fill = () => { if (d._f) return; d._f = 1; const box = el('div', 'k-px-near', d); for (const c of list.slice().sort((a, b) => (a.got ? 1 : 0) - (b.got ? 1 : 0))) achRow(box, c); };
+      if (H.open[id]) { d.open = true; fill(); }
+      d.addEventListener('toggle', () => { H.open[id] = d.open; if (d.open) { fill(); sfx('click', { vol: 0.5 }); } });
     }
-    const gal = el('div', 'k-cui-gal', H.pane), list = all.filter(c => c.fam === H.fam);
-    const det = el('div', 'k-cui-detail', null);
-    const show = c => {
-      det.textContent = '';
-      if (!c) { el('span', null, det, 'Toque numa conquista pra ver o que ela pede.'); return; }
-      const hidden = c.secret && !c.got;
-      el('b', null, det, hidden ? '???' : c.name);
-      el('span', null, det, hidden ? (c.hint ? 'Dica: ' + c.hint : 'Segredo. A Lupa de Segredos (Árvore de Sementes) dá uma dica.') : c.desc + (c.got ? '' : ' (ainda não)'));
-    };
-    for (const c of list) {
-      const hidden = c.secret && !c.got;
-      const b = el('button', 'k-cui-cell' + (c.got ? ' got' : '') + (H.sel === c.id ? ' sel' : ''), gal); b.type = 'button';
-      const ic = iconCv(hidden ? 'book' : c.icon || 'trophy', 28); if (!c.got) ic.style.opacity = '0.4'; b.appendChild(ic);
-      el('b', null, b, hidden ? '???' + (c.hint ? ' · ' + c.hint : '') : c.name);
-      b.addEventListener('click', () => { H.sel = c.id; gal.querySelectorAll('.sel').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); show(c); sfx('click', { vol: 0.5 }); });
-    }
-    H.pane.appendChild(det); show(list.find(c => c.id === H.sel) || null);
   }
 
   /* ======================================================================
-     6. ÁRVORE DE SEMENTES NOVA (E.UI.tree, a mesma da Árvore do Kome) — nó com nível ganha "Subir nível" no cartão
+     6. LOJA DE SEMENTES DOURADAS (tela própria: abas por galho, cartões grandes, "pra você", ×1/×10/máximo)
+        Textos e efeitos vêm do adaptador (desc, now(), fxAt(nível)): nada de efeito escrito à mão aqui.
      ====================================================================== */
-  const T = { panel: null, tree: null, key: '' };
-  function seedNodes() {
-    const st = A().seedTree();
-    const nodes = st.nodes.map(n => Object.assign({}, n, { c: A().seedCost(n.id) }));
-    return { st, nodes };
+  const SD = { tab: 'rec', mult: 1, cards: [], key: '', nodes: [], by: {}, t: 0, sig: '' };
+  const seedsS = sheet('k-cui-seeds', { top: true, onOpen: () => { seedLoad(); SD.sig = ''; tickSeeds(true); }, onClose: () => {} });
+  {
+    const c = seedsS.card, hd = el('div', 'k-cui-head', c);
+    try { hd.appendChild(iconCv(ART() && ART().seedIcon ? ART().seedIcon() : 'star', 40)); } catch (e) { /* sem arte */ }
+    const h2 = el('h2', null, hd); el('span', null, h2, 'SEMENTES DOURADAS'); el('small', null, h2, 'Melhorias que nunca somem');
+    SD.count = el('div', 'k-px-count', hd, '★ 0');
+    closeBtn(hd, () => seedsS.close());
+    SD.hint = el('div', 'ux-hint k-px-hint', c, '');
+    SD.tabs = el('div', 'k-px-tabs', c);
+    SD.pane = el('div', 'k-cui-pane', c);
+    const ft = el('div', 'k-cui-foot k-px-sfoot', c);
+    el('span', 'k-px-lbl', ft, 'Comprar de:');
+    const seg = el('div', 'k-cui-seg', ft);
+    SD.seg = CFG.MULTS.map(m => { const b = el('button', null, seg, m === 'max' ? 'máximo' : String(m)); b.type = 'button';
+      b.addEventListener('click', () => { SD.mult = m; sfx('click'); SD.seg.forEach(x => x.classList.toggle('on', x === b)); tickSeeds(true); }); return b; });
+    SD.seg[0].classList.add('on');
+    el('div', 'k-cui-sp', ft);
+    SD.cheap = btn2(ft, 'k-px-cheap', () => { const n = SD.cheapN; if (!n) return nope(SD.cheap.el, 'Nada pra comprar agora'); seedBuy(n, SD.cheap.el, 1); });
   }
-  function openSeeds() {
-    if (!UI || !UI.panel || !UI.tree || !UI.root) return;
-    const { st, nodes } = seedNodes();
-    const key = nodes.map(n => n.id).join(',');
-    if (!T.panel) {
-      T.panel = UI.panel({ title: 'Sementes Douradas', icon: 'star', bare: true, onOpen: () => { if (T.tree) T.tree.refresh(); }, onClose: () => { if (T.tick) clearInterval(T.tick); T.tick = 0; } });
-      T.count = UI.el('div', 'k-tree-hint', T.panel.head || T.panel.body, '');
-      T.count.style.cssText = 'position:absolute;left:auto;right:72px;top:12px;bottom:auto;transform:none;z-index:3;font-size:19px;font-weight:900;background:#FFE9A8;color:#2A1A10;border:3px solid #3B2818;border-radius:14px;box-shadow:0 3px 0 #3B2818;padding:6px 12px;white-space:nowrap;pointer-events:none;opacity:1';
+  function seedLoad() {
+    const st = A().seedTree(), key = st.nodes.map(n => n.id).join(',');
+    if (key === SD.key) return; SD.key = key; SD.nodes = st.nodes; SD.br = st.branches || {}; SD.by = {}; st.nodes.forEach(n => { SD.by[n.id] = n; });
+    SD.tabs.textContent = ''; SD.tabB = {};
+    const tab = (id, nm, ic) => { const b = el('button', 'k-cui-tab k-px-tab', SD.tabs); b.type = 'button'; b.appendChild(iconCv(ic, 22)); el('span', null, b, nm); el('i', 'k-px-dot', b);
+      b.addEventListener('click', () => { SD.tab = id; sfx('click'); SD.sig = ''; tickSeeds(true); SD.pane.scrollTop = 0; }); SD.tabB[id] = b; };
+    tab('rec', 'Pra você', 'star');
+    for (const id of Object.keys(SD.br)) if (st.nodes.some(n => n.branch === id)) tab(id, SD.br[id].name, SD.br[id].icon || 'star');
+  }
+  // estado de um nó agora
+  function seedState(n, have, k) {
+    const api = A(), L = api.seedLevel(n.id) | 0, max = n.max | 0, full = !!max && L >= max;
+    const lockId = (n.req || []).find(r => !(api.seedLevel(r) > 0)), cost = api.seedCost(n.id);
+    let plan = { n: 1, cost };
+    if (!full && k !== 1 && api.seedPlan) { const p = api.seedPlan(n.id, k === 'max' ? 999 : k); if (p && p.n > 0) plan = p; }
+    return { L, max, full, lockId, cost, plan, can: !full && !lockId && have >= plan.cost };
+  }
+  function seedPick(have) {   // "pra você": o que cabe no bolso (máquina nova primeiro, depois o que você ainda não tem, depois o mais barato); senão os mais perto
+    const open = SD.nodes.map(n => ({ n, s: seedState(n, have, 1) })).filter(x => !x.s.full && !x.s.lockId);
+    const can = open.filter(x => x.s.can).sort((a, b) => (b.n.absurd ? 1 : 0) - (a.n.absurd ? 1 : 0) || (a.s.L ? 1 : 0) - (b.s.L ? 1 : 0) || a.s.cost - b.s.cost);
+    const rest = open.filter(x => !x.s.can).sort((a, b) => a.s.cost - b.s.cost);
+    const cheap = open.slice().sort((a, b) => a.s.cost - b.s.cost)[0];
+    return { top: can.concat(rest).slice(0, 3).map(x => x.n), nCan: can.length, cheap: cheap ? cheap.n : null };
+  }
+  function seedCard(parent, n) {
+    const br = SD.br[n.branch] || {};
+    const c = { n, el: el('div', 'k-px-seed', parent) };
+    c.ico = el('div', 'k-cui-ico', c.el); c.ico.appendChild(iconCv(n.icon || br.icon || 'star', 36)); if (br.color) c.ico.style.background = br.color;
+    const mid = el('div', 'k-px-mid', c.el);
+    c.nm = el('div', 'k-px-nm', mid, n.n); c.lv = el('div', 'k-px-lv', mid);
+    c.desc = el('div', 'k-px-what', mid, n.desc || '');
+    c.fx = el('div', 'k-px-fx', mid);
+    c.bt = btn2(c.el, 'k-px-seedb', () => seedBuy(n, c.bt.el));
+    return c;
+  }
+  function seedPaint(c, have) {
+    const n = c.n, s = seedState(n, have, SD.mult), L = s.L;
+    setT(c.lv, s.max === 1 ? (L ? 'Já é seu' : 'Compra uma vez só') : 'Nível ' + L + (s.max ? ' de ' + s.max : ''));
+    let fx = '';
+    if (n.fxAt) { const now = L > 0 ? n.fxAt(L) : '', nx = s.full ? '' : n.fxAt(L + s.plan.n); fx = (now ? 'Agora: ' + now : '') + (now && nx ? '  →  ' : '') + (nx ? 'Depois: ' + nx : ''); }
+    else if (n.now) { const now = n.now(); if (now) fx = 'Agora: ' + now; }
+    setT(c.fx, fx); c.fx.style.display = fx ? '' : 'none';
+    c.el.classList.toggle('can', s.can); c.el.classList.toggle('full', s.full); c.el.classList.toggle('locked', !!s.lockId && !s.full);
+    if (s.full) c.bt.set('green', s.max === 1 ? 'Já é seu' : 'Completo');
+    else if (s.lockId) c.bt.set('off', 'Antes compre', (SD.by[s.lockId] || {}).n || '');
+    else if (s.can) c.bt.set('gold', L && s.max !== 1 ? (s.plan.n > 1 ? 'Subir ' + s.plan.n + ' níveis' : 'Subir nível') : 'Comprar', '★ ' + fmt(s.plan.cost));
+    else c.bt.set('off', 'Faltam ★ ' + fmt(s.plan.cost - have), 'custa ★ ' + fmt(s.plan.cost));
+  }
+  function seedBuy(n, btnEl, k) {
+    const api = A(), have = api.seeds(), s = seedState(n, have, k || SD.mult);
+    if (s.full) return;
+    if (s.lockId) return nope(btnEl, 'Antes: ' + ((SD.by[s.lockId] || {}).n || ''));
+    if (!s.can) return nope(btnEl, 'Faltam ★ ' + fmt(s.plan.cost - have));
+    let got = 0; for (let i = 0; i < s.plan.n; i++) { if (!api.buySeed(n.id)) break; got++; }
+    if (!got) return nope(btnEl);
+    sfx(n.absurd ? 'fanfare' : 'levelup'); burstAt(btnEl, n.absurd ? 40 : 22);
+    const r = rectV(btnEl), now = n.fxAt ? n.fxAt(api.seedLevel(n.id) | 0) : n.now ? n.now() : '';
+    float(now || 'Comprado!', U.clamp(r.cx, 170, vw - 170), r.y); pop(SD.count);
+    seedDirty = 0; tickSeeds(true);
+  }
+  function tickSeeds(force) {
+    if (!seedsS.isOpen) return;
+    const api = A(), have = api.seeds(), pk = seedPick(have);
+    setT(SD.count, '★ ' + fmt(have));
+    setT(SD.hint, pk.nCan ? 'Toque num botão dourado: cada semente te faz ganhar mais ¥, pra sempre.' : SD.nodes.length ? 'Viaje pra outra ilha pra ganhar sementes. Elas te dão mais ¥ pra sempre.' : 'Sementes aparecem depois da primeira viagem.');
+    for (const id in SD.tabB) { const b = SD.tabB[id]; b.classList.toggle('on', id === SD.tab);
+      const dot = id === 'rec' ? pk.nCan > 0 : SD.nodes.some(n => n.branch === id && seedState(n, have, 1).can); b.classList.toggle('dot', dot); }
+    const list = SD.tab === 'rec' ? pk.top : SD.nodes.filter(n => n.branch === SD.tab);
+    const sig = SD.tab + ':' + list.map(n => n.id).join(',');
+    if (sig !== SD.sig) {
+      SD.sig = sig; SD.pane.textContent = ''; SD.cards = [];
+      if (SD.tab === 'rec') { const h = el('div', 'k-px-h', SD.pane); h.appendChild(iconCv('star', 22)); el('span', null, h, pk.nCan ? 'Recomendado pra você agora' : 'As mais perto de comprar'); }
+      const grid = el('div', 'k-px-sgrid' + (SD.tab === 'rec' ? ' rec' : ''), SD.pane);
+      for (const n of list) SD.cards.push(seedCard(grid, n));
+      if (!list.length) el('div', 'k-cui-note', SD.pane, 'Você já comprou tudo daqui. Uau.');
+      if (SD.tab === 'rec') { const go = button(SD.pane, '', 'k-px-fb k-px-map', () => { sfx('click'); seedsS.close(); patio.close(); api.openMap(); }); go.appendChild(iconCv('boat', 24)); el('span', null, go, 'Ganhar mais sementes: ver o mapa'); }
     }
-    if (!T.tree || T.key !== key) {
-      if (T.tree) T.tree.destroy();
-      T.key = key; T.nodes = {}; nodes.forEach(n => { T.nodes[n.id] = n; describe(n); });
-      T.tree = UI.tree(T.panel.body, {
-        nodes, branches: st.branches, center: { icon: ART() && ART().seedIcon ? ART().seedIcon() : 'star', label: 'Sementes', scale: 1.3 },
-        owned: id => A().seedLevel(id) > 0, progress: n => U.clamp(A().seeds() / Math.max(1, A().seedCost(n.id)), 0, 1),
-        affordable: n => A().seeds() >= A().seedCost(n.id),
-        fmtCost: c => '★ ' + fmt(c),
-        onBuy(n) { return buySeed(n.id) ? undefined : false; },
-        onSelect(n) { T.sel = n.id; levelBtn(); },
-      });
-      UI.el('div', 'k-tree-hint', T.tree.el, 'nó dourado grandão = máquina absurda · toque num nó, toque de novo pra comprar');
-      T.tree.el.appendChild(T.count);
-      T.card = T.tree.el.querySelector('.k-tree-card');
-      T.lv = UI.button(T.card, { title: 'Subir nível', icon: 'star', iconSize: 22, center: true, sound: 'none', onClick: () => { if (T.sel) buySeed(T.sel, true); } });
-      (T.lv.el || T.lv).style.display = 'none';
-    }
-    T.panel.open(); countSeeds(); levelBtn();
-    if (!T.tick) T.tick = setInterval(() => { countSeeds(); levelBtn(); }, 400);
+    for (const c of SD.cards) seedPaint(c, have);
+    SD.cheapN = pk.cheap;
+    if (pk.cheap) { const s = seedState(pk.cheap, have, 1); SD.cheap.set(s.can ? 'gold' : 'off', 'Comprar a mais barata', pk.cheap.n + ' · ★ ' + fmt(s.cost)); SD.cheap.el.style.display = ''; }
+    else SD.cheap.el.style.display = 'none';
   }
-  function describe(n) {
-    const L = A().seedLevel(n.id), max = n.max | 0;
-    const now = n.now ? n.now() : '';   // efeito de agora (adaptador: islands.js seedFx), ex. "agora: −41% nos preços"
-    n.see = (max === 1 ? (L ? 'comprado' : 'compra única') : 'nível ' + L + (max ? ' de ' + max : ' (sem teto)')) + (now ? ' · agora: ' + now : '') + (n.absurd ? ' · destrava máquina absurda' : '');
+  // openSeeds(id?): abre a loja (em qualquer hora do jogo, com ou sem Pátio); com id de semente, já abre na aba dela
+  function openSeeds(id) {
+    seedLoad();
+    const n = id && SD.by[id]; SD.tab = n ? n.branch : 'rec'; SD.sig = '';
+    if (seedsS.isOpen) { tickSeeds(true); return true; }
+    seedsS.open(); sfx('whoosh', { vol: 0.5 }); return true;
   }
-  function buySeed(id, lvlUp) {
-    const n = T.nodes[id];
-    if (!A().buySeed(id)) { sfx('error'); return false; }
-    if (n) { describe(n); n.c = A().seedCost(id); }
-    sfx(n && n.absurd ? 'fanfare' : 'pling');
-    if (lvlUp && T.tree) { T.tree.refresh(); const b = T.lv.el || T.lv; burstAt(b, 18); }
-    countSeeds(); setTimeout(levelBtn, 30);
-    return true;
-  }
-  function countSeeds() { if (T.count) setT(T.count, '★ ' + fmt(A().seeds()) + ' sementes'); }
-  function levelBtn() {
-    if (!T.lv || !T.card) return;
-    const n = T.sel && T.nodes[T.sel], L = n ? A().seedLevel(n.id) : 0, max = n ? n.max | 0 : 1;
-    const show = !!n && L > 0 && (max === 0 || L < max);
-    const b = T.lv.el || T.lv; b.style.display = show ? '' : 'none';
-    const buy = T.card.querySelector('.k-btn:not(:last-of-type)'); // botão "Já é seu!" do cartão some quando há nível pra subir
-    T.card.querySelectorAll('.k-btn').forEach(x => { if (x !== b) x.style.display = show ? 'none' : ''; });
-    void buy;
-    if (show) { const c = A().seedCost(n.id), can = A().seeds() >= c; T.lv.set({ title: 'Subir pro nível ' + (L + 1), sub: '★ ' + fmt(c), state: can ? 'can' : 'off' }); }
+  // resumo pro HUD/menu: quantas sementes, quantas compras cabem agora, a mais barata (barato: recalcula no máx. 1×/s)
+  let seedDirty = 0, seedMemo = { n: 0, can: 0, cheapest: null, any: false };
+  function seedsInfo() {
+    const now = performance.now(); if (now < seedDirty) return seedMemo; seedDirty = now + 1000;
+    try { seedLoad(); const have = A().seeds(), pk = seedPick(have);
+      seedMemo = { n: have, can: pk.nCan, cheapest: pk.cheap ? { id: pk.cheap.id, name: pk.cheap.n, cost: A().seedCost(pk.cheap.id) } : null, any: have > 0 || SD.nodes.some(n => A().seedLevel(n.id) > 0) };
+    } catch (e) { /* adaptador ainda não ligou */ }
+    return seedMemo;
   }
 
   /* ======================================================================
      7. CHIPS (Pátio · hora de partir) + COCHILO DO KOME
      ====================================================================== */
-  let chipP = null, chipGo = null, chipT = 0;
+  let chipP = null, chipGo = null, chipS = null, chipT = 0;
   function chips(dt) {
     if ((chipT -= dt) > 0) return; chipT = 0.5;
     if (!G.HUD || !G.HUD.chip || !G.HUD.ready) return;
     const api = A(), ready = !!api.ready();
     if (!chipP) chipP = G.HUD.chip({ id: 'patio', icon: 'paw', label: 'Pátio', order: 15, tone: '#FFF0C2', show: false, onClick: () => (patio.isOpen ? patio.close() : openPatio()) });
     if (!chipGo) chipGo = G.HUD.chip({ id: 'partir', icon: 'boat', label: 'Partir', order: 41, tone: '#DDEFFF', show: false, onClick: () => { sfx('click'); patio.close(); api.openMap(); } });
+    if (!chipS) chipS = G.HUD.chip({ id: 'sementes', icon: 'star', label: 'Sementes', order: 16, tone: '#FFE9A8', show: false, onClick: () => openSeeds() });
+    if (chipS) { const si = seedsInfo(); chipS.set({ show: si.can > 0, prio: si.can > 0 ? 1 : 0, hint: si.can > 0 ? '★ ' + fmt(si.n) + ' · dá pra comprar' : '' }); if (P.seedB) P.seedB.classList.toggle('dot', si.can > 0); }
     if (!chipP || !chipGo) return;
     let hint = '';
-    if (ready) { for (const t of api.patio()) { if (t.locked) continue; const mk = api.marco(t.id); if (mk && mk.ready && api.money() >= mk.price) { hint = 'marco à vista'; break; } } }
+    if (ready) { for (const t of api.patio()) { if (t.locked) continue; const mk = api.marco(t.id); if (mk && mk.ready && api.money() >= mk.price) { hint = 'melhoria pronta'; break; } } }
     chipP.set({ show: ready, prio: hint ? 1 : 0, hint });
     const p = ready ? api.partir() : null;
     chipGo.set({ show: !!(p && p.ok), prio: p && p.ok ? 3 : 0, hot: 'Hora de partir', hint: p && p.ok ? '+' + fmt((p.patio | 0) + (p.island | 0)) + ' sementes' : '' });
@@ -682,15 +785,16 @@
      9. LAÇO, ABRIR/FECHAR, GANCHOS
      ====================================================================== */
   let built = false, last = 0;
-  function openPatio() { if (!A().ready()) return false; heart.close(); patio.open(); sfx('whoosh', { vol: 0.5 }); return true; }
+  function openPatio() { if (!A().ready()) return false; heart.close(); seedsS.close(); patio.open(); sfx('whoosh', { vol: 0.5 }); return true; }
   function openHeart(tab) { if (tab) H.tab = tab; if (heart.isOpen) { renderHeart(); return true; } heart.open(); sfx('whoosh', { vol: 0.5 }); return true; }
-  function refreshAll() { if (patio.isOpen) { buildRows(); tickPatio(true); } if (heart.isOpen) renderHeart(); }
+  function refreshAll() { if (patio.isOpen) { buildRows(); tickPatio(true); } if (heart.isOpen) renderHeart(); SD.key = ''; seedDirty = 0; if (seedsS.isOpen) { seedLoad(); SD.sig = ''; tickSeeds(true); } }
   function loop(now) {
     const dt = last ? Math.min(0.5, (now - last) / 1000) : 0; last = now;
     try {
       chips(dt); napTick(dt);
       if (P.chainT > 0) P.chainT -= dt;
       if (patio.isOpen && (P.t -= dt) <= 0) { P.t = 0.25; tickPatio(); }
+      if (seedsS.isOpen && (SD.t -= dt) <= 0) { SD.t = 0.5; tickSeeds(); }
       if (!NAP.tg) settingsRow();
     } catch (e) { if (!loop.warned) { loop.warned = true; console.warn('[kome] cookie-ui', e); } }
     requestAnimationFrame(loop);
@@ -705,9 +809,9 @@
   }
   Object.assign(CU, {
     openPatio, closePatio: () => patio.close(), openHeart, openSeeds, showAway, cochilo: force => (force || napOn() ? (showNap(), true) : false),
-    close() { opened.slice().forEach(s => s.close()); if (T.panel) T.panel.close(); },
-    isOpen: () => opened.length > 0, CFG, fit, seedTreeUI: () => T.tree,
-    state: () => ({ patio: patio.isOpen, heart: heart.isOpen, away: away.isOpen, nap: nap.isOpen, napPlay: NAP.play, mult: P.mult }),
+    close() { opened.slice().forEach(s => s.close()); }, seedsInfo, closeSeeds: () => seedsS.close(),
+    isOpen: () => opened.length > 0, CFG, fit,
+    state: () => ({ seeds: seedsS.isOpen, ups: upsAll.isOpen, patio: patio.isOpen, heart: heart.isOpen, away: away.isOpen, nap: nap.isOpen, napPlay: NAP.play, mult: P.mult }),
   });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(build, 0)); else setTimeout(build, 0);
 
@@ -729,6 +833,7 @@
     IDS.forEach((id, i) => { F.n[id] = N0[id] | 0; F.marcos[id] = 0; while (F.marcos[id] < MILES.length && MILES[F.marcos[id]] <= F.n[id] && !(id === 'pa' && MILES[F.marcos[id]] === 25)) F.marcos[id]++; });
     const base = i => 10 * Math.pow(6.5, i) * R0, rend = i => 0.5 * Math.pow(4.3, i) * R0;
     const idx = id => IDS.indexOf(id);
+    const SHORT = id => { const t = G.Data && G.Data.TOOLS && G.Data.TOOLS.find(x => x.id === id); return t ? t.name : NAMES[idx(id)]; };
     const absurdOpen = id => { const i = idx(id); return i < 14 || F.sl['absurdo' + (i + 1)] > 0; };
     const mileName = (id, at) => { const r = DD.up.find(u => u[0] === 'm_' + id + '_' + at); return r ? { name: r[1], desc: r[2] } : { name: 'Marco ' + at, desc: 'Mais ' + at + ' e a turma inteira dobra. A física pede desculpas.' }; };
     const mult = id => Math.pow(2, F.marcos[id]) * synMult(id);
@@ -793,7 +898,7 @@
       ready: () => true,
       patio: () => IDS.filter((id, i) => i < 14 || absurdOpen(id) || i === 14 + Object.keys(F.sl).filter(k => /^absurdo/.test(k) && F.sl[k]).length).map(id => {
         const i = idx(id), open = absurdOpen(id);
-        return { id, name: NAMES[i], n: F.n[id], rate: F.n[id] * rend(i) * mult(id), absurd: i >= 14, locked: !open, lockTxt: open ? '' : 'nó "' + (nodeBy['absurdo' + (i + 1)] || {}).n + '" na Árvore de Sementes' };
+        return { id, name: NAMES[i], n: F.n[id], rate: F.n[id] * rend(i) * mult(id), each: rend(i) * mult(id), absurd: i >= 14, locked: !open, lockSeed: open ? '' : 'absurdo' + (i + 1), lockTxt: open ? '' : 'Destrava com a semente "' + (nodeBy['absurdo' + (i + 1)] || {}).n + '"' };
       }),
       total: () => { let r = 0, n = 0; IDS.forEach((id, i) => { r += F.n[id] * rend(i) * mult(id); n += F.n[id]; }); return { rate: r, n }; },
       price: priceK, maxBuy,
@@ -802,6 +907,8 @@
         const k2 = F.marcos[id]; if (k2 >= MILES.length) return null; const at = MILES[k2], i = idx(id), nm = mileName(id, at);
         return { at, prev: k2 ? { at: MILES[k2 - 1] } : null, name: nm.name, desc: nm.desc, mult: 2, price: base(i) * [10, 50, 500, 5e4, 5e6, 5e8, 5e10, 5e12, 5e14, 5e16, 5e18, 5e20, 5e22][k2], ready: F.n[id] >= at };
       },
+      marcos: id => ({ done: F.marcos[id], of: MILES.length }), shortName: id => SHORT(id),
+      seedPlan(id, k) { const n = nodeBy[id]; let L = F.sl[id] | 0, c = 0, q = 0; while (n && q < k && !(n.max && L >= n.max)) { const x = Math.ceil(n.base * Math.pow(1.45, L)); if (q && c + x > F.seeds) break; c += x; q++; L++; } return { n: q, cost: q ? c : Infinity }; },
       buyMarco(id) { const m = this.marco(id); if (!m || !m.ready || money() < m.price) return false; pay(m.price); F.marcos[id]++; return true; },
       sinergias(id) {
         const out = [];
@@ -809,7 +916,7 @@
           const [a, b] = u[3].split('+'); if (a !== id && b !== id) continue;
           const other = a === id ? b : a, have = Math.min(F.n[a], F.n[b]), need = u[5];
           const st = F.syn[u[0]] ? 'on' : have >= need ? 'ready' : 'need';
-          out.push({ id: u[0], other, otherName: NAMES[idx(other)].split(' ').pop(), name: u[1], desc: u[2], mult: u[6] === 'mult_par' ? u[7] : 1 + u[7], state: st, have, need, price: u[8] * Math.max(base(idx(a)), base(idx(b))) });
+          out.push({ id: u[0], other, otherName: NAMES[idx(other)].split(' ').pop(), name: u[1], desc: u[2], mult: u[6] === 'mult_par' ? u[7] : 1 + u[7], state: st, have, need, price: u[8] * Math.max(base(idx(a)), base(idx(b))), a, b, aName: SHORT(a), bName: SHORT(b), kind: u[6] === 'mult_par' ? 'par' : 'por', v: u[7] });
         }
         return out;
       },
