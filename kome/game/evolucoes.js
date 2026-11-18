@@ -58,10 +58,10 @@
     g.restore();
   };
   const sparks = (g, cx, cy, R, t, n, sz) => { for (let i = 0; i < n; i++) { const ph = (t * 0.7 + i / n) % 1, an = i * 2.39996 + t * 0.5; sparkle(g, cx + Math.cos(an) * R * (0.4 + ph * 0.6), cy + Math.sin(an) * R * 0.6 * (0.4 + ph * 0.6) - ph * R * 0.3, sz * (1 - ph * 0.5), t + i, Math.sin(ph * Math.PI)); } };
-  let FILTER_OK = null;
+  let FILTER_OK = null; const GOLD = 'sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(1.12)';
   function goldFilter(g, on) {
     if (FILTER_OK === false) return false;
-    try { g.filter = on ? 'sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(1.12)' : 'none'; if (FILTER_OK === null) FILTER_OK = 'filter' in g; return FILTER_OK; } catch (e) { FILTER_OK = false; return false; }
+    try { g.filter = on ? GOLD : 'none'; if (FILTER_OK === null) FILTER_OK = 'filter' in g; return FILTER_OK; } catch (e) { FILTER_OK = false; return false; }
   }
   const faceOf = m => (m.turn !== undefined ? (m.turn >= 0 ? 1 : -1) : m.face < 0 ? -1 : 1);
   const floorAt = (m, x) => (m.floorF ? m.floorF(x) : m.y);
@@ -104,8 +104,10 @@
     },
     // Bagger Dourada: a máquina inteira em ouro + brilhos
     dourada(g, m, draw) {
-      const ok = goldFilter(g, true);
-      try { draw(); } finally { if (ok) goldFilter(g, false); }
+      // a máquina toda numa tela de apoio e carimbada com UM filtro de ouro (filtro por traço derrubava o celular)
+      const W0 = G.World && G.World.filtered, T = G.Tools.bagger, mk = m.k || 1;
+      if (W0) { const hw = (T && T.w || 400) * mk, hh = (T && T.h || 300) * 2.1 * mk; W0(g, GOLD, [m.x - hw, m.y - hh, m.x + hw, m.y + 60 * mk], c => draw(c)); }
+      else { const ok = goldFilter(g, true); try { draw(); } finally { if (ok) goldFilter(g, false); } }
       const sc = m.sc || 1, b = m.biteO, t = m.t || 0;
       if (b && b.x) sparks(g, b.x, b.y, 160 * sc, t, 7, 14 * sc);
       sparks(g, m.x, m.y - 300 * sc, 260 * sc, t + 3, 6, 12 * sc);
@@ -154,7 +156,7 @@
         const e = m && (m.evoForce || active[id]);
         if (!e || !VIS[e.vis]) return orig.call(this, g, m);
         m.evo = e.id;
-        try { VIS[e.vis](g, m, () => orig.call(this, g, m)); } finally { m.evo = null; }
+        try { VIS[e.vis](g, m, c => orig.call(this, c || g, m)); } finally { m.evo = null; }
       };
     }
   }

@@ -41,7 +41,9 @@ const SCENES = [
   ['fábrica tutorial', `KomeGame.Fab.close(); KomeGame.Fab.open(); KomeGame.Fab.tut(0);`],
   ['cidade', `KomeGame.Fab.close(); KomeGame.City.demo();`],
   ['cidade · escolha', `KomeGame.City.close(); KomeGame.City.demo('escolha');`],
-  ['vila · rua da cidade', `KomeGame.City.close(); __kome.vilaHold(1); __kome.vila(true); setTimeout(() => __kome.vila(true, KomeGame.World.X.cid0 + 300, 0.5), 250);`],
+  ['chips + gaveta Mais', `KomeGame.City.close(); __kome.vila(false); KomeGame.HUD.chipDemo(true);`],
+  ['dica (trocar máquina)', `KomeGame.HUD.chipDemo(false); KomeGame.Dicas.demo('trocar', 50);`],
+  ['vila · rua da cidade', `KomeGame.Dicas.close(); KomeGame.City.close(); __kome.vilaHold(1); __kome.vila(true); setTimeout(() => __kome.vila(true, KomeGame.World.X.cid0 + 300, 0.5), 250);`],
 ];
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });

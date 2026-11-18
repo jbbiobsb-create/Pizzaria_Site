@@ -871,10 +871,17 @@
       L.push([f, rise, e, (G.Tools[f.id].w || 120) * BG_K]);
     }
     if (!L.length) return;
-    g.save(); try { g.filter = 'brightness(0.72) saturate(0.7)'; } catch (err) { /* */ }
-    for (const [f, rise, e] of L) { g.save(); g.translate(f.x, f.y - rise - BG_UP * (1 - e)); g.scale(BG_K, BG_K); g.translate(-f.x, -f.y); drawMach(g, f.id, f.m, f); g.restore(); }
-    try { g.filter = 'none'; } catch (err) { /* */ } g.restore();
+    // escurecidas por UM filtro só (tela de apoio do Wd.filtered): filtro por traço deixava o celular lento com a frota trabalhando
+    const bx = BGBOX; bx[0] = bx[1] = Infinity; bx[2] = bx[3] = -Infinity;
+    for (const [f, rise, e] of L) {
+      const T0 = G.Tools[f.id], mk = (f.m && f.m.k) || 1, hw = (T0.w || 300) * 0.8 * mk * BG_K + 20, top = (T0.h || 200) * 1.7 * mk * BG_K + 20, oy = f.y - rise - BG_UP * (1 - e);
+      if (f.x - hw < bx[0]) bx[0] = f.x - hw; if (f.x + hw > bx[2]) bx[2] = f.x + hw; if (oy - top < bx[1]) bx[1] = oy - top; if (oy + 40 > bx[3]) bx[3] = oy + 40;
+    }
+    Wd.filtered(g, 'brightness(0.72) saturate(0.7)', bx, c => {
+      for (const [f, rise, e] of L) { c.save(); c.translate(f.x, f.y - rise - BG_UP * (1 - e)); c.scale(BG_K, BG_K); c.translate(-f.x, -f.y); drawMach(c, f.id, f.m, f); c.restore(); }
+    });
   }
+  const BGBOX = [0, 0, 0, 0];
   function fleetTick(dt) {
     // só com o Kome a pé e sem gigante na frente as pequenas vão até o barranco; senão trabalham na vaga (bancada de rechego)
     const k = cur.kind, atFace = (k === 'hand' || k === 'push' || k === 'jack') && !S.bag;   // Bagger na frente (montando ou pronta): ninguém passa por cima dela

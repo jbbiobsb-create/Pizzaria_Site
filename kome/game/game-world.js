@@ -127,6 +127,7 @@
   const CIT = { wall: ['#F3EBDB', '#E4D6BE', '#D6C3A3'], wood: ['#9A6A44', '#7A5034', '#5E3C26'], roof: ['#5C6672', '#46505C', '#343C46'], red: ['#D8574E', '#B8423B', '#93302A'],
     flat: [['#E8B27A', '#D19A63'], ['#9EC1D8', '#7FA5BF'], ['#E8D58A', '#CDB86A'], ['#B9C9A0', '#9DB083']] };
   const CITY_ART = ['cid_machiya', 'cid_loja', 'cid_sobrado', 'cid_predio', 'cid_loja_azul', 'cid_templo', 'cid_predio2', 'cid_machiya', 'cid_loja', 'cid_sobrado', 'cid_predio2', 'cid_loja_azul', 'cid_predio'];
+  const CITY_FLT = 'saturate(0.75) brightness(1.06) contrast(0.85)', VB_FLT = 'saturate(0.8) brightness(1.04) contrast(0.9)';
   function drawCity(g, y, t, S, cam) {
     // cada bairro tem o SEU horizonte: cidadezinha fofa (pagode, castelo, casinhas) só atrás da VILA; atrás da cava, zona industrial
     // em névoa (chaminés, guindastes, tanques, torres de energia, contêineres). vk 0..1 = quanto a câmera já passou pro lado da vila.
@@ -140,11 +141,10 @@
     // ordem de crescimento: do meio pra fora; o castelo aparece no centro quando a cidade fica grande
     const idx = Array.from({ length: 26 }, (_, i) => i).sort((a, b) => Math.abs(a - 13) - Math.abs(b - 13)).slice(0, n).sort((a, b) => (a * 7) % 5 - (b * 7) % 5);
     g.save(); g.globalAlpha = vk;
-    try { g.filter = 'saturate(0.75) brightness(1.06) contrast(0.85)'; } catch (e) { /* névoa de distância */ }
     for (const i of idx) {
       const x = ((i * 46 - off) % span + span) % span - 60; if (x > W + 80 || x < -90) continue;
       const id = i === 13 && n > 9 ? 'cid_castelo' : CITY_ART[(i * 5) % CITY_ART.length];
-      art(g, id, x, 0.55, y);
+      art(g, id, x, 0.55, y, undefined, CITY_FLT);   // névoa de distância (folha filtrada em cache)
     }
     g.restore();
   }
@@ -379,12 +379,66 @@
   }
   // ARTE GERADA (tools/arte.js, conteudo/estrutura-*.js): construções no traço do Kome, versão de dia e de noite
   function isNight() { return N && N.light && G.S ? N.light(G.S.tod || 0.4).night > 0.25 : false; }
-  function art(g, id, x, k, y, tag) {
+  // flt = filtro de cor (névoa): a folha da arte é filtrada UMA vez e guardada (g.filter por quadro custava ~350 ms no celular)
+  function art(g, id, x, k, y, tag, flt) {
     const A = E.Assets; if (!A || !A.ready || !A.ready(id)) return false;
     const a = A.get(id), an = a.anims || {}, tg = tag || (isNight() && an.noite ? 'noite' : 'dia'), r = an[tg] || an.dia || { from: 0, to: 0 };
     const f = r.from === r.to ? r.from : r.from + (Math.floor((G.S ? G.S.time : 0) * 6) % (r.to - r.from + 1));
-    A.draw(g, id, f, Math.round(x), Math.round(y === undefined ? 2 * k : y), { scale: k });
+    A.draw(g, flt ? fsheet(a, flt) : id, f, Math.round(x), Math.round(y === undefined ? 2 * k : y), { scale: k });
     return true;
+  }
+  /* ---------- FILTRO DE COR SEM CUSTO POR QUADRO ----------
+     ctx.filter em cada traço = uma camada por traço (no celular a Vila caía pra 3 quadros/s). Aqui: a folha da arte e as cores
+     sólidas passam pelo filtro uma vez só (cache); desenho vetorial animado vai pra uma tela de apoio e é carimbado com UM filtro. */
+  const FSH = {}, FCOL = {};
+  function fsheet(a, flt) {
+    const k = a.id + '|' + flt; let o = FSH[k];
+    if (o === undefined) {
+      o = a;
+      try {
+        const im = a.image, w = im && (im.naturalWidth || im.width), h = im && (im.naturalHeight || im.height);
+        if (w && h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const cg = c.getContext('2d'); cg.filter = flt; cg.drawImage(im, 0, 0); o = Object.assign({}, a, { image: c }); }
+      } catch (e) { o = a; }
+      FSH[k] = o;
+    }
+    return o;
+  }
+  function fcol(c, flt) {
+    const k = c + '|' + flt; let v = FCOL[k];
+    if (v === undefined) {
+      v = c;
+      try { const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cg = cv.getContext('2d', { willReadFrequently: true }); cg.filter = flt; cg.fillStyle = c; cg.fillRect(0, 0, 1, 1); const d = cg.getImageData(0, 0, 1, 1).data; if (d[3]) v = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')'; } catch (e) { v = c; }
+      FCOL[k] = v;
+    }
+    return v;
+  }
+  // filtered(g, flt, box, fn): fn(c) desenha em c (mesma transformação de g) numa tela de apoio; o resultado entra em g com UM filtro.
+  // box = [x0, y0, x1, y1] em coordenadas de mundo (null = tela toda): só essa área é limpa e carimbada.
+  let FL = null;
+  const FPT = [0, 0, 0, 0, 0, 0, 0, 0];
+  function filtered(g, flt, box, fn) {
+    if (!flt || flt === 'none' || !g.getTransform || typeof document === 'undefined') { fn(g); return; }
+    const cw = g.canvas.width, ch = g.canvas.height, m = g.getTransform();
+    let bx = 0, by = 0, bx1 = cw, by1 = ch;
+    if (box) {
+      FPT[0] = box[0]; FPT[1] = box[1]; FPT[2] = box[2]; FPT[3] = box[1]; FPT[4] = box[0]; FPT[5] = box[3]; FPT[6] = box[2]; FPT[7] = box[3];
+      let a0 = Infinity, b0 = Infinity, a1 = -Infinity, b1 = -Infinity;
+      for (let i = 0; i < 8; i += 2) { const x = m.a * FPT[i] + m.c * FPT[i + 1] + m.e, y = m.b * FPT[i] + m.d * FPT[i + 1] + m.f; if (x < a0) a0 = x; if (x > a1) a1 = x; if (y < b0) b0 = y; if (y > b1) b1 = y; }
+      bx = Math.max(0, Math.floor(a0) - 2); by = Math.max(0, Math.floor(b0) - 2); bx1 = Math.min(cw, Math.ceil(a1) + 2); by1 = Math.min(ch, Math.ceil(b1) + 2);
+    }
+    const bw = bx1 - bx, bh = by1 - by; if (bw <= 0 || bh <= 0) return;
+    if (!FL) { FL = document.createElement('canvas'); FL.width = 2; FL.height = 2; }
+    if (FL.width < bw || FL.height < bh) { FL.width = Math.max(FL.width, bw); FL.height = Math.max(FL.height, bh); }
+    const c = FL.getContext('2d');
+    c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; c.filter = 'none'; c.clearRect(0, 0, bw, bh);
+    c.setTransform(m.a, m.b, m.c, m.d, m.e - bx, m.f - by); c.imageSmoothingEnabled = g.imageSmoothingEnabled;
+    c.lineJoin = g.lineJoin; c.lineCap = g.lineCap;
+    fn(c);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+    try { g.filter = flt; } catch (e) { /* sem filter: cor normal */ }
+    g.drawImage(FL, 0, 0, bw, bh, bx, by, bw, bh);
+    g.restore();
   }
   function casinha(g, x) { pblit(g, sCasinha(), x + 6, SPK); }
   function poste(g, x, t) {
@@ -663,6 +717,7 @@
     [2078, 'vila_loja_c', 'CAFÉ', 0, 2], [2170, 'vila_casa_a', null, 0, 0], [2352, 'vila_casa_c', null, 1, 0],
     [2856, 'vila_loja_a', 'MOCHI', 0, 0], [2958, 'vila_casa_b', null, 0, 1], [3048, 'vila_loja_b', 'SOBA', 0, 0], [3300, 'vila_casa_a', null, 1, 3],
   ];
+  const VARAL_COLS = ['#F6EEDC', '#5BA4D6', '#D8574E', '#F3C94A', '#FFFFFF'];
   const VB_Y = -10, VB_K = 2;   // fileira de fundo: um pouco acima do chão (mais longe) e em névoa
   const VART_H = { vila_loja_a: 72, vila_loja_b: 50, vila_loja_c: 72, vila_casa_a: 72, vila_casa_b: 72, vila_casa_c: 72 };
   const ROAD = { y0: 18, y1: 74, walk0: 78, walk1: 104, bank: 112, can0: 146, can1: 182 };
@@ -721,15 +776,21 @@
       glow(g, hx - 28, VB_Y - 30, 26, lit * 0.8);
     }
     g.save();
-    try { g.filter = 'saturate(0.8) brightness(1.04) contrast(0.9)'; } catch (e) { /* névoa leve: fica atrás da fileira principal */ }
+    // névoa leve (fica atrás da fileira principal): arte e cores já filtradas em cache, sem g.filter por quadro
     for (const [dx, id, sign, varal] of VBACK) {
       const x = VB + dx; if (x + 80 < v.x0 || x - 80 > v.x1) continue;
-      art(g, id, x, VB_K, VB_Y);
+      art(g, id, x, VB_K, VB_Y, undefined, VB_FLT);
       const h = (VART_H[id] || 64) * VB_K;
       if (varal) {   // varal na varanda: roupinhas balançando
-        const y = VB_Y - h * 0.5, cols = ['#F6EEDC', '#5BA4D6', '#D8574E', '#F3C94A', '#FFFFFF'];
-        g.fillStyle = LINE; g.fillRect(x - 42, y - 2, 2, 22); g.fillRect(x + 40, y - 2, 2, 22); g.fillRect(x - 42, y, 84, 1.5);
-        for (let k = 0; k < 5; k++) { const cx = x - 34 + k * 15, a = Math.sin(t * 2 + k * 1.3 + dx) * 0.12; g.save(); g.translate(cx, y + 1); g.rotate(a); Draw.box(g, -5, 0, 10, k % 2 ? 9 : 13, cols[(k + dx) % 5], { ol: 1 }); g.restore(); }
+        const y = VB_Y - h * 0.5, cols = VARAL_COLS, ln = fcol(LINE, VB_FLT);
+        g.fillStyle = ln; g.fillRect(x - 42, y - 2, 2, 22); g.fillRect(x + 40, y - 2, 2, 22); g.fillRect(x - 42, y, 84, 1.5);
+        for (let k = 0; k < 5; k++) {
+          const cx = x - 34 + k * 15, a = Math.sin(t * 2 + k * 1.3 + dx) * 0.12, c0 = cols[(k + dx) % 5], hh = k % 2 ? 9 : 13;
+          g.save(); g.translate(cx, y + 1); g.rotate(a);
+          const ol = Math.max(1, (Draw.minPx || 0) / (Draw.zoom || 1)); g.fillStyle = ln; g.fillRect(-5 - ol, -ol, 10 + ol * 2, hh + ol * 2);   // contorno (como Draw.box ol:1) na cor filtrada
+          Draw.box(g, -5, 0, 10, hh, fcol(c0, VB_FLT), { ol: 0, top: fcol(U.shade(c0, 0.3), VB_FLT), shade: fcol(U.shade(c0, -0.22), VB_FLT) });
+          g.restore();
+        }
       }
     }
     g.restore();
@@ -868,5 +929,5 @@
     g.restore();
   }
 
-  G.World = { setSize(w, h) { W = w; H = h; }, drawPlot, X, layout, BAYS, FAB_K, RULER, props, layers, drawBack, updateBack, drawGround, drawYard, drawCollector, drawSilo: silo, sh };
+  G.World = { setSize(w, h) { W = w; H = h; }, drawPlot, filtered, fcol, X, layout, BAYS, FAB_K, RULER, props, layers, drawBack, updateBack, drawGround, drawYard, drawCollector, drawSilo: silo, sh };
 })();

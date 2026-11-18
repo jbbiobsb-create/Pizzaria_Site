@@ -69,7 +69,7 @@ async function screen(browser, sc) {
   await page.goto(URL, { waitUntil: 'load' });
   await page.waitForTimeout(900);
   if (sc.after) { await page.setViewportSize({ width: sc.after[0], height: sc.after[1] }); await page.waitForTimeout(500); }
-  await page.evaluate(`(() => { const K = __kome; for (let i = 0; i < 6; i++) { const p = K.aim(); K.hold(p.x, p.y, true); K.step(1); } K.hold(0,0,false); K.S.combo = KomeGame.Data.COMBO.max; K.step(0.3); })()`).catch(e => errs.push('eval: ' + e.message.split('\n')[0]));
+  await page.evaluate(`(() => { const K = __kome; K.addMoney(1e4); K.buyTool(); K.S.cele.t = -1; for (let i = 0; i < 6; i++) { const p = K.aim(); K.hold(p.x, p.y, true); K.step(1); } K.hold(0,0,false); K.S.combo = KomeGame.Data.COMBO.max; K.step(0.3); })()`).catch(e => errs.push('eval: ' + e.message.split('\n')[0]));
   await page.waitForTimeout(500);
   await page.evaluate(`document.querySelectorAll('.k-toast, .k-banner, .k-ach').forEach(e => e.remove())`);
   const L = await page.evaluate(LAYOUT + '(' + !!sc.mob + ')');

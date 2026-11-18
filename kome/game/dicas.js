@@ -78,8 +78,8 @@
       ctx: () => open(G.Fab, 'isOpen'), loose: true, at: 'top', when: () => open(G.Fab, 'isOpen') && fabMax() },
     { id: 'cidade', t: 'A Cidade abriu', x: 'Atenda pedidos com seus mochis: a amizade sobe, prédios novos abrem e de vez em quando rola festival.',
       el: () => chip('cidade'), when: () => !!chip('cidade') },
-    { id: 'escada', t: 'Conquistas em escada', x: 'Cada grau fechado vale +1 conquista no Coração, sem fim. Este chip mostra a mais perto de fechar.',
-      el: () => chip('escada'), when: () => !!chip('escada') },
+    { id: 'escada', t: 'Conquistas em escada', x: 'Cada grau fechado vale +1% de renda, pra sempre e sem fim. Este chip mostra a escada mais perto de fechar.',
+      el: () => chip('escada'), when: () => S().time > 200 && !!chip('escada') },
     { id: 'evolucao', t: 'Evolução!', x: 'Máquina no nível 25 da Oficina + o amuleto certo = versão absurda, ×3. As que faltam ficam no Caderno com "?".',
       el: () => (G.HUD && vis(G.HUD.homeEl) ? G.HUD.homeEl : null), loose: true,
       when: () => Object.keys((S().stats.evo && S().stats.evo.seen) || {}).length > 0 && !(G.Faixas && G.Faixas.isOpen()) },
@@ -179,16 +179,22 @@
     const bw = card.offsetWidth || 300, bh = card.offsetHeight || 110;
     let left, top, cls = '', ax = bw / 2, ring = null;
     if (r) {
-      const cx = r.left + r.width / 2;
-      left = Math.max(12, Math.min(vw - bw - 12, cx - bw / 2));
-      if (r.bottom + 16 + bh < vh - 8) { top = r.bottom + 16; cls = 'k-up'; } else { top = Math.max(8, r.top - 16 - bh); cls = 'k-down'; }
-      ax = Math.max(20, Math.min(bw - 20, cx - left));
+      // lugares possíveis: embaixo, em cima, à esquerda, à direita do alvo; fica o que cabe sem tapar CAVAR/joystick/o próprio alvo
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2, cl = (v, a, b) => Math.max(a, Math.min(b, v));
+      const hx = cl(cx - bw / 2, 12, vw - bw - 12), vy = cl(cy - bh / 2, 8, vh - bh - 8);
+      const C = [[hx, r.bottom + 16, 'k-up'], [hx, r.top - 16 - bh, 'k-down'], [r.left - 16 - bw, vy, 'k-left'], [r.right + 16, vy, 'k-right']];
+      const avoid = [r]; for (const sel of ['.k-dig', '.k-joy']) { const e = q(sel); if (e) avoid.push(e.getBoundingClientRect()); }
+      const cost = ([x, y]) => { if (x < 6 || y < 4 || x + bw > vw - 6 || y + bh > vh - 4) return 1e9; let o = 0; for (const a of avoid) o += Math.max(0, Math.min(x + bw, a.right) - Math.max(x, a.left)) * Math.max(0, Math.min(y + bh, a.bottom) - Math.max(y, a.top)); return o; };
+      let best = C[0], bc = Infinity; for (const c of C) { const k = cost(c); if (k < bc) { bc = k; best = c; } if (!k) break; }
+      if (bc >= 1e9) best = [hx, cl(r.bottom + 16, 8, vh - bh - 8), 'k-up'];
+      [left, top, cls] = best;
+      ax = cls === 'k-left' || cls === 'k-right' ? cl(cy - top, 20, bh - 20) : cl(cx - left, 20, bw - 20);
       ring = [r.left - 6, r.top - 6, r.width + 12, r.height + 12].map(Math.round);
     } else { left = (vw - bw) / 2; top = t.at === 'top' ? 10 : Math.round(vh * 0.3); }
     const pos = [Math.round(left), Math.round(top), cls, Math.round(ax), ring ? ring.join(',') : ''].join('|');
     if (pos === cur.pos) return; cur.pos = pos;
     card.style.left = Math.round(left) + 'px'; card.style.top = Math.round(top) + 'px';
-    card.classList.toggle('k-up', cls === 'k-up'); card.classList.toggle('k-down', cls === 'k-down');
+    for (const k of ['k-up', 'k-down', 'k-left', 'k-right']) card.classList.toggle(k, cls === k);
     card.style.setProperty('--k-ax', Math.round(ax) + 'px');
     const rs = cur.ring.style;
     if (ring) { rs.display = 'block'; rs.left = ring[0] + 'px'; rs.top = ring[1] + 'px'; rs.width = ring[2] + 'px'; rs.height = ring[3] + 'px'; } else rs.display = 'none';
@@ -221,10 +227,10 @@
   }
 
   /* ---------- demo e modo acelerado ---------- */
-  function demo(id) {
+  function demo(id, ms) {
     const t = byId[id] || TIPS[0];
     if (t.id === 'trocar' && S() && S().tool < 1 && window.__kome) { __kome.addMoney(1e6); __kome.buyTool(); }
-    setTimeout(() => show(t.id, true), 600);
+    setTimeout(() => show(t.id, true), ms == null ? 600 : ms);
   }
   function wrapStep() {
     const K = window.__kome; if (!K || !K.step || K.step._dicas) return !!K;

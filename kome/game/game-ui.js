@@ -29,14 +29,16 @@
      o secundário QUENTE (o de maior prio com hint) continua na fileira pra o aviso não sumir. HUD.chipEl(id) = o elemento
      que está na tela pra esse chip (ele mesmo ou o "Mais"), pra dica apontar. */
   const SEC = { cidade: 1, verpatio: 1, amuletos: 1, escada: 1 };
+  const FOLD2 = ['tatuzao', 'modo', 'fabrica', 'vila', 'patio'];
   let more = null, moreBox = null, moreSig = '', moreT = 0, chipDemo = false;
-  function moreClose() { if (moreBox && moreBox.classList.contains('k-open')) { moreBox.classList.remove('k-open'); clearTimeout(moreT); } }
+  function moreClose() { if (moreBox && moreBox.classList.contains('k-open')) { moreBox.classList.remove('k-open'); document.body.classList.remove('k-moreopen'); clearTimeout(moreT); } }
   function moreOpen() {
     if (!moreBox || !more) return;
     if (moreBox.classList.contains('k-open')) { moreClose(); return; }
-    chipPopClose(); moreBox.classList.add('k-open');
-    const e = more.el, x = chipRow.offsetLeft + e.offsetLeft + e.offsetWidth / 2, half = moreBox.offsetWidth / 2;
-    moreBox.style.left = Math.round(x - half) + 'px'; moreBox.style.top = Math.round(chipRow.offsetTop + e.offsetTop + e.offsetHeight + 8) + 'px';
+    chipPopClose(); moreBox.classList.add('k-open'); document.body.classList.add('k-moreopen');
+    const e = more.el, Z = moreBox.parentNode, x = chipRow.offsetLeft + e.offsetLeft + e.offsetWidth / 2, half = moreBox.offsetWidth / 2;
+    const zl = Z.getBoundingClientRect().left, k = Z.getBoundingClientRect().width / (Z.offsetWidth || 1) || 1;   // não sai da tela
+    moreBox.style.left = Math.round(Math.max(8 - zl / k, Math.min(innerWidth / k - zl / k - 8 - 2 * half, x - half))) + 'px'; moreBox.style.top = Math.round(chipRow.offsetTop + e.offsetTop + e.offsetHeight + 8) + 'px';
     clearTimeout(moreT); moreT = setTimeout(moreClose, 9000);
   }
   document.addEventListener('pointerdown', e => { if (moreBox && moreBox.classList.contains('k-open') && !moreBox.contains(e.target) && !(more && more.el.contains(e.target))) moreClose(); }, true);
@@ -54,7 +56,13 @@
     const isOn = c => c !== more && (c.on || chipDemo);
     for (const c of chips) if (isOn(c) && c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
     // gaveta "Mais": só mexe no DOM quando o conjunto dobrado muda
-    const sec = chips.filter(c => isOn(c) && SEC[c.id] && c !== top), fold = sec.length >= 2;
+    const sec = chips.filter(c => isOn(c) && SEC[c.id] && c !== top);
+    // fileira estreita (celular pequeno, muita coisa ligada): dobra também os menos urgentes, nessa ordem, até caber
+    const mob = document.body.classList.contains('k-mob'), rw = mob && innerHeight > innerWidth ? innerWidth - 24 : chipRow && chipRow._w;
+    const inl = chips.filter(c => isOn(c) && !SEC[c.id]), cap = rw ? Math.max(3, Math.floor(rw / (mob ? 54 : 70)) * (mob ? 1 : 2)) : 99;
+    for (const id of FOLD2) { if (inl.length + Math.min(1, sec.length) <= cap) break; const c = inl.find(q => q.id === id && q !== top); if (c) { inl.splice(inl.indexOf(c), 1); sec.push(c); } }
+    sec.sort((a, b) => a.order - b.order);
+    const fold = sec.length >= 2;
     const sig = fold ? sec.map(c => c.id).join(',') : '';
     if (sig !== moreSig && more) {
       moreSig = sig;
