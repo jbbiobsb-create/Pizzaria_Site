@@ -625,6 +625,32 @@
       }
     }
   }
+  /* ---------- CIDADE (cidade.js) no lado da Vila: depois da rua do comércio, torii de entrada + as casas dos moradores e os prédios
+     da amizade (mesmas artes da tela da Cidade, escala 3). Tocar ali entra na Cidade (G.City.tapVila). Também fecha X.vilaX1. ---------- */
+  const CID_W = 236;
+  function drawCidade(g, v, t, S) {
+    const sh = shopRun(S), list = (G.Data && G.Data.SHOPS) || [];
+    let any = false; if (sh) for (const o of list) if (sh[o.id]) { any = true; break; }
+    const base = VB + 3370 + (any ? list.length * X.lojaStep + 60 : 0);
+    const cv = G.City && G.City.view ? G.City.view() : null;
+    if (!cv) { X.vilaX1 = base; X.cid0 = 0; X.cid1 = 0; return; }
+    X.cid0 = base + 420; X.cid1 = X.cid0 + cv.lots.length * CID_W; X.vilaX1 = X.cid1 + 120;
+    if (X.cid1 + 120 < v.x0 || X.cid0 - 420 > v.x1) return;
+    const gx = X.cid0 - 200, night = isNight();
+    if (N && N.torii) N.torii(g, gx, 0, 2.4, { t });
+    Draw.sign(g, gx - 90, -232, 180, 46, 'CIDADE', { col: PAL.red, ink: PAL.cream });
+    const pu = 0.75 + 0.25 * Math.sin(t * 4);
+    g.globalAlpha = cv.ready ? pu : 0.85; Draw.text(g, cv.ready ? 'tem entrega pronta! toque' : 'toque pra entrar', gx, -168, { size: 20, col: PAL.cream, sw: 5, weight: 900 }); g.globalAlpha = 1;
+    for (let i = 0; i < cv.lots.length; i++) {
+      const L = cv.lots[i], x = X.cid0 + i * CID_W + CID_W / 2; if (x + 140 < v.x0 || x - 140 > v.x1) continue;
+      if (L.obra > 0) { if (N && N.house) N.house(g, x, 0, { stage: L.obra < 0.4 ? 1 : L.obra < 0.8 ? 2 : 3, s: 1.45, t }); sh(g, x + 70, 4, 'dig', t * 1.6, 'cha', -1, 1.2); continue; }
+      if (!L.art) { if (N && N.house) N.house(g, x, 0, { stage: 0, s: 1.35, t, sign: 'TERRENO' }); continue; }
+      art(g, L.art, x, L.art === 'cid_templo' ? 2.2 : 3);
+      if (L.pal) sh8(g, x + 78, 8, (i + Math.floor(t / 4)) % 3 ? 'sit' : 'wag', t + i, L.pal, -1);
+      if (L.lv > 1 && !L.b && N && N.flower) for (let f = 0; f < Math.min(4, L.lv - 1); f++) N.flower(g, x - 92 + f * 14, 10, { kind: ['tulip', 'daisy', 'ajisai', 'tanpopo'][f], seed: f + i, t, s: 1.2 });
+      if (cv.fest || night) glow(g, x, -60, 46, cv.fest ? 0.9 : 0.5);
+    }
+  }
   /* ---------- VILA DO KOME: profundidade e vida (3 faixas) ----------
      fundo: cidadezinha com pagode/castelo (drawCity) · meio: fileira de casinhas e lojinhas de fundo (arte vila_*, em névoa leve),
      o santuário com sino atrás do torii, a fileira principal (casa do Kome, sobrado, ekiben...) e gatos nos telhados · frente:
@@ -816,6 +842,7 @@
     drawLot(g, v, S);
     if (X.beco && X.beco > v.x0 - 40 && X.beco - ALLEY < v.x1 + 40) drawAlley(g, t, S);
     drawShops(g, v, t, S);
+    drawCidade(g, v, t, S);
     for (let i = 0; i < RULER.length; i++) { const o = RULER[i]; if (o.x + o.r > v.x0 && o.x - o.r < v.x1) o.draw(g, o.x, t, S); }
     for (let i = 0; i < props.length; i++) {
       const p = props[i], r = p.r || 500;

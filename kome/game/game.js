@@ -56,11 +56,13 @@
 
   /* SAVE VERSIONADO (fase 0 do PLANO-100H): cada camada nova sobe SAVE_V e põe UMA migração aqui. Save antigo nunca quebra:
      E.Save chama migrate(d, versãoAntiga) e roda todas as migrações que faltam, em ordem. */
-  const SAVE_V = 6;
+  const SAVE_V = 7;
   const MIGR = {
     5: d => { d.stats = d.stats || {}; d.stats.inv = d.stats.inv || {}; d.stats.got = d.stats.got || {}; },   // armazém de itens
     // amuletos (amuletos.js): build da ilha atual; trip = ilhas concluídas (a viagem zera sozinha). Save antigo entra sem amuleto
     6: d => { d.stats = d.stats || {}; const a = d.stats.am; if (!a || typeof a !== 'object') d.stats.am = { trip: d.stats.islandsDone | 0, cur: [], got: 0, rr: 0, offer: null, disc: {}, t0: d.tool | 0, rg: 0 }; },
+    // Cidade (cidade.js): camada permanente (fica entre viagens). Save antigo entra fechada; abre no 1º mochi vendido
+    7: d => { d.stats = d.stats || {}; if (!d.stats.city || typeof d.stats.city !== 'object') d.stats.city = { on: 0 }; },
   };
   function migrate(d, v) { for (let k = (v | 0) + 1; k <= SAVE_V; k++) if (MIGR[k]) MIGR[k](d); return d; }
 
@@ -1918,7 +1920,7 @@
         const dx = (input.x - vila.dragX) * (cam.mx < 0 ? -1 : 1);
         if (Math.abs(dx) > 10) vila.moved = true;
         if (vila.moved) { vila.x = U.clamp(vila.drag0 - dx / vila.z, lo, hi); vila.auto = 0; vila.panned = true; }
-      } else { vila.grab = false; if (!vila.moved && vila.on) vilaGo(false); }
+      } else { vila.grab = false; if (!vila.moved && vila.on) { cam.toWorld(input.x, input.y, sp); if (!(G.City && G.City.tapVila && G.City.tapVila(sp.x, sp.y))) vilaGo(false); } }   // tocar na rua da Cidade entra nela
     }
     if (vila.on && vila.k >= 1 && !vila.grab) {   // teclado também passeia
       const K1 = input.keys || {}, d = ((K1.KeyD || K1.ArrowRight) ? 1 : 0) - ((K1.KeyA || K1.ArrowLeft) ? 1 : 0);
@@ -2139,6 +2141,9 @@
     if (G.Fab) G.Fab.init({ save: () => saveNow(),
       banner: () => { sfx('fanfare'); ui(() => UI.banner('O galpão KOME PACK abriu!', 'toque em Fábrica, no topo da tela', { icon: 'star', tone: 'gold', dur: 4 })); },
       toast: (t, sub) => ui(() => UI.toast(t, { icon: 'yen', tone: 'gold', sub })) });
+    if (G.City) G.City.init({ save: () => saveNow(), fast: () => FAST, recompute: () => computeStats(),
+      banner: () => { sfx('fanfare'); ui(() => UI.banner('A CIDADE ABRIU!', 'a Vila quer os seus mochis: toque em Cidade, no topo', { icon: 'house', tone: 'gold', dur: 4.5 })); },
+      toast: (t, sub) => ui(() => UI.toast(t, { icon: 'house', tone: 'gold', sub })) });
     if (G.Islands) G.Islands.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), fast: () => FAST, gift: giftSacks,
       busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()),
       onEvent: e => { if (!FAST && e.erupt) quake(0.5); if (!FAST && e.frost) sfx('whoosh'); },

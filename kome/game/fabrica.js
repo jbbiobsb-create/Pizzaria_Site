@@ -190,6 +190,7 @@
   /* ---------- venda na doca ---------- */
   const pend = { v: 0, best: 0, t: 0, n: 0 };
   function sell(item, row) {
+    if (G.City && G.City.take(item.t, item.q || 1)) { S.sold.vila = (S.sold.vila | 0) + 1; return; }   // fatia da Vila: vai pra Despensa da Cidade (paga lá)
     const it = ITEMS[item.t], v = (it.val - it.base) * (item.q || 1) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1);   // amuletos Chef / Esteira Expressa; q = Selo de Qualidade
     pay(v); S.facAcc += v; S.sold[item.t] = (S.sold[item.t] || 0) + 1;
     if (S.firstSale < 0 && item.t !== 'raw' && item.t !== 'gold') S.firstSale = S.timeOpen;
@@ -1406,6 +1407,7 @@
     selo(x, y) { const m = G.Fab.machineAt(x, y); return m ? selo(m) : false; },   // Selo de Qualidade (testes/simulador)
     recipe(x, y, i) { setRecipe(G.Fab.machineAt(x, y), i); },
     dockUp, unlockAll() { S.unlocked.pilao = true; S.unlocked.mochid = true; }, skipTut() { S.tut = -1; S.tutDone = true; }, quiet() { firstCard = null; firstQueue.length = 0; pendingFirst.length = 0; banner = null; pendingBanners.length = 0; }, select(x, y) { S.sel = x === 'dock' || x === 'sale' ? x : G.Fab.machineAt(x, y); }, tool(id) { S.tool = id; toolT = 0; }, tut(n) { S.tut = n; },
+    itemV: t => { const it = ITEMS[t]; return it ? (it.val - it.base) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1) : 0; },   // quanto a doca paga por 1 produto (Cidade)
     price: machinePrice, levelPrice: (x, y) => levelPrice(G.Fab.machineAt(x, y)), dockPrice,
     get state() {
       const rt = rates();

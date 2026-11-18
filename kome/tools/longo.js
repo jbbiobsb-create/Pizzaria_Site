@@ -51,6 +51,12 @@ const CHUNK = `((secs) => {
           for (const id of PT.types()) { const mc = PT.marco(id); if (mc < Infinity) C.push([mc, 'marco ' + id, 'marco', () => PT.buyMarco(id)]); }
           if (PT.extras) for (const [c, n, f] of PT.extras()) C.push([c, n, 'upgrade', f]);
         }
+        const F = G.Fab;
+        if (F && F.on()) {   // Fábrica: a planta mínima do guloso (Moldadora na linha que já vem; com o Pilão liberado, uma linha de mochi)
+          const ms = F.state.machines, hasM = t => ms.some(m => m.type === t);
+          if (!hasM('moldadora')) C.push([F.price('moldadora'), 'fábrica: moldadora', 'fabrica', () => F.place('moldadora', 4, 2, 0) !== null]);
+          else if (F.state.unlocked.pilao && !hasM('pilao')) C.push([F.price('panela') + F.price('pilao'), 'fábrica: linha de mochi', 'fabrica', () => { F.belt([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4]], 0); return F.place('panela', 1, 4, 0) !== null && F.place('pilao', 3, 4, 0) !== null; }]);
+        }
         if (H) { const own = (S.homeData || {}).own || {}; for (const it of D.DECOR) if (!own[it.id] && (!it.needs || own[it.needs])) C.push([H.cost(it), 'casa: ' + it.n, 'enfeite', () => { const m = S.money; H.buy(it); return S.money < m; }]); }
       }
       C.sort((x, y) => x[0] - y[0]);
@@ -58,6 +64,7 @@ const CHUNK = `((secs) => {
       if (best[3]() === false) break;
       note(best[2], best[1]);
     }
+    if (G.City && G.City.sim) for (const [k, txt] of G.City.sim.act()) note('cidade', 'cidade: ' + txt);   // Cidade: entrega tudo, começa festival, escolhe a 1ª obra
     const an = achN(); if (an > ach0) { note('conquista', 'conquista ' + an); ach0 = an; }
     // depois do final: montanha nova quando a atual está quase toda cavada
     if (S.ended && K.heap.area < K.heap.total * 0.12) { K.newMountain(); note('montanha', 'montanha nova ' + (S.mount | 0)); }

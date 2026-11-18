@@ -52,7 +52,7 @@
   const tigCost = u => (u.preco || 600) * R0();
   function buyTig(u) { const c = tigCost(u); if (!tigOpen(u) || S().money < c) return false; S().money -= c; H0().tig[u.id] = 1; if (api && api.recompute) api.recompute(); return true; }
   const perAch = () => 0.01 + 0.001 * sl('pote') + TIG.reduce((s, u) => s + (H0().tig[u.id] ? (u.v || 0) : 0), 0);
-  const heart = () => 1 + achN() * perAch();
+  const heart = () => 1 + (achN() + (G.City ? G.City.grains() : 0)) * perAch();   // + 1 grão por nível de amizade da Cidade
   function achOk(a) {
     const s = S(), n = a.maq === 'todas' ? Math.min(...openTurmas().map(t => cnt(t.id))) : cnt(a.maq);
     if (a.cond === 'qtd') return n >= a.alvo;

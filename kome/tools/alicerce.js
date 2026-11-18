@@ -55,6 +55,26 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
     S.stats.islandsDone = 2; const after = A.current().length, disc = Object.keys(A.discovered()).length; return { n, d, after, disc, rr: S.stats.am.rr }; });
   ok(r6.n === 2 && r6.d >= 2, 'amuletos voltam do save (' + r6.n + ' na build, ' + r6.d + ' descobertos)');
   ok(r6.after === 0 && r6.disc === r6.d && r6.rr === 0, 'viagem zera a build e o rerrolar; descobertos ficam');
+  // 7) Cidade (game/cidade.js): MIGR[7] cria S.stats.city; abre no 1º mochi vendido; entrega dá coração; amizade = grão no Coração + obra
+  const r7 = await p.evaluate(() => { const K = __kome, S = K.S, G = KomeGame, C = G.City; const mig = !!(S.stats.city && typeof S.stats.city === 'object' && !S.stats.city.on);
+    S.ended = true; K.step(0.3); const fab = G.Fab.on();
+    C.take('onigiri'); const still = !C.on(); C.take('mochi'); const on = C.on();
+    C.step(3); const o = S.stats.city.ord.findIndex(Boolean); const okD = o >= 0 && C.deliver(o);
+    const h0 = G.Patio.heart(); C.levelUp('kiku'); C.choose(); const st = C.state;
+    const obra = S.stats.city.lots.some(l => l.obra > 0); KomeGame.Game.saveNow();
+    return { mig, fab, still, on, okD, del: st.delivered, hearts: st.hearts, grains: st.grains, obra, dh: G.Patio.heart() - h0, view: !!C.view() }; });
+  ok(r7.mig, 'migração criou S.stats.city (Cidade fechada)');
+  ok(r7.still && r7.on && r7.view, 'Cidade abre no 1º mochi vendido pela fábrica (não no onigiri)');
+  ok(r7.okD && r7.del === 1 && r7.hearts >= 1, 'entrega na hora com a tela fechada: ' + r7.del + ' entrega, ♥' + r7.hearts);
+  ok(r7.grains >= 1 && r7.dh > 0.009 && r7.obra, 'amizade: +1 grão no Arroz do Coração (+' + (r7.dh * 100).toFixed(1) + '%) e obra começou');
+  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  const r8 = await p.evaluate(() => { const S = __kome.S, G = KomeGame, C = G.City; const st = C.state;
+    const off = G.Sim.catchUp(3600), built = S.stats.city.lots.filter(l => l.b).length;
+    const d = JSON.parse(JSON.stringify({ v: 4, stats: S.stats, island: 0, earned: 1 })); G.Islands.makeSave(d, 1, 10);
+    return { on: st.on, del: st.delivered, ppl: st.people.length, obraSaved: / obra/.test(' ' + st.lots), off: off.cidade, built, trip: d.stats.city && d.stats.city.on && d.stats.city.delivered === 1 && d.stats.city.grains === st.grains }; });
+  ok(r8.on && r8.del === 1 && r8.ppl === 6 && r8.obraSaved, 'Cidade volta igual do save (moradores, entregas, obra)');
+  ok(r8.off && r8.built >= 1, 'offline (E.Sim): a obra termina com o tempo fora: ' + JSON.stringify(r8.off));
+  ok(r8.trip, 'viagem não zera a Cidade (S.stats.city fica)');
   // 4) E.Sim puro
   const r4 = await p.evaluate(() => { const s = Pixxel.Sim(); let t = 0; s.add('a', { tick: dt => { t += dt; }, offline: dt => ({ yen: dt * 2 }) }).add('b', { tick() {} });
     s.tick(0.5); const off = s.catchUp(3600); return { t, off }; });
