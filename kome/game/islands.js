@@ -89,12 +89,14 @@
     { id: 'cochilo', n: 'Cochilo Produtivo', d: 'offline rende +10% por nível (até 100%)', max: 5, base: 2, g: 'Poupança' },
     { id: 'cama', n: 'Cama Grande', d: 'teto offline +4 h por nível (até 24 h)', max: 4, base: 3, g: 'Poupança' },
     // galho Absurdo: cada nó destrava uma máquina absurda no Pátio (D.PATIO.turmas, campo seed); req = nó anterior da cadeia
-    { id: 'absurdo15', n: 'Frota de Tatuzões', d: 'destrava a turma 15 no Pátio: tatuzões cavando em fila indiana', max: 1, base: 25, g: 'Absurdo' },
-    { id: 'absurdo16', n: 'Kome-Oh em Série', d: 'destrava a turma 16: robôs gigantes de linha de montagem', max: 1, base: 75, g: 'Absurdo', req: 'absurdo15' },
-    { id: 'absurdo17', n: 'Trem-Bala de Arroz', d: 'destrava a turma 17: 300 km/h de arroz', max: 1, base: 200, g: 'Absurdo', req: 'absurdo16' },
-    { id: 'absurdo18', n: 'Foguete de Mochi', d: 'destrava a turma 18: o arroz vai pro espaço', max: 1, base: 500, g: 'Absurdo', req: 'absurdo17' },
-    { id: 'absurdo19', n: 'Escavadeira do Monte Fuji', d: 'destrava a turma 19: a montanha vira pá', max: 1, base: 1200, g: 'Absurdo', req: 'absurdo18' },
-    { id: 'absurdo20', n: 'Portal Onigiri', d: 'destrava a turma 20: onigiri de outra dimensão', max: 1, base: 3000, g: 'Absurdo', req: 'absurdo19' },
+    // custos (item B, 19/11): ~250 mil sementes por viagem a partir da volta 2 (~1,1 mi por volta) → o robô guloso pega um a cada
+    // 1–2 voltas (voltas 2, 3, 4, 5, 6, 9); quem junta só pra eles tira o 1º no fim da volta 1. Antes 25…3.000 = todos em 2–3 viagens.
+    { id: 'absurdo15', n: 'Frota de Tatuzões', d: 'destrava a turma 15 no Pátio: tatuzões cavando em fila indiana', max: 1, base: 1.2e5, g: 'Absurdo' },
+    { id: 'absurdo16', n: 'Kome-Oh em Série', d: 'destrava a turma 16: robôs gigantes de linha de montagem', max: 1, base: 2.5e5, g: 'Absurdo', req: 'absurdo15' },
+    { id: 'absurdo17', n: 'Trem-Bala de Arroz', d: 'destrava a turma 17: 300 km/h de arroz', max: 1, base: 4.5e5, g: 'Absurdo', req: 'absurdo16' },
+    { id: 'absurdo18', n: 'Foguete de Mochi', d: 'destrava a turma 18: o arroz vai pro espaço', max: 1, base: 7.5e5, g: 'Absurdo', req: 'absurdo17' },
+    { id: 'absurdo19', n: 'Escavadeira do Monte Fuji', d: 'destrava a turma 19: a montanha vira pá', max: 1, base: 1.2e6, g: 'Absurdo', req: 'absurdo18' },
+    { id: 'absurdo20', n: 'Portal Onigiri', d: 'destrava a turma 20: onigiri de outra dimensão', max: 1, base: 1.8e6, g: 'Absurdo', req: 'absurdo19' },
   ];
   const START_TOOL = [0, 3, 5, 7];
 
@@ -134,8 +136,13 @@
     s.help += lvl('ajud');
     s.gold *= (1 + 0.25 * lvl('ouro')) * (isl().gold || 1);
   }
-  // cada ilha mais cara (as sementes compensam); cada volta ao Japão conta como lapStep ilhas a mais
-  const priceMul = () => { const n = idx() + lap() * EG.lapStep; return Math.pow(0.94, lvl('preco')) * (1 + 0.4 * n + 0.15 * n * n); };
+  // cada ilha mais cara (as sementes compensam). t = nº da viagem (0 = campanha, 1 = Hokkaido da 1ª volta, 5 = Honshu da volta 2…):
+  // preço = D.ENDGAME.price.trip[t-1] (tabela medida com tools/longo.js) e, depois da tabela, + grow por viagem (sobe devagar:
+  // a força das sementes também só sobe devagar). Antes era 1 + 0,4n + 0,15n² com n = ilha + volta: Honshu da volta 2 (n = 1)
+  // saía mais barata que a ilha 4 da volta 1 (n = 4) e cada ilha do começo acabava em 14–19 min.
+  const tripN = () => idx() + lap() * D.ISLANDS.length;
+  const priceBase = t => { const P = EG.price, L = P.trip.length; return t <= 0 ? 1 : t <= L ? P.trip[t - 1] : P.trip[L - 1] + P.grow * (t - L); };
+  const priceMul = () => Math.pow(0.94, lvl('preco')) * priceBase(tripN());
   const matsFor = () => (mats[isl().id] ? mats[isl().id]() : D.MATS);
 
   /* ---- medalhas: bronze = terminou; prata e ouro = terminou abaixo do tempo (D.ENDGAME.medal) ---- */

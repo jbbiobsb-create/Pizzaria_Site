@@ -403,13 +403,17 @@
     D.HOUSE.forEach(h => { const k = b(h.tier - 1); h.c = Math.round(h.c * k); if (h.teaser) h.teaser = Math.round(h.teaser * k); });
   })();
   // fim de jogo (volta ao Japão): números das ilhas. Medalhas por tempo (min) em cada ilha, na ordem de D.ISLANDS
-  // (Honshu é a campanha). Eventos de ilha: um por ilha, a cada `every` s depois da `minTool`. Volta 2+ (depois da Ilha de Mochi):
-  // cada volta conta como `lapStep` ilhas a mais no preço. `legend` = renda extra pra sempre depois do Grande Final.
+  // (Honshu é a campanha). Eventos de ilha: um por ilha, a cada `every` s depois da `minTool`. Preço das ilhas: `price` (por viagem,
+  // ver abaixo; volta 2+ continua contando viagem). `legend` = renda extra pra sempre depois do Grande Final.
   D.ENDGAME = {
     seedGrow: 1.45, patioExp: 0.15,   // camada Cookie: custo das sementes ×1,45/nível; Sementes do Pátio ^0,15
     medal: { ouro: [70, 34, 28, 28, 30], prata: [100, 50, 42, 42, 45], seeds: { bronze: 0, prata: 2, ouro: 5 } },
     ev: { every: [170, 240], first: 120, minTool: 3 },
-    lapStep: 1, legend: 2,   // lapStep era 2,5: com a economia sem vazamento (topIps/Fábrica zeram na viagem) a campanha passava de 1 h na volta 9 e subia
+    // preço das ilhas (islands.js · priceMul) pela viagem t (1 = Hokkaido da 1ª volta … 5 = Honshu da volta 2): trip[t-1], depois
+    // + grow por viagem; × 0,94^Amigo do Corretor. A campanha (t = 0) fica 1. Item 6 (19/11): antes 1 + 0,4n + 0,15n² (n = ilha +
+    // volta) dava ilhas de 14–19 min na volta 1–7 (dinheiro inicial + sementes compravam tudo em 2 min e o resto era só cavar).
+    price: { trip: [3.5, 16, 25, 30, 34], grow: 0.3 },
+    legend: 2,
   };
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
   D.nodeById = {}; D.TREE.forEach(n => { D.nodeById[n.id] = n; });

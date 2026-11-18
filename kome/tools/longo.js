@@ -63,7 +63,7 @@ const CHUNK = `((secs) => {
     if (S.ended && K.heap.area < K.heap.total * 0.12) { K.newMountain(); note('montanha', 'montanha nova ' + (S.mount | 0)); }
   }
   return { out, dt: S.time - t0, ended: !!S.ended, island: S.island | 0, ips: S.ips, tool: K.tool.id, house: S.house, money: S.money,
-    dug: 1 - K.heap.area / K.heap.total, partir: !!(G.Patio && G.Patio.partir && G.Patio.partir()), seeds: Math.floor(S.stats.seeds || 0), islandsDone: S.stats.islandsDone | 0, earned: S.earned };
+    dug: 1 - K.heap.area / K.heap.total, partir: !!(G.Patio && G.Patio.partir && G.Patio.partir()), seeds: Math.floor(S.stats.seeds || 0), islandsDone: S.stats.islandsDone | 0, earned: S.earned, endT: S.ended ? S.endT : null };
 })`;
 // viagem: compra sementes (o mais barato primeiro) e vai pra próxima ilha (recarrega a página)
 const TRAVEL = `(() => { const K = __kome, S = K.S, G = KomeGame, I = G.Islands; if (!I || !I.sim) return -1;
@@ -94,7 +94,8 @@ const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I 
       if (has('--verbose')) console.log(fmt(at) + '  ' + e.txt);
     }
     T += r.dt;
-    if (r.ended && endedAt === null) { endedAt = T; fases.push([phase, T - islandStart]); phase = r.island === 0 && !r.islandsDone ? 'infinito (Honshu)' : 'infinito (ilha ' + r.island + ')'; console.log(fmt(T) + '  FINAL da ilha ' + r.island + ' (' + fmt(T - islandStart) + ')'); }
+    if (r.ended && endedAt === null) { endedAt = T; if (r.endT > 0 && r.endT <= T - islandStart) endedAt = islandStart + r.endT;   // hora exata do final (S.endT), não o fim do bloco de 5 min
+      const Tb = T; T = endedAt; fases.push([phase, T - islandStart]); phase = r.island === 0 && !r.islandsDone ? 'infinito (Honshu)' : 'infinito (ilha ' + r.island + ')'; console.log(fmt(T) + '  FINAL da ilha ' + r.island + ' (' + fmt(T - islandStart) + ')'); T = Tb; }
     // viaja: 30 min de modo infinito OU nada novo há 15 min (o jogador se cansaria), se ainda há ilha
     // viaja como o chip "hora de partir": depois de 30 min de Pátio e 4 min sem novidade de verdade (ou 2 h no máximo)
     if (endedAt !== null && (r.partir || T - endedAt > 7200)) {   // chip "hora de partir" (ou 2 h)

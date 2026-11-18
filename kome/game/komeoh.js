@@ -1205,8 +1205,55 @@
     curLv = keep;
   }
 
+  /* ---- horizonte do Pátio (turma 16, Kome-Oh em Série): robôs gigantes de linha de montagem cavando atrás dos morros ----
+     horizon(g, {x0,x1,y,k=.16,t,n,tint,haze,night}); n>=10 põe o 2º, n>=50 o 3º (mais longe e menor). Mesmo cache da Fuji:
+     um ciclo garra+broca (CYCLE_CLAW+CYCLE_DRILL) do rig de verdade gravado UMA vez em HZ_F quadros pequenos (escala HZ_S),
+     quadros tingidos guardados até a tinta mudar. Quadro normal = 1 drawImage por robô (+ olhinhos de noite). */
+  const HZ_F = 12, HZ_S = 0.26, HZ_BOX = [-640, -1180, 860, 40];
+  const HZ = { fr: null, tf: [], ok: [], tk: [] };
+  function hzBake() {
+    if (HZ.fr) return HZ;
+    const m = create({ mode: 'normal', x: 0 }), dt = 1 / 60;
+    const inp = { x: 0, y: 0, face: 1, floor: () => 0, tx: 430, ty: -60, digging: true, boost: 0, parts: null, night: 0, dumpX: -700, speedMul: 1 };
+    for (let i = 0; i < 600 && !(m.atkN >= 2 && !m.atk); i++) update(m, dt, inp);   // aquece até fechar um par garra+broca
+    const N = Math.round((CYCLE_CLAW + CYCLE_DRILL) / dt), W = Math.ceil((HZ_BOX[2] - HZ_BOX[0]) * HZ_S), H = Math.ceil((HZ_BOX[3] - HZ_BOX[1]) * HZ_S);
+    const fr = [];
+    for (let f = 0, step = 0; f < HZ_F; f++) {
+      const want = Math.round(f * N / HZ_F); while (step < want) { update(m, dt, inp); step++; }
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const c = cv.getContext('2d'); c.lineJoin = 'round'; c.lineCap = 'round';
+      c.scale(HZ_S, HZ_S); c.translate(-HZ_BOX[0] - m.x, -HZ_BOX[1]);
+      try { draw(c, m); } catch (e) { /* horizonte nunca derruba */ }
+      fr.push(cv);
+    }
+    r0.x = m.seatO.x - m.x; r0.y = m.seatO.y;
+    HZ.fr = fr; HZ.w = W; HZ.h = H;
+    return HZ;
+  }
+  const r0 = { x: 0, y: -900 };
+  function horizon(g, o) {
+    const hz = hzBake(), k = o.k || 0.16, t = o.t || 0, n = Math.max(1, o.n | 0), tint = o.tint || '#93A3B4', haze = o.haze === undefined ? 0.6 : o.haze, night = o.night || 0;
+    const count = n >= 50 ? 3 : n >= 10 ? 2 : 1, lw = o.x1 - o.x0, bw = HZ_BOX[2] - HZ_BOX[0];
+    const base = Math.min(k * 1.1, lw * 0.95 / (bw * (1 + 0.5 * (count - 1))));   // cabe no lote (e no ícone da turma)
+    for (let i = count - 1; i >= 0; i--) {
+      const ph = ((t + i * 1.1) / (CYCLE_CLAW + CYCLE_DRILL)) % 1, fi = Math.floor(ph * HZ_F) % HZ_F;
+      const al = Math.min(0.95, haze + 0.2 + i * 0.1), key = tint + '|' + al;
+      if (hz.tk[i] !== key) { hz.tf[i] = hz.tf[i] || []; hz.ok[i] = []; hz.tk[i] = key; }   // tinta mudou: retinge sob demanda
+      let out = hz.tf[i][fi];
+      if (!out) { out = hz.tf[i][fi] = document.createElement('canvas'); out.width = hz.w; out.height = hz.h; }
+      if (!hz.ok[i][fi]) {
+        const c = out.getContext('2d'); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, hz.w, hz.h); c.drawImage(hz.fr[fi], 0, 0);
+        c.globalCompositeOperation = 'source-atop'; c.globalAlpha = al; c.fillStyle = tint; c.fillRect(0, 0, hz.w, hz.h); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        hz.ok[i][fi] = true;
+      }
+      const sc = base * (1 - i * 0.24), x = o.x0 + lw * (count === 1 ? 0.42 : 0.3 + 0.32 * i) - HZ_BOX[0] * sc * 0.15, y = o.y - i * 7;
+      g.drawImage(out, x + HZ_BOX[0] * sc, y + HZ_BOX[1] * sc, hz.w / HZ_S * sc, hz.h / HZ_S * sc);
+      if (night > 0.2) { g.fillStyle = '#FFE3A0'; g.globalAlpha = night * (1 - i * 0.25); g.fillRect(x + r0.x * sc - 2, y + r0.y * sc - 1.5, 4, 3); g.globalAlpha = 1; }
+    }
+  }
+
   G.Tools.komeoh = {
-    id: 'komeoh', name: 'KOME-OH', kind: 'mecha', w: 900, h: 1060,
+    id: 'komeoh', name: 'KOME-OH', kind: 'mecha', w: 900, h: 1060, horizon,
     meta: { zoom: 0.22, shake: 1, cycle: (CYCLE_CLAW + CYCLE_DRILL) / 2, combineT: COMBINE_T, height: 1040, walk: WALK_V, reach: 430, steps: STEPS.map(s => s[0]) },
     create, update, draw, glow, bite, dump, seat, prebake,
   };

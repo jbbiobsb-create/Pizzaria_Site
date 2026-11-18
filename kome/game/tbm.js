@@ -606,10 +606,57 @@
     g.restore();
   }
 
+  /* ---- horizonte do Pátio (turma 15, Frota de Tatuzões): tatuzões em fila indiana furando atrás dos morros ----
+     horizon(g, {x0,x1,y,k=.16,t,n,tint,haze,night}); n>=5 põe o 2º, n>=25 o 3º (mais longe e menor). Mesmo cache da Fuji:
+     um ciclo de anel (meta.cycle) gravado UMA vez em HZ_F quadros recortados, sem tinta (o rig de verdade, modo 'bore');
+     quadros tingidos guardados até a tinta mudar. Quadro normal = 1 drawImage por tatuzão. */
+  const HZ_F = 12, HZ_S = 0.35, HZ_BOX = [REAR - 60, CY - RC - 40, CXF + RC + 40, 30];
+  const HZ = { fr: null, tf: [], ok: [], tk: [] };
+  function hzBake() {
+    if (HZ.fr) return HZ;
+    const m = create({ pilot: 'kome', scale: 1, mode: 'bore' }), dt = 1 / 60;
+    const inp = { x: 0, y: 0, face: 1, tx: 1e9, ty: 0, digging: true, power: 1, speedMul: 1, floor: () => 0, parts: null, night: 0 };
+    for (let i = 0; i < 240; i++) update(m, dt, inp);                 // aquece (rpm e esteira no ritmo)
+    const N = Math.round(G.Tools.tbm.meta.cycle / dt), W = Math.ceil((HZ_BOX[2] - HZ_BOX[0]) * HZ_S), H = Math.ceil((HZ_BOX[3] - HZ_BOX[1]) * HZ_S);
+    const z0 = Draw.zoom, mp = Draw.minPx; Draw.lod(HZ_S, 0.6);
+    const fr = [];
+    for (let f = 0, step = 0; f < HZ_F; f++) {
+      const want = Math.round(f * N / HZ_F); while (step < want) { update(m, dt, inp); step++; }
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const c = cv.getContext('2d'); c.lineJoin = 'round'; c.lineCap = 'round';
+      c.scale(HZ_S, HZ_S); c.translate(-HZ_BOX[0] - m.x, -HZ_BOX[1]); m.shake = 0;
+      try { draw(c, m); } catch (e) { /* horizonte nunca derruba */ }
+      fr.push(cv);
+    }
+    Draw.lod(z0, mp);
+    HZ.fr = fr; HZ.w = W; HZ.h = H;
+    return HZ;
+  }
+  function horizon(g, o) {
+    const hz = hzBake(), k = o.k || 0.16, t = o.t || 0, n = Math.max(1, o.n | 0), tint = o.tint || '#93A3B4', haze = o.haze === undefined ? 0.6 : o.haze, night = o.night || 0;
+    const count = n >= 25 ? 3 : n >= 5 ? 2 : 1, lw = o.x1 - o.x0;
+    const base = Math.min(k * 1.0, lw * 0.92 / ((HZ_BOX[2] - HZ_BOX[0]) * (1 + 0.62 * (count - 1))));   // cabe no lote (e no ícone)
+    for (let i = count - 1; i >= 0; i--) {
+      const ph = ((t * 0.9 + i * 1.37) / G.Tools.tbm.meta.cycle) % 1, fi = Math.floor(ph * HZ_F) % HZ_F;
+      const al = Math.min(0.95, haze + 0.2 + i * 0.1), key = tint + '|' + al + '|' + i;
+      if (hz.tk[i] !== key) { hz.tf[i] = hz.tf[i] || []; hz.ok[i] = []; hz.tk[i] = key; }   // tinta mudou: retinge sob demanda
+      let out = hz.tf[i][fi];
+      if (!out) { out = hz.tf[i][fi] = document.createElement('canvas'); out.width = hz.w; out.height = hz.h; }
+      if (!hz.ok[i][fi]) {
+        const c = out.getContext('2d'); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, hz.w, hz.h); c.drawImage(hz.fr[fi], 0, 0);
+        c.globalCompositeOperation = 'source-atop'; c.globalAlpha = al; c.fillStyle = tint; c.fillRect(0, 0, hz.w, hz.h); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        hz.ok[i][fi] = true;
+      }
+      const sc = base * (1 - i * 0.22), fx = o.x1 - lw * 0.06 - i * (HZ_BOX[2] - HZ_BOX[0]) * base * 0.62, y = o.y - i * 6;   // face do escudo à direita, fila pra trás
+      g.drawImage(out, fx + HZ_BOX[0] * sc, y + HZ_BOX[1] * sc, hz.w / HZ_S * sc, hz.h / HZ_S * sc);
+      if (night > 0.2) { g.fillStyle = '#FFE3A0'; g.globalAlpha = night * (1 - i * 0.25); for (let q = 0; q < NG; q++) g.fillRect(fx + (G0 - q * (GL + GGAP) - GL / 2) * sc - 1.5, y + (ROOF + 10) * sc - 1.5, 3, 3); g.globalAlpha = 1; }
+    }
+  }
+
   G.Tools.tbm = {
     id: 'tbm', name: 'Tatuzão', kind: 'tbm', w: 1240, h: 300,
     meta: { zoom: 0.3, shake: 0.35, cycle: 4, ringW: RING_W, radius: RC, shieldLen: LS, trainLen: -REAR, axisY: CY, railY: RAIL_Y },
-    create, update, draw, drawTunnel,
+    create, update, draw, drawTunnel, horizon,
     bite: m => m.biteO, dump: m => (m.mode === 'transport' ? null : m.dumpO), seat: m => m.seatO,
   };
 })();

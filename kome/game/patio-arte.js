@@ -8,7 +8,9 @@
                                           patio = { [toolId]: { n: quantidade, marcos: marcos atingidos } } (ids de D.TOOLS).
      G.PatioArt.slots()                   retângulo do pátio + grupos + câmeras sugeridas ({x0,x1,y0,y1,groups,cam,camHand,camMid}).
      G.PatioArt.auto = true               já se pendura sozinho em G.World.layers.back (atrás das máquinas e do Kome) e desenha
-                                          com S.patio (ou o pátio falso do ?patio=) quando S.ended. false = o programador chama.
+                                          quando S.ended: pátio falso do ?patio= (teste) > S.patio > o Pátio de VERDADE (S.stats.patio do
+                                          patio.js, convertido por G.PatioArt.real()). false = o programador chama.
+                                          Absurdas: turma -> desenho pelo `tool` de D.PATIO.turmas (tatus -> tbm, komeohs -> komeoh).
      G.PatioArt.fake(spec)                pátio falso pra testar: 'demo' | 'poucos' | 'medio' | 'cheio' | 'absurdo' | número | 'pata:12,trator:30'
                                           | '+pata' / '+10trator' (compra de mentira, mostra a animação). Também via ?patio=... no endereço.
      G.PatioArt.stats                     {ms, avg, figs, groupSpr, mach} do último quadro (medir desempenho).
@@ -433,7 +435,7 @@
     poucos: { pata: 5, hashi: 4, tigela: 3, pa: 3, duaspas: 2, carrinho: 2, britadeira: 1, trator: 3, empilhadeira: 2, colheita: 1, escav: 1, caminhao: 2, pacabo: 1, bagger: 1 },
     medio: { pata: 25, hashi: 22, tigela: 18, pa: 14, duaspas: 12, carrinho: 10, britadeira: 10, trator: 25, empilhadeira: 15, colheita: 12, escav: 10, caminhao: 10, pacabo: 6, bagger: 3 },
     cheio: { pata: 100, hashi: 100, tigela: 90, pa: 75, duaspas: 60, carrinho: 55, britadeira: 50, trator: 100, empilhadeira: 80, colheita: 60, escav: 50, caminhao: 40, pacabo: 25, bagger: 12 },
-    absurdo: { pata: 500, hashi: 450, tigela: 400, pa: 350, duaspas: 300, carrinho: 260, britadeira: 220, trator: 500, empilhadeira: 300, colheita: 250, escav: 200, caminhao: 150, pacabo: 100, bagger: 50, trembala: 30, foguete: 12, fuji: 3, portal: 30 },
+    absurdo: { pata: 500, hashi: 450, tigela: 400, pa: 350, duaspas: 300, carrinho: 260, britadeira: 220, trator: 500, empilhadeira: 300, colheita: 250, escav: 200, caminhao: 150, pacabo: 100, bagger: 50, tatus: 40, komeohs: 20, trembala: 30, foguete: 12, fuji: 3, portal: 30 },
   };
   let FAKE = null, PATIO = {};
   function milestones(n) { const M = [1, 5, 25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]; let k = 0; while (k < M.length && n >= M[k]) k++; return k; }
@@ -733,12 +735,16 @@
   // máquinas absurdas no horizonte do meio: SKYLINE arrumado — cada uma ganha o seu lote (largura por peso, na ordem de PA.ABSURD),
   // em cima de um platô de névoa contínuo; nada se sobrepõe. horizon(g, {x0,x1,…}) de cada uma desenha dentro do lote.
   const ABS_W = { tatus: 0.8, komeohs: 0.9, trembala: 1.5, foguete: 0.8, fuji: 1.2, portal: 0.8 };
+  // turma -> desenho (G.Tools): o campo `tool` de D.PATIO.turmas (tatus -> tbm, komeohs -> komeoh); sem ele, o próprio id
+  const ABS_TOOL = { tatus: 'tbm', komeohs: 'komeoh' };
+  const absTool = id => { const T = G.Data && G.Data.PATIO && G.Data.PATIO.turmas.find(x => x.id === id); return (T && T.tool) || ABS_TOOL[id] || id; };
+  const absName = id => { const T = G.Data && G.Data.PATIO && G.Data.PATIO.turmas.find(x => x.id === id); return (T && T.n) || (G.Tools[absTool(id)] || {}).name || id; };
   const absList = [];
   // horizonte de uma absurda: se o desenho dela for caro (> 0,5 ms), vai pra uma imagem do lote refeita só de vez em quando
   // (lá longe, na névoa, 4–12 quadros/s não se nota) — o pátio inteiro continua < 2 ms
   const ABS_C = {}, ABS_UP = 520, ABS_DN = 40;
   function absHorizon(g, id, x0, x1, y, t, n, tint, nightK) {
-    const T0 = G.Tools[id], A = ABS_C[id] || (ABS_C[id] = { cost: 0, t: -9, c: null, key: '' }), o = { x0, x1, y, k: 0.16, t, n, tint, haze: 0.45, night: nightK };
+    const T0 = G.Tools[absTool(id)], A = ABS_C[id] || (ABS_C[id] = { cost: 0, t: -9, c: null, key: '' }), o = { x0, x1, y, k: 0.16, t, n, tint, haze: 0.45, night: nightK };
     if (A.cost < 0.5) {
       const t0 = performance.now();
       try { T0.horizon(g, o); } catch (e) { /* desenho de horizonte nunca derruba o pátio */ }
@@ -759,7 +765,7 @@
   function drawAbsurd(g, t, nightK, tint, base) {
     absList.length = 0; let tw = 0;
     for (const id of PA.ABSURD) {
-      const p = PATIO[id], n = p ? p.n | 0 : 0, T0 = G.Tools && G.Tools[id];
+      const p = PATIO[id], n = p ? p.n | 0 : 0, T0 = G.Tools && G.Tools[absTool(id)];
       if (n <= 0 || !T0 || !T0.horizon) continue;
       absList.push(id); tw += ABS_W[id] || 1;
     }
@@ -773,7 +779,7 @@
     for (const id of absList) {
       const w = span * (ABS_W[id] || 1) / tw, n = PATIO[id].n | 0;
       absHorizon(g, id, x, x + w, py, t, n, tint, nightK);
-      const nm = (G.Tools[id].name || id).toUpperCase() + ' ×' + fmtN(n);   // plaquinha na névoa, igual às gigantes
+      const nm = absName(id).toUpperCase() + ' ×' + fmtN(n);   // plaquinha na névoa, igual às gigantes
       Draw.text(g, nm, x + w / 2, py + 9, { size: 9, col: mix(tint, '#FFFFFF', 0.55), sw: 2, stroke: mix(tint, '#3B2818', 0.4), alpha: 0.9 });
       x += w + gap;
     }
@@ -962,9 +968,18 @@
   const PatioArt = { draw, slots, fake, stats, auto: true, PA, tierOf, layout: () => layout(), get fakePatio() { return FAKE; } };
   G.PatioArt = PatioArt;
   // gancho já existente do game-world.js (camada de trás, depois do pátio industrial e antes das máquinas/Kome): sem mexer no game.js
+  // estado de verdade (patio.js): S.stats.patio = {on, n: {id: qtd}, m: {id: marcos}} -> {id: {n, marcos}} num objeto reaproveitado
+  const REAL = {};
+  function real(S) {
+    const P = S.stats && S.stats.patio; if (!P || !P.on) return null;
+    const n = P.n || {}, m = P.m || {}, L = (G.Data && G.Data.PATIO && G.Data.PATIO.turmas) || [];
+    for (let i = 0; i < L.length; i++) { const id = L[i].id, o = REAL[id] || (REAL[id] = { n: 0, marcos: 0 }); o.n = n[id] | 0; o.marcos = m[id] | 0; }
+    return REAL;
+  }
+  PatioArt.real = () => (G.S ? real(G.S) : null);
   if (G.World && G.World.layers) G.World.layers.back.push((g, v, t, S) => {
     if (!PatioArt.auto || !S || !S.ended) return;
-    const p = S.patio || FAKE; if (!p) return;
+    const p = FAKE || S.patio || real(S); if (!p) return;   // ?patio= (teste) manda; senão o Pátio de verdade
     draw(g, v, t, p);
   });
 })();
