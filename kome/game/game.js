@@ -976,6 +976,49 @@
     return true;
   }
   const locked = () => (S.cele.t >= 0 && S.cele.t < S.cele.dur) || !!visit || S.dayEnd > 0;
+  /* VER O PÁTIO: o Pátio da Frota (patio-arte.js) fica DEPOIS da estátua do Kome-Oh, fora do X.minX da câmera de sempre.
+     Voo de ida e volta só de CÂMERA (camTick, que não roda no FAST): não trava entrada, sim, save nem o modo acelerado
+     (regra de ouro: voo da Vila e cena da Bagger já travaram o FAST). Toque/tecla depois de 0,8 s = volta já. */
+  let ptour = null;
+  const patioHas = () => { if (!S.ended || !G.PatioArt || !G.PatioArt.real) return false; const p = G.PatioArt.real(); if (!p) return false; for (const k in p) if (p[k].n > 0) return true; return false; };
+  function patioTour() {
+    if (FAST || cs || S.endOpen || ptour || !G.PatioArt || !G.PatioArt.slots) return false;
+    if (vila.on || vila.k > 0) vilaGo(false);
+    ptour = { t: 0, hx: cam.x, hy: cam.y, hz: cam.z, back: -1, down0: ptr.down };
+    sfx('whoosh', { vol: 0.4 }); document.body.classList.add('k-vila-auto');
+    return true;
+  }
+  function patioTourCam(dt) {   // devolve true se a câmera é do passeio neste quadro
+    const T = ptour; if (!T) return false;
+    if (vila.on || vila.k > 0 || visit || cs) { ptour = null; document.body.classList.remove('k-vila-auto'); return false; }
+    T.t += Math.min(dt, 0.05);
+    const OUT = 2.4, PAN = 6, BACK = 2.2, end = T.back >= 0 ? T.back + BACK : OUT + PAN + BACK;
+    if (T.back < 0 && T.t > 0.8 && ptr.down && !T.down0) T.back = T.t;   // toque = volta agora
+    if (!ptr.down) T.down0 = false;
+    if (T.back < 0 && T.t >= OUT + PAN) T.back = OUT + PAN;
+    const sm = k => { k = U.clamp(k, 0, 1); return k * k * k * (k * (6 * k - 15) + 10); };
+    const lz = (a, b, e) => Math.exp(U.lerp(Math.log(a), Math.log(b), e));
+    const zf = H / 540;   // as câmeras do slots() são pra tela de 540 de altura
+    const sl = G.PatioArt.slots(), A = sl.camHand, B = sl.camMid, Cc = sl.cam;   // ao vivo: o pátio anda junto com X.shift/estátua
+    let x, y, z;
+    if (T.back < 0 && T.t < OUT) {   // ida: sobe (zoom abre no meio do caminho) e chega na turma de mão
+      const e = sm(T.t / OUT), dip = 1 - 0.45 * Math.sin(Math.PI * e);
+      x = U.lerp(T.hx, A.x, e); y = U.lerp(T.hy, A.y, e) - 220 * Math.sin(Math.PI * e); z = lz(T.hz, A.z * zf, e) * dip;
+    } else if (T.back < 0) {         // passeio: turmas de mão → médias → horizonte das gigantes e absurdas
+      const u = (T.t - OUT) / PAN, e1 = sm(u * 2), e2 = sm(u * 2 - 1);
+      if (u < 0.5) { x = U.lerp(A.x, B.x, e1); y = U.lerp(A.y, B.y, e1); z = lz(A.z * zf, B.z * zf, e1); }
+      else { x = U.lerp(B.x, Cc.x, e2); y = U.lerp(B.y, Cc.y, e2); z = lz(B.z * zf, Cc.z * zf, e2); }
+      T.lx = x; T.ly = y; T.lz = z;
+    } else {                         // volta pro Kome (de onde estiver)
+      if (T.lx === undefined) { T.lx = cam.x; T.ly = cam.y; T.lz = cam.z; }
+      const e = sm((T.t - T.back) / BACK), dip = 1 - 0.45 * Math.sin(Math.PI * e);
+      x = U.lerp(T.lx, T.hx, e); y = U.lerp(T.ly, T.hy, e) - 220 * Math.sin(Math.PI * e); z = lz(T.lz, T.hz, e) * dip;
+    }
+    if (T.t >= end) { ptour = null; document.body.classList.remove('k-vila-auto'); return false; }
+    if (T.back < 0 && T.t >= OUT) { T.lx = x; T.ly = y; T.lz = z; }
+    cam.snapTo(x, y, z); cam.maxShake = 0; cam.update(dt);
+    return true;
+  }
 
   function buyNode(id) {
     const n = D.nodeById[id];
@@ -1595,6 +1638,7 @@
     cam.zoomTo(z, zk);
     let fxx = P.x, fyy = P.y;
     if (S.camLock) { cam.zoomTo(S.camLock.z, 9); cam.follow(S.camLock.x, S.camLock.y !== undefined ? S.camLock.y : -120, dt, 9); cam.update(dt); return; }   // só pra testes/prints
+    if (ptour && patioTourCam(dt)) return;   // Ver o Pátio (só câmera)
     const vcl = vila.on ? (vila.auto > 0 ? 2 : 1) : 0;   // 1 = o jogador quis ver a vila: some o HUD de cavar; 2 = voo automático: a doca fica
     if (vcl !== vila.cls) { vila.cls = vcl; document.body.classList.toggle('k-vila', vcl === 1); document.body.classList.toggle('k-vila-auto', vcl === 2); }   // game.css
     if (vila.on && vila.k >= 1 && !vila.auto && vila.hintT === undefined) vila.hintT = 3.6; if (vila.hintT > 0 && vila.k >= 1) vila.hintT -= dt;
@@ -2124,6 +2168,10 @@
       const vc = HUD.chip({ id: 'vila', icon: 'house', label: 'Vila', order: 10, tone: '#FFE3EE', show: false, onClick: () => vilaGo(!vila.on) });
       const tick = () => { if (vc) vc.set({ label: vila.on ? 'Montanha' : 'Vila', icon: vila.on ? 'mount' : 'house', show: !!(S.stats.tipDone || S.time > 31) }); };
       setInterval(tick, 300); tick();
+      // chip "Ver o Pátio": aparece depois do final, com alguma turma no Pátio da Frota (ele mora depois da estátua do Kome-Oh)
+      const pc = HUD.chip({ id: 'verpatio', icon: 'paw', label: 'Ver o Pátio', order: 16, tone: '#E8F4D8', show: false, onClick: () => patioTour() });
+      const ptick = () => { if (pc) pc.set({ show: !ptour && patioHas() }); };
+      setInterval(ptick, 700); ptick();
     }
     if (G.Ind) G.Ind.init({ sfx, save: () => saveNow(), recompute: () => computeStats(),
       visit: (x, z, y, dur) => { visit = { x, t: 0, dur: dur || 3.5, z, y, far: true }; } });   // câmera vai mostrar a Bagger Gêmea na vaga dela
@@ -2197,6 +2245,7 @@
     stats: () => st, nodeState: id => nodeState(D.nodeById[id]), nodeCost: id => nodeCost(D.nodeById[id]),
     reset() { save.clear(); saveNow = () => {}; location.reload(); },
     save: () => saveNow(), exportStr: () => save.exportStr(),
+    patioTour: () => patioTour(), patioTourT: t => { if (ptour) ptour.t = t; return !!ptour; },   // testes/prints do Ver o Pátio
     view() { if (celeCard && celeCard.close) { celeCard.close(); celeCard = null; } S.stamp = 0; S.camX = P.x + 30 / cur.zoom; camTick(1); cam.snapTo(cam.tx, cam.ty, cur.zoom); },
     get heap() { return heap; }, get cam() { return cam; }, get tool() { return cur; }, get m() { return S.m; }, get loop() { return loop; },
   };
