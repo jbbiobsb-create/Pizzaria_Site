@@ -45,6 +45,7 @@
     digRate: 0, slow: 0, pb: 0, sackRate: 0, goldMix: 0, digAcc: 0, sackAcc: 0, goldAcc: 0, rateT: 0,
     facAcc: 0, secT: 0, hist: [], tool: null, sel: null, tut: -1, tutDone: false, frame: 0, fast: true,
     timeOpen: 0, firstSale: -1, offYen: 0,
+    starBank: {},   // estrelas de máquina tirada do grid (por tipo): a próxima do mesmo tipo comprada leva (o selo é permanente)
   };
   let grid, machines = [], nextId = 1;
   const undo = [];
@@ -66,7 +67,12 @@
   const dockMax = () => dockPct() >= F.dock.pctMax;
   const dockPrice = () => F.dock.price * Math.pow(F.dock.costGrow || F.lvl.cost, S.dockLvl) * priceIps();
   const machinePrice = type => MDEF[type].price * priceIps();
-  const levelPrice = m => Math.min(Math.max(MDEF[m.type].price, 20), F.lvl.cap || 1e9) * (F.lvl.base || 1) * Math.pow(F.lvl.cost, m.lvl) * priceIps();
+  // SELO DE QUALIDADE (fabrica.md fim de jogo + jogo-infinito.md: sem teto): no nível máximo a máquina "tira o selo", volta pro
+  // Nv. 1 e ganha 1 estrela: +50% no valor do que ela produz por estrela (o bônus vai junto no item até a venda, então a linha
+  // inteira estrelada multiplica) e os níveis dela ficam ×3 mais caros por estrela. Placa: bronze, prata (5), ouro (10), arco-íris (25).
+  const SELO = F.selo || { val: 0.5, cost: 3 };
+  const starMul = m => 1 + SELO.val * (m.star | 0);
+  const levelPrice = m => Math.min(Math.max(MDEF[m.type].price, 20), F.lvl.cap || 1e9) * (F.lvl.base || 1) * Math.pow(F.lvl.cost, m.lvl) * Math.pow(SELO.cost, m.star | 0) * priceIps();
   const recipeOf = m => MDEF[m.type].recipes[m.rec] || { in: {}, out: null, time: 1 };
   const speedOf = m => 1 + LVL_SPEED * (m.lvl - 1);
   function rates() {
@@ -121,7 +127,7 @@
   }
   function makeMachine(type, x, y, rot, o) {
     o = o || {};
-    const m = { id: o.id || nextId++, type, x, y, rot, lvl: o.lvl || 1, rec: o.rec || 0, paid: o.paid || 0, spent: o.spent || 0,
+    const m = { id: o.id || nextId++, type, x, y, rot, lvl: o.lvl || 1, rec: o.rec || 0, paid: o.paid || 0, spent: o.spent || 0, star: o.star | 0, qA: 0, qN: 0, wq: 1,
       inB: { raw: 0, gold: 0, cozido: 0 }, out: [], work: false, prog: 0, busy: 0, anim: 0, idle: 0, hitN: 0, sq: 0, blocked: false, full: 0, side: 0, pop: 0 };
     if (m.id >= nextId) nextId = m.id + 1;
     occupy(m);
@@ -139,10 +145,11 @@
     for (const k in m.inB) for (let i = 0; i < m.inB[k]; i++) sellLoose({ t: k }, r.x + r.w / 2, r.y + 10);
     for (const it of m.out) sellLoose(it, r.x + r.w / 2, r.y + 10);
     if (m.work) for (const k in recipeOf(m).in) for (let i = 0; i < recipeOf(m).in[k]; i++) sellLoose({ t: k });
-    m.inB = { raw: 0, gold: 0, cozido: 0 }; m.out = []; m.work = false; m.prog = 0;
+    m.inB = { raw: 0, gold: 0, cozido: 0 }; m.out = []; m.work = false; m.prog = 0; m.qA = 0; m.qN = 0;
   }
   function removeMachine(m) {
     dumpMachine(m); vacate(m);
+    if (m.star) { S.starBank[m.type] = (S.starBank[m.type] | 0) + m.star; m.star = 0; }   // o selo não se perde: fica guardado pra próxima
     machines.splice(machines.indexOf(m), 1);
     if (S.sel === m) S.sel = null;
     return m.paid + m.spent;
@@ -170,7 +177,7 @@
   function accept(m, item) {
     const need = recipeOf(m).in;
     if (need[item.t]) {
-      if (m.inB[item.t] < need[item.t] * 2) { m.inB[item.t]++; return true; }
+      if (m.inB[item.t] < need[item.t] * 2) { m.inB[item.t]++; m.qA += item.q || 1; m.qN++; return true; }
       // esperando OUTRO ingrediente (ex.: pilão dourado sem Arroz Dourado): o que sobra passa direto, senão a linha trava pra sempre
       if (!hasAll(m) && m.out.length < 2) { m.out.push(item); return true; }
       m.full = 0.4; return false;                       // fila cheia: espera na esteira (gargalo)
@@ -183,7 +190,7 @@
   /* ---------- venda na doca ---------- */
   const pend = { v: 0, best: 0, t: 0, n: 0 };
   function sell(item, row) {
-    const it = ITEMS[item.t], v = (it.val - it.base) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1);   // amuletos Chef / Esteira Expressa
+    const it = ITEMS[item.t], v = (it.val - it.base) * (item.q || 1) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1);   // amuletos Chef / Esteira Expressa; q = Selo de Qualidade
     pay(v); S.facAcc += v; S.sold[item.t] = (S.sold[item.t] || 0) + 1;
     if (S.firstSale < 0 && item.t !== 'raw' && item.t !== 'gold') S.firstSale = S.timeOpen;
     pend.v += v; pend.best = Math.max(pend.best, it.val); pend.n++;
@@ -244,7 +251,8 @@
       const R = recipeOf(m);
       if (m.out.length) { const f = front(m); if (tryPush(f[0], f[1], m.rot, m.out[0])) m.out.shift(); }
       if (!m.work && hasAll(m) && m.out.length < 2) {
-        for (const k in R.in) m.inB[k] -= R.in[k];
+        let n = 0; for (const k in R.in) { m.inB[k] -= R.in[k]; n += R.in[k]; }
+        const q = m.qN > 0 ? m.qA / m.qN : 1; m.qA = Math.max(0, m.qA - q * n); m.qN = Math.max(0, m.qN - n); m.wq = q * starMul(m);   // selo: qualidade dos ingredientes × estrelas
         m.work = true; m.prog = 0; m.hitN = 0;
       }
       m.blocked = false;
@@ -252,7 +260,7 @@
         if (m.prog < 1) { m.prog = Math.min(1, m.prog + dt * speedOf(m) / R.time); m.anim += dt * speedOf(m); }
         machineFx(m, R);
         if (m.prog >= 1) {
-          if (m.out.length < 2) { m.out.push({ t: R.out }); m.work = false; S.made[R.out]++; m.idle = 0; madeFx(m, R); if (S.made[R.out] === 1 && R.out !== 'cozido') { if (S.fast) pendingFirst.push(R.out); else firstMade(R.out); } if (G.Items && G.Items.count) G.Items.count(CARD_ID[R.out], 1); }
+          if (m.out.length < 2) { m.out.push(m.wq > 1 ? { t: R.out, q: m.wq } : { t: R.out }); m.work = false; S.made[R.out]++; m.idle = 0; madeFx(m, R); if (S.made[R.out] === 1 && R.out !== 'cozido') { if (S.fast) pendingFirst.push(R.out); else firstMade(R.out); } if (G.Items && G.Items.count) G.Items.count(CARD_ID[R.out], 1); }
           else m.blocked = true;
         }
       }
@@ -369,7 +377,7 @@
   function snapshot() {
     const bs = [];
     for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; if (c && c.k === 'b') bs.push([x, y, c.dir]); }
-    return { ms: machines.map(m => ({ id: m.id, type: m.type, x: m.x, y: m.y, rot: m.rot, lvl: m.lvl, rec: m.rec, paid: m.paid, spent: m.spent })), bs, dock: S.dockLvl };
+    return { ms: machines.map(m => ({ id: m.id, type: m.type, x: m.x, y: m.y, rot: m.rot, lvl: m.lvl, rec: m.rec, paid: m.paid, spent: m.spent, star: m.star | 0 })), bs, dock: S.dockLvl, sb: Object.assign({}, S.starBank) };
   }
   function restore(sn) {
     const old = grid, oldM = machines.slice();
@@ -377,7 +385,7 @@
     const keep = new Map(oldM.map(m => [m.id, m]));
     for (const s of sn.ms) {
       let m = keep.get(s.id);
-      if (m) { keep.delete(s.id); Object.assign(m, { x: s.x, y: s.y, rot: s.rot, lvl: s.lvl, rec: s.rec, paid: s.paid, spent: s.spent }); machines.push(m); for (const [a, b] of mcells(m.type, m.x, m.y, m.rot)) grid[b][a] = { k: 'm', m }; }
+      if (m) { keep.delete(s.id); Object.assign(m, { x: s.x, y: s.y, rot: s.rot, lvl: s.lvl, rec: s.rec, paid: s.paid, spent: s.spent, star: s.star | 0 }); machines.push(m); for (const [a, b] of mcells(m.type, m.x, m.y, m.rot)) grid[b][a] = { k: 'm', m }; }
       else makeMachine(s.type, s.x, s.y, s.rot, s);
     }
     for (const m of keep.values()) dumpMachine(m);
@@ -389,7 +397,7 @@
       const o = old[y][x];
       if (o && o.k === 'b' && !(grid[y][x] && grid[y][x].k === 'b')) for (const it of o.items) sellLoose(it, cellX(x), cellY(y) - 8);
     }
-    S.dockLvl = sn.dock;
+    S.dockLvl = sn.dock; S.starBank = Object.assign({}, sn.sb || {});
     if (S.sel && typeof S.sel === 'object' && machines.indexOf(S.sel) < 0) S.sel = null;
   }
   function beginAction() { return { snap: snapshot(), cost: 0 }; }
@@ -409,7 +417,8 @@
     if (money() < price) { toast('Falta ¥' + U.fmt(price - money())); sfx('error'); return null; }
     const a = beginAction();
     if (price) spend(price); a.cost = price;
-    const m = makeMachine(type, at[0], at[1], rot, { paid: price });
+    const m = makeMachine(type, at[0], at[1], rot, { paid: price, star: S.starBank[type] | 0 });
+    if (m.star) { S.starBank[type] = 0; toast('o selo guardado voltou: ★' + m.star); }
     commit(a);
     m.sq = 1;
     if (!S.fast) { const c = mcenter(m); ps.puff(c.x - 20, c.y + 18, 6, 9, { c: C.sand }); ps.puff(c.x + 20, c.y + 18, 6, 9, { c: C.sand }); sfx('fab-pop', { vol: 0.7 }); if (price) sfx('buy', { vol: 0.4 }); }
@@ -438,7 +447,7 @@
     m.sq = 1; sfx('thud', { vol: 0.4 }); return true;
   }
   function levelUp(m) {
-    if (m.lvl >= MAX_LVL) return;
+    if (m.lvl >= MAX_LVL) return selo(m);
     const p = levelPrice(m);
     if (money() < p) { toast('Falta ¥' + U.fmt(p - money())); sfx('error'); return; }
     const a = beginAction(); spend(p); a.cost = p; m.spent += p; m.lvl++; commit(a);
@@ -448,6 +457,35 @@
       fl.add(c.x, c.y - 50, 'Nv. ' + m.lvl + '!', { size: tierUp ? 22 : 18, c: C.goldL, pop: 1.4 });
       if (tierUp) { fl.add(c.x, c.y - 78, 'visual novo!', { size: 17, c: C.cream, delay: 0.25 }); sfx('fanfare', { vol: 0.5 }); }
     }
+  }
+  // "Tirar o Selo": nível máximo → Nv. 1 com +1 estrela (sem teto)
+  function selo(m) {
+    if (!m || m.type === 'divisor' || m.lvl < MAX_LVL) return false;
+    const a = beginAction(); m.lvl = 1; m.star = (m.star | 0) + 1; commit(a);
+    m.sq = 1; S.selos = (S.selos | 0) + 1;
+    if (!S.fast) {
+      const c = mcenter(m), big = m.star === 5 || m.star === 10 || m.star === 25;
+      sfx('fanfare', { vol: 0.7 }); sfx('chirin');
+      ps.burst(c.x, c.y - 24, big ? 60 : 36, { c: [C.gold, C.goldL, C.cream, C.sakura], shape: 'star', speed: [100, big ? 380 : 280], life: 1.1 });
+      fl.add(c.x, c.y - 56, 'Selo ★' + m.star + '!', { size: 24, c: C.goldL, pop: 1.6 });
+      fl.add(c.x, c.y - 84, big ? 'placa ' + ['', 'bronze', 'prata', 'ouro', 'arco-íris'][seloTier(m.star)] + '!' : '+50% no valor', { size: 17, c: C.cream, delay: 0.25 });
+    }
+    return true;
+  }
+  const seloTier = n => (n >= 25 ? 4 : n >= 10 ? 3 : n >= 5 ? 2 : n >= 1 ? 1 : 0);
+  function seloFill(n, x0, x1) {
+    const k = seloTier(n); if (k < 4) return ['', '#D9925A', '#DDE6EE', C.goldL][k];
+    const gr = g.createLinearGradient(x0, 0, x1, 0); ['#FF8A8A', '#FFD36B', '#9BE38A', '#7FC8FF', '#C9A0F0'].forEach((c, j) => gr.addColorStop(j / 4, c)); return gr;
+  }
+  // placa do selo: "★N" com a cor do degrau (bronze / prata / ouro / arco-íris)
+  function seloPlate(x, y, n, sz) {
+    if (!(n > 0)) return 0;
+    sz = sz || 17; const s = '★' + n, w = Math.max(26, textW(s, sz) + 12), h = sz + 5;
+    g.fillStyle = INK; D.rrect(g, x - 2, y - 2, w + 4, h + 4, 7); g.fill();
+    g.fillStyle = seloFill(n, x, x + w); D.rrect(g, x, y, w, h, 5); g.fill();
+    if (n >= 10) { g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(x + 3, y + 2, w - 6, 2); }
+    txt(s, x + w / 2, y + h / 2 + 0.5, T(sz, INK));
+    return w + 4;
   }
   function setRecipe(m, i) {
     if (m.rec === i) return;
@@ -723,6 +761,7 @@
     g.fillStyle = '#5a4030'; g.fillRect(x - bw / 2, y + 12, bw, 4);
     g.fillStyle = m.busy > 0.85 ? C.ora : m.busy > 0.4 ? C.gold : C.grassL; g.fillRect(x - bw / 2, y + 12, bw * U.clamp(m.busy, 0, 1), 4);
     A.levelBadge(g, x, y, m.lvl);
+    if (m.star) seloPlate(x + (m.lvl >= 2 ? 16 : -12), y - 11, m.star, 14);
     hiddenItems(m, t, b.cx, b.by);
   }
   function bubble(x, y, s, col, t) {
@@ -915,13 +954,14 @@
     const R = recipeOf(m), two = def.recipes.length > 1, h = two ? 330 : 282, c = floatCard(ax - 4, ay, w, h, m.x + (m.type === 'pilao' && m.rot % 2 === 0 ? 1 : 0) < 5 ? 1 : -1, r.x + 4), x = c.x + 10;
     let y = c.y;
     txt(def.name, x, y + 19, T(18, INK, 'left'));
+    if (m.star) seloPlate(x + textW(def.name, 18) + 8, y + 8, m.star);
     lvlTag(c.x + w, y, m.lvl, [C.cream, '#DDE6EE', K.copperL, C.goldL][A.tierOf(m.lvl)]);
     // receita: o que entra → o que sai e quanto vale
     g.fillStyle = '#F1E4C2'; D.rrect(g, x, y + 38, w - 20, 36, 8); g.fill();
     let ix = x + 18; for (const k in R.in) for (let i = 0; i < R.in[k]; i++) { blit(ICON[k], ix, y + 68, 2); ix += 22; }
     g.fillStyle = INK; g.beginPath(); g.moveTo(ix - 4, y + 50); g.lineTo(ix + 6, y + 56); g.lineTo(ix - 4, y + 62); g.fill();
     blit(ICON[R.out], ix + 26, y + 68, 2);
-    txt('vale ' + ITEMS[R.out].val + '×', c.x + w - 16, y + 56.5, T(TXT, C.goldD, 'right'));
+    { const v = ITEMS[R.out].val * starMul(m); txt('vale ' + (v >= 1e4 ? U.fmt(v) : (Math.round(v * 10) / 10 + '').replace('.', ',')) + '×', c.x + w - 16, y + 56.5, T(TXT, C.goldD, 'right')); }
     y += 82;
     if (two) {
       def.recipes.forEach((rc, i) => {
@@ -936,8 +976,9 @@
     txt(st[0], c.x + w / 2, y + 31, T(TXT, st[1]));
     y += 46;
     const p = levelPrice(m), max = m.lvl >= MAX_LVL, nextT = m.lvl < 3 ? 3 : m.lvl < 6 ? 6 : 10;
-    button(x, y, w - 20, 52, max ? 'Nível máximo' : 'Subir nível', () => levelUp(m), { off: max || money() < p, fill: '#DDF0C2', sub: max ? 'tudo dourado!' : '¥' + U.fmt(p) + ' · +25% rápida', subCol: max ? C.goldD : money() >= p ? C.grassD : C.redD });
-    if (!max) txt(m.lvl + 1 === nextT ? 'próximo nível: visual novo!' : 'visual novo no Nv. ' + nextT, c.x + w / 2, y + 70, T(TXT, m.lvl + 1 === nextT ? C.oraD : '#8A6A4A'));
+    button(x, y, w - 20, 52, max ? 'Tirar o Selo ★' + ((m.star | 0) + 1) : 'Subir nível', () => levelUp(m), { off: !max && money() < p, fill: max ? (Math.sin(t * 5) > 0 ? '#FFE9A8' : '#FFF3C8') : '#DDF0C2', sub: max ? 'volta pro Nv. 1 · +50% no valor' : '¥' + U.fmt(p) + ' · +25% rápida', subCol: max ? C.goldD : money() >= p ? C.grassD : C.redD });
+    if (max) txt('níveis ficam ×' + SELO.cost + ' mais caros', c.x + w / 2, y + 70, T(TXT, '#8A6A4A'));
+    else txt(m.lvl + 1 === nextT ? 'próximo nível: visual novo!' : 'visual novo no Nv. ' + nextT, c.x + w / 2, y + 70, T(TXT, m.lvl + 1 === nextT ? C.oraD : '#8A6A4A'));
     y += 88;
     button(x, y, 111, 50, 'Girar', () => rotateMachine(m)); removeBtn(m, x + 119, y, 111);
   }
@@ -1255,18 +1296,18 @@
     const s = GS(); if (!s || !S.on) return;
     const bs = [];
     // o que está andando também vai pro save (itens nas esteiras e dentro das máquinas): é isso que o offline termina
-    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; if (c && c.k === 'b') bs.push(c.items.length ? [x, y, c.dir, c.items.map(i => i.t + ':' + i.p.toFixed(2) + ':' + (i.from | 0)).join(' ')] : [x, y, c.dir]); }
-    s.stats.fab = { on: 1, dock: S.dockLvl, ms: machines.map(m => [m.type, m.x, m.y, m.rot, m.lvl, m.rec, Math.round(m.paid), Math.round(m.spent), [m.inB.raw | 0, m.inB.gold | 0, m.inB.cozido | 0, m.out.map(i => i.t).join(' '), m.work ? 1 : 0, +m.prog.toFixed(2)]]), bs,
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; if (c && c.k === 'b') bs.push(c.items.length ? [x, y, c.dir, c.items.map(i => i.t + ':' + i.p.toFixed(2) + ':' + (i.from | 0) + (i.q > 1 ? ':' + i.q.toFixed(2) : '')).join(' ')] : [x, y, c.dir]); }
+    s.stats.fab = { on: 1, dock: S.dockLvl, ms: machines.map(m => [m.type, m.x, m.y, m.rot, m.lvl, m.rec, Math.round(m.paid), Math.round(m.spent), [m.inB.raw | 0, m.inB.gold | 0, m.inB.cozido | 0, m.out.map(i => i.t).join(' '), m.work ? 1 : 0, +m.prog.toFixed(2)], m.star | 0]), bs, sb: S.starBank,
       made: Object.assign({}, S.made), un: [S.unlocked.pilao ? 1 : 0, S.unlocked.mochid ? 1 : 0], tut: S.tutDone ? 1 : 0, fs: S.firstSale, pb: S.pb, slow: S.slow };
   }
   function load() {
     const d = GS() && GS().stats.fab; if (!d || !d.on) return false;
     newGrid(); machines = [];
-    S.on = true; S.dockLvl = d.dock | 0 || 1; Object.assign(S.made, d.made || {});
+    S.on = true; S.dockLvl = d.dock | 0 || 1; Object.assign(S.made, d.made || {}); S.starBank = Object.assign({}, d.sb || {});
     S.unlocked.pilao = !!(d.un && d.un[0]); S.unlocked.mochid = !!(d.un && d.un[1]); S.tutDone = !!d.tut; S.firstSale = d.fs === undefined ? -1 : d.fs; S.pb = +d.pb || 0; S.slow = +d.slow || 0;
-    for (const [x, y, dir, its] of d.bs || []) { setBelt(x, y, dir); if (its && grid[y][x]) grid[y][x].items = its.split(' ').map(q => { const [t, pp, fr] = q.split(':'); return { t, p: +pp || 0, from: fr | 0, stuck: 0, f: -1 }; }).filter(i => ITEMS[i.t]); }
+    for (const [x, y, dir, its] of d.bs || []) { setBelt(x, y, dir); if (its && grid[y][x]) grid[y][x].items = its.split(' ').map(q => { const [t, pp, fr, qq] = q.split(':'), it = { t, p: +pp || 0, from: fr | 0, stuck: 0, f: -1 }; if (+qq > 1) it.q = +qq; return it; }).filter(i => ITEMS[i.t]); }
     for (const q of d.ms || []) if (MDEF[q[0]] && canPlace(q[0], q[1], q[2], q[3])) {
-      const m = makeMachine(q[0], q[1], q[2], q[3], { lvl: q[4], rec: q[5], paid: q[6], spent: q[7] }), b = q[8];
+      const m = makeMachine(q[0], q[1], q[2], q[3], { lvl: q[4], rec: q[5], paid: q[6], spent: q[7], star: q[9] | 0 }), b = q[8];
       if (b) { m.inB = { raw: b[0] | 0, gold: b[1] | 0, cozido: b[2] | 0 }; m.out = (b[3] || '').split(' ').filter(t => ITEMS[t]).map(t => ({ t })); m.work = !!b[4]; m.prog = +b[5] || 0; }
     }
     return true;
@@ -1362,6 +1403,7 @@
     erase(x, y) { const a = beginAction(); eraseAt(x, y, a); commit(a); },
     machineAt(x, y) { const c = cellAt(x, y); return c && c.k === 'm' ? c.m : null; },
     levelUp(x, y) { const m = G.Fab.machineAt(x, y); if (m) levelUp(m); },
+    selo(x, y) { const m = G.Fab.machineAt(x, y); return m ? selo(m) : false; },   // Selo de Qualidade (testes/simulador)
     recipe(x, y, i) { setRecipe(G.Fab.machineAt(x, y), i); },
     dockUp, unlockAll() { S.unlocked.pilao = true; S.unlocked.mochid = true; }, skipTut() { S.tut = -1; S.tutDone = true; }, quiet() { firstCard = null; firstQueue.length = 0; pendingFirst.length = 0; banner = null; pendingBanners.length = 0; }, select(x, y) { S.sel = x === 'dock' || x === 'sale' ? x : G.Fab.machineAt(x, y); }, tool(id) { S.tool = id; toolT = 0; }, tut(n) { S.tut = n; },
     price: machinePrice, levelPrice: (x, y) => levelPrice(G.Fab.machineAt(x, y)), dockPrice,
@@ -1369,7 +1411,7 @@
       const rt = rates();
       return { on: S.on, fac: Math.round(rt.fac), raw: Math.round(rt.raw), share: +(rt.fac / Math.max(1, rt.raw + rt.fac)).toFixed(3), unit: unitV(),
         made: Object.assign({}, S.made), unlocked: Object.assign({}, S.unlocked), dock: S.dockLvl, dockMax: dockMax(), dockUse: +S.dockUse.toFixed(2), firstSale: S.firstSale,
-        machines: machines.map(m => ({ type: m.type, x: m.x, y: m.y, rot: m.rot, lvl: m.lvl, busy: +m.busy.toFixed(2) })), free: (() => { let n = 0; for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) if (!grid[y][x]) n++; return n; })() };
+        machines: machines.map(m => ({ type: m.type, x: m.x, y: m.y, rot: m.rot, lvl: m.lvl, star: m.star | 0, busy: +m.busy.toFixed(2) })), free: (() => { let n = 0; for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) if (!grid[y][x]) n++; return n; })() };
     },
   };
 })();

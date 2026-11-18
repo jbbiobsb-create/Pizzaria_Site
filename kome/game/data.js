@@ -144,6 +144,7 @@
     // cost 1,25 e base 0,45: o 1º nível custa ~56% da máquina e sempre tem um nível comprável em ≤ 180 s; cap 45: o Pilão não
     // cobra 6× mais que a Panela por nível. Conferir com `node tools/fabrica-sim.js --runs 8`.
     lvl: { speed: 0.25, cost: 1.25, base: 0.45, cap: 45, max: 10 },
+    selo: { val: 0.5, cost: 3 },   // Selo de Qualidade (sem teto): +50% no valor por estrela; níveis daquela máquina ×3 por estrela
     unlock: { pilao: 1000, dourado: 20 },   // 1000 onigiris ≈ 12–15 min (era 600 com o preço-base inflado do começo; ver PASSAGEM)
     items: { raw: { val: 1, base: 1 }, gold: { val: 6, base: 6 }, cozido: { val: 2, base: 1 }, onigiri: { val: 4, base: 1 },
       mochi: { val: 12, base: 2 }, mochid: { val: 48, base: 8 } },
@@ -419,6 +420,64 @@
     price: { trip: [3.5, 17, 27, 32, 38], grow: 0.3 },
     legend: 2,
   };
+  /* ---------------- CIDADE (docs/design/cidade.md; sistema game/cidade.js) ----------------
+     A fábrica manda `share` dos onigiris/mochis vendidos pra Despensa da Vila (o resto vende na doca como sempre; Despensa
+     cheia = vende tudo na doca: nada se perde). Pedidos pagam ORDER_PAY × o valor do produto na doca; lojas compram o que passa
+     de SHOP_LINE da despensa por SHOP_PAY ×. Tempos em segundos de jogo. cap e pedido = segundos do ritmo que chega na despensa. */
+  D.CITY = {
+    unlock: 'mochi',                     // abre quando a fábrica vende o 1º mochi
+    share: 0.4,                          // fatia "Vila" da Doca de Venda (onigiri, mochi, mochi dourado)
+    start: { onigiri: 40, mochi: 8 },    // presente da abertura: 1ª entrega na hora
+    ITEMS: {
+      onigiri: { nome: 'onigiri', plural: 'onigiris', capMin: 40, qMin: 6 },
+      mochi: { nome: 'mochi', plural: 'mochis', capMin: 12, qMin: 3 },
+      mochid: { nome: 'mochi dourado', plural: 'mochis dourados', capMin: 4, qMin: 1 },
+    },
+    CAP_SEC: 300,                        // teto da despensa: 5 min do que chega
+    ORDER_SEC: [70, 110],                // pedido ≈ 90 s do que chega daquele item
+    ORDER_PAY: 2, ORDER_GAP: 45, SENTO_GAP: 0.5, FAV_CHANCE: 0.6,
+    HEART_LV: [4, 7, 11, 15, 20, 25], HEART_STEP: 5,   // corações por nível de amizade (depois do último: +HEART_STEP)
+    BUILD_SEC: [120, 600],               // obra: 1º prédio 2 min → 10 min a partir do 10º
+    SHOP_EVERY: 6, SHOP_LINE: 0.55, SHOP_PAY: 1.5,
+    FEST_NEED: 40, FEST_SEC: 240, FEST_HEART: 2, TEMPLO_FEST: 1.5,
+    LOTS: 10, LOTS2: 6,                  // 1º quarteirão (6 casas + 4 terrenos) e o 2º, que abre quando o 1º lota
+    RES: [   // moradores: id, nome, paleta do shiba, chapéu, prato favorito, lote, arte da casa, profissão, falas, 2 prédios dos sonhos
+      { id: 'kiku', nome: 'Vó Kiku', pal: 'goma', hat: false, fav: 'mochi', lot: 0, art: 'cid_casa_kiku', job: 'aposentada, rainha do karaokê',
+        fala: ['No meu tempo o mochi era batido na mão!', 'Kome, tá comendo direito?', 'Hoje tem karaokê, hein.'], build: ['chaya', 'mochiya'] },
+      { id: 'taro', nome: 'Taro', pal: 'aka', hat: true, fav: 'onigiri', lot: 1, art: 'cid_casa_taro', job: 'entregador de bicicleta',
+        fala: ['Pedalei 40 km hoje. Fome.', 'Onigiri é combustível.', 'Corrida até a praça?'], build: ['onigiriya', 'sento'] },
+      { id: 'hana', nome: 'Hana', pal: 'sakura', hat: false, fav: 'mochi', lot: 3, art: 'cid_casa_hana', job: 'florista, planeja piqueniques',
+        fala: ['As cerejeiras vão abrir!', 'Piquenique sem mochi não existe.', 'Trouxe flores pra rua.'], build: ['casa_kuro', 'chaya'] },
+      { id: 'genji', nome: 'Sr. Genji', pal: 'sumi', hat: true, fav: 'onigiri', lot: 4, art: 'cid_casa_genji', job: 'pescador (o peixe sempre cresce na história)',
+        fala: ['Pesquei um atum DESTE tamanho.', 'Onigiri de salmão, só pra constar.', 'O mar tá calmo hoje.'], build: ['bentoya', 'templo'] },
+      { id: 'yuki', nome: 'Yuki', pal: 'yuki', hat: false, fav: 'onigiri', lot: 6, art: 'cid_casa_yuki', job: 'streamer, joga até as 4 da manhã',
+        fala: ['Live de 12 horas, preciso de onigiri.', 'GG, Kome.', 'Bati meu recorde de speedrun!'], build: ['fliperama', 'konbini'] },
+      { id: 'momo', nome: 'Momo', pal: 'momo', hat: false, fav: 'mochi', lot: 7, art: 'cid_casa_momo', job: 'confeiteira perfeccionista',
+        fala: ['Esse mochi tá 2% fora do ponto.', 'Sonho com uma loja só minha.', 'Doce é ciência.'], build: ['mochiya', 'casa_kuro'] },
+      { id: 'kuro', nome: 'Kuro', pal: 'kuro', hat: false, fav: 'onigiri', lot: -1, art: 'cid_casa_kuro', job: 'músico de rua',
+        fala: ['Compus uma música pro onigiri.', 'Toco na praça no festival!', 'A rua tem ritmo.'], build: ['fliperama', 'sento'] },
+      { id: 'matcha', nome: 'Monge Matcha', pal: 'matcha', hat: true, fav: 'mochid', lot: -1, art: 'cid_templo', job: 'monge do templo, ri de tudo',
+        fala: ['Paz, Kome. E mochi dourado.', 'O sino toca no festival.', 'Respira... e come.'], build: ['templo', 'bentoya'] },
+    ],
+    BUILD: {   // o que a amizade abre (1 de 2 por nível): loja = compra o que sobra · heart = +1 ♥ nos pedidos daquele prato · gap = pedidos mais rápidos · mora = morador novo
+      onigiriya: { nome: 'Onigiri-ya', art: 'lojinha_onigiri', loja: ['onigiri'], fx: 'compra o onigiri que sobra na despensa' },
+      mochiya: { nome: 'Mochiya', art: 'loja_mochiya', loja: ['mochi', 'mochid'], fx: 'compra o mochi que sobra na despensa' },
+      bentoya: { nome: 'Bentô-ya', art: 'cid_bentoya', loja: ['onigiri', 'mochi'], fx: 'monta bentô com o onigiri e o mochi que sobram' },
+      konbini: { nome: 'Konbini', art: 'loja_konbini', loja: ['onigiri', 'mochi', 'mochid'], fx: 'compra um pouco de tudo que sobra' },
+      chaya: { nome: 'Casa de Chá', art: 'cid_chaya', heart: 'mochi', fx: 'pedidos de mochi: +1 coração' },
+      fliperama: { nome: 'Fliperama', art: 'cid_fliperama', heart: 'onigiri', fx: 'pedidos de onigiri: +1 coração' },
+      sento: { nome: 'Sentô', art: 'cid_sento', gap: 1, fx: 'pedidos novos chegam 2× mais rápido' },
+      casa_kuro: { nome: 'Casa nova', art: 'cid_casa_kuro', mora: 'kuro', fx: 'Kuro, músico de rua, se muda' },
+      templo: { nome: 'Templo', art: 'cid_templo', mora: 'matcha', fest: 1, fx: 'Monge Matcha se muda · festival enche 50% mais rápido' },
+    },
+    SEASONS: [
+      { nome: 'Primavera', fest: 'Hanami', tree: 'sakura', grass: '#8FAE62', sub: 'piquenique debaixo das cerejeiras' },
+      { nome: 'Verão', fest: 'Hanabi', tree: 'round', grass: '#7F9E5C', sub: 'fogos de artifício na praça' },
+      { nome: 'Outono', fest: 'Tsukimi', tree: 'maple', grass: '#A3A35A', sub: 'lua cheia e colheita' },
+      { nome: 'Inverno', fest: 'Shōgatsu', tree: 'pine', grass: '#DCE4E8', sub: 'ano-novo com mochitsuki' },
+    ],
+  };
+
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
   D.nodeById = {}; D.TREE.forEach(n => { D.nodeById[n.id] = n; });
 })();

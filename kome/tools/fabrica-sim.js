@@ -39,6 +39,7 @@ const FACTORY = `((secs, st) => { const K = __kome, S = K.S, F = KomeGame.Fab, o
     // mais barato (máquina ou doca) se ele custar até 60% do que tem na mão (não torra a poupança da peça grande).
     // Nível baratinho perto da peça (≤ EAGER do preço dela) ele compra na hora.
     let fill = null, plan = null;
+    for (const m of F.state.machines) if (m.type !== 'divisor' && m.lvl >= 10 && F.selo) { F.selo(m.x, m.y); st.selo = (st.selo || 0) + 1; }   // Selo de Qualidade: no máximo, tira o selo na hora (é grátis)
     for (const m of F.state.machines) { if (m.type === 'divisor' || m.lvl >= 10) continue; const c = F.levelPrice(m.x, m.y); if (!fill || c < fill[0]) fill = [c, () => { F.levelUp(m.x, m.y); st.lv = (st.lv || 0) + 1; }]; }
     if (!F.state.dockMax) { const c = F.dockPrice(); if (!fill || c < fill[0]) fill = [c, () => { F.dockUp(); st.dk = (st.dk || 0) + 1; }]; }
     while (st.i < PLAN.length && PLAN[st.i][0] === 'doca' && F.state.dockMax) st.i++;
@@ -111,7 +112,7 @@ if (RUNS > 1) {
   chk(st.maxWait <= 180, 'espera máx entre compras ≤ 3 min: ' + Math.round(st.maxWait) + ' s (aos ' + Math.round((st.maxAt || 0) / 60) + ' min)');
   chk(st.full && st.full >= 60 * 60 && st.full <= 120 * 60, 'falta espaço no grid em 60–120 min: ' + (st.full ? (st.full / 60).toFixed(1) + ' min' : 'não encheu'));
   console.log('renda da fábrica por 5 min: ' + st.samples.map(s => s[0] + 'min ' + pct(s[1])).join(' · '));
-  console.log('feito: ' + JSON.stringify(fs.made) + ' · doca nv ' + fs.dock + ' · níveis comprados ' + (st.lv || 0) + ' · docas de tapa-buraco ' + (st.dk || 0));
+  console.log('feito: ' + JSON.stringify(fs.made) + ' · doca nv ' + fs.dock + ' · níveis comprados ' + (st.lv || 0) + ' · docas de tapa-buraco ' + (st.dk || 0) + ' · selos ' + (st.selo || 0));
   console.log('conferência: ganho total ÷ (cavar + fábrica medidos) = ' + (st.eT / Math.max(1, st.rT + st.fT)).toFixed(2) + ' (1,00 = toda a renda passa pela conta da fábrica)');
   process.exit(errs.length ? 1 : 0);
 })().catch(e => { console.error('FALHOU', e.message); process.exit(1); });
