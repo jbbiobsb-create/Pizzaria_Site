@@ -2396,7 +2396,7 @@
     save: () => saveNow(), exportStr: () => save.exportStr(),
     heapCache(v) { if (v !== undefined) HEAP_CACHE = !!v; return HEAP_CACHE; },   // testes: liga/desliga a montanha guardada
     res(v) { RES.off = true; if (v) stage.setMaxDpr(v); return stage.dpr; },   // testes de desempenho: resolução fixa (desliga a adaptativa)
-    patioTour: () => patioTour(), patioTourT: t => { if (ptour) ptour.t = t; return !!ptour; },   // testes/prints do Ver o Pátio
+    patioTour: () => patioTour(), patioTourT: t => { if (ptour && typeof t === 'number') ptour.t = t; return !!ptour; },   // testes/prints do Ver o Pátio
     view() { if (celeCard && celeCard.close) { celeCard.close(); celeCard = null; } S.stamp = 0; S.camX = P.x + 30 / cur.zoom; camTick(1); cam.snapTo(cam.tx, cam.ty, cur.zoom); },
     get heap() { return heap; }, get cam() { return cam; }, get tool() { return cur; }, get m() { return S.m; }, get loop() { return loop; },
   };

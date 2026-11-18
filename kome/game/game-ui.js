@@ -427,7 +427,7 @@
     if (!HUD.ready) return;
     acc += dt; sampleT += dt;
     if (acc < 0.1 && !force) return;
-    acc = 0;
+    const sdt = acc; acc = 0;   // tempo desde a última atualização (swapTick conta o relógio dele com isso, não com o dt do quadro)
     yenPill.set(S.money);
     rate.set(S.ips);
     if (sampleT >= 5 || force) { sampleT = 0; rate.push(S.ips); }
@@ -462,7 +462,7 @@
     for (const n of D.TREE) if (!S.own[n.id] && S.money >= api.nodeCost(n) && api.nodeState(n) === 'open') nAff++;
     treeBtn.set({ badge: nAff });
     hornBtn.el.style.display = S.own.b0 && api.playing && api.playing().kind === 'bagger' ? '' : 'none';
-    swapTick(dt);
+    swapTick(sdt);
   };
 
   /* ---- trocar de máquina: só toca no DOM quando muda (aparece, troca de máquina, muda de lugar) ---- */
