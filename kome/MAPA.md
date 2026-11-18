@@ -17,7 +17,7 @@ Leia isto ANTES de procurar no código. Use os nomes de função com `grep -n "f
 | Tela da Fábrica (em obras; só no ?dev) | `G.Topo.open()`; esteira de teste na memória | `game/topo.js` |
 | FÁBRICA (grid, máquinas, doca, divisor, save, offline, HUD, toque) | `G.Fab` (open, place, belt, state, persist) · números `D.FAB` · metas `node tools/fabrica-sim.js --runs 8` | `game/fabrica.js` (ver docs/PASSAGEM-fabrica.md) |
 | PÁTIO DA FROTA (camada Cookie: quantidade, marcos, sinergias, Coração, conquistas) | `G.Patio` (tick, open, rate, heart, sim) · números `D.PATIO` · tabelas `D.COOKIE` | `game/patio.js`, `conteudo/cookie*.csv` → `node tools/cookie.js` → `game/cookie-data.js` |
-| MÁQUINAS ABSURDAS no Pátio (turmas 15–20: Tatuzões, Kome-Oh, Trem-Bala, Foguete, Fuji, Portal) | números em `D.PATIO.turmas` (`seed` = nó, `tool` = G.Tools da cena) · nós `absurdo15..20` em `D.SEEDS` (islands.js, `req` = cadeia) · trava em `patio.js` (`unlocked`, adapter `patio()` com `locked/lockTxt`) · cena de chegada `G.Absurdas` (play, check; FAST pula) · demo `?dev&absurda=tatus` | `game/absurdas.js` |
+| MÁQUINAS ABSURDAS no Pátio (turmas 15–20: Tatuzões, Kome-Oh, Trem-Bala, Foguete, Fuji, Portal) | números em `D.PATIO.turmas` (`seed` = nó, `tool` = G.Tools da cena) · nós `absurdo15..20` em `D.SEEDS` (islands.js, `req` = cadeia) · trava em `patio.js` (`unlocked`, adapter `patio()` com `locked/lockTxt`) · cena de chegada `G.Absurdas` (play, check; FAST pula) · demo `?dev&absurda=tatus` · silhueta no horizonte do Pátio = `G.Tools[tool].horizon` (tbm/komeoh/trembala/foguete/fuji/portal, em cache), lida pelo `patio-arte.js` do estado de verdade (`G.PatioArt.real()`) | `game/absurdas.js` |
 | ARTE da Fábrica (galpão 3/4, máquinas por nível, esteiras, itens, toucas, kei-truck) | `G.FabArt` (geo, bg, belts, panela/moldadora/pilao/divisor, item, spr, worker) | `game/fabrica-arte.js` (carrega antes do fabrica.js) |
 | ARTE+SOM dos eventos dourados (gatilho, Frenesi, Chuva, Gigante, Desfile, Tempestade, Festival) e Livro dos Eventos | `G.EventArt` (spawn, hitTrigger, take, start, on, tap, pop, end, openBook) · demo `?dev&evento=<id>` · `?dev&livro=demo` | `game/eventos-arte.js` (topo explica como ligar) |
 | Galpão KOME PACK do pátio trabalhando (porta, caixas, kei-truck, vapor) | `working()` dentro de `drawFactory`; aparece com `G.Fab.on()`; vapor por `G.Fab.activity()` | `game/industry.js` |
@@ -62,7 +62,7 @@ claimAway, partir, openMap, onSettings, onCochilo})`** (formato de cada um no to
 | Modo infinito: Oficina e eventos | `game/infinite.js` · mult, powK, EVENTS, up |
 | Bagger Gêmea, fábrica, lojas | `game/industry.js` · D.GIANT, D.SHOPS, drawFactory |
 | Esteiras | `game/belts.js` |
-| Ilhas (fichas, sementes, viagem, medalhas, evento da ilha) | `game/islands.js` · D.ISLANDS (scene = perfil de cena), D.SEEDS, travel, makeSave, onEnding, evTick · números em `D.ENDGAME` (data.js) |
+| Ilhas (fichas, sementes, viagem, medalhas, evento da ilha) | `game/islands.js` · D.ISLANDS (scene = perfil de cena), D.SEEDS, travel, makeSave, onEnding, evTick, priceMul (preço por viagem: `D.ENDGAME.price.trip`/`grow`) · números em `D.ENDGAME` (data.js) |
 | Cenário de cada ilha (fundo, pátio, crista da montanha, partículas, mapa do Japão) | `game/scenery.js` · far (peaks/volcano/sea/mochi), YARD, crest, air, japan |
 | Mapa das ilhas, chip do HUD, tutorial | `game/islands-ui.js` · open, chipTick, tour |
 | Montanha espelhada (ilha com scene.mirror) | `engine/fx.js` Camera `mx` + `game/game.js` setMirror (só desenho/entrada viram; simulação igual) |
