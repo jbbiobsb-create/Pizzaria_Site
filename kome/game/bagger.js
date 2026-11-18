@@ -393,8 +393,16 @@
     const pv = m.vx;
     if (inp.tx !== undefined && inp.tx !== null) {
       const wx = m.x + face * (PX + BL * Math.cos(m.luff)), err = inp.tx - wx;
-      const want = Math.abs(err) < 3 ? 0 : clamp(err * 1.3, -70, 70);
-      m.vx = damp(m.vx, want, 2.4, dt); if (Math.abs(m.vx) < 0.4 && want === 0) m.vx = 0;
+      if (inp.crawl) {
+        // jogo (19/11): viagem rápida com peso — vai a inp.crawl px/s, acelera/freia em inp.crawlTau s e freia a tempo de parar
+        const a = inp.crawl / Math.max(0.1, inp.crawlTau || 1), ae = Math.abs(err);
+        const want = ae < 3 ? 0 : Math.sign(err) * Math.min(inp.crawl, Math.sqrt(2 * a * 0.8 * ae), ae * 6);
+        const mdv = a * dt * (Math.abs(want) < Math.abs(m.vx) || want * m.vx < 0 ? 1.6 : 1);
+        m.vx += clamp(want - m.vx, -mdv, mdv); if (Math.abs(m.vx) < 0.4 && want === 0) m.vx = 0;
+      } else {
+        const want = Math.abs(err) < 3 ? 0 : clamp(err * 1.3, -70, 70);
+        m.vx = damp(m.vx, want, 2.4, dt); if (Math.abs(m.vx) < 0.4 && want === 0) m.vx = 0;
+      }
       m.x += m.vx * dt;
     } else if (inp.x !== undefined) { m.vx = dt > 0 ? clamp((inp.x - m.x) / dt, -200, 200) : 0; m.x = inp.x; }
     const mov = Math.abs(m.vx) > 2;

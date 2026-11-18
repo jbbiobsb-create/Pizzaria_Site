@@ -187,6 +187,16 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   await p2.waitForTimeout(1800);
   const e1 = await p2.evaluate(() => { const S = __kome.S; return { e: S.earned, d: S.dayEarn, day: S.day }; });
   ok(e1.day !== e0.day || Math.abs((e1.d - e0.d) - (e1.e - e0.e)) <= 1e-6 * Math.max(1, e1.e), 'ganho miúdo conta 1x no salário do dia (Δganho ' + Math.round(e1.e - e0.e) + ' · Δdia ' + Math.round(e1.d - e0.d) + ')');
+  // FÁBRICA, preço travado (v7: "fica mais caro toda hora"): a renda sobe ×100 e o preço NÃO mexe; comprar algo na fábrica
+  // atualiza; Amigo do Corretor (sementes, "todos os preços") vale na fábrica também
+  const fp = await p2.evaluate(() => { const F = KomeGame.Fab, S = __kome.S; S.ended = true; F.unlock(); F.quiet(); F.skipTut();
+    const feed = (v, sec) => { for (let i = 0; i < sec; i++) { F.dig(v); F.step(1); } };
+    S.stats.sl = S.stats.sl || {}; const L0 = S.stats.sl.preco | 0; S.stats.sl.preco = 0;
+    feed(100, 70); const a = F.price('moldadora'); feed(10000, 400); const b2 = F.price('moldadora');
+    S.money += 1e12; F.levelUp(2, 2); const c = F.price('moldadora'); S.stats.sl.preco = 8; const d = F.price('moldadora'); S.stats.sl.preco = L0;
+    return { a, b: b2, c, d }; });
+  ok(fp.a > 0 && fp.b === fp.a && fp.c > fp.a * 10 && Math.abs(fp.d / fp.c - Math.pow(0.94, 8)) < 0.01,
+    'fábrica: preço parado com a renda ×100 (' + Math.round(fp.a) + ' → ' + Math.round(fp.b) + '), muda ao comprar (' + Math.round(fp.c) + '), Amigo do Corretor 8 = ×' + (fp.d / fp.c).toFixed(2));
   ok(!errs.length, 'sem erro de página' + (errs.length ? ': ' + errs.slice(0, 2).join(' | ') : ''));
   await b.close();
   console.log(bad ? bad + ' FALHA(S)' : 'ALICERCE OK');

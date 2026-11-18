@@ -39,7 +39,7 @@
    buyTigela(i) -> bool
    seeds() -> n                       Sementes Douradas na mão.
    seedTree() -> {branches: {id: {name, color, icon}}, nodes: [{id, n, desc, branch, pos: {x, y}, req: [ids], size, icon,
-                  max, absurd?}]}     formato do E.UI.tree (pos em unidades de 96 px; size 0/1/2). absurd = nó que destrava
+                  max, absurd?, now?}]} formato do E.UI.tree (now() opcional = efeito de agora, vai no cartão) (pos em unidades de 96 px; size 0/1/2). absurd = nó que destrava
                                       máquina absurda (sai dourado e grandão). max: 1 = compra única; 0 = sem teto.
    seedLevel(id) -> nível · seedCost(id) -> sementes do próximo nível · buySeed(id) -> bool
    away() -> null | {sec, capSec, capped, rows: [{icon, label, value, txt?}], total}
@@ -563,7 +563,8 @@
   }
   function describe(n) {
     const L = A().seedLevel(n.id), max = n.max | 0;
-    n.see = (max === 1 ? (L ? 'comprado' : 'compra única') : 'nível ' + L + (max ? ' de ' + max : ' (sem teto)')) + (n.absurd ? ' · destrava máquina absurda' : '');
+    const now = n.now ? n.now() : '';   // efeito de agora (adaptador: islands.js seedFx), ex. "agora: −41% nos preços"
+    n.see = (max === 1 ? (L ? 'comprado' : 'compra única') : 'nível ' + L + (max ? ' de ' + max : ' (sem teto)')) + (now ? ' · agora: ' + now : '') + (n.absurd ? ' · destrava máquina absurda' : '');
   }
   function buySeed(id, lvlUp) {
     const n = T.nodes[id];

@@ -42,7 +42,7 @@
     on: false, t: 0, dockLvl: 1, dockBudget: 0, dockRR: 0, dockUse: 0,
     made: { cozido: 0, onigiri: 0, mochi: 0, mochid: 0 }, sold: {},
     unlocked: { pilao: false, mochid: false },
-    digRate: 0, slow: 0, pb: 0, sackRate: 0, goldMix: 0, digAcc: 0, sackAcc: 0, goldAcc: 0, rateT: 0,
+    digRate: 0, slow: 0, s5: 0, pb: 0, sackRate: 0, goldMix: 0, digAcc: 0, sackAcc: 0, goldAcc: 0, rateT: 0,
     facAcc: 0, secT: 0, hist: [], tool: null, sel: null, tut: -1, tutDone: false, frame: 0, fast: true,
     timeOpen: 0, firstSale: -1, offYen: 0,
     starBank: {},   // estrelas de máquina tirada do grid (por tipo): a próxima do mesmo tipo comprada leva (o selo é permanente)
@@ -55,15 +55,27 @@
   const GS = () => G.S;
   const money = () => (GS() ? GS().money : 0);
   const pay = v => { const s = GS(); if (!s || !(v > 0)) return; s.money += v; s.earned += v; s.dayEarn = (s.dayEarn || 0) + v; s.ipsAcc = (s.ipsAcc || 0) + v; };
-  const spend = v => { const s = GS(); s.money -= v; S.pb = Math.max(S.pb || 0, S.slow || 0); };
+  const spend = v => { const s = GS(); s.money -= v; rebase(); };
 
   /* ---- valor de 1 item cru e ritmo da doca ---- */
   const dockPct = () => Math.min(F.dock.pctMax, F.dock.pct0 + F.dock.pctLvl * (S.dockLvl - 1));
   const dockCap = () => F.dock.items0 * Math.pow(F.dock.itemsGrow, S.dockLvl - 1);                 // itens/s que a doca puxa no máximo
   const unitV = () => Math.max(0, S.slow || S.digRate) * dockPct() / dockCap();                   // ¥ de 1 item cru (renda média de 1 min)
-  // preço em segundos da renda MÉDIA de cavar (1 min). Não usa o G.priceIps do jogo: ele guarda o pico de todos os tempos,
-  // que no núcleo dourado da Bagger fica muitas vezes acima da renda normal da montanha nova (1ª compra levava 30 min)
-  const priceIps = () => Math.max(10, S.slow || S.digRate || (GS() && GS().ips) || 10) * (F.priceK || 1);
+  // preço em segundos da renda MÉDIA de cavar. Não usa o G.priceIps do jogo: ele guarda o pico de todos os tempos,
+  // que no núcleo dourado da Bagger fica muitas vezes acima da renda normal da montanha nova (1ª compra levava 30 min).
+  // PREÇO TRAVADO (v7, "fica mais caro toda hora e não dá pra comprar nunca"): antes o preço seguia a média de 1 min a cada
+  // quadro; numa ilha nova a renda sobe ×1000 em 25 min e o preço fugia do bolso (Moldadora ¥1,3 mil → ¥2 mi sem comprar
+  // nada). Agora a renda de referência S.pb só muda quando você COMPRA algo na fábrica (rebase, menor entre a média de 1 min
+  // e a de 5 min: comprar no meio de um Frenesi não deixa a próxima ×7) ou quando a renda cai pra menos da metade (preço só
+  // desce sozinho, nunca sobe). Ilha nova zera (islands.js makeSave) e a 1ª medida trava.
+  const baseNow = () => { const r = S.slow || S.digRate; return r > 0 ? Math.min(r, S.s5 > 0 ? S.s5 : r) : 0; };
+  function rebase() { const b = baseNow(); if (b > 0) S.pb = b; }
+  function priceBase() { if (!(S.pb > 0)) rebase(); return S.pb > 0 ? S.pb : (GS() && GS().ips) || 10; }
+  // × Amigo do Corretor (sementes: "todos os preços") × amuletos de preço (Pão-Duro "tudo custa 20% menos", Diesel +20%)
+  const priceCut = () => (G.Islands && G.Islands.precoMul ? G.Islands.precoMul() : 1) * (G.Amuletos ? G.Amuletos.mult('preco') : 1);
+  // valor do que a fábrica vende: amuletos (Chef, Esteira Expressa, Selo de Exportação) × semente Tempero da Vó (islands.js)
+  const fabMul = () => (G.Amuletos ? G.Amuletos.mult('fab') : 1) * (G.Islands && G.Islands.fabMul ? G.Islands.fabMul() : 1);
+  const priceIps = () => Math.max(10, priceBase()) * (F.priceK || 1) * priceCut();
   const dockMax = () => dockPct() >= F.dock.pctMax;
   const dockPrice = () => F.dock.price * Math.pow(F.dock.costGrow || F.lvl.cost, S.dockLvl) * priceIps();
   const machinePrice = type => MDEF[type].price * priceIps();
@@ -109,7 +121,7 @@
     return null;
   }
   function sellLoose(item, px, py) {          // item que sai do mundo (esteira apagada etc.): vende na hora, nada se perde
-    const v = (ITEMS[item.t].val - ITEMS[item.t].base) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1); pay(v); S.facAcc += v;
+    const v = (ITEMS[item.t].val - ITEMS[item.t].base) * unitV() * fabMul(); pay(v); S.facAcc += v;
     if (!S.fast && px !== undefined && v > 0) fl.add(px, py, '+¥' + U.fmt(v), { size: 17, c: C.cream, life: 0.8 });
   }
   function clearBelt(x, y) {
@@ -191,7 +203,7 @@
   const pend = { v: 0, best: 0, t: 0, n: 0 };
   function sell(item, row) {
     if (G.City && G.City.take(item.t, item.q || 1)) { S.sold.vila = (S.sold.vila | 0) + 1; return; }   // fatia da Vila: vai pra Despensa da Cidade (paga lá)
-    const it = ITEMS[item.t], v = (it.val - it.base) * (item.q || 1) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1);   // amuletos Chef / Esteira Expressa; q = Selo de Qualidade
+    const it = ITEMS[item.t], v = (it.val - it.base) * (item.q || 1) * unitV() * fabMul();   // amuletos Chef / Esteira Expressa; q = Selo de Qualidade
     pay(v); S.facAcc += v; S.sold[item.t] = (S.sold[item.t] || 0) + 1;
     if (S.firstSale < 0 && item.t !== 'raw' && item.t !== 'gold') S.firstSale = S.timeOpen;
     pend.v += v; pend.best = Math.max(pend.best, it.val); pend.n++;
@@ -222,6 +234,8 @@
       const k = Math.min(1, S.rateT / 8);
       const r0 = S.digAcc / S.rateT;
       if (!(S.slow > 0)) S.slow = r0; else S.slow += (r0 - S.slow) * Math.min(1, S.rateT / 60);   // 1ª medida já vale (não sobe de zero)
+      if (!(S.s5 > 0)) S.s5 = r0; else S.s5 += (r0 - S.s5) * Math.min(1, S.rateT / 300);          // média de 5 min (preço travado)
+      if (S.pb > 0 && Math.max(S.slow, S.s5) < S.pb * 0.5) S.pb = Math.max(S.slow, S.s5);          // renda caiu de verdade: preço desce (nunca sobe sozinho)
       S.digRate += (S.digAcc / S.rateT - S.digRate) * k; S.sackRate += (S.sackAcc / S.rateT - S.sackRate) * k;
       if (S.sackAcc > 0) S.goldMix += (S.goldAcc / S.sackAcc - S.goldMix) * k;
       S.digAcc = S.sackAcc = S.goldAcc = 0; S.rateT = 0;
@@ -1299,13 +1313,13 @@
     // o que está andando também vai pro save (itens nas esteiras e dentro das máquinas): é isso que o offline termina
     for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const c = grid[y][x]; if (c && c.k === 'b') bs.push(c.items.length ? [x, y, c.dir, c.items.map(i => i.t + ':' + i.p.toFixed(2) + ':' + (i.from | 0) + (i.q > 1 ? ':' + i.q.toFixed(2) : '')).join(' ')] : [x, y, c.dir]); }
     s.stats.fab = { on: 1, dock: S.dockLvl, ms: machines.map(m => [m.type, m.x, m.y, m.rot, m.lvl, m.rec, Math.round(m.paid), Math.round(m.spent), [m.inB.raw | 0, m.inB.gold | 0, m.inB.cozido | 0, m.out.map(i => i.t).join(' '), m.work ? 1 : 0, +m.prog.toFixed(2)], m.star | 0]), bs, sb: S.starBank,
-      made: Object.assign({}, S.made), un: [S.unlocked.pilao ? 1 : 0, S.unlocked.mochid ? 1 : 0], tut: S.tutDone ? 1 : 0, fs: S.firstSale, pb: S.pb, slow: S.slow };
+      made: Object.assign({}, S.made), un: [S.unlocked.pilao ? 1 : 0, S.unlocked.mochid ? 1 : 0], tut: S.tutDone ? 1 : 0, fs: S.firstSale, pb: S.pb, slow: S.slow, s5: S.s5 };
   }
   function load() {
     const d = GS() && GS().stats.fab; if (!d || !d.on) return false;
     newGrid(); machines = [];
     S.on = true; S.dockLvl = d.dock | 0 || 1; Object.assign(S.made, d.made || {}); S.starBank = Object.assign({}, d.sb || {});
-    S.unlocked.pilao = !!(d.un && d.un[0]); S.unlocked.mochid = !!(d.un && d.un[1]); S.tutDone = !!d.tut; S.firstSale = d.fs === undefined ? -1 : d.fs; S.pb = +d.pb || 0; S.slow = +d.slow || 0;
+    S.unlocked.pilao = !!(d.un && d.un[0]); S.unlocked.mochid = !!(d.un && d.un[1]); S.tutDone = !!d.tut; S.firstSale = d.fs === undefined ? -1 : d.fs; S.pb = +d.pb || 0; S.slow = +d.slow || 0; S.s5 = +d.s5 || 0;
     for (const [x, y, dir, its] of d.bs || []) { setBelt(x, y, dir); if (its && grid[y][x]) grid[y][x].items = its.split(' ').map(q => { const [t, pp, fr, qq] = q.split(':'), it = { t, p: +pp || 0, from: fr | 0, stuck: 0, f: -1 }; if (+qq > 1) it.q = +qq; return it; }).filter(i => ITEMS[i.t]); }
     for (const q of d.ms || []) if (MDEF[q[0]] && canPlace(q[0], q[1], q[2], q[3])) {
       const m = makeMachine(q[0], q[1], q[2], q[3], { lvl: q[4], rec: q[5], paid: q[6], spent: q[7], star: q[9] | 0 }), b = q[8];
@@ -1407,7 +1421,7 @@
     selo(x, y) { const m = G.Fab.machineAt(x, y); return m ? selo(m) : false; },   // Selo de Qualidade (testes/simulador)
     recipe(x, y, i) { setRecipe(G.Fab.machineAt(x, y), i); },
     dockUp, unlockAll() { S.unlocked.pilao = true; S.unlocked.mochid = true; }, skipTut() { S.tut = -1; S.tutDone = true; }, quiet() { firstCard = null; firstQueue.length = 0; pendingFirst.length = 0; banner = null; pendingBanners.length = 0; }, select(x, y) { S.sel = x === 'dock' || x === 'sale' ? x : G.Fab.machineAt(x, y); }, tool(id) { S.tool = id; toolT = 0; }, tut(n) { S.tut = n; },
-    itemV: t => { const it = ITEMS[t]; return it ? (it.val - it.base) * unitV() * (G.Amuletos ? G.Amuletos.mult('fab') : 1) : 0; },   // quanto a doca paga por 1 produto (Cidade)
+    itemV: t => { const it = ITEMS[t]; return it ? (it.val - it.base) * unitV() * fabMul() : 0; },   // quanto a doca paga por 1 produto (Cidade)
     price: machinePrice, levelPrice: (x, y) => levelPrice(G.Fab.machineAt(x, y)), dockPrice,
     get state() {
       const rt = rates();

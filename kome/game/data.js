@@ -74,7 +74,10 @@
   /* ---------------- escada de ferramentas (13 degraus) ----------------
      A = px²/s segurando 100%; r = raio da cratera; pow = força (k = pow/dureza); zoom da câmera; spd = px/s andando;
      reach = distância de trabalho; park = distância que a máquina estaciona do barranco; sfx/loop = som; pay = eventos de m.ev
-     que pagam (vazio = lote contínuo); size = texto do cartão "tamanho real". */
+     que pagam (vazio = lote contínuo); size = texto do cartão "tamanho real".
+     MÁQUINAS: vmax = px/s de viagem (dono 19/11: "o tamanho tem que cobrir o terreno grande": ~1 tela da máquina (1150/zoom px)
+     em ~3,5 s), tau = s de inércia (0 → vmax; máquina grande pesa na arrancada/freada, não andando devagar). Caminhão: vmax/tau
+     = a pá do Tetsu chegando no barranco (a viagem até a moega é o ciclo, fica no machines-mine.js). */
   D.TOOLS = [
     { id: 'pata', name: 'Pata do Kome', cost: 0, A: 15, r: 6, pow: 1, zoom: 3.0, spd: 240, reach: 14, seat: 'paw', kind: 'hand', shake: 0, grains: 3, sfx: 'paw', pay: [],
       size: '44 px de shiba · 4 patas · 1 sonho', act: 'patas frenéticas, 3 grãos por batida' },
@@ -90,20 +93,20 @@
       size: '80 litros · 1 roda que range', act: 'trombada no barranco, avalanche na caçamba' },
     { id: 'britadeira', name: 'Britadeira', cost: 55000, A: 210, r: 26, pow: 3.6, zoom: 1.28, spd: 230, reach: 26, seat: 'paw', kind: 'jack', shake: 0.1, grains: 10, sfx: 'thud', loop: 'tractor', pay: [],
       size: '30 kg · 15 pancadas por segundo', act: 'fura pra baixo, racha o arroz prensado' },
-    { id: 'trator', name: 'Trator', cost: 110000, A: 250, r: 44, pow: 4, zoom: 1.1, spd: 420, reach: 48, park: 105, seat: 'cab', kind: 'trator', shake: 0.16, grains: 40, sfx: 'tractor', loop: 'tractor', pay: ['dump'],
+    { id: 'trator', name: 'Trator', cost: 110000, A: 250, r: 44, pow: 4, zoom: 1.1, spd: 420, reach: 48, park: 105, vmax: 300, tau: 0.25, seat: 'cab', kind: 'trator', shake: 0.16, grains: 40, sfx: 'tractor', loop: 'tractor', pay: ['dump'],
       size: '3,5 t · 350 shibas de peso', act: 'carregadeira frontal empurra ondas de arroz' },
-    { id: 'empilhadeira', name: 'Empilhadeira', cost: 170000, A: 280, r: 36, pow: 5.5, zoom: 0.85, spd: 400, reach: 60, park: 96, seat: 'cab', kind: 'fork', cycle: 1.55, shake: 0.18, grains: 20, sfx: 'forklift', loop: 'electric', pay: ['dump'],
+    { id: 'empilhadeira', name: 'Empilhadeira', cost: 170000, A: 280, r: 36, pow: 5.5, zoom: 0.85, spd: 400, reach: 60, park: 96, vmax: 380, tau: 0.3, seat: 'cab', kind: 'fork', cycle: 1.55, shake: 0.18, grains: 20, sfx: 'forklift', loop: 'electric', pay: ['dump'],
       size: '4 t · garfos de 1,2 m', act: 'espeta os garfos e arranca blocos de arroz prensado' },
-    { id: 'colheita', name: 'Colheitadeira', cost: 270000, A: 360, r: 40, pow: 4.8, zoom: 0.95, spd: 320, reach: 90, park: 86, seat: 'cab', kind: 'trator', cycle: 5.9, shake: 0.14, grains: 30, sfx: 'tractor', loop: 'tractor', pay: ['dump'],
+    { id: 'colheita', name: 'Colheitadeira', cost: 270000, A: 360, r: 40, pow: 4.8, zoom: 0.95, spd: 320, reach: 90, park: 86, vmax: 340, tau: 0.35, seat: 'cab', kind: 'trator', cycle: 5.9, shake: 0.14, grains: 30, sfx: 'tractor', loop: 'tractor', pay: ['dump'],
       size: '9 t · plataforma de 4 m', act: 'molinete puxa, tanque enche, tubo despeja' },
-    { id: 'escav', name: 'Escavadeira Hidráulica', cost: 800000, A: 500, r: 72, pow: 10, zoom: 0.62, spd: 380, reach: 120, park: 196, seat: 'cab', kind: 'escav', shake: 0.24, grains: 80, sfx: 'excavator', loop: 'diesel', pay: ['dump'],
+    { id: 'escav', name: 'Escavadeira Hidráulica', cost: 800000, A: 500, r: 72, pow: 10, zoom: 0.62, spd: 380, reach: 120, park: 196, vmax: 520, tau: 0.5, seat: 'cab', kind: 'escav', shake: 0.24, grains: 80, sfx: 'excavator', loop: 'diesel', pay: ['dump'],
       size: '22 t · braço de 9 m', act: 'braço articulado morde e despeja' },
-    { id: 'caminhao', name: 'Caminhão de Mineração', cost: 2700000, A: 660, r: 100, pow: 11, zoom: 0.36, spd: 260, reach: 0, park: 262, seat: 'cab', kind: 'haul', cycle: 11.2, shake: 0.42, grains: 400, sfx: 'hauler', loop: 'truck', pay: ['dump'],
+    { id: 'caminhao', name: 'Caminhão de Mineração', cost: 2700000, A: 660, r: 100, pow: 11, zoom: 0.36, spd: 260, reach: 0, park: 262, vmax: 520, tau: 0.5, seat: 'cab', kind: 'haul', cycle: 11.2, shake: 0.42, grains: 400, sfx: 'hauler', loop: 'truck', pay: ['dump'],
       size: '7,6 m de altura · 360 t de carga', act: 'Kome dirige; o Tetsu enche com a escavadeira' },
-    { id: 'pacabo', name: 'Pá de Cabo Elétrica', cost: 6500000, A: 860, r: 100, pow: 12.5, zoom: 0.46, spd: 30, reach: 260, park: 262, seat: 'cab', kind: 'rope', cycle: 3.6, shake: 0.34, grains: 200, sfx: 'ropeshovel', loop: 'electric', pay: ['dump'],
+    { id: 'pacabo', name: 'Pá de Cabo Elétrica', cost: 6500000, A: 860, r: 100, pow: 12.5, zoom: 0.46, spd: 30, reach: 260, park: 262, vmax: 700, tau: 1.1, seat: 'cab', kind: 'rope', cycle: 3.6, shake: 0.34, grains: 200, sfx: 'ropeshovel', loop: 'electric', pay: ['dump'],
       size: '1.400 t · caçamba de 60 m³', act: 'conchada gigante e lenta: iça, gira, despeja' },
     // Bagger A e casas h4-h6 x1,5 (15/11): partida termina com ~85-92% da montanha cavada
-    { id: 'bagger', name: 'Bagger 293', cost: 6000000, A: 1950, r: 110, pow: 16, zoom: 0.31, spd: 40, reach: 560, seat: 'cab', kind: 'bagger', shake: 0.3, grains: 60, sfx: 'bagger', loop: 'bagger', pay: [], needs: ['bg1', 'bg2'],
+    { id: 'bagger', name: 'Bagger 293', cost: 6000000, A: 1950, r: 110, pow: 16, zoom: 0.31, spd: 40, reach: 560, vmax: 1000, tau: 1.3, seat: 'cab', kind: 'bagger', shake: 0.3, grains: 60, sfx: 'bagger', loop: 'bagger', pay: [], needs: ['bg1', 'bg2'],
       size: '96 m. 14.200 t. 1 shiba.', act: 'roda de 18 caçambas' },
   ];
 

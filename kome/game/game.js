@@ -678,15 +678,25 @@
   }
 
   /* máquinas de cabine (trator, empilhadeira, escavadeira, pá de cabo): estacionam na distância de trabalho do barranco */
-  function parkAt(x, vxObj, park, maxV, busy, dt, hold, noPtr) {
+  /* viagem com peso (dono 19/11: máquina grande cobre o terreno grande): vai até xT a no máx vmax px/s, acelera/freia em
+     ~tau s (a = vmax/tau) e começa a frear a tempo de parar no alvo (sem passar e voltar). stop = parar (ciclo em andamento,
+     soltou o dedo). Devolve o x novo; a velocidade fica em o.vx. */
+  function travel(x, o, xT, vmax, tau, dt, stop) {
+    const a = vmax / Math.max(0.05, tau), d = xT - x, ad = Math.abs(d);
+    const want = stop || ad < 2 ? 0 : Math.sign(d) * Math.min(vmax, Math.sqrt(2 * a * 0.8 * ad), ad * 10);
+    const braking = Math.abs(want) < Math.abs(o.vx) || want * o.vx < 0, mdv = a * dt * (braking ? 1.6 : 1);
+    o.vx += U.clamp(want - o.vx, -mdv, mdv);
+    if (!(o.vx === o.vx)) o.vx = 0;
+    return x + o.vx * dt;
+  }
+  const VMAX = t => t.vmax || 130, TAU = t => t.tau || 0.2;
+  function parkAt(x, vxObj, park, maxV, busy, dt, hold, noPtr, tau) {
     const fxr = faceAhead(x, 16, 900);
     let xT = fxr - park;
     if (hold && !noPtr) xT = Math.min(xT, ptr.wx - park * 0.5);
     xT = Math.max(WL.MX0 - 300, xT);
-    const want = busy || !hold ? 0 : U.clamp((xT - x) * 3, -maxV, maxV);
-    vxObj.vx = U.damp(vxObj.vx, want, 5, dt);
     parkAt.face = fxr; parkAt.near = Math.abs(fxr - park - x) < 34;
-    return x + vxObj.vx * dt;
+    return travel(x, vxObj, xT, maxV, tau || 0.2, dt, busy || !hold);
   }
   // máquinas que sobem a montanha (trator, colheitadeira, empilhadeira, escavadeira): só param num paredão íngreme
   const CLIMB = { trator: 1, fork: 1, escav: 1 };
@@ -694,18 +704,16 @@
     for (let d = 8; d <= max; d += 8) if (heap.height(x + d + 8) - heap.height(x + d) > 10) return x + d;   // inclinação > ~51°
     return x + max;
   }
-  function parkClimb(x, o, park, maxV, busy, dt, hold) {
+  function parkClimb(x, o, park, maxV, busy, dt, hold, noPtr, tau) {
     const wall = climbFace(x, 1400);
     let xT = Math.min(wall - park, hold ? ptr.wx - park * 0.55 : x);
     xT = Math.max(WL.MX0 - 300, xT);
-    const want = busy || !hold ? 0 : U.clamp((xT - x) * 3, -maxV, maxV);
-    o.vx = U.damp(o.vx, want, 5, dt);
     parkAt.face = Math.min(wall, x + park + 10); parkAt.near = Math.abs(xT - x) < 34 || x >= wall - park - 6;
-    return x + o.vx * dt;
+    return travel(x, o, xT, maxV, tau || 0.2, dt, busy || !hold);
   }
   function driveMachine(dt, hold) {
     const m = S.m, fork = cur.kind === 'fork', climb = CLIMB[cur.kind];
-    P.x = (climb ? parkClimb : parkAt)(P.x, P, cur.park, cur.kind === 'rope' ? 30 : Math.min(climb ? 170 : 130, cur.spd * 0.3), m.busy, dt, hold);
+    P.x = (climb ? parkClimb : parkAt)(P.x, P, cur.park, VMAX(cur), m.busy, dt, hold, false, TAU(cur));
     P.y = heap.surf(P.x); P.face = 1;
     inp.x = P.x; inp.y = P.y; inp.face = 1; inp.vx = P.vx; inp.floor = floorFn; inp.t = S.time;
     inp.tx = climb ? Math.max(ptr.wx, P.x + 20) : Math.max(ptr.wx, parkAt.face + 10); inp.ty = Math.min(ptr.wy, P.y + 10);
@@ -731,7 +739,7 @@
     // (antes era P.x - 60: clicar na caçamba fazia ele dar ré pro pátio e parecer travado)
     const loadSide = ptr.wx > P.x - 380;
     const far = Math.abs(faceAhead(LX.x, 16, 900) - park - LX.x) > 160;   // longe da montanha (ex.: save com o caminhão no pátio): vem rápido
-    LX.x = parkAt(LX.x, LX, park, far ? 320 : 30, sh.busy, dt, hold && loadSide, true);   // a pá do caminhão fica na montanha (não segue o mouse)
+    LX.x = parkAt(LX.x, LX, park, far ? VMAX(cur) : Math.min(VMAX(cur), 160), sh.busy, dt, hold && loadSide, true, TAU(cur));   // a pá do caminhão fica na montanha (não segue o mouse)
     iL.x = LX.x; iL.y = heap.surf(LX.x); iL.vx = LX.vx; iL.t = S.time; iL.tx = parkAt.face + 30; iL.ty = Math.min(ptr.wy, -40);
     iL.speedMul = iT.speedMul = animSpeed() * EC.HAUL_SPEED;
     const wantLoad = hold && loadSide && tr.load < 1.0;
@@ -771,6 +779,7 @@
     inp.x = P.x; inp.y = 0; inp.face = 1; inp.floor = baggerFloor; inp.t = S.time; inp.zoom = cam.z;
     inp.tx = hold ? Math.min(maxX, Math.max(ptr.wx, Wd.X.front - Wd.X.lane + 70 + 780 * mk + (b0.x - m.x))) : b0.x; inp.ty = ptr.wy;   // de ré, para antes do pátio
     inp.digging = hold || S.cele.spin; inp.speedMul = animSpeed() * (S.own.b1 ? 1.2 : 1); inp.boost = S.estreia > 0 ? 1 : 0;
+    { const bt0 = TOOLS[D.toolIndex.bagger]; inp.crawl = VMAX(bt0) * mk; inp.crawlTau = TAU(bt0) * mk; }   // Gêmea (mk 1,5): maior = mais rápida e mais pesada
     inp.horn = S.hornT > 0; if (S.hornT > 0) S.hornT -= dt;
     const bt = heap.bite(b0.x, b0.y, b0.r, 1, 12);
     m.bite01 = bt; m.band = st.mordida ? [MO.loK, MO.hiK] : [MO.lo, MO.hi];
@@ -2100,19 +2109,38 @@
     if (kl !== kr) {
       // máquina de alcance (Bagger): o alvo anda a partir da RODA, não do corpo (senão o alvo caía atrás da roda e ela ia de ré)
       keyAim = null;
+      // máquina rápida: o alvo vai mais longe (senão ela freava antes de pegar velocidade: ver travel())
       const bb = cur.kind === 'bagger' && T.bite ? T.bite(S.m) : null, base = bb && bb.x ? bb.x : P.x;
-      ptr.wx = base + (kr ? 1 : -1) * (bb ? 260 : 140); ptr.wy = heap.surf(ptr.wx) - (bb ? -6 : 4); ptr.down = true; ptr.has = true;
+      const lead = (bb ? 260 : 140) + (cur.vmax ? cur.vmax * TAU(cur) * 0.7 + (cur.park || 0) * 0.55 : 0);
+      ptr.wx = base + (kr ? 1 : -1) * lead; ptr.wy = heap.surf(ptr.wx) - (bb ? -6 : 4); ptr.down = true; ptr.has = true;
     }
-    else if (kd) {
-      if (keyAim === null) { const b = T.bite ? T.bite(S.m) : null; keyAim = b && b.x === b.x && b.x !== 0 ? b.x : P.x + P.face * 20; }
-      // caminhão: o ponto de mordida é a caçamba (atrás da cabine) e ficava a poucos px do lado "descarregar";
-      // com o CAVAR do celular ele dava ré pro pátio e não carregava nunca. Mira sempre do lado da montanha.
-      if (cur.kind === 'haul') keyAim = Math.max(keyAim, P.x + 200);
-      ptr.wx = keyAim; ptr.wy = heap.surf(keyAim) - 4; ptr.down = true; ptr.has = true;
-    } else keyAim = null;
+    else if (kd) { keyAim = digAim(keyAim); ptr.wx = keyAim; ptr.wy = heap.surf(keyAim) - 4; ptr.down = true; ptr.has = true; }
+    else keyAim = null;
     if (input.keyPressed && input.keyPressed('Space') && S.own.b0 && cur.kind === 'bagger') horn();
   }
   let keyAim = null;
+  /* CAVAR (celular) / S / Espaço: onde cavar sem ponteiro. BUG v7 (dono: "aperto CAVAR e as máquinas vão de RÉ"): a mira era
+     T.bite(S.m).x no instante do aperto e ficava presa enquanto segurava; a caçamba balança durante o ciclo (escavadeira −175..+239 px
+     do corpo, pá de cabo −173..+504, trator +17..+114, britadeira +2..+5) e, apertando com a caçamba recolhida/despejando, a mira
+     caía ATRÁS da máquina: parkClimb/parkAt (alvo = mira − park·0,55) davam ré e ficavam lá. Agora a mira nunca vem da caçamba:
+     - a pé: na frente do Kome (alcance da ferramenta), presa: ele cava onde está;
+     - máquinas de cabine: o barranco à frente (faceAhead), e só ANDA PRA FRENTE enquanto segura (abre o barranco → avança junto);
+     - caminhão: sempre do lado da montanha;
+     - Bagger: começa na roda e avança enquanto a roda morde pouco (abaixo da faixa boa), sem passar da roda + 60. */
+  function digAim(a) {
+    const k = cur.kind;
+    if (k === 'hand' || k === 'push' || k === 'jack') return a === null ? P.x + P.face * (k === 'jack' ? 8 : cur.reach * (st.reach || 1)) : a;
+    if (k === 'haul') return Math.max(a === null ? 0 : a, P.x + 200);
+    if (k === 'bagger') {
+      const b = T.bite ? T.bite(S.m) : null, bx = b && b.x === b.x ? b.x : P.x + 600;
+      const dtA = U.clamp(S.time - (digAim.t || 0), 0, 0.1); digAim.t = S.time;
+      if (a === null) return bx;
+      const band = S.m && S.m.band ? S.m.band[0] : 0.4, mk = (S.m && S.m.k) || 1;
+      return (S.bite01 || 0) < band + 0.05 ? Math.min(a + 160 * mk * dtA, bx + 60 * mk) : a;
+    }
+    const front = faceAhead(P.x, 16, 1400) + 10;   // máquinas de cabine (sempre de frente pra montanha, P.face = 1)
+    return Math.max(a === null ? P.x + (cur.park || 60) * 0.55 + 24 : a, front);
+  }
   /* ---- celular: joystick transparente, botão de cavar, tela cheia, zoom com pinça (e rodinha do mouse no PC) ---- */
   const VK = { l: false, r: false, dig: false }, pinch = { on: false, d0: 0, z0: 1 };
   function goFull() {

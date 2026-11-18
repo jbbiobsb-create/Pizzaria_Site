@@ -107,7 +107,8 @@
     for (const s of D.SEEDS) {
       const L = I().lvl(s.id), full = !!s.max && L >= s.max, c = I().seedCost(s), can = !full && Math.floor(S.stats.seeds || 0) >= c;
       const b = el('button', 'k-btn k-isl-seed' + (can ? ' k-can' : '') + (full ? ' k-full' : ''), grid);
-      b.innerHTML = '<b>' + s.n + '</b><small>' + s.d + '</small><span class="k-isl-pips"></span><span class="k-isl-cost">' + (full ? 'completo' : '★ ' + U.fmt(c)) + '</span>';
+      const fx = I().seedFx ? I().seedFx(s) : '';   // efeito de agora ("−41% nos preços")
+      b.innerHTML = '<b>' + s.n + '</b><small>' + s.d + (fx ? ' · <i>agora: ' + fx + '</i>' : '') + '</small><span class="k-isl-pips"></span><span class="k-isl-cost">' + (full ? 'completo' : '★ ' + U.fmt(c)) + '</span>';
       const pp = b.querySelector('.k-isl-pips'); if (!s.max) pp.textContent = 'Nv ' + L + ' · sem teto'; else if (s.max > 12) pp.textContent = 'Nv ' + L + '/' + s.max; else for (let k = 0; k < s.max; k++) el('i', k < L ? 'on' : '', pp);   // muitos níveis: texto em vez de paredão de quadradinhos
       b.onclick = () => { if (!full) I().buy(s); };
     }

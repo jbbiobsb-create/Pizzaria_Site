@@ -200,7 +200,7 @@
       seedTree: () => {
         const BR = { Viagem: { name: 'Viagem', color: '#E3BC62', icon: 'boat' }, 'Pátio': { name: 'Pátio', color: '#7DB34A', icon: 'paw' }, Sorte: { name: 'Sorte', color: '#F3C94A', icon: 'star' }, 'Coração': { name: 'Coração', color: '#E86A7A', icon: 'star' }, 'Poupança': { name: 'Poupança', color: '#6FA8DC', icon: 'yen' }, Absurdo: { name: 'Absurdo', color: '#E3BC62', icon: 'drill' } };
         const col = {}; return { branches: BR, nodes: D.SEEDS.map(s => { const b = s.g || 'Viagem', k = Object.keys(BR).indexOf(b), r = (col[b] = (col[b] | 0) + 1) - 1;
-          return { id: s.id, n: s.n, desc: s.d, branch: b, pos: { x: (k - 2) * 1.6, y: -1 - r * 1.2 }, req: s.req ? [s.req] : [], size: b === 'Absurdo' ? 2 : 1, icon: BR[b].icon, max: s.max || 0, absurd: b === 'Absurdo' }; }) };
+          return { id: s.id, n: s.n, desc: s.d, now: () => (I() && I().seedFx ? I().seedFx(s) : ''), branch: b, pos: { x: (k - 2) * 1.6, y: -1 - r * 1.2 }, req: s.req ? [s.req] : [], size: b === 'Absurdo' ? 2 : 1, icon: BR[b].icon, max: s.max || 0, absurd: b === 'Absurdo' }; }) };
       },
       seedLevel: id => ((S().stats.sl || {})[id] | 0), seedCost: id => { const s = seedById(id); return s && I() ? I().seedCost(s) : Infinity; },
       buySeed: id => { const s = seedById(id); return !!(s && I() && I().buy(s) !== false); },

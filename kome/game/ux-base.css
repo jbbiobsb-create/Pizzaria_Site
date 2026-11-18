@@ -1,0 +1,11 @@
+/* Base de UX (docs/design/ux-guia.md): classes comuns das telas novas. --k-fs = escala de letra do jogador. */
+:root{--k-fs:1;--ux-ok:#F2C230;--ux-lock:#B9AE9C;--ux-done:#6DBF67;--ux-ink:#3B2818;--ux-paper:#FFF8EA}
+.ux-btn{min-height:48px;min-width:48px;padding:10px 16px;font-size:calc(15px*var(--k-fs));font-weight:800;color:var(--ux-ink);background:var(--ux-paper);border:3px solid var(--ux-ink);border-radius:14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;transition:transform .08s}
+.ux-btn:active{transform:translateY(2px) scale(.97)}
+.ux-btn.ux-main{background:var(--ux-ok);font-size:calc(18px*var(--k-fs));min-height:56px}
+.ux-btn.ux-lock{background:var(--ux-lock);opacity:.9}
+.ux-btn.ux-done{background:var(--ux-done)}
+.ux-hint{font-size:calc(16px*var(--k-fs));font-weight:700;color:var(--ux-ink);padding:6px 10px;background:#FFE9A8;border-radius:10px;margin:0 0 8px}
+.ux-shake{animation:uxshake .3s}
+@keyframes uxshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.k-mob .ux-btn{min-height:56px;font-size:calc(16px*var(--k-fs))}

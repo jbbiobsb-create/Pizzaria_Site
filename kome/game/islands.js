@@ -70,26 +70,33 @@
         ground: { grass: '#BFE6A6', grassD: '#94C77E', grassL: '#E6FAD6', soil: '#F2C9D2', soilD: '#DCA6B4' },
         air: 'petals', airN: 50, crest: 'mochi', tree: 'sakura', yard: 'mochi', feel: 'float', music: 'mochi' } },
   ];
+  const pct = v => (Math.round(v * 1000) / 10).toLocaleString('pt-BR') + '%';   // 0,412 → "41,2%"
+  function fabK(L) { return 1 + 0.1 * Math.min(L, 10) + 0.02 * Math.max(0, L - 10); }   // Tempero da Vó: ×valor do que a fábrica vende
   // árvore permanente das sementes douradas. SEM TETO (jogo-infinito.md + sementes.md): custo base × 1,45^nível pra sempre;
   // sem `max` = infinito. Ficam com fim só os que não fazem sentido infinitos: Mala de Viagem (3 ferramentas), compras únicas
   // (garagem, marco turbinado, livro, absurdos) e os que já dizem o teto no texto (cochilo até 100%, cama até 24 h).
   D.SEEDS = [
-    { id: 'renda', n: 'Arroz Abençoado', d: '+15% de renda por nível', base: 2 },
-    { id: 'preco', n: 'Amigo do Corretor', d: '-6% em todos os preços por nível (-1% depois do 8)', base: 3 },
-    { id: 'ferr', n: 'Mala de Viagem', d: 'começa a ilha com Pá → Carrinho → Trator', max: 3, base: 6 },
-    { id: 'grana', n: 'Poupança', d: 'começa a ilha com ¥1 mil, 10 mil, 100 mil…', max: 5, base: 1 },   // kit de partida (igual à Mala): infinito pulava a ilha
-    { id: 'ajud', n: 'Turma do Kome', d: '+1 shiba ajudante nos níveis 1–3, depois +1 a cada 5 níveis', base: 4 },
-    { id: 'ouro', n: 'Faro de Ouro', d: '+25% nos bolsões dourados por nível (+5% depois do 8)', base: 2 },
+    // fx(L) = o efeito de AGORA no texto da semente ("agora: −41% nos preços"): o cartão mostra o que o nível comprado faz
+    { id: 'renda', n: 'Arroz Abençoado', d: '+15% de renda por nível', base: 2, fx: L => '+' + pct(0.15 * L) + ' de renda' },
+    // v7: "todos os preços" agora vale de verdade pra fábrica também (antes só ferramenta, árvore e casa: o pai do dono comprou
+    // um monte achando que a fábrica ficaria mais barata e nada mudou lá)
+    { id: 'preco', n: 'Amigo do Corretor', d: '-6% nos preços da montanha E da fábrica, por nível (-1% depois do 8)', base: 3, fx: L => '−' + pct(1 - precoK(L)) + ' nos preços' },
+    { id: 'ferr', n: 'Mala de Viagem', d: 'começa a ilha com Pá → Carrinho → Trator', max: 3, base: 6, fx: L => 'começa com ' + ['a Pá', 'a Pá', 'o Carrinho', 'o Trator'][Math.min(L, 3)] },
+    { id: 'grana', n: 'Poupança', d: 'começa a ilha com ¥1 mil, 10 mil, 100 mil…', max: 5, base: 1, fx: L => 'começa com ¥' + U.fmt(granaOf(L)) },   // kit de partida (igual à Mala): infinito pulava a ilha
+    { id: 'ajud', n: 'Turma do Kome', d: '+1 shiba ajudante nos níveis 1–3, depois +1 a cada 5 níveis', base: 4, fx: L => '+' + ajudN(L) + ' ajudante' + (ajudN(L) === 1 ? '' : 's') },
+    { id: 'ouro', n: 'Faro de Ouro', d: '+25% nos bolsões dourados por nível (+5% depois do 8)', base: 2, fx: L => '+' + pct(0.25 * Math.min(L, 8) + 0.05 * Math.max(0, L - 8)) + ' nos bolsões' },
+    // v7: a fábrica fica de uma ilha pra outra (layout e níveis); esta é a semente que faz ela render mais a cada viagem
+    { id: 'tempero', n: 'Tempero da Vó', d: 'a fábrica vende +10% por nível (+2% depois do 10), em toda ilha', base: 3, fx: L => '+' + pct(fabK(L) - 1) + ' na fábrica' },
     // camada Cookie (docs/design/camada-cookie.md): galhos Pátio, Sorte, Coração e Poupança
     { id: 'garagem', n: 'Garagem Abençoada', d: 'o Pátio começa com 5 de cada máquina de mão', max: 1, base: 4, g: 'Pátio' },
-    { id: 'desc_frota', n: 'Desconto de Frota', d: '-1% no preço do Pátio por nível', base: 3, g: 'Pátio' },
+    { id: 'desc_frota', n: 'Desconto de Frota', d: '-1% no preço do Pátio por nível', base: 3, g: 'Pátio', fx: L => '−' + pct(1 - Math.pow(0.99, L)) + ' no Pátio' },
     { id: 'marco_turbo', n: 'Marco Turbinado', d: 'os marcos de 1 e 5 viram ×3', max: 1, base: 20, g: 'Pátio' },
-    { id: 'sindicato', n: 'Shiba Sindicalizado', d: '+0,5% na frota por 10 unidades no total, por nível', base: 8, g: 'Pátio' },
-    { id: 'faro_ev', n: 'Faro Dourado', d: 'eventos dourados 10% mais frequentes por nível (2% depois do 10)', base: 3, g: 'Sorte' },
+    { id: 'sindicato', n: 'Shiba Sindicalizado', d: '+0,5% na frota por 10 unidades no total, por nível', base: 8, g: 'Pátio', fx: L => '+' + pct(0.005 * L) + ' por 10 máquinas' },
+    { id: 'faro_ev', n: 'Faro Dourado', d: 'eventos dourados 10% mais frequentes por nível (2% depois do 10)', base: 3, g: 'Sorte', fx: L => '+' + pct(0.1 * Math.min(L, 10) + 0.02 * Math.max(0, L - 10)) + ' de eventos' },
     { id: 'livro', n: 'Livro de Receitas', d: 'abre a Tempestade de Sacos Dourados', max: 1, base: 6, g: 'Sorte' },
-    { id: 'pote', n: 'Pote Fundo', d: '+0,1% por conquista por nível', base: 4, g: 'Coração' },
-    { id: 'cochilo', n: 'Cochilo Produtivo', d: 'offline rende +10% por nível (até 100%)', max: 5, base: 2, g: 'Poupança' },
-    { id: 'cama', n: 'Cama Grande', d: 'teto offline +4 h por nível (até 24 h)', max: 4, base: 3, g: 'Poupança' },
+    { id: 'pote', n: 'Pote Fundo', d: '+0,1% por conquista por nível', base: 4, g: 'Coração', fx: L => '+' + pct(0.001 * L) + ' por conquista' },
+    { id: 'cochilo', n: 'Cochilo Produtivo', d: 'offline rende +10% por nível (até 100%)', max: 5, base: 2, g: 'Poupança', fx: L => '+' + pct(0.1 * L) + ' offline' },
+    { id: 'cama', n: 'Cama Grande', d: 'teto offline +4 h por nível (até 24 h)', max: 4, base: 3, g: 'Poupança', fx: L => '+' + 4 * L + ' h de teto' },
     // galho Absurdo: cada nó destrava uma máquina absurda no Pátio (D.PATIO.turmas, campo seed); req = nó anterior da cadeia
     // custos (19/11): com as ilhas de 30 min entram ~110 mil sementes por viagem (~0,55 mi por volta) → o robô guloso (compra o mais
     // barato primeiro) pega um a cada 1–2 voltas: voltas 2, 3, 4, 5, 7, 10. Antes 25…3.000 = todos nas 2–3 primeiras viagens.
@@ -148,7 +155,7 @@
   const tripN = () => idx() + lap() * D.ISLANDS.length;
   const priceBase = t => { const P = EG.price, L = P.trip.length; return t <= 0 ? 1 : t <= L ? P.trip[t - 1] : P.trip[L - 1] + P.grow * (t - L); };
   // × price da ficha da ilha (D.ISLANDS[i].price, padrão 1): acerto fino medido (Kyushu rende mais com o curry ×1,8)
-  const precoK = L => Math.pow(0.94, Math.min(L, 8)) * Math.pow(0.99, Math.max(0, L - 8));   // sem teto, mas depois do 8 só -1%/nível (longo 8 h: ilhas caíram pra 11–15 min com -6% infinito)
+  function precoK(L) { return Math.pow(0.94, Math.min(L, 8)) * Math.pow(0.99, Math.max(0, L - 8)); }   // sem teto, mas depois do 8 só -1%/nível (longo 8 h: ilhas caíram pra 11–15 min com -6% infinito)
   const priceMul = () => { const t = tripN(); return precoK(lvl('preco')) * priceBase(t) * (t > 0 ? isl().price || 1 : 1); };
   const matsFor = () => (mats[isl().id] ? mats[isl().id]() : D.MATS);
 
@@ -195,7 +202,7 @@
     // ¥/s "com você na melhor máquina" é da ILHA (a ferramenta e a Oficina zeram): se ficasse, o R0 do próximo Pátio e a renda
     // garantida do Goma herdavam a Oficina do Pátio anterior e a economia crescia ×10^6 por viagem até estourar (1e308 = parede da volta 17)
     delete stats.topIps; delete stats.topWk;
-    if (stats.fab) { stats.fab.slow = 0; stats.fab.pb = 0; }   // Fábrica: o layout fica, o ritmo de cavar medido (valor do item) é da ilha
+    if (stats.fab) { stats.fab.slow = 0; stats.fab.s5 = 0; stats.fab.pb = 0; }   // Fábrica: o layout fica, o ritmo de cavar medido (valor do item) é da ilha
     stats.earnedAll = (stats.earnedAll || 0) + (d.earned || 0); stats.dugAll = (stats.dugAll || 0) + (+d.dug || 0);   // dugAll: conquistas em escada (escada.js)
     for (const k in d) delete d[k];
     Object.assign(d, keep, { stats, island: next, mount: 1, tool: START_TOOL[U.clamp((stats.sl && stats.sl.ferr) | 0, 0, 3)],
@@ -297,7 +304,7 @@
     // chegada numa ilha nova: game.js chama depois do boot (cutscene se não for teste, senão só o aviso)
     arrival() { if (!S.stats.arrive) return null; S.stats.arrive = 0; return isl(); },
     seedsBase, seedsPatio,
-    applyStats, priceMul, matsFor, makeSave, fill, island: isl, index: idx, next: () => D.ISLANDS[nextIdx()], lap, gain, travel, buy, seedCost, lvl, capped,
+    applyStats, priceMul, matsFor, precoMul: () => precoK(lvl('preco')), fabMul: () => fabK(lvl('tempero')), seedFx: s => (s && s.fx && lvl(s.id) > 0 ? s.fx(lvl(s.id)) : ''), makeSave, fill, island: isl, index: idx, next: () => D.ISLANDS[nextIdx()], lap, gain, travel, buy, seedCost, lvl, capped,
     scene, evTick, evMult, event: () => ev,
     forceEvent(on) { if (on === false) { ev = null; return; } ev = isl().ev; evT = ev.dur; if (ev.gift && api && api.gift) api.gift(ev.gift); },
     eventLeft: () => evT, rec, medalFor, onEnding, MEDALS, islandRun,   // forceEvent: testes e atalho do ?dev
