@@ -157,3 +157,7 @@
   .cid-vila{flex-direction:column}
 }
 @media (prefers-reduced-motion:reduce){.cid-is-ready .cid-go,.cid-now-go .cid-now-face{animation:none}}
+/* "Entregar" numa linha e o ¥ embaixo (no celular o texto cortava: "ntregar") */
+.cid-go{flex-wrap:wrap;row-gap:0;line-height:1.1;padding:3px 6px}
+.cid-go .cid-pay{flex-basis:100%;text-align:center;font-size:calc(var(--b)*.95)}
+.cid-go .cid-lab{white-space:nowrap}

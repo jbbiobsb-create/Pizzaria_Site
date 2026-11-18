@@ -319,7 +319,7 @@
       vb.go = btn('ux-main cid-vila-go', 'Cidade: pedidos', () => { if (!open()) shake(vb.go); }, 'heart'); vb.sub = mk('small', 'cid-pay'); vb.go.appendChild(vb.sub);
       vb.lock = mk('div', 'cid-vila-lock'); vb.lockT = mk('b'); vb.bar = mkBar(); vb.lockS = mk('span'); vb.lock.appendChild(vb.lockT); vb.lock.appendChild(vb.bar); vb.lock.appendChild(vb.lockS);
       vb.back = btn('cid-vila-back', 'Voltar pra montanha', () => { if (G.Game && G.Game.vila) G.Game.vila(false); }, mk('span', 'cid-xi', '←'));
-      vb.shop = btn('cid-vila-shop', 'Lojas', () => { if (open()) openLojas(); else shake(vb.shop); }, 'house');
+      vb.shop = btn('cid-vila-shop', 'Lojas', () => { if (open()) openLojas(); else shake(vb.shop); }, 'yen');
       vb.appendChild(vb.go); vb.appendChild(vb.shop); vb.appendChild(vb.lock); vb.appendChild(vb.back); document.body.appendChild(vb);
     }
     if (!vb._on) { vb._on = 1; vb.classList.add('cid-on'); }
@@ -718,7 +718,7 @@
   const setBar = (e, k) => { k = Math.round(U.clamp(k || 0, 0, 1) * 100) / 100; if (e._k !== k) { e._k = k; e.style.transform = 'scaleX(' + k + ')'; } };
   const ICON_URL = {};
   const icoUrl = k => { if (!ICON_URL[k]) { try { ICON_URL[k] = ICON[k].toDataURL(); } catch (e) { ICON_URL[k] = ''; } } return ICON_URL[k]; };
-  const ico = (k, cls) => { const i = mk('img', 'cid-ic' + (cls ? ' ' + cls : '')); i.src = icoUrl(k); i.alt = ''; i.draggable = false; i._k = k; return i; };
+  const ico = (k, cls) => { const i = mk('img', 'cid-ic' + (cls ? ' ' + cls : '')); i.src = icoUrl(k); if (!i.src || i.src === location.href) i.style.display = 'none'; i.alt = ''; i.draggable = false; i._k = k; return i; };
   const setIco = (i, k) => { if (i._k !== k) { i._k = k; i.src = icoUrl(k); } };
   const mkBar = cls => { const b = mk('div', 'cid-bar' + (cls ? ' ' + cls : '')); b.fill = mk('i'); b.appendChild(b.fill); return b; };
   const qtd = (n, item) => U.fmt(n) + ' ' + (n === 1 ? CFG.ITEMS[item].nome : CFG.ITEMS[item].plural);
@@ -757,7 +757,7 @@
     ui.now.addEventListener('click', () => { R.dirty = 1; sfx('click'); if (ui.nowFn) ui.nowFn(); else pop(ui.now); });
     r1.appendChild(ui.now);
     r1.appendChild(btn('cid-viz', 'Vizinhos', () => { sfx('click'); openViz(); }, 'heart'));
-    r1.appendChild(btn('cid-viz cid-lojas-b', 'Lojas', () => { sfx('click'); openLojas(); }, 'house'));
+    r1.appendChild(btn('cid-viz cid-lojas-b', 'Lojas', () => { sfx('click'); openLojas(); }, 'yen'));
     r1.appendChild(btn('cid-x', 'Sair', () => { sfx('click'); close(); }, mk('span', 'cid-xi', '✕')));
     const r2 = mk('div', 'cid-r2'); top.appendChild(r2);
     const shelf = ui.shelf = mk('button', 'cid-shelf'); shelf.type = 'button';

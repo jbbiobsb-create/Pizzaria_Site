@@ -13,6 +13,72 @@
 
   const yen = v => '¥ ' + U.fmt(Math.ceil(v));
 
+  /* ---- AVISOS: UMA fila só pra toast E banner, num slot fixo pequeno no topo (1 linha + sublinha), um por vez ----
+     · mesmo tipo de aviso já na fila = troca o texto (não empilha); repetido em < 6 s = descartado ("Faltam ¥" 1× a cada 5 s)
+     · conversa fiada (buzina, corvos, bônus de combo...) cai fora no modo "Poucos" (padrão no celular) e espera 8 s no "Normal"
+     · banner grande (level 3 = máquina nova, casa, final, ilha) vira uma faixa compacta no MESMO slot, ~1,2 s
+     · resposta a toque (Faltam/Precisa/fechado) passa na frente; o resto espera 1,5 s entre um e outro */
+  const NOTE = (function () {
+    if (!UI || !UI.toast) return null;
+    const CHAT = /^(FOOO|FÚRIA|DESLIZAMENTO|BOLSÃO|SACO LENDÁRIO|Onigiri|Troca de lugar|MORDIDA|kin|Combo|Núcleo Vivo)/i;
+    const RESP = /^(Faltam?|Precisa|Só na Pata)|está fechado$/i;
+    const q = []; const seen = Object.create(null);
+    let el = null, busy = false, lastEnd = 0, timer = 0, lastIn = performance.now();
+    addEventListener('pointerdown', () => { lastIn = performance.now(); }, true);
+    addEventListener('keydown', () => { lastIn = performance.now(); }, true);
+    const mob = () => document.body.classList.contains('k-mob');
+    const few = () => { const o = (G.S && G.S.opts) || {}; return (o.avisos || (mob() ? 'poucos' : 'normal')) === 'poucos'; };
+    const keyOf = t => /^Falta/i.test(t) ? 'falta' : String(t).replace(/[\d.,¥%+×\s]+/g, '').slice(0, 18).toLowerCase();
+    function slot() {
+      const R = UI.root || document.body;
+      if (!el || el.parentNode !== R) { el = el || document.createElement('div'); el.className = 'ux-note'; el.setAttribute('aria-live', 'polite'); R.appendChild(el); }
+      return el;
+    }
+    function next() {
+      if (busy || !q.length) return;
+      const wait = q[0].resp ? 120 : 1500 - (performance.now() - lastEnd);
+      if (wait > 0) { clearTimeout(timer); timer = setTimeout(next, wait); return; }
+      busy = true;
+      const n = q.shift(), e = slot();
+      e.className = 'ux-note' + (n.big ? ' ux-note-big' : '') + (n.tone ? ' ux-note-' + n.tone : '');
+      e.textContent = '';
+      const ic = n.icon && UI.iconEl ? UI.iconEl(n.icon, n.big ? 26 : 20) : null; if (ic) e.appendChild(ic);
+      const tx = document.createElement('span'); tx.className = 'ux-note-t';
+      const b = document.createElement('b'); b.textContent = n.text; tx.appendChild(b);
+      if (n.sub) { const sm = document.createElement('small'); sm.textContent = n.sub; tx.appendChild(sm); }
+      e.appendChild(tx);
+      void e.offsetWidth; e.classList.add('ux-note-in');
+      if (n.sound && UI.sfx) { try { UI.sfx(n.sound); } catch (er) { /* */ } }
+      setTimeout(() => {
+        e.classList.remove('ux-note-in');
+        setTimeout(() => { busy = false; lastEnd = performance.now(); if (n.onDone) { try { n.onDone(); } catch (er) { /* */ } } next(); }, 220);
+      }, n.dur * 1000);
+    }
+    function push(n) {
+      const S0 = G.S, now = performance.now();
+      if (/^Cave a montanha/i.test(n.text)) {   // dica de cavar: só no 1º minuto de um jogo novo ou depois de 20 s parado
+        const digging = !!document.querySelector('.k-dig.on, .k-dig.k-dig-lock');
+        if (digging || !(S0 && S0.time < 60) && now - lastIn < 20000) return;
+      }
+      n.chat = !n.big && CHAT.test(n.text); n.resp = RESP.test(n.text);
+      if (n.chat && few()) return;
+      const k = n.key = keyOf(n.text), gap = k === 'falta' ? 5000 : n.chat ? 8000 : 6000;
+      const inQ = q.find(x => x.key === k);
+      if (inQ) { Object.assign(inQ, n); return; }                     // mesmo tipo esperando: só atualiza o texto
+      if (seen[k] && now - seen[k] < gap) return;
+      seen[k] = now;
+      n.dur = n.big ? (mob() ? 1.2 : 1.6) : Math.max(1.6, Math.min(n.resp ? 2 : 3.2, n.dur || 2.2));
+      if (n.resp) q.unshift(n); else q.push(n);
+      while (q.length > 3) { const i = q.findIndex(x => !x.big); q.splice(i >= 0 ? i : 0, 1); }   // fila curta: o miúdo mais velho sai
+      next();
+    }
+    UI.toast = (text, o) => { o = o || {}; push({ text, sub: o.sub, icon: o.icon, tone: o.tone, dur: o.dur }); };
+    UI.banner = (text, sub, o) => { o = o || {}; const lv = o.level || 2;
+      push({ text, sub, icon: o.icon, tone: o.tone || (lv >= 3 ? 'gold' : ''), dur: o.dur || 1.5, big: lv >= 3, sound: lv >= 3 ? (o.sound || 'fanfare') : o.sound, onDone: o.onDone }); };
+    return { push, clear() { q.length = 0; } };
+  })();
+  HUD.note = NOTE;
+
   /* ---- FILEIRA DE CHIPS (logo abaixo da barra da montanha): Vila, Fábrica, Tatuzão, Ilhas... tudo que é "atalho pra outro
      lugar" entra aqui por G.HUD.chip({id, icon, label, order, tone, onClick}) -> {el, set({label, hot, hint, prio, show, icon, tone})}.
      Chip = ícone + nome curto (44 px de toque). Só UM chip por vez (o de maior prio > 0 e com hint) abre o texto de detalhe e
@@ -52,6 +118,8 @@
   /* FILEIRA = SÓ ALERTAS (rodada de UX): quem tem novidade (prio > 0) ou relógio correndo (ALWAYS). Atalho parado não mora
      mais aqui: toda função fica nos hubs da barra de navegação (Comprar · Lugares · Viagem · Mais). No máx. 3 chips, 1 linha. */
   const ALWAYS = { modo: 1, sementes: 1 };
+  let chipToldId = '';
+  const navTabName = id => { const g = GROUP[id] || 'lugares', n = NAV.find(x => x.id === g); return n ? n.t : ''; };
   function chipLayout() {
     const isOn = c => c !== more && (c.on || chipDemo);
     const mob = document.body.classList.contains('k-mob');
@@ -61,6 +129,9 @@
     let top = null;
     for (const c of al) if (c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
     if (more && more.el.style.display !== 'none') more.el.style.display = 'none';
+    // celular: a fileira de chips não aparece (o centro fica livre); a novidade vira bolinha na aba + UM aviso pequeno
+    if (top && mob && !chipDemo && top.id !== chipToldId) { chipToldId = top.id; const tn = navTabName(top.id); UI.toast(top.label + (top.hot ? ': ' + top.hot : ''), { icon: 'star', tone: 'gold', sub: tn ? 'veja na aba ' + tn : top.hint }); }
+    else if (!top) chipToldId = '';
     for (const c of chips) {
       if (c === more) continue;
       const hot = c === top, e = c.el, on = al.indexOf(c) >= 0;
@@ -219,6 +290,11 @@
     HUD.tree = tree; HUD.treePanel = treePanel; HUD.settings = aj;
     HUD.refreshCloset = () => {};   // o guarda-roupa mora na Casa › Roupas
 
+    // tela baixa: a missão é uma pílula (ícone + "0 de 1"); 1º toque abre o nome por 4 s, o 2º faz a ação (Pegar! age direto)
+    document.addEventListener('click', e => {
+      const m = e.target.closest && e.target.closest('.ux-mis'); if (!m || innerHeight > 420 || m.classList.contains('ux-mis-ok')) return;
+      if (!m.classList.contains('ux-mis-open')) { e.stopPropagation(); e.preventDefault(); m.classList.add('ux-mis-open'); clearTimeout(m._t); m._t = setTimeout(() => m.classList.remove('ux-mis-open'), 4000); }
+    }, true);
     HUD.ready = true;
     HUD.refreshSlots(); HUD.update(1, true);
   };
@@ -446,6 +522,7 @@
     const st = api.stats(), cm = 1 + (st.comboCap - 1) * S.combo / D.COMBO.max;
     combo.set(S.combo / D.COMBO.max, null, { value: (S.furia > 0 ? 'FÚRIA ×' : '×') + (cm * (S.furia > 0 ? 2 : 1)).toFixed(2).replace('.', ',') });
     combo.el.classList.toggle('k-maxed', S.combo >= D.COMBO.max - 0.01);
+    { const on = S.furia > 0 || cm > 1.005; if (combo._on !== on) { combo._on = on; combo.el.classList.toggle('ux-combo-off', !on); } }   // ×1,00 = some
     const tone = S.furia > 0 ? 'fury' : st.comboCap >= 2 ? 'pink' : st.comboCap > 1.5 ? 'sack' : '';
     if (tone !== lastComboTone && combo.tone) { combo.tone(tone); lastComboTone = tone; }
     mount.set(Math.min(S.heapTotal - S.heapArea, S.heapTotal * D.END_DUG), S.heapTotal * D.END_DUG);   // 100% = o final (D.END_DUG da montanha)

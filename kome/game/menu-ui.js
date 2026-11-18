@@ -266,7 +266,7 @@
     cvMark();
     // celular: menos avisos e 30 quadros/s por padrão (não esquenta o aparelho)
     const mob0 = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
-    const seg = (title, key, def, opts) => {
+    const segOpt = (title, key, def, opts) => {
       h('div', 'k-h', b, title);
       const box = h('div', 'mx-fs mx-cavar', b), bs = [];
       const mark = () => bs.forEach(q => q[0].classList.toggle('mx-on', (S.opts[key] || def) === q[1]));
@@ -285,8 +285,8 @@
         h('b', null, bt, q[0]); h('small', null, bt, q[1]);
         bt.addEventListener('click', () => { sfx('click'); S.zoomMul = q[2] ? U.clamp((S.zoomMul || 1) * q[2], 0.55, 1.9) : 1; });
       }); }
-    seg('Avisos na tela', 'avisos', mob0 ? 'poucos' : 'normal', [['poucos', 'Poucos', 'só o importante'], ['normal', 'Normal', 'todos os avisos']]);
-    seg('Economia de bateria', 'fps', mob0 ? 30 : 60, [[30, '30 fps', 'esquenta menos'], [60, '60 fps', 'mais suave']]);
+    segOpt('Avisos na tela', 'avisos', mob0 ? 'poucos' : 'normal', [['poucos', 'Poucos', 'só o importante'], ['normal', 'Normal', 'todos os avisos']]);
+    segOpt('Economia de bateria', 'fps', mob0 ? 30 : 60, [[30, '30 fps', 'esquenta menos'], [60, '60 fps', 'mais suave']]);
     UI.toggle(b, { icon: 'swap', label: 'Modo canhoto', sub: 'troca os botões de lado', value: !!S.opts.canhoto, onChange: v => { api.setOpt('canhoto', !!v); applyLook(); } });
 
     h('div', 'k-h', b, 'Ajuda');
