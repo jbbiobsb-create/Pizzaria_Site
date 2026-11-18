@@ -1,4 +1,4 @@
-/* Pixxel — bundle gerado por tools/build.js em 2026-11-17. Não edite aqui: edite engine/*.js e rode o build.
+/* Pixxel — bundle gerado por tools/build.js em 2026-11-18. Não edite aqui: edite engine/*.js e rode o build.
    Módulos: core, pix, assets, shiba, fx, terrain, rig, audio, nature, ui, board, sim */
 
 /* ===== engine/core.js ===== */
@@ -25,7 +25,9 @@
   const TAU = Math.PI * 2;
   const DARK = [40, 20, 8, 255];      // marrom das sombras (#281408)
   const LIGHT = [255, 250, 230, 255]; // creme das luzes (#FFFAE6)
-  const FMT_UNITS = ['', 'mil', 'mi', 'bi', 'tri', 'quatri', 'quinti', 'sexti', 'septi', 'octi', 'noni', 'deci'];
+  // até vigintilhão (1e63); cada jogo pode continuar com U.addUnits([...]) (×1000 cada nome)
+  const FMT_UNITS = ['', 'mil', 'mi', 'bi', 'tri', 'quatri', 'quinti', 'sexti', 'septi', 'octi', 'noni', 'deci',
+    'undeci', 'duodeci', 'tredeci', 'quatordeci', 'quindeci', 'sexdeci', 'septendeci', 'octodeci', 'novendeci', 'viginti'];
   const colorCache = new Map();       // cache de mixCss/shade (strings -> string)
   const COLOR_CACHE_MAX = 4000;
 
@@ -183,6 +185,9 @@
       else if (+s >= 10 && s.length > 4) s = (+s).toFixed(1);  // 9,999 -> 10,0
       return s.replace('.', ',') + ' ' + FMT_UNITS[i];
     },
+    // addUnits(['arrozilhão', ...]): continua a escala de nomes depois do último (cada um ×1000)
+    addUnits(list) { for (const u of list || []) if (FMT_UNITS.indexOf(u) < 0) FMT_UNITS.push(u); return FMT_UNITS.length; },
+    unitIndex(n) { let i = 0; n = Math.abs(+n) || 0; while (n >= 1e3 && i < FMT_UNITS.length - 1) { n /= 1e3; i++; } return i; },
     // fmtTime(s): duração curta: '45s' / '3min 20s' / '1h 02min' / '2d 03h'
     fmtTime(s) {
       s = Math.max(0, Math.floor(+s || 0));
@@ -560,12 +565,14 @@
                            └ canvas
      ====================================================================== */
   // E.Stage({canvas|parent, width=960, height=540, fit='contain'|'cover'|'none', maxDpr=2, bg, pixelated=false, integer=false, maxScale, margin=0}) -> stage
+  //   stage.setMaxDpr(v) troca o teto depois (resolução adaptativa)
   function Stage(opts) {
     opts = opts || {};
     if (!doc) throw new Error('Pixxel: E.Stage precisa de um documento (DOM)');
     const q = v => (typeof v === 'string' ? doc.querySelector(v) : v);
     const w = opts.width || 960, h = opts.height || 540;
-    const fit = opts.fit || 'contain', maxDpr = opts.maxDpr || 2, pixelated = !!opts.pixelated;
+    const fit = opts.fit || 'contain', pixelated = !!opts.pixelated;
+    let maxDpr = opts.maxDpr || 2;
     const em = Emitter();
 
     let cv = q(opts.canvas) || doc.createElement('canvas');
@@ -642,6 +649,9 @@
         em.emit('resize', stage);
         return stage;
       },
+      // setMaxDpr(v): muda o teto da resolução interna (resolução adaptativa: celular lento desce um degrau) e refaz o tamanho
+      setMaxDpr(v) { v = Math.max(1, +v || 2); if (v === maxDpr) return stage; maxDpr = v; return stage.resize(); },
+      get maxDpr() { return maxDpr; },
       // begin(): setTransform(dpr) + limpa (com bg se houver); chamar no começo de cada render
       begin() {
         const d = stage.dpr;
@@ -2551,6 +2561,7 @@
    - E.drawShiba    desenha com os pés em (x,y), com cache de frames (aguenta 100+ shibas por frame)
    - E.drawShibaHead close de rosto com expressões para cutscenes
    - E.shibaAnchor  âncoras (pata, boca, cabeça, costas, topo do chapéu) por pose
+   - E.shibaBelt    faixa (judô) amarrada na cintura de quem usa uma paleta: shibaBelt(nome, cor | {b,b2,bk} | null)
    - E.Actor        shiba com estado, objeto na pata e balão de fala
    Depende só de core.js. */
 (function () {
@@ -2566,7 +2577,8 @@
 
   // índices de cor (0 = vazio). A paleta compilada é um Uint32Array indexado por eles.
   const FUR = 1, FURS = 2, FURD = 3, CREAM = 4, CREAMS = 5, EYE = 6, NOSE = 7, PINK = 8, BLUSH = 9,
-    HAT = 10, HATS = 11, HATL = 12, LINE = 13, WHITE = 14, TEAR = 15, TEARL = 16, VEIN = 17, GOLD = 18;
+    HAT = 10, HATS = 11, HATL = 12, LINE = 13, WHITE = 14, TEAR = 15, TEARL = 16, VEIN = 17, GOLD = 18,
+    BELT = 19, BELTS = 20, BELTK = 21;   // faixa amarrada na cintura (camada nova; só existe se a paleta tiver b, ver shibaBelt)
   const NCOL = 32;
 
   const bodyBuf = new Uint8Array(W * H);
@@ -2679,14 +2691,49 @@
     lut[LINE] = pack(mixc(fur, [20, 10, 5], 0.8)); lut[WHITE] = pack([255, 255, 255, 255]);
     lut[TEAR] = pack([98, 178, 232, 255]); lut[TEARL] = pack([205, 236, 255, 255]);
     lut[VEIN] = pack([214, 64, 54, 255]); lut[GOLD] = pack([255, 214, 92, 255]);
-    const K = { lut, id: palSeq++ };
+    const K = { lut, id: palSeq++, belt: 0 };
+    if (p.b) {   // faixa (judô): b = cor, b2 = 2ª cor listrada (faixa coral), bk = nó
+      const b = hexc(p.b);
+      lut[BELT] = pack(b); lut[BELTS] = pack(p.b2 ? hexc(p.b2) : mixc(b, [40, 20, 10], 0.28)); lut[BELTK] = pack(p.bk ? hexc(p.bk) : mixc(b, [40, 20, 10], 0.5));
+      K.belt = p.b2 ? 2 : 1;
+    }
     try { Object.defineProperty(p, '__K', { value: K, enumerable: false, configurable: true }); } catch (e) { p.__K = K; }
     return K;
   }
   // resolve nome ou objeto de paleta
+  // faixa por NOME de paleta (shibaBelt): o nome vira uma paleta derivada com b/b2/bk (id próprio = frames próprios no cache)
+  const BELTON = Object.create(null), beltPals = Object.create(null);
   function getPal(p) {
-    if (typeof p === 'string' || p == null) p = PALS[p || 'kome'] || PALS.kome;
+    if (typeof p === 'string' || p == null) {
+      const n = p || 'kome'; p = PALS[n] || PALS.kome;
+      const bo = BELTON[n]; if (bo) { const key = n + '|' + bo.key; p = beltPals[key] || (beltPals[key] = Object.assign({}, p, bo.o)); }
+    }
     return p;
+  }
+  // shibaBelt(nomeDaPaleta, cor | {b, b2, bk} | null): todo shiba desenhado com essa paleta (string) passa a usar a faixa
+  //   amarrada na cintura (uma camada pintada depois da pose; as poses em si não mudam). null tira.
+  function shibaBelt(pal, c) {
+    const n = pal || 'kome';
+    if (!c) { delete BELTON[n]; return; }
+    const o = typeof c === 'string' ? { b: c } : { b: c.b, b2: c.b2 || null, bk: c.bk || null };
+    if (!o.b) { delete BELTON[n]; return; }
+    BELTON[n] = { key: o.b + '|' + (o.b2 || '') + '|' + (o.bk || ''), o };
+  }
+  // pinta a faixa no corpo já rasterizado: 2 colunas na altura do lombo (âncora 'back'), só por cima de pelo/creme,
+  // + nó e duas pontas soltas pro lado do rabo (o contorno sai sozinho no blit)
+  function beltPaint(kind) {
+    const bx = Math.round(A.backX) - 1, by = Math.round(A.backY);
+    let top = 99;
+    for (let x = bx; x <= bx + 1; x++) for (let y = by - 3; y <= by + 10; y++) {
+      const yy = y + OY; if (yy < 0 || yy >= H || x < 0 || x >= W) continue;
+      const i = yy * W + x, c = bodyBuf[i];
+      if (c >= FUR && c <= CREAMS) { bodyBuf[i] = kind === 2 ? ((((y >> 1) + (x - bx)) & 1) ? BELTS : BELT) : (x === bx ? BELT : BELTS); if (y < top) top = y; }
+    }
+    if (top === 99) return;
+    const put = (x, y, c) => { const yy = y + OY; if (yy >= 0 && yy < H && x >= 0 && x < W) bodyBuf[yy * W + x] = c; };
+    const ky = top + 2;
+    put(bx - 1, ky, BELTK); put(bx - 1, ky + 1, BELTK);
+    put(bx - 2, ky + 2, BELT); put(bx - 3, ky + 3, BELT); put(bx - 1, ky + 2, BELTS); put(bx - 1, ky + 3, BELTS);
   }
 
   /* =====================================================================
@@ -2695,7 +2742,7 @@
   const ShibaPX = { W, H, OY, quiet: false, tilt: 0, look: null, hatOn: true, mouthOverride: null, eyesOverride: null, mouth: [0, 0] };
   const S = { fast: 0 };                                   // parâmetros extras de pose (drive: orelhas pra trás)
   // âncoras em coordenadas da grade, preenchidas a cada pose()
-  const A = { pawX: 0, pawY: 0, headX: 0, headY: 0, mouthX: 0, mouthY: 0, hatX: 0, hatY: 0, backX: 0, backY: 0, holdX: 0, holdY: 0, hasHold: false };
+  const A = { pawX: 0, pawY: 0, headX: 0, headY: 0, mouthX: 0, mouthY: 0, hatX: 0, hatY: 0, backX: 0, backY: 0, holdX: 0, holdY: 0, hasHold: false, paw2X: 0, paw2Y: 0, hasPaw2: false };
 
   /* =====================================================================
      4. Peças: perna, rabo, vida ociosa, cabeça  (porte fiel do rascunho)
@@ -3058,10 +3105,74 @@
     A.pawX = 36.5; A.pawY = 9.5 - dn * 5 + by * 0.3;
   }
 
+  /* ---------- poses de DUAS PATAS (hold2 / swing2 / lean) ----------
+     Em pé nas patas de trás, as duas patas da frente juntas segurando algo (cabo, tigela, punho). Feitas pra ferramenta:
+     o braço e a inclinação do corpo podem vir de fora, contínuos, sem rodar o sprite (drawShiba/shibaAnchor com
+     o.arm, o.arm2, o.lean; aí o frame sai exato, fora do cache):
+       arm  = ângulo do braço de perto, em radianos no sentido do canvas (0 = pra frente, + = pra baixo, −π/2 = pra cima,
+              −2.4 = por cima do ombro, pra trás)
+       arm2 = ângulo do braço de trás (padrão: igual ao arm, as duas patas no mesmo cabo; diferente = moinho)
+       lean = −1 (arqueado pra trás, tomando impulso) .. 0 (ereto) .. 1 (curvado pra frente, fazendo força)
+     Sem parâmetro: hold2 = segurando na altura do peito · swing2 = patas por cima da cabeça (armando o golpe) ·
+     lean = empurrando, corpo inclinado e patas de trás andando.
+     Âncoras: 'paw' = pata de perto, 'paw2' = pata de trás, 'hold' = entre as duas. */
+  const TWO = { arm: NaN, arm2: NaN, lean: NaN };
+  function poseTwo(t, eyesO, kind) {
+    const br = s(t * 2.2) * 0.5, by = -br * 0.5;
+    let arm, lean;
+    if (kind === 'swing2') { arm = -2.35 + s(t * 2.6) * 0.12; lean = -0.55; }
+    else if (kind === 'lean') { arm = 0.05 + s(t * 19) * 0.03; lean = 1; }
+    else { arm = 0.12 + br * 0.08; lean = 0; }
+    if (TWO.arm === TWO.arm) arm = TWO.arm;
+    if (TWO.lean === TWO.lean) lean = TWO.lean < -1 ? -1 : TWO.lean > 1 ? 1 : TWO.lean;
+    const arm2 = TWO.arm2 === TWO.arm2 ? TWO.arm2 : arm;
+    const la = lean * 0.4, co = Math.cos(la), si = Math.sin(la);
+    const hx0 = 23 - lean * 1.2, hy0 = 30.5 + by + Math.abs(lean) * 0.6;
+    // ponto (dx,dy) do corpo ereto, medido do quadril, inclinado por 'la' em volta do quadril
+    const rx = (dx, dy) => hx0 + dx * co - dy * si, ry = (dx, dy) => hy0 + dx * si + dy * co;
+    // patas de trás: plantadas, a de trás recua quando ele curva (apoio); 'lean' anda
+    if (kind === 'lean') {
+      const ph = t * 9.5, fA = 13 + s(ph + Math.PI) * 3.4, fB = 18.5 + s(ph) * 3.4;
+      tail(rx(-8.5, -4), ry(-8.5, -4), s(ph) * 1.2);
+      leg(hx0 - 2, hy0, fA, 37 - Math.max(0, Math.cos(ph + Math.PI)) * 2.4, true);
+      leg(hx0 + 2.5, hy0, fB, 37 - Math.max(0, Math.cos(ph)) * 2.4, false);
+    } else {
+      tail(rx(-9, -3.5), ry(-9, -3.5), s(t * 6) * 1.1 + s(t * 27) * 1.6 * LF.wagK);
+      leg(hx0 - 2, hy0, 19.5 - Math.max(0, lean) * 3.5 + Math.max(0, -lean) * 1, 37, true);
+      leg(hx0 + 2.5, hy0, 27.5 + Math.max(0, lean) * 1.2 - Math.max(0, -lean) * 1.5, 37, false);
+    }
+    // braço de trás: nasce atrás do peito (desenhado antes do corpo), a pata aparece na frente
+    const reach = a => 10.5 + Math.max(0, -Math.sin(a)) * 11 + Math.max(0, -Math.cos(a)) * Math.max(0, -Math.sin(a)) * 6;
+    const sfx = rx(1.5, -8.5), sfy = ry(1.5, -8.5), L2 = reach(arm2) - 0.5;
+    const p2x = sfx + Math.cos(arm2) * L2, p2y = sfy + Math.sin(arm2) * L2;
+    leg(sfx, sfy, p2x, p2y + 1, true);
+    // corpo: quadril + peito (duas bolotas no eixo inclinado), barriga creme
+    ell(rx(0.5, -3.5), ry(0.5, -3.5), 6.6, 5.8, FUR);
+    ell(rx(1, -9.5), ry(1, -9.5), 6.2, 6.4, FUR);
+    ell(rx(2.6, -4), ry(2.6, -4), 3.4, 4.2, CREAM);
+    ell(rx(3.2, -9.5), ry(3.2, -9.5), 3, 4, CREAM);
+    back(rx(-5, -10), ry(-5, -10));
+    // braço de perto: ombro na frente do peito
+    const snx = rx(4.5, -8), sny = ry(4.5, -8), L1 = reach(arm);
+    const p1x = snx + Math.cos(arm) * L1, p1y = sny + Math.sin(arm) * L1;
+    const behindHead = Math.sin(arm) < -0.55 && Math.cos(arm) < 0.35;   // patas por cima/atrás da cabeça: braço passa por trás
+    if (behindHead) leg(snx, sny, p1x, p1y + 1, false);
+    // cabeça: vai junto com o tronco; olha pra cima quando as patas estão no alto
+    const hdx = rx(3, -19.5) + Math.max(0, lean) * 1.2, hdy = ry(3, -19.5);
+    const up = Math.sin(arm) < -0.6;
+    if (up) { lookArr[0] = 0; lookArr[1] = -1; }
+    const effort = lean > 0.55 || kind === 'swing2';
+    head(hdx, hdy, effort ? 'squint' : eyesO, effort ? 'grit' : kind === 'hold2' ? 'smile' : 'open', lean > 0.6 ? 'back' : 'up', true, 0,
+      effort ? 0 : LF.tw, up ? lookArr : null);
+    if (!behindHead) leg(snx, sny, p1x, p1y + 1, false);
+    A.pawX = p1x; A.pawY = p1y; A.paw2X = p2x; A.paw2Y = p2y; A.hasPaw2 = true;
+    hold((p1x + p2x) / 2, (p1y + p2y) / 2);
+  }
+
   /* ---------- pose(): despacha; as poses antigas são o código do rascunho ---------- */
   function pose(mode, t, extra) {
     life(t);
-    A.hasHold = false; A.pawX = 32; A.pawY = 36; A.backX = 20; A.backY = 19.5;
+    A.hasHold = false; A.hasPaw2 = false; A.pawX = 32; A.pawY = 36; A.backX = 20; A.backY = 19.5;
     const eyesO = LF.blink ? 'closed' : LF.half ? 'half' : 'open';
     if (mode === 'roll') {
       /* REDESENHADA a pedido do dono (a do rascunho, parada, parecia um cachorro morto): de barriga pra cima pedindo carinho.
@@ -3188,6 +3299,7 @@
     if (mode === 'gasp') return poseGasp(t, extra);
     if (mode === 'proud') return poseProud(t, extra);
     if (mode === 'climb') return poseClimb(t);
+    if (mode === 'hold2' || mode === 'swing2' || mode === 'lean') return poseTwo(t, eyesO, mode);
 
     // em pé e em movimento
     let ph = 0, amp = 0, lift = 0, bob = 0, stretch = 0, ears = 'up', mouth = 'smile', eyes = eyesO, headDY = 0, tw = 0, tilt = ShibaPX.tilt || 0, look = null, tailW = s(t * 7) * 1.3, tailY = 0, gal = 0, bodyRY = 0;
@@ -3228,7 +3340,8 @@
   const SHIBA_POSES = ['sit', 'wag', 'sign', 'lie', 'stand', 'walk', 'run', 'jump', 'dig', 'sniff', 'surprise', 'dizzy',
     'sword', 'swordrun', 'windup', 'slash', 'eat', 'pant', 'roll', 'bow', 'stretch', 'scratch', 'yawn', 'howl', 'sleep',
     'dance', 'dance2', 'shake',
-    'drive', 'push', 'carry', 'cheer', 'point', 'think', 'gasp', 'cry', 'proud', 'climb', 'wave'];
+    'drive', 'push', 'carry', 'cheer', 'point', 'think', 'gasp', 'cry', 'proud', 'climb', 'wave',
+    'hold2', 'swing2', 'lean'];
   const POSE_ID = Object.create(null);
   SHIBA_POSES.forEach((p, i) => { POSE_ID[p] = i; });
   // poses que não ficam com sombra no chão (penduradas ou dentro de veículo)
@@ -3255,6 +3368,7 @@
     buf = bodyBuf; BW = W; BH = H; BOY = OY; dry = false;
     bodyBuf.fill(0);
     pose(mode === 'shake' ? 'stand' : mode, t, true);
+    if (K.belt) beltPaint(K.belt);
     blit(bodyBuf, W, H, K.lut, img32, under);
   }
   // riscos de tremida da pose 'shake' (igual ao rascunho)
@@ -3320,7 +3434,7 @@
   function saneT(t) { t = +t; return t === t && t !== Infinity && t !== -Infinity ? t : 0; }
   // o desenho pedido cai fora do cache? (opções contínuas, globais do rascunho ligados, paletas demais, t gigante)
   function isExact(o, K, t) {
-    return !!(o.exact || o.tilt || o.look || ShibaPX.tilt || ShibaPX.look || ShibaPX.quiet || K.id > 255 || Math.abs(t) * CACHE_FPS > TQ_MAX);
+    return !!(o.exact || o.arm != null || o.arm2 != null || o.lean != null || o.tilt || o.look || ShibaPX.tilt || ShibaPX.look || ShibaPX.quiet || K.id > 255 || Math.abs(t) * CACHE_FPS > TQ_MAX);
   }
   // drawShiba.frameT(t, opts?) -> o t que realmente é desenhado (quantizado a 1/fps quando o frame vem do cache)
   function frameT(t, o) {
@@ -3343,6 +3457,10 @@
   }
 
   // devolve o canvas 48x44 do frame pedido (do cache, ou rasterizado agora). NÃO guarde: é reaproveitado.
+  // parâmetros contínuos das poses de duas patas (o.arm, o.arm2, o.lean); null limpa
+  function twoSet(o) {
+    TWO.arm = o && o.arm != null ? +o.arm : NaN; TWO.arm2 = o && o.arm2 != null ? +o.arm2 : NaN; TWO.lean = o && o.lean != null ? +o.lean : NaN;
+  }
   function frameCanvas(mode, t, o) {
     ensureIO();
     t = saneT(t);
@@ -3357,7 +3475,7 @@
     let cv;
     if (isExact(o, K, t)) {
       if (!exactCv) { exactCv = mkCanvas(W, H); exactG = exactCv.getContext('2d'); }
-      ShibaPX.hatOn = hat; ShibaPX.mouthOverride = mouth; ShibaPX.eyesOverride = eyes; ShibaPX.tilt = o.tilt || gT || 0; ShibaPX.look = o.look || gL || null; S.fast = fast;
+      ShibaPX.hatOn = hat; ShibaPX.mouthOverride = mouth; ShibaPX.eyesOverride = eyes; ShibaPX.tilt = o.tilt || gT || 0; ShibaPX.look = o.look || gL || null; S.fast = fast; twoSet(o);
       frameFast(exactCv, exactG, mode, t, K, shadow);
       stats.exact++; cv = exactCv;
     } else {
@@ -3378,11 +3496,12 @@
       frameFast(slotCv[i], slotG[i], mode, tq / CACHE_FPS, K, shadow);
       stats.misses++; cv = slotCv[i];
     }
-    ShibaPX.hatOn = gH; ShibaPX.mouthOverride = gM; ShibaPX.eyesOverride = gE; ShibaPX.tilt = gT; ShibaPX.look = gL; S.fast = gF;
+    ShibaPX.hatOn = gH; ShibaPX.mouthOverride = gM; ShibaPX.eyesOverride = gE; ShibaPX.tilt = gT; ShibaPX.look = gL; S.fast = gF; twoSet(null);
     return cv;
   }
 
-  // drawShiba(g,x,y,pose,t,{face=1,scale=1,squash=0,rot=0,pal='kome',hat=true,mouth,eyes,alpha=1,shadow=true,fast,exact,smooth}): pés em (x,y)
+  // drawShiba(g,x,y,pose,t,{face=1,scale=1,squash=0,rot=0,pal='kome',hat=true,mouth,eyes,alpha=1,shadow=true,fast,exact,smooth,arm,arm2,lean}): pés em (x,y)
+  //   arm/arm2/lean: só nas poses de duas patas (hold2, swing2, lean), contínuos; ver poseTwo
   //   smooth: true/false força; sem ele, pixel duro em tamanho normal e redução suave quando o shiba fica minúsculo
   //   (scale × zoom da câmera informado em E.Draw.lod < .75), senão o contorno de 1px some aos pedaços
   function drawShiba(g, x, y, mode, t, o) {
@@ -3427,21 +3546,23 @@
   const PAW = { x: 9, y: -6 }, MOUTH = { x: 11, y: -18 }, HEAD = { x: 10, y: -26 };
   // grade -> local (origem nos pés, sem escala, face=1): centro do pixel
   const GX = -22.5, GY = -37.9;
-  // shibaAnchor(pose,t,nome:'paw'|'mouth'|'head'|'back'|'hatTop'|'hold'|'eye', out?, {hat,fast}?) -> {x,y} local (multiplique x por face)
+  // shibaAnchor(pose,t,nome:'paw'|'paw2'|'mouth'|'head'|'back'|'hatTop'|'hold'|'eye', out?, {hat,fast,arm,arm2,lean}?) -> {x,y} local (multiplique x por face)
   //   t exato; pra colar algo num shiba desenhado pelo cache use t = drawShiba.frameT(t) (o Actor já faz isso)
   function shibaAnchor(mode, t, name, out, o) {
     out = out || { x: 0, y: 0 };
     const b0 = buf, w0 = BW, h0 = BH, o0 = BOY, gH = ShibaPX.hatOn, gF = S.fast;
     if (o) { ShibaPX.hatOn = o.hat !== false; S.fast = o.fast ? 1 : 0; }
+    twoSet(o);
     buf = bodyBuf; BW = W; BH = H; BOY = OY; dry = true;
     pose(mode === 'shake' || POSE_ID[mode] === undefined ? 'stand' : mode, saneT(t), false);
-    dry = false; buf = b0; BW = w0; BH = h0; BOY = o0; ShibaPX.hatOn = gH; S.fast = gF;
+    dry = false; buf = b0; BW = w0; BH = h0; BOY = o0; ShibaPX.hatOn = gH; S.fast = gF; twoSet(null);
     let x, y;
     if (name === 'mouth') { x = A.mouthX; y = A.mouthY; }
     else if (name === 'head') { x = A.headX; y = A.headY; }
     else if (name === 'hatTop') { x = A.hatX; y = A.hatY; }
     else if (name === 'back') { x = A.backX; y = A.backY; }
     else if (name === 'eye') { x = A.headX + 2; y = A.headY; }
+    else if (name === 'paw2') { x = A.hasPaw2 ? A.paw2X : A.pawX; y = A.hasPaw2 ? A.paw2Y : A.pawY; }
     else if (name === 'hold') { x = A.hasHold ? A.holdX : A.pawX; y = A.hasHold ? A.holdY : A.pawY; }
     else { x = A.pawX; y = A.pawY; }
     out.x = x + GX; out.y = y + GY;
@@ -3731,6 +3852,7 @@
   E.drawBubble = drawBubble;
   E.PAW = PAW; E.MOUTH = MOUTH; E.HEAD = HEAD;
   E.shibaAnchor = shibaAnchor;
+  E.shibaBelt = shibaBelt;
   E.Actor = Actor;
 })();
 
