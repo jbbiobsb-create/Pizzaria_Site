@@ -34,7 +34,7 @@
      hills [longe, perto] + trees (densidade das matas), ground {grass, grassD, grassL, soil, soilD}, air (neve|cinza|brisa|pétalas),
      crest (cobertura da montanha: snow|ash|sand|mochi), tree (árvore do pátio), yard (enfeites do pátio), roofSnow (neve nos telhados),
      feel (cold|hot|beach|float: como o Kome sente), music (tema), sea/land (cores no mapa e na cena do barco).
-     ev: evento próprio (a cada ~3 min, depois da Pá). map: posição no mapa (0..1). */
+     ev: evento próprio (a cada ~3 min, depois da Pá). map: posição no mapa (0..1). price: × no preço da ilha (padrão 1; ver priceMul). */
   D.ISLANDS = [
     { id: 'honshu', n: 'Honshu', d: 'a ilha grande, onde tudo começou', hook: 'o Fuji, a cidade e a montanha do vovô', shape: '', theme: '',
       mods: ['montanha clássica', 'preços normais'],
@@ -48,7 +48,7 @@
       scene: { mirror: false, sky: ['#BFD6EA', '#EEF4FA', 0.55], far: 'peaks', hills: ['#5C7D6A', '#EAF1F6'], trees: [0.75, 0.1], treeCol: '#3E5E4C',
         ground: { grass: '#F1F6FA', grassD: '#BFD2E2', grassL: '#FFFFFF', soil: '#B9A584', soilD: '#9A8566' },
         air: 'snow', airN: 90, crest: 'snow', tree: 'pine', yard: 'neve', roofSnow: true, feel: 'cold', music: 'hokkaido' } },
-    { id: 'kyushu', n: 'Kyushu', d: 'vulcão; bolsões de curry valem muito mais', hook: 'o Sakurajima fumaça e a montanha é de curry', shape: 'vulcao', theme: 'outono', gold: 1.8,
+    { id: 'kyushu', n: 'Kyushu', d: 'vulcão; bolsões de curry valem muito mais', hook: 'o Sakurajima fumaça e a montanha é de curry', shape: 'vulcao', theme: 'outono', gold: 1.8, price: 1.25,
       mods: ['montanha virada pro outro lado', 'bolsões dourados ×1,8', 'cinza caindo do céu'],
       ev: { id: 'erupcao', n: 'Erupção de curry!', sub: 'o vulcão cuspiu sacos de curry dourado: toque neles!', dur: 20, mult: 1.5, icon: 'bolt', gift: 4, air: 'ash', erupt: 1 },
       map: [0.25, 0.74], land: '#B9A07A',
@@ -89,14 +89,14 @@
     { id: 'cochilo', n: 'Cochilo Produtivo', d: 'offline rende +10% por nível (até 100%)', max: 5, base: 2, g: 'Poupança' },
     { id: 'cama', n: 'Cama Grande', d: 'teto offline +4 h por nível (até 24 h)', max: 4, base: 3, g: 'Poupança' },
     // galho Absurdo: cada nó destrava uma máquina absurda no Pátio (D.PATIO.turmas, campo seed); req = nó anterior da cadeia
-    // custos (item B, 19/11): ~250 mil sementes por viagem a partir da volta 2 (~1,1 mi por volta) → o robô guloso pega um a cada
-    // 1–2 voltas (voltas 2, 3, 4, 5, 6, 9); quem junta só pra eles tira o 1º no fim da volta 1. Antes 25…3.000 = todos em 2–3 viagens.
-    { id: 'absurdo15', n: 'Frota de Tatuzões', d: 'destrava a turma 15 no Pátio: tatuzões cavando em fila indiana', max: 1, base: 1.2e5, g: 'Absurdo' },
-    { id: 'absurdo16', n: 'Kome-Oh em Série', d: 'destrava a turma 16: robôs gigantes de linha de montagem', max: 1, base: 2.5e5, g: 'Absurdo', req: 'absurdo15' },
-    { id: 'absurdo17', n: 'Trem-Bala de Arroz', d: 'destrava a turma 17: 300 km/h de arroz', max: 1, base: 4.5e5, g: 'Absurdo', req: 'absurdo16' },
-    { id: 'absurdo18', n: 'Foguete de Mochi', d: 'destrava a turma 18: o arroz vai pro espaço', max: 1, base: 7.5e5, g: 'Absurdo', req: 'absurdo17' },
-    { id: 'absurdo19', n: 'Escavadeira do Monte Fuji', d: 'destrava a turma 19: a montanha vira pá', max: 1, base: 1.2e6, g: 'Absurdo', req: 'absurdo18' },
-    { id: 'absurdo20', n: 'Portal Onigiri', d: 'destrava a turma 20: onigiri de outra dimensão', max: 1, base: 1.8e6, g: 'Absurdo', req: 'absurdo19' },
+    // custos (19/11): com as ilhas de 30 min entram ~110 mil sementes por viagem (~0,55 mi por volta) → o robô guloso (compra o mais
+    // barato primeiro) pega um a cada 1–2 voltas: voltas 2, 3, 4, 5, 7, 10. Antes 25…3.000 = todos nas 2–3 primeiras viagens.
+    { id: 'absurdo15', n: 'Frota de Tatuzões', d: 'destrava a turma 15 no Pátio: tatuzões cavando em fila indiana', max: 1, base: 7e4, g: 'Absurdo' },
+    { id: 'absurdo16', n: 'Kome-Oh em Série', d: 'destrava a turma 16: robôs gigantes de linha de montagem', max: 1, base: 1.4e5, g: 'Absurdo', req: 'absurdo15' },
+    { id: 'absurdo17', n: 'Trem-Bala de Arroz', d: 'destrava a turma 17: 300 km/h de arroz', max: 1, base: 2.5e5, g: 'Absurdo', req: 'absurdo16' },
+    { id: 'absurdo18', n: 'Foguete de Mochi', d: 'destrava a turma 18: o arroz vai pro espaço', max: 1, base: 4e5, g: 'Absurdo', req: 'absurdo17' },
+    { id: 'absurdo19', n: 'Escavadeira do Monte Fuji', d: 'destrava a turma 19: a montanha vira pá', max: 1, base: 6e5, g: 'Absurdo', req: 'absurdo18' },
+    { id: 'absurdo20', n: 'Portal Onigiri', d: 'destrava a turma 20: onigiri de outra dimensão', max: 1, base: 8.5e5, g: 'Absurdo', req: 'absurdo19' },
   ];
   const START_TOOL = [0, 3, 5, 7];
 
@@ -142,7 +142,8 @@
   // saía mais barata que a ilha 4 da volta 1 (n = 4) e cada ilha do começo acabava em 14–19 min.
   const tripN = () => idx() + lap() * D.ISLANDS.length;
   const priceBase = t => { const P = EG.price, L = P.trip.length; return t <= 0 ? 1 : t <= L ? P.trip[t - 1] : P.trip[L - 1] + P.grow * (t - L); };
-  const priceMul = () => Math.pow(0.94, lvl('preco')) * priceBase(tripN());
+  // × price da ficha da ilha (D.ISLANDS[i].price, padrão 1): acerto fino medido (Kyushu rende mais com o curry ×1,8)
+  const priceMul = () => { const t = tripN(); return Math.pow(0.94, lvl('preco')) * priceBase(t) * (t > 0 ? isl().price || 1 : 1); };
   const matsFor = () => (mats[isl().id] ? mats[isl().id]() : D.MATS);
 
   /* ---- medalhas: bronze = terminou; prata e ouro = terminou abaixo do tempo (D.ENDGAME.medal) ---- */

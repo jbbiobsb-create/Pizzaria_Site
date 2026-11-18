@@ -407,12 +407,16 @@
   // ver abaixo; volta 2+ continua contando viagem). `legend` = renda extra pra sempre depois do Grande Final.
   D.ENDGAME = {
     seedGrow: 1.45, patioExp: 0.15,   // camada Cookie: custo das sementes ×1,45/nível; Sementes do Pátio ^0,15
-    medal: { ouro: [70, 34, 28, 28, 30], prata: [100, 50, 42, 42, 45], seeds: { bronze: 0, prata: 2, ouro: 5 } },
+    // medalhas (min) por ilha, item 6 (19/11), da régua de 100 h (docs/medicoes/longo100-item6.txt): ouro = o quartil mais rápido do
+    // robô guloso naquela ilha (desafio de verdade), prata = mediana do robô + ~35% (confortável). Os tempos do robô ficam iguais
+    // em todas as voltas (preço por viagem), então não encolhe por volta. Honshu (0) vale pra Honshu das voltas 2+ (~30–37 min):
+    // a campanha (60–90 min, nota S/A/B/C própria) fica no bronze e a Honshu da volta 2 é a chance de prata/ouro.
+    medal: { ouro: [31, 28, 24, 29, 33], prata: [45, 40, 35, 40, 47], seeds: { bronze: 0, prata: 2, ouro: 5 } },
     ev: { every: [170, 240], first: 120, minTool: 3 },
     // preço das ilhas (islands.js · priceMul) pela viagem t (1 = Hokkaido da 1ª volta … 5 = Honshu da volta 2): trip[t-1], depois
     // + grow por viagem; × 0,94^Amigo do Corretor. A campanha (t = 0) fica 1. Item 6 (19/11): antes 1 + 0,4n + 0,15n² (n = ilha +
     // volta) dava ilhas de 14–19 min na volta 1–7 (dinheiro inicial + sementes compravam tudo em 2 min e o resto era só cavar).
-    price: { trip: [3.5, 16, 25, 30, 34], grow: 0.3 },
+    price: { trip: [3.5, 17, 27, 32, 38], grow: 0.3 },
     legend: 2,
   };
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
