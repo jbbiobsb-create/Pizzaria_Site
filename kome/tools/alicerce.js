@@ -16,7 +16,7 @@ const mute = pg => pg.evaluate(() => { try { Storage.prototype.setItem = functio
 const MARK = 'alicerce-mark';
 const markOk = pg => pg.evaluate(k => localStorage.getItem(k) === '1', MARK).catch(() => false);
 // (&r=N na nova tentativa: com o mesmo endereço só o #hash mudaria e o goto não recarregaria)
-const open = async (pg, url, ms) => { for (let i = 0; ; i++) { await pg.goto(i ? url.replace(/(#|$)/, '&r=' + i + '$1') : url); await pg.waitForTimeout(ms || 700); if (i >= 3 || await markOk(pg)) return; await mute(pg); } };
+const open = async (pg, url, ms) => { for (let i = 0; ; i++) { await pg.goto(i ? url.replace(/(#|$)/, '&r=' + i + '$1') : url); await pg.waitForTimeout(ms || 700); if (i >= 6 || await markOk(pg)) return; await mute(pg); } };
 const marca = async (pg, url, ms) => { for (let i = 0; i < 4; i++) {   // grava a marca e confere numa 2ª carga (a 1ª pode ter sido a do storage falso)
   await pg.goto(url + (i ? '&r=' + i : '')); await pg.evaluate(k => localStorage.setItem(k, '1'), MARK); await pg.goto(url + '&m=' + i); await pg.waitForTimeout(ms || 700); if (await markOk(pg)) return; } };
 let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m); if (!c) bad++; };
@@ -180,6 +180,12 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok((await casa()).house === 6, 'MIGR[10]: save com a casa zerada pelo bug e ilha terminada → casa pronta');
   await go(mod(d => { d.house = 0; d.stats.ach = { k07: 1 }; }));
   ok((await casa()).house === 1, 'MIGR[10]: casa zerada + conquista Dono de Terreno sem viagem → volta o terreno');
+  // ganho miúdo (credit junta e mostra 1 "+¥" a cada 1,2 s): antes o pop subtraía e somava de novo, mas esquecia o dayEarn (salário do dia
+  // contava 2x) e o ipsAccP; com a tela de verdade (fora do modo acelerado). dayEarn tem que andar junto com earned
+  const e0 = await p2.evaluate(() => { const S = __kome.S, ips = Math.max(1, S.ips); for (let i = 0; i < 6; i++) __kome.pop(ips * 0.3, false, 0); return { e: S.earned, d: S.dayEarn, day: S.day }; });
+  await p2.waitForTimeout(1800);
+  const e1 = await p2.evaluate(() => { const S = __kome.S; return { e: S.earned, d: S.dayEarn, day: S.day }; });
+  ok(e1.day !== e0.day || Math.abs((e1.d - e0.d) - (e1.e - e0.e)) <= 1e-6 * Math.max(1, e1.e), 'ganho miúdo conta 1x no salário do dia (Δganho ' + Math.round(e1.e - e0.e) + ' · Δdia ' + Math.round(e1.d - e0.d) + ')');
   ok(!errs.length, 'sem erro de página' + (errs.length ? ': ' + errs.slice(0, 2).join(' | ') : ''));
   await b.close();
   console.log(bad ? bad + ' FALHA(S)' : 'ALICERCE OK');

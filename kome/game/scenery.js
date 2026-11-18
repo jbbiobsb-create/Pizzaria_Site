@@ -416,7 +416,8 @@
   let statue = null;
   function legendStatue(g, v, t, S, X) {
     if (!S.stats || !S.stats.legend) return;
-    const x = X && X.estatua ? X.estatua : -560;   // ponta de fora da zona industrial (depois do estacionamento) if (x + 200 < v.x0 || x - 200 > v.x1) return;
+    const x = X && X.estatua ? X.estatua : -560;   // ponta de fora da zona industrial (depois do estacionamento)
+    if (x + 240 < v.x0 || x - 240 > v.x1) return;   // fora da tela (estava preso no comentário; 240 = meia largura da estátua)
     const T = G.Tools && G.Tools.komeoh; if (!T) return;
     if (!statue) {
       try {

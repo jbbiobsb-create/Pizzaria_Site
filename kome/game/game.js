@@ -401,7 +401,6 @@
   function smallTick(dt) {
     smallT += dt; if (smallT < 1.2 || smallV <= 0) return;
     smallT = 0; const v = smallV; smallV = 0; smallShow = true;
-    S.money -= v; S.earned -= v; S.ipsAcc -= v; S.win.inc[smallK] -= v;      // credit soma de novo; aqui só queremos o pop
     try { credit(v, smallK, false); } finally { smallShow = false; }
   }
   function credit(v, kind, crit) {
@@ -410,7 +409,9 @@
     if (!smallShow && G.Amuletos) v *= G.Amuletos.credit(kind);   // amuletos: você / frota / prêmio, noite, rush, estimação
     if (!smallShow && G.Events) v *= G.Events.mult(kind);   // eventos dourados da camada Cookie (frenesi, gigante, desfile…)   // evento da ilha (nevasca, erupção, maré, gravidade fofa)
     if (G.Fab && kind !== 2 && !smallShow) G.Fab.dig(v);   // fábrica: ritmo de cavar (a Doca puxa uma % disso)
-    S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind === 0) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma e sem prêmio de evento: o prêmio é minutos da renda TOTAL, Pátio junto, e virava o R0 do próximo Pátio) S.col.pulse = 1; S.win.inc[kind] += v;
+    if (!smallShow) { S.money += v; S.earned += v; S.dayEarn += v; S.ipsAcc += v; if (kind === 0) S.ipsAccP = (S.ipsAccP || 0) + v;   // só o que VOCÊ cava (sem frota/Goma e sem prêmio de evento: o prêmio é minutos da renda TOTAL, Pátio junto, e virava o R0 do próximo Pátio)
+      S.col.pulse = 1; S.win.inc[kind] += v; }   // (pulse/win estavam presos no fim do comentário acima: o coletor não pulsava com a renda)
+    // smallShow = só o pop do ganho miúdo que já entrou antes (antes subtraía e somava de novo, mas esquecia dayEarn/ipsAccP: contavam 2x)
     if (nListen && !smallShow) em.emit('pay', v, kind);
     if (FAST) return;
     const secs = v / Math.max(1, S.ips), c = S.col;
@@ -420,7 +421,8 @@
     if (i <= 1 && !crit && kind !== 2 && !smallShow) { smallV += v; smallK = kind; return; }
     let x = c.x, y = c.y - 34 / Math.max(0.4, cam.z);
     if (!cam.visible(x, y, 0)) {                                   // coletor fora da tela: o pop aparece na borda, do lado dele
-      cam.toWorld((x < cam.x) !== (cam.mx < 0) ? 46 : W - 46, H * (vila.k > 0 ? 0.34 : 0.6), edge);   // olhando a vila: o pop sobe pro céu, não tapa as casinhas x = edge.x; y = edge.y; S.col.edge = 1;
+      cam.toWorld((x < cam.x) !== (cam.mx < 0) ? 46 : W - 46, H * (vila.k > 0 ? 0.34 : 0.6), edge);   // olhando a vila: o pop sobe pro céu, não tapa as casinhas
+      x = edge.x; y = edge.y; S.col.edge = 1;   // (estava preso no comentário: o pop ficava fora da tela)
     }
     // vários pops em sequência: empilha um em cima do outro em vez de sobrepor
     popN = S.time - popT < 0.4 ? Math.min(4, popN + 1) : 0; popT = S.time;
@@ -913,7 +915,8 @@
     if (cur.kind === 'haul') { S.loader = G.Tools.escav.create({ pilot: 'sumi', scale: 1 }); LX.x = Math.max(WL.MX0 - 300, faceAhead(Math.max(P.x - 300, WL.MX0 - 300), 16, 2000) - TOOLS[D.toolIndex.escav].park); LX.vx = 0; }
     if (cur.seat === 'cab' && cur.kind !== 'bagger' && cur.kind !== 'haul') { P.x = Math.max(WL.MX0 - 300, faceAhead(Math.min(P.x, S.footX) - 400, 16, 2000) - cur.park); }
     P.y = heap.surf(P.x); P.face = 1;
-    S.col.kind = D.COLLECTOR[di]; S.col.x = P.x - 80;   // coletor da ferramenta NA MÃO (antes a moega da Bagger seguia o Kome com o carrinho) S.col.y = heap.surf(S.col.x);
+    S.col.kind = D.COLLECTOR[di]; S.col.x = P.x - 80;   // coletor da ferramenta NA MÃO (antes a moega da Bagger seguia o Kome com o carrinho)
+    S.col.y = heap.surf(S.col.x);
     ensureBag(); yardSnap(); rebuildFleet();
     if (cur.seat === 'paw' && S.tool >= D.toolIndex.trator && P.x < Wd.X.x0 + 90) { P.x = Wd.X.x0 + 90; P.y = heap.surf(P.x); S.col.x = P.x - 80; S.camX = P.x + 30; }   // trocou pra ferramenta de mão: o Kome desce na frente de lavra, não no meio das vagas
     if (loopH) { try { loopH.stop(0.3); } catch (e) { /* */ } loopH = null; }
