@@ -899,6 +899,7 @@
       fps: 60,           // fps suavizado
       frame: 0,          // contador de frames
       running: false,
+      fpsCap: 0,         // >0: limita os quadros (ex.: 30 no celular pra não esquentar); o dt acumula, a lógica não muda
       // start(): começa (idempotente)
       start() {
         if (loop.running) return loop;
@@ -939,6 +940,8 @@
     function tick(ts) {
       if (!loop.running) return;
       id = raf(tick); // agenda antes: um erro no update não mata o jogo
+      if (doc && doc.hidden) return; // aba oculta: nem atualiza nem desenha
+      if (loop.fpsCap > 0 && last && ts - last < 1000 / loop.fpsCap - 3) return; // pula este quadro: o próximo leva o dt somado
       let dtReal = last ? (ts - last) / 1000 : 1 / 60;
       last = ts;
       if (dtReal > 0.25 || dtReal < 0) dtReal = 1 / 60; // voltou de aba oculta/debugger: sem salto de tempo

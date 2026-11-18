@@ -2104,8 +2104,11 @@
     if (Loops && cur.loop && !S.opts.mute) { try { loopH = Loops.start(cur.loop, { vol: 0.3, rate: 0.1 }); } catch (e) { /* */ } }
     musicTheme();
   }
+  // Ajustes › Economia de bateria: 30 quadros/s (padrão no celular) ou 60; a lógica anda por dt, então nada muda no jogo
+  function fpsApply() { if (loop) loop.fpsCap = (S.opts.fps || (MOBILE ? 30 : 60)) === 30 ? 30 : 0; }
   function setOpt(k, v) {
     S.opts[k] = v;
+    if (k === 'fps') fpsApply();
     if (k === 'mute') { if (AudioE) { try { AudioE.muted = !!v; } catch (e) { /* */ } } if (UI) UI.sound = !v; if (v && loopH) { try { loopH.stop(0.2); } catch (e) { /* */ } loopH = null; } }
     if (k === 'music' || k === 'mute') musicTheme();
     saveNow();
@@ -2463,7 +2466,7 @@
     if (save.persistent === false) setTimeout(() => ui(() => UI.toast('Este navegador não está guardando o progresso', { icon: 'x', tone: 'bad', sub: 'use Ajustes › Salvar › Baixar arquivo' })), 2500);
     window.addEventListener('beforeunload', () => saveNow());
     loop = E.Loop({ update: frame, render: draw, input, maxDt: 0.05 });
-    loop.start();
+    fpsApply(); loop.start();
     if (S.ended) S.endT = S.time;
   }
 

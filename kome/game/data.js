@@ -434,8 +434,8 @@
     share: 0.4,                          // fatia "Vila" da Doca de Venda (onigiri, mochi, mochi dourado)
     start: { arroz: 30 },                // presente da abertura: 1ª entrega na hora
     OPEN_EARN: 5000,                     // a Cidade abre CEDO: quando você já ganhou isso no total (ou no 1º produto da fábrica)
-    ARROZ_RATE: 0.5, ARROZ_SEC: 0.5,     // a montanha manda sacos de arroz pra Despensa (por s); cada saco vale ARROZ_SEC s da sua renda
-    BUILD_RENDA: 2,                      // cada prédio pronto: +2% de renda pra sempre (soma no Arroz do Coração, igual à amizade)
+    ARROZ_RATE: 0.5, ARROZ_SEC: 0.12,    // a montanha manda sacos pra Despensa (por s); saco vale ARROZ_SEC s da renda → entregue ×ORDER_PAY ≈ 7% de bônus (era 50%)
+    BUILD_RENDA: 1,                      // cada prédio pronto: +1% de renda pra sempre (soma no Arroz do Coração, igual à amizade)
     ITEMS: {
       arroz: { nome: 'saco', plural: 'sacos', capMin: 60, qMin: 8 },
       onigiri: { nome: 'onigiri', plural: 'onigiris', capMin: 40, qMin: 6 },
@@ -444,10 +444,10 @@
     },
     CAP_SEC: 300,                        // teto da despensa: 5 min do que chega
     ORDER_SEC: [70, 110],                // pedido ≈ 90 s do que chega daquele item
-    ORDER_PAY: 2, ORDER_GAP: 45, SENTO_GAP: 0.5, FAV_CHANCE: 0.6,
+    ORDER_PAY: 1.2, ORDER_GAP: 90, SENTO_GAP: 0.5, FAV_CHANCE: 0.6,
     HEART_LV: [4, 9, 15, 22, 30, 40], HEART_STEP: 10,  // corações por nível de amizade (depois do último: +HEART_STEP)
     BUILD_SEC: [150, 1800],              // obra (UMA de cada vez: um carpinteiro só): 1º prédio 2,5 min → 30 min a partir do 10º
-    SHOP_EVERY: 6, SHOP_LINE: 0.55, SHOP_PAY: 1.5,
+    SHOP_EVERY: 6, SHOP_LINE: 0.55, SHOP_PAY: 1.1,
     FEST_NEED: 150, FEST_SEC: 240, FEST_HEART: 2, TEMPLO_FEST: 1.5,
     LOTS: 10, LOTS2: 6,                  // 1º quarteirão (6 casas + 4 terrenos) e o 2º, que abre quando o 1º lota
     RES: [   // moradores: id, nome, paleta do shiba, chapéu, prato favorito, lote, arte da casa, profissão, falas, 2 prédios dos sonhos
@@ -468,17 +468,18 @@
       { id: 'matcha', nome: 'Monge Matcha', pal: 'matcha', hat: true, fav: 'mochid', lot: -1, art: 'cid_templo', job: 'monge do templo, ri de tudo',
         fala: ['Paz, Kome. E mochi dourado.', 'O sino toca no festival.', 'Respira... e come.'], build: ['templo', 'bentoya'] },
     ],
+    // TUDO construído (9 prédios): venda +15%, cavar +8%, renda +9% (+1%/nível de amizade), combo 25% mais lento, +2 h fora ≈ ×1,35 no máximo (era ≈ ×1,8)
     BUILD: {   // o que a amizade abre (1 de 2 por nível): loja = compra o que sobra · heart = +1 ♥ nos pedidos daquele prato · gap = pedidos mais rápidos · mora = morador novo
       // perk = bônus NO JOGO PRINCIPAL (G.City.applyStats/offH): sell/dig = +% · combo = combo cai X% mais devagar · offH = +h de tempo fora. fx = a frase
-      onigiriya: { nome: 'Onigiri-ya', art: 'lojinha_onigiri', loja: ['onigiri'], perk: { sell: 0.05 }, fx: 'Arroz vende +5% · compra o onigiri que sobra' },
-      mochiya: { nome: 'Mochiya', art: 'loja_mochiya', loja: ['mochi', 'mochid'], perk: { sell: 0.05 }, fx: 'Arroz vende +5% · compra o mochi que sobra' },
-      bentoya: { nome: 'Bentô-ya', art: 'cid_bentoya', loja: ['onigiri', 'mochi'], perk: { sell: 0.05 }, fx: 'Arroz vende +5% · monta bentô com o que sobra' },
-      konbini: { nome: 'Konbini', art: 'loja_konbini', loja: ['onigiri', 'mochi', 'mochid'], perk: { sell: 0.08 }, fx: 'Arroz vende +8% · compra de tudo que sobra' },
+      onigiriya: { nome: 'Onigiri-ya', art: 'lojinha_onigiri', loja: ['onigiri'], perk: { sell: 0.02 }, fx: 'Arroz vende +2% · compra o onigiri que sobra' },
+      mochiya: { nome: 'Mochiya', art: 'loja_mochiya', loja: ['mochi', 'mochid'], perk: { sell: 0.02 }, fx: 'Arroz vende +2% · compra o mochi que sobra' },
+      bentoya: { nome: 'Bentô-ya', art: 'cid_bentoya', loja: ['onigiri', 'mochi'], perk: { sell: 0.02 }, fx: 'Arroz vende +2% · monta bentô com o que sobra' },
+      konbini: { nome: 'Konbini', art: 'loja_konbini', loja: ['onigiri', 'mochi', 'mochid'], perk: { sell: 0.04 }, fx: 'Arroz vende +4% · compra de tudo que sobra' },
       chaya: { nome: 'Casa de Chá', art: 'cid_chaya', heart: 'mochi', perk: { offH: 2 }, fx: 'Rende +2 h a mais com o jogo fechado' },
-      fliperama: { nome: 'Fliperama', art: 'cid_fliperama', heart: 'onigiri', perk: { combo: 0.4 }, fx: 'Combo de cavar cai 40% mais devagar' },
-      sento: { nome: 'Sentô', art: 'cid_sento', gap: 1, perk: { dig: 0.10 }, fx: 'Cava +10% de arroz · pedidos 2× mais rápidos' },
-      casa_kuro: { nome: 'Casa nova', art: 'cid_casa_kuro', mora: 'kuro', perk: { dig: 0.05 }, fx: 'Kuro toca música: cava +5% de arroz' },
-      templo: { nome: 'Templo', art: 'cid_templo', mora: 'matcha', fest: 1, perk: { sell: 0.10 }, fx: 'Arroz vende +10% · festival enche +50%' },
+      fliperama: { nome: 'Fliperama', art: 'cid_fliperama', heart: 'onigiri', perk: { combo: 0.25 }, fx: 'Combo de cavar cai 25% mais devagar' },
+      sento: { nome: 'Sentô', art: 'cid_sento', gap: 1, perk: { dig: 0.05 }, fx: 'Cava +5% de arroz · pedidos 2× mais rápidos' },
+      casa_kuro: { nome: 'Casa nova', art: 'cid_casa_kuro', mora: 'kuro', perk: { dig: 0.03 }, fx: 'Kuro toca música: cava +3% de arroz' },
+      templo: { nome: 'Templo', art: 'cid_templo', mora: 'matcha', fest: 1, perk: { sell: 0.05 }, fx: 'Arroz vende +5% · festival enche +50%' },
     },
     SEASONS: [
       { nome: 'Primavera', fest: 'Hanami', tree: 'sakura', grass: '#8FAE62', sub: 'piquenique debaixo das cerejeiras' },
@@ -500,10 +501,11 @@
     ilha: { n: 3, from: 1, dig: 1.10, dur: 300, max: 900, sec: 10 },   // da 2ª ilha em diante: +10% de arroz cavado por 5 min (soma tempo, não força; teto 15 min) + ¥
   };
 
-  // Jornada (missoes.js): passos em ordem; cada um paga MIN minutos da renda atual (¥/s × 60 × min), nunca menos que PISO
-  D.MISSOES = { piso: 40, min: { pata: 1, ferr: 1, saco: 1, troca: 1, casa: 1.5, combo: 1, arvore: 1.5, pa: 1.5, motor: 2, casa3: 2,
-    cad: 2, escav: 2.5, bagger: 3, ilha: 4, viajar: 3, semente: 2, amuleto: 2, patio: 2.5, fab: 2.5, oni: 2, oficina: 2.5,
-    cidade: 3, predio: 3, faixa: 5, evo: 4 } };
+  // Jornada (missoes.js): passos em ordem; cada um paga SEC segundos da renda MÉDIA de 1 min (sem prêmios nem Cidade), piso PISO,
+  // e NUNCA mais que capNext × o preço da próxima ferramenta (ou etapa da casa). Antes pagava 1–5 MIN do ¥/s do momento e virava
+  // bola de neve (Bagger em 5 min). Passos já feitos na 1ª vez (save antigo) são pulados sem pagar.
+  D.MISSOES = { piso: 25, secDef: 15, capNext: 0.08, sec: { casa: 20, arvore: 20, pa: 20, motor: 25, casa3: 25, cad: 25, escav: 25,
+    bagger: 25, ilha: 30, viajar: 30, patio: 25, fab: 25, oficina: 25, cidade: 25, predio: 25, faixa: 30, evo: 30 } };
 
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
   D.nodeById = {}; D.TREE.forEach(n => { D.nodeById[n.id] = n; });

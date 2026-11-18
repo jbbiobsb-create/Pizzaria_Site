@@ -1,7 +1,7 @@
 /* Kome no Japão — missoes.js (G.Missoes)
    JORNADA: ~25 passos em ordem que passam pelo arco todo (pata → máquinas → casa → ilha → viagem → Pátio/Fábrica/Cidade…).
    Cartão fixo no HUD (zona de cima à esquerda, embaixo do dinheiro): ícone + meta curta + barra "12 de 30"; pronto = botão
-   dourado "Pegar" (paga minutos da renda atual, números em D.MISSOES). Tocar no cartão antes de pronto abre a tela certa.
+   dourado "Pegar" (paga ~20–30 s da renda média, teto 8% da próxima compra; D.MISSOES). Tocar no cartão antes de pronto abre a tela certa.
    Sem prazo, sem streak, nada some. Save antigo: na 1ª vez pula calado os passos já feitos. FAST: pega sozinho, sem tela.
    Estado: S.stats.jor = { i: passo atual } (vai no save junto com stats; sem MIGR: nasce sozinho). CSS: game/ux-missoes.css. */
 (function () {
@@ -48,7 +48,31 @@
   ];
   const val = s => { let v = 0; try { v = s.camp && trip() ? s.need : +s.get() || 0; } catch (e) { v = 0; } return Math.max(0, Math.min(s.need, Math.floor(v))); };
   const done = s => val(s) >= s.need;
-  const reward = s => Math.max(D.MISSOES.piso, Math.round(Math.max(0, S.ips || 0) * 60 * (D.MISSOES.min[s.id] || 1)));
+  // PRÊMIO PEQUENO E SEGURO (antes: minutos do S.ips, que incluía o próprio prêmio e as entregas da Cidade → bola de neve:
+  // um passo pagava a próxima ferramenta, que completava o passo seguinte... Bagger em 5 min). Agora: segundos da renda
+  // MÉDIA de 1 min (sem contar prêmio da jornada nem Cidade), e nunca mais que capNext da próxima compra grande.
+  let avg = -1, lastE = null, lastC = 0, paid = 0;
+  function sample(dt) {
+    const e = S.earned || 0, cy = (st().city && st().city.yen) || 0;
+    if (lastE === null || e < lastE) { lastE = e; lastC = cy; paid = 0; if (avg < 0) avg = Math.max(0, S.ips || 0) * 0.5; return; }
+    const d = Math.max(0, (e - lastE) - Math.max(0, cy - lastC) - paid) / dt; paid = 0; lastE = e; lastC = cy;
+    avg = avg < 0 ? d : avg + (d - avg) * Math.min(1, dt / 60);
+  }
+  function nextPrice() {
+    try {
+      const t = D.TOOLS[S.tool + 1], gm = G.Game;
+      if (t) return gm && gm.toolCost ? gm.toolCost(t) : t.cost * D.ECON.COST_TOOL;
+      const h = D.HOUSE && D.HOUSE[S.house | 0];
+      if (h) return gm && gm.houseCost ? gm.houseCost(h) : h.c * D.ECON.COST_HOUSE;
+    } catch (e) { /* sem preço: só o teto em segundos */ }
+    return 0;
+  }
+  const reward = s => {
+    const M = D.MISSOES, base = Math.min(Math.max(0, avg), Math.max(0, S.ips || 0));
+    let r = Math.max(M.piso, base * (M.sec[s.id] || M.secDef));
+    const np = nextPrice(); if (np > 0) r = Math.min(r, np * M.capNext);
+    return Math.max(1, Math.round(r));
+  };
   function J() {
     let j = st().jor;
     if (!j || typeof j !== 'object') {   // 1ª vez (save novo ou antigo): começa no 1º passo que ainda não foi feito, sem pagar o resto
@@ -62,7 +86,7 @@
   function claim() {
     const s = cur(); if (!s || !done(s)) return;
     const r = reward(s);
-    J().i++; api.pay(r);
+    J().i++; paid += r; api.pay(r);
     if (!api.quiet()) {
       api.sfx('pling');
       if (el) { el.root.classList.remove('ux-mis-pop'); void el.root.offsetWidth; el.root.classList.add('ux-mis-pop'); }
@@ -102,12 +126,12 @@
   }
 
   function tick(dt) {
-    if (!S || (acc += dt) < 0.5) return; acc = 0;
+    if (!S || (acc += dt) < 0.5) return; const dtS = acc; acc = 0; sample(dtS);
     const s = cur();
     // depois de viajar, passo da 1ª campanha que ficou pra trás conta como feito: pula calado, sem pagar (igual save antigo)
     if (s && s.camp && trip()) { let i = J().i; while (STEPS[i] && STEPS[i].camp) i++; J().i = i; sig = ''; return; }
     // modo acelerado: pega calado, só no bolso (fora do "ganho total", pra não abrir Cidade/Fábrica antes da hora nos testes)
-    if (api.fast()) { if (s && done(s)) { J().i++; if (api.fastPay) api.fastPay(reward(s)); } return; }
+    if (api.fast()) { if (s && done(s)) { const r = reward(s); J().i++; if (api.fastPay) api.fastPay(r); } return; }
     if (!el && G.HUD && G.HUD.ready) build();
     paint();
   }

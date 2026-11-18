@@ -117,6 +117,7 @@ async function auto(browser) {
         const ph = S.time % 20;
         if (ph < 17) { const p = K.aim(); K.hold(p.x, p.y, true); } else K.hold(0, 0, false);
         K.step(1); K.tapAll();
+        if (KomeGame.City && KomeGame.City.sim && S.time % 5 < 1) KomeGame.City.sim.act();   // entrega pedidos como um jogador (a Jornada já se paga sozinha no modo acelerado)
         for (let guard = 0; guard < 12; guard++) {
           let best = null, bc = Infinity;
           const t = D.TOOLS[S.tool + 1];
@@ -132,7 +133,7 @@ async function auto(browser) {
           out.push(e);
         }
       }
-      return { out, t: S.time, ended: S.ended, money: S.money, ips: S.ips, dug: 1 - K.heap.area / K.heap.total, tool: K.tool.id, x: K.P.x, n: Object.keys(S.own).length, total: D.TREE.length, house: S.house };
+      return { out, t: S.time, ended: S.ended, money: S.money, ips: S.ips, dug: 1 - K.heap.area / K.heap.total, tool: K.tool.id, x: K.P.x, n: Object.keys(S.own).length, total: D.TREE.length, house: S.house, earned: S.earned, city: (S.stats.city && S.stats.city.yen) || 0 };
     })(${MAXMIN})`);
     log = log.concat(r.out);
     if (has('--verbose')) console.log('  ' + fmt(r.t) + ' ' + r.tool + ' ¥' + Math.round(r.money) + ' ¥/s ' + Math.round(r.ips) + ' cavado ' + (r.dug * 100).toFixed(1) + '% x=' + Math.round(r.x) + ' nós ' + r.n);
@@ -149,7 +150,7 @@ async function auto(browser) {
       console.log('intervalos entre ferramentas: ' + toolGaps);
       console.log('\nRESULTADO: ' + (r.ended ? 'final em ' + (r.t / 60).toFixed(1) + ' min' : 'NÃO terminou em ' + MAXMIN + ' min (casa ' + r.house + '/6, ferramenta ' + r.tool + ')') +
         ' · compras ' + log.length + ' (nós ' + r.n + '/' + r.total + ') · intervalo máx ' + Math.round(maxGap) + ' s (' + gapAt + ')' +
-        ' · Bagger aos ' + (bag ? (bag.t / 60).toFixed(1) + ' min com ' + (bag.dug * 100).toFixed(1) + '% cavado' : 'nunca') + ' · cavado no fim ' + (r.dug * 100).toFixed(1) + '%');
+        ' · Bagger aos ' + (bag ? (bag.t / 60).toFixed(1) + ' min com ' + (bag.dug * 100).toFixed(1) + '% cavado' : 'nunca') + ' · cavado no fim ' + (r.dug * 100).toFixed(1) + '%' + (r.city ? ' · Cidade ¥' + Math.round(r.city) + ' (' + (r.city / r.earned * 100).toFixed(1) + '% do ganho)' : ''));
       const T = (ok, s) => console.log((ok ? '  ok    ' : '  FORA  ') + s);
       if (ISL) T(r.ended && r.t / 60 >= 20 && r.t / 60 <= 60, 'ilha entre 20 e 60 min');
       else T(r.ended && r.t / 60 >= 60 && r.t / 60 <= 90, 'final entre 60 e 90 min');

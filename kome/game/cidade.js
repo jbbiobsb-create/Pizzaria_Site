@@ -71,7 +71,7 @@
   const val = t => t === 'arroz' ? Math.max(1, GS().ips || 0) * CFG.ARROZ_SEC : (G.Fab && G.Fab.itemV ? G.Fab.itemV(t) * (P().qa[t] || 1) : 0);   // saco de arroz vale um pedaço da sua renda
   const cap = t => Math.max(CFG.ITEMS[t].capMin, Math.round(P().rate[t] * CFG.CAP_SEC));
   const has = t => P().rate[t] > 1e-4 || P().stock[t] >= CFG.ITEMS[t].qMin;
-  function pay(v) { const s = GS(); if (!s || !(v > 0)) return; s.money += v; s.earned += v; s.dayEarn = (s.dayEarn || 0) + v; s.ipsAcc = (s.ipsAcc || 0) + v; P().yen += v; }
+  function pay(v) { const s = GS(); if (!s || !(v > 0)) return; s.money += v; s.earned += v; s.dayEarn = (s.dayEarn || 0) + v; P().yen += v; }   // NÃO entra no ¥/s (ipsAcc): o saco vale ¥/s × ARROZ_SEC, e somar aqui fazia bola de neve
   const renda = () => { const c = GS() && GS().stats.city; return c && c.on ? (c.grains | 0) + CFG.BUILD_RENDA * (c.lots || []).filter(l => l.b).length : 0; };   // % de renda que a Cidade dá (amizade + prédios)
   const quiet = () => !isOpen() || (api.fast && api.fast());
 

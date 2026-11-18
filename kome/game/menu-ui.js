@@ -264,6 +264,29 @@
     });
     const cvMark = () => cvB.forEach(q => q[0].classList.toggle('mx-on', (S.opts.cavar || 'segurar') === q[1]));
     cvMark();
+    // celular: menos avisos e 30 quadros/s por padrão (não esquenta o aparelho)
+    const mob0 = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+    const seg = (title, key, def, opts) => {
+      h('div', 'k-h', b, title);
+      const box = h('div', 'mx-fs mx-cavar', b), bs = [];
+      const mark = () => bs.forEach(q => q[0].classList.toggle('mx-on', (S.opts[key] || def) === q[1]));
+      opts.forEach(q => {
+        const bt = h('button', 'ux-btn mx-fsbtn', box); bt.type = 'button'; bt.setAttribute('aria-label', title + ': ' + q[1]);
+        h('b', null, bt, q[1]); h('small', null, bt, q[2]);
+        bt.addEventListener('click', () => { sfx('click'); api.setOpt(key, q[0]); mark(); });
+        bs.push([bt, q[0]]);
+      });
+      mark();
+    };
+    h('div', 'k-h', b, 'Zoom (ou faça pinça com 2 dedos)');
+    { const box = h('div', 'mx-fs mx-cavar', b);
+      [['−', 'Afastar', 1 / 1.15], ['1×', 'Normal', 0], ['+', 'Aproximar', 1.15]].forEach(q => {
+        const bt = h('button', 'ux-btn mx-fsbtn', box); bt.type = 'button'; bt.setAttribute('aria-label', 'Zoom: ' + q[1]);
+        h('b', null, bt, q[0]); h('small', null, bt, q[1]);
+        bt.addEventListener('click', () => { sfx('click'); S.zoomMul = q[2] ? U.clamp((S.zoomMul || 1) * q[2], 0.55, 1.9) : 1; });
+      }); }
+    seg('Avisos na tela', 'avisos', mob0 ? 'poucos' : 'normal', [['poucos', 'Poucos', 'só o importante'], ['normal', 'Normal', 'todos os avisos']]);
+    seg('Economia de bateria', 'fps', mob0 ? 30 : 60, [[30, '30 fps', 'esquenta menos'], [60, '60 fps', 'mais suave']]);
     UI.toggle(b, { icon: 'swap', label: 'Modo canhoto', sub: 'troca os botões de lado', value: !!S.opts.canhoto, onChange: v => { api.setOpt('canhoto', !!v); applyLook(); } });
 
     h('div', 'k-h', b, 'Ajuda');
