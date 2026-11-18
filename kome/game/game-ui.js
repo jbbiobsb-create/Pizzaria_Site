@@ -312,7 +312,8 @@
       const vc = chipBy('vila'), inV = vc && vc.label === 'Montanha';
       o.push(Object.assign(chipTile('vila', inV ? 'mount' : 'house', inV ? 'Voltar pra montanha' : 'Vila', inV ? 'Volta a cavar o arroz' : 'Onde seu arroz é vendido', 'Abre em 30 segundos de jogo')));
       o.push(chipTile('fabrica', 'factory', 'Fábrica', 'Vira arroz em comida: vende mais caro', END));
-      o.push(chipTile('cidade', 'house', 'Cidade', 'Entregue pedidos, ganhe ienes e amigos', 'Abre com a Fábrica fazendo comida'));
+      { const cOn = !!(G.City && G.City.on && G.City.on()), pl = cOn && G.City.perkLine ? G.City.perkLine() : '';
+        o.push(Object.assign(chipTile('cidade', 'house', 'Cidade', pl ? 'Prédios: ' + pl : 'Vizinhos pagam ¥ por entrega', G.City && G.City.lockText ? G.City.lockText() : ''), cOn ? { lock: '', fn: () => G.City.open() } : {})); }
       o.push({ icon: 'bolt', t: 'Oficina', s: 'Deixa cada máquina mais forte', lock: ended ? '' : END, fn: () => G.Inf && G.Inf.open() });
       o.push(chipTile('patio', 'paw', 'Pátio', 'Turmas de máquinas rendendo sozinhas', END));
       if (chipBy('verpatio')) o.push(chipTile('verpatio', 'paw', 'Ver o Pátio', 'Passeio pra ver suas máquinas', ''));

@@ -154,6 +154,7 @@
     if (G.Amuletos) G.Amuletos.applyStats(s, cur);   // amuletos da ilha (mão/motor, sacos, ajudantes, regras da árvore)
     if (G.Faixas) G.Faixas.applyStats(s);   // faixa da volta (sacos tímidos; o resto entra pelos ganchos AM/MATS/buildWorld)
     if (G.Evolucoes) G.Evolucoes.applyStats(s, cur);   // máquina evoluída em uso: ×3
+    if (G.City && G.City.applyStats) G.City.applyStats(s);   // prédios da Cidade: +% cavar/preço, combo mais longo (cidade.js)
     if (G.Ind) G.Ind.applyStats(s);           // fábrica, lojas e Bagger gêmea (modo infinito)   // selos das conquistas: +1% cada   // oficina do modo infinito
     st = s;
     if (heap) for (const p of heap.pockets) p.mult = s.gold;
@@ -462,7 +463,7 @@
     S.digT += dt; if (S.boingT > 0) S.boingT -= dt; if (coinT > 0) coinT -= dt; if (sndT > 0) sndT -= dt;
     if (S.estreia > 0) S.estreia -= dt; if (S.slide > 0) S.slide -= dt; if (S.col.pulse > 0) S.col.pulse = Math.max(0, S.col.pulse - dt * 3);
     // combo
-    if (S.digT < C.idle + (cur.kind === 'hand' || cur.kind === 'jack' ? 0 : (cur.cycle || 2.5) * 1.6) && !S.autoMode) S.combo = Math.min(C.max, S.combo + C.gain * dt * AM('comboGain')); else S.combo = Math.max(0, S.combo - C.decay * dt * AM('comboDecay'));
+    if (S.digT < C.idle + (cur.kind === 'hand' || cur.kind === 'jack' ? 0 : (cur.cycle || 2.5) * 1.6) && !S.autoMode) S.combo = Math.min(C.max, S.combo + C.gain * dt * AM('comboGain')); else S.combo = Math.max(0, S.combo - C.decay * dt * AM('comboDecay') * (st.cDecay || 1));
     if (S.combo > S.stats.bestCombo) S.stats.bestCombo = S.combo;
     { const lv = Math.floor(S.combo / 3); if (lv > comboLv && lv > 0 && Sfx && !S.opts.mute && !FAST) { try { Sfx.combo(S.combo >= C.max - 0.01 ? 30 : lv * 3); } catch (e) { /* */ } } comboLv = lv; }
     if (S.furia > 0) S.furia -= dt;
@@ -2368,7 +2369,7 @@
     let had = false;
     if (/fresh/.test(location.search)) save.clear(); else had = loadState();   // ?fresh = começa do zero (testes)
     // tempo fora: sistemas com offline(dt) andam até 8 h (nenhum ainda; a fábrica da fase 1 é o primeiro). Resultado em S.away
-    if (had && G.Sim) { const sec = Math.min(Math.max(8, G.Amuletos ? G.Amuletos.val('offCap') : 0) * 3600, save.offlineAtLoad || 0); S.away = { sec, res: G.Sim.catchUp(sec) }; }   // amuleto Preguiça Boa: teto 24 h
+    if (had && G.Sim) { const sec = Math.min((Math.max(8, G.Amuletos ? G.Amuletos.val('offCap') : 0) + (G.City && G.City.offH ? G.City.offH() : 0)) * 3600, save.offlineAtLoad || 0); S.away = { sec, res: G.Sim.catchUp(sec) }; }   // amuleto Preguiça Boa: teto 24 h
     S.heapArea = heap.area; S.footX = scanFoot();
     cur = TOOLS[S.tool];
     setTool(S.tool);

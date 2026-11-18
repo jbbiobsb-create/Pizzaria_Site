@@ -500,6 +500,11 @@
     ilha: { n: 3, from: 1, dig: 1.10, dur: 300, max: 900, sec: 10 },   // da 2ª ilha em diante: +10% de arroz cavado por 5 min (soma tempo, não força; teto 15 min) + ¥
   };
 
+  // Jornada (missoes.js): passos em ordem; cada um paga MIN minutos da renda atual (¥/s × 60 × min), nunca menos que PISO
+  D.MISSOES = { piso: 40, min: { pata: 1, ferr: 1, saco: 1, troca: 1, casa: 1.5, combo: 1, arvore: 1.5, pa: 1.5, motor: 2, casa3: 2,
+    cad: 2, escav: 2.5, bagger: 3, ilha: 4, viajar: 3, semente: 2, amuleto: 2, patio: 2.5, fab: 2.5, oni: 2, oficina: 2.5,
+    cidade: 3, predio: 3, faixa: 5, evo: 4 } };
+
   D.toolIndex = {}; D.TOOLS.forEach((t, i) => { D.toolIndex[t.id] = i; });
   D.nodeById = {}; D.TREE.forEach(n => { D.nodeById[n.id] = n; });
 })();

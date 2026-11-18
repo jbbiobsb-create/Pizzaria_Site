@@ -1,7 +1,9 @@
 /* Kome no Japão — cidade.js  (camada 4 · spec docs/design/cidade.md, APROVADA · portado do protótipo demos/cidade-proto.js)
    A CIDADE: a comida da fábrica vira vizinhos felizes. Tela própria (canvas 960×540 por cima do jogo, igual à Fábrica).
    - Despensa: a fábrica manda D.CITY.share dos onigiris/mochis que vende pra cá (fabrica.js sell() → G.City.take). Despensa cheia
-     = a doca vende normal: nada se perde. Abre quando a fábrica vende o 1º mochi.
+     = a doca vende normal: nada se perde. Abre CEDO (D.CITY.OPEN_EARN ganhos ou 1º produto da fábrica); antes
+     da fábrica a montanha manda sacos de arroz (ARROZ_RATE), então tem pedido desde o começo. Lado da Vila: barra do lugar
+     (Cidade: pedidos · Lojas · Voltar). Cada prédio dá bônus NO JOGO (BUILD.perk → G.City.applyStats/offH em game.js).
    - Pedidos (3 vagas, sem prazo) → Entregar → kei-truck do Kome → ¥ (ORDER_PAY × valor do produto na doca) + corações.
    - Amizade sobe → escolha 1 de 2 prédios pra um terreno → obra → prédio na rua (lojas compram o que sobra; afeto +♥; Sentô
      acelera pedidos; casa/templo trazem morador). Cada nível = +1 grão no Arroz do Coração (patio.js heart: +1% renda).
@@ -314,18 +316,20 @@
     if (!document.body.classList.contains('k-vila')) { if (vb && vb._on) { vb._on = 0; vb.classList.remove('cid-on'); } return; }
     if (!vb) {
       vb = mk('div', 'cid-vila');
-      vb.go = btn('ux-main cid-vila-go', 'Entrar na Cidade', () => { if (!open()) shake(vb.go); }, 'heart'); vb.sub = mk('small', 'cid-pay'); vb.go.appendChild(vb.sub);
+      vb.go = btn('ux-main cid-vila-go', 'Cidade: pedidos', () => { if (!open()) shake(vb.go); }, 'heart'); vb.sub = mk('small', 'cid-pay'); vb.go.appendChild(vb.sub);
       vb.lock = mk('div', 'cid-vila-lock'); vb.lockT = mk('b'); vb.bar = mkBar(); vb.lockS = mk('span'); vb.lock.appendChild(vb.lockT); vb.lock.appendChild(vb.bar); vb.lock.appendChild(vb.lockS);
       vb.back = btn('cid-vila-back', 'Voltar pra montanha', () => { if (G.Game && G.Game.vila) G.Game.vila(false); }, mk('span', 'cid-xi', '←'));
-      vb.appendChild(vb.go); vb.appendChild(vb.lock); vb.appendChild(vb.back); document.body.appendChild(vb);
+      vb.shop = btn('cid-vila-shop', 'Lojas', () => { if (open()) openLojas(); else shake(vb.shop); }, 'house');
+      vb.appendChild(vb.go); vb.appendChild(vb.shop); vb.appendChild(vb.lock); vb.appendChild(vb.back); document.body.appendChild(vb);
     }
     if (!vb._on) { vb._on = 1; vb.classList.add('cid-on'); }
     const c = P(), e = GS().earned || 0;
     setC(vb, 'cid-locked', !c.on);
     if (c.on) { const n = c.ord.filter((o, i) => o && canDeliver(i)).length; setT(vb.sub, n ? n + (n > 1 ? ' entregas prontas: ¥ na hora' : ' entrega pronta: ¥ na hora') : 'vizinhos pagam ¥ por entrega'); }
-    else { setT(vb.lockT, 'Cidade fechada'); setBar(vb.bar.fill, e / CFG.OPEN_EARN); setT(vb.lockS, 'Abre com ¥ ' + U.fmt(CFG.OPEN_EARN) + ' ganhos. Falta ¥ ' + U.fmt(Math.max(0, CFG.OPEN_EARN - e))); }
+    else { setT(vb.lockT, 'Cidade fechada'); setBar(vb.bar.fill, e / CFG.OPEN_EARN); setT(vb.lockS, lockText()); }
   }
 
+  const lockText = () => 'Abre com ¥ ' + U.fmt(CFG.OPEN_EARN) + ' ganhos no total · falta ¥ ' + U.fmt(Math.max(0, CFG.OPEN_EARN - ((GS() && GS().earned) || 0)));
   /* ---- chip "Cidade" no topo (com a dica do que está pronto) ---- */
   function chipTick(dt) {
     if ((chipT -= dt) > 0) return; chipT = 0.4;
@@ -333,7 +337,7 @@
     const c = P();
     if (!chipEl) { chipEl = G.HUD.chip({ id: 'cidade', icon: 'house', label: 'Cidade', order: 21, tone: '#FFE6D2', show: false, onClick: () => open() }); if (!chipEl) return; }
     vilaBar();
-    if (!c.on) { const e = GS().earned || 0; chipEl.set({ show: e >= CFG.OPEN_EARN * 0.1, hint: 'falta ¥ ' + U.fmt(Math.max(0, CFG.OPEN_EARN - e)), prio: 0, tip: 'Cidade fechada. Abre quando você ganhar ¥ ' + U.fmt(CFG.OPEN_EARN) + ' no total. Lá os vizinhos pagam ¥ por entrega.', act: 'Fechada' }); return; }
+    if (!c.on) { const e = GS().earned || 0; chipEl.set({ show: false, hint: 'falta ¥ ' + U.fmt(Math.max(0, CFG.OPEN_EARN - e)), prio: 0, tip: lockText(), act: 'Fechada' }); return; }
     const ready = c.ord.filter((o, i) => o && canDeliver(i)).length, fest = c.fest >= CFG.FEST_NEED && !(c.festOn > 0), pend = c.pend.length && !obraOn();
     const hint = pend ? 'amizade nova!' : fest ? 'festival pronto!' : ready ? ready + (ready > 1 ? ' entregas prontas' : ' entrega pronta') : '';
     chipEl.set({ show: true, hint: c.delivered ? hint : 'nova! toque', prio: c.delivered ? (hint ? 1 : 0) : 2, tip: 'Entrega dá ¥ na hora. A Cidade já te dá +' + renda() + '% de renda.', act: 'Abrir' });
@@ -753,6 +757,7 @@
     ui.now.addEventListener('click', () => { R.dirty = 1; sfx('click'); if (ui.nowFn) ui.nowFn(); else pop(ui.now); });
     r1.appendChild(ui.now);
     r1.appendChild(btn('cid-viz', 'Vizinhos', () => { sfx('click'); openViz(); }, 'heart'));
+    r1.appendChild(btn('cid-viz cid-lojas-b', 'Lojas', () => { sfx('click'); openLojas(); }, 'house'));
     r1.appendChild(btn('cid-x', 'Sair', () => { sfx('click'); close(); }, mk('span', 'cid-xi', '✕')));
     const r2 = mk('div', 'cid-r2'); top.appendChild(r2);
     const shelf = ui.shelf = mk('button', 'cid-shelf'); shelf.type = 'button';
@@ -803,7 +808,7 @@
       tx.appendChild(l1); tx.appendChild(want); head.appendChild(c.face); head.appendChild(tx); c.appendChild(head);
       c.go = btn('ux-main cid-go', 'Entregar', () => { if (deliver(i)) pop(c); }, 'yen'); c.pay = mk('small', 'cid-pay'); c.go.appendChild(c.pay);
       c.appendChild(c.go);
-      c.wait = mk('div', 'cid-wait'); c.bar = mkBar(); c.waitT = mk('span', '', 'Enchendo a Despensa…'); c.wait.appendChild(c.bar); c.wait.appendChild(c.waitT); c.appendChild(c.wait);
+      c.wait = mk('div', 'cid-wait'); c.bar = mkBar(); c.waitT = mk('b', 'cid-pay cid-pay-w', ''); c.wait.appendChild(c.bar); c.wait.appendChild(c.waitT); c.appendChild(c.wait);
       c.empty = mk('div', 'cid-empty'); c.emptyT = mk('span'); c.empty.appendChild(mk('b', '', 'Sem pedido')); c.empty.appendChild(c.emptyT); c.appendChild(c.empty);
       c.addEventListener('click', () => {
         const o = P().ord[i]; if (!o) { pop(c); return; }
@@ -870,7 +875,7 @@
       const hk = 'h' + o.hearts; if (e.rew._t !== hk) { e.rew._t = hk; e.rew.textContent = ''; e.rew.appendChild(document.createTextNode('+' + o.hearts)); e.rew.appendChild(ico('heart')); }
       const have = Math.min(o.qty, Math.floor(c.stock[o.item]));
       setT(e.want, ok ? qtd(o.qty, o.item) : U.fmt(have) + ' de ' + qtd(o.qty, o.item));
-      if (ok) setT(e.pay, '+¥ ' + U.fmt(orderPay(o))); else setBar(e.bar.fill, have / o.qty);
+      if (ok) setT(e.pay, '+¥ ' + U.fmt(orderPay(o))); else { setBar(e.bar.fill, have / o.qty); setT(e.waitT, 'Paga ¥ ' + U.fmt(orderPay(o))); }
     }
     // festival
     const f = ui.fest, se = season(), full = c.fest >= CFG.FEST_NEED, on = c.festOn > 0;
@@ -951,11 +956,35 @@
     s.appendChild(btn('cid-later', 'Escolher depois', () => { sfx('click'); closeModal(); }));
   }
   // 1 linha por prédio, em português simples (a regra é a de D.CITY.BUILD)
-  const FX = {
-    onigiriya: 'Compra o onigiri que sobra. Mais ¥!', mochiya: 'Compra o mochi que sobra. Mais ¥!', bentoya: 'Compra onigiri e mochi que sobram.',
-    konbini: 'Compra um pouco de tudo que sobra.', chaya: 'Pedido de mochi dá +1 coração.', fliperama: 'Pedido de onigiri dá +1 coração.',
-    sento: 'Pedidos novos chegam 2× mais rápido.', casa_kuro: 'Kuro, o músico, vem morar na rua.', templo: 'Monge Matcha vem morar. Festa enche +50%.',
-  };
+  const FX = {}; for (const id in BUILD) FX[id] = BUILD[id].fx;   // 1 frase com o número do bônus no jogo (data.js D.CITY.BUILD.fx)
+  /* ---- Lojas: cada prédio e o bônus que ele dá no jogo (com número) ---- */
+  function perkSum() {
+    const c = GS() && GS().stats.city, o = { dig: 0, sell: 0, combo: 0, offH: 0 }; if (!c || !c.on) return o;
+    for (const l of c.lots || []) { const k = l.b && BUILD[l.b] && BUILD[l.b].perk; if (k) for (const n in o) if (k[n]) o[n] += k[n]; }
+    o.combo = Math.min(0.8, o.combo); return o;
+  }
+  function perkLine() {
+    const k = perkSum(), out = [];
+    if (k.sell) out.push('arroz +' + Math.round(k.sell * 100) + '%'); if (k.dig) out.push('cavar +' + Math.round(k.dig * 100) + '%');
+    if (k.combo) out.push('combo ' + Math.round(k.combo * 100) + '% mais longo'); if (k.offH) out.push('+' + k.offH + ' h fora');
+    return out.join(' · ');
+  }
+  function openLojas() {
+    const c = P(), nb = c.lots.filter(l => l.b).length, pl = perkLine();
+    const s = showModal('viz', 'Lojas e prédios', 'Cada prédio dá bônus no jogo todo. Amizade nova = prédio novo.');
+    s.appendChild(mk('div', 'cid-viz-tot', nb ? nb + ' prontos: +' + (CFG.BUILD_RENDA * nb) + '% de renda' + (pl ? ' · ' + pl : '') : 'Nenhum prédio ainda. Entregue pedidos pra ganhar o 1º.'));
+    const list = mk('div', 'cid-viz-list');
+    Object.keys(BUILD).forEach(id => {
+      const B = BUILD[id], n = c.lots.filter(l => l.b === id).length, ob = c.lots.some(l => l.obra && l.ob === id);
+      const r = mk('div', 'cid-viz-row cid-loja' + (n ? ' cid-loja-ok' : ''));
+      const tx = mk('div', 'cid-viz-tx');
+      const l1 = mk('div', 'cid-viz-l1'); l1.appendChild(mk('b', 'cid-nome', B.nome));
+      l1.appendChild(mk('span', 'cid-loja-st', n ? '✓ Pronto' + (n > 1 ? ' ×' + n : '') : ob ? 'Em obra' : '🔒 Amizade abre'));
+      tx.appendChild(l1); tx.appendChild(mk('span', 'cid-viz-s cid-loja-fx', B.fx + ' · +' + CFG.BUILD_RENDA + '% renda'));
+      r.appendChild(tx); list.appendChild(r);
+    });
+    s.appendChild(list);
+  }
   function openViz() {
     const c = P();
     const s = showModal('viz', 'Vizinhos', 'Entregou pedido, ganhou coração. Nível novo = prédio de presente e +1% de renda.');
@@ -1136,6 +1165,11 @@
     tapVila(wx) { const X = G.World && G.World.X; if (!X || !X.cid0 || !GS() || !P().on || wx < X.cid0 - 330 || wx > X.cid1 + 40) return false; return open(); },
     take, open, close, isOpen, on: () => !!(GS() && P().on), unlock,
     grains: () => renda(),
+    lockText,
+    // bônus dos prédios NO JOGO PRINCIPAL (game.js computeStats / teto do tempo fora)
+    applyStats(s) { const k = perkSum(); if (k.dig) s.dig *= 1 + k.dig; if (k.sell) s.sell *= 1 + k.sell; if (k.combo) s.cDecay = (s.cDecay || 1) * (1 - k.combo); },
+    offH: () => perkSum().offH,
+    perkLine,
     // o que a Vila (game-world.js) desenha: arte de cada lote aberto, obra (0..1) e quem mora
     view() {
       const c = GS() && GS().stats.city; if (!c || !c.on) return null;
