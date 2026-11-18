@@ -83,7 +83,7 @@
     if (slideFX) slideFX.flush();   // arroz que está rolando volta pro mapa antes de gravar
     if (G.Fab && G.Fab.persist) G.Fab.persist();   // layout da fábrica vai junto
     const d = save.data || save.load();
-    d.v = 4; d.tv = 3; d.mount = S.mount; d.island = S.island | 0; d.shape = S.shape; d.mountT = S.mountT; d.closet = S.closet; d.look = S.look; d.home = S.homeData; d.day = S.day; d.dayT = S.dayT; d.dayEarn = S.dayEarn; d.money = S.money; d.earned = S.earned; d.tool = S.tool; d.tree = Object.keys(S.own); d.house = S.house; d.time = S.time; d.dug = S.dug;
+    d.v = 4; d.tv = 3; d.mount = S.mount; d.island = S.island | 0; d.shape = S.shape; d.mountT = S.mountT; d.closet = S.closet; d.look = S.look; d.home = S.homeData; d.day = S.day; d.dayT = S.dayT; d.dayEarn = S.dayEarn; d.money = S.money; d.earned = S.earned; d.tool = S.tool; d.tree = Object.keys(S.own); d.house = S.house; d.soCasa = S.soCasa ? 1 : 0; d.time = S.time; d.dug = S.dug;
     d.ended = S.ended; d.bagX = S.bagX; d.px = P.x; d.stats = S.stats; d.opts = S.opts; d.h = heap.serialize();
     d.found = heap.pockets.map(p => (p.found ? 1 : 0)).join('');
     save.save();
@@ -111,7 +111,7 @@
     if (!d || !d.v) return false;
     S.money = +d.money || 0; S.earned = +d.earned || 0; S.tool = U.clamp((d.tool | 0) + (!d.tv && (d.tool | 0) >= 8 ? 1 : 0), 0, NT - 1); if ((d.tv | 0) < 3) S.tool = ({ 8: 9, 9: 8, 11: 12, 12: 11 })[S.tool] || S.tool;   // 16/11: empilhadeira antes da colheitadeira, caminhão antes da pá de cabo
     // casa, tempo e cavado: ficaram DENTRO do comentário acima desde a importação (a casa voltava a 'nunca comprada' a cada recarga/versão nova)
-    S.house = U.clamp(d.house | 0, 0, D.HOUSE.length); S.time = +d.time || 0; S.dug = +d.dug || 0;
+    S.house = U.clamp(d.house | 0, 0, D.HOUSE.length); S.soCasa = !!d.soCasa; S.time = +d.time || 0; S.dug = +d.dug || 0;
     S.closet = fixCloset(d.closet); S.look = d.look && typeof d.look === 'object' ? { pal: d.look.pal || 'kome', acc: d.look.acc || '' } : { pal: 'kome', acc: '' };
     S.island = d.island | 0; S.shape = d.shape || ''; S.mountT = +d.mountT || 0;
     S.homeData = d.home && typeof d.home === 'object' ? d.home : { own: {}, hide: {}, theme: 'verao' }; S.homeData.own = S.homeData.own || {}; S.homeData.hide = S.homeData.hide || {};
@@ -506,11 +506,7 @@
       }
     }
     S.slide = S.slide > 0 ? S.slide : Math.max(-31, S.slide - dt);
-    // recarga de segurança (anti-encalhe)
-    if (S.heapArea < S.heapTotal * EC.REFILL_AT && S.house < D.HOUSE.length) {
-      heap.add(4900, S.heapTotal * EC.REFILL_ADD, 1400);
-      ui(() => UI.banner('ARROZ IMPORTADO!', 'um trem despejou mais arroz na montanha', { icon: 'rice' }));
-    }
+    // recarga de segurança (anti-encalhe): agora mora no soCasaTick (só falta a casa), anunciada e longe do núcleo dourado
   }
 
   /* ---- sacos (recompensa variável com antecipação) ---- */
@@ -1084,11 +1080,65 @@
       vilaGo(true, Wd.X.casa, 0.95, 4);   // a casa nova fica na vila: a câmera vai lá mostrar
       if (h.id === 'h2') ui(() => UI.toast('Carta do corretor', { icon: 'house', sub: 'o iene mudou :) o onsen subiu pra ¥70 mi', dur: 6 }));
     }
-    if (S.house >= D.HOUSE.length) { if (dugFrac() >= D.END_DUG) ending(); else if (!FAST) ui(() => UI.toast('Casa pronta!', { icon: 'house', tone: 'gold', sub: 'agora termine a montanha: faltam ' + Math.ceil((D.END_DUG - dugFrac()) * 100) + '%', dur: 6 })); }
+    if (S.house >= D.HOUSE.length) { if (houseFinal()) ending(); else if (!FAST) ui(() => UI.toast('Casa pronta!', { icon: 'house', tone: 'gold', sub: 'agora termine a montanha: faltam ' + Math.ceil((D.END_DUG - dugFrac()) * 100) + '%', dur: 6 })); }
     if (!FAST) saveNow();
     return true;
   }
   const dugFrac = () => (S.heapTotal ? 1 - S.heapArea / S.heapTotal : 0);
+  /* SÓ FALTA A CASA: montanha acabada (D.END_DUG) com a casa por fazer. Nada de recarga calada: aviso uma vez + chip fixo apontando
+     pra Casa (houseChipTick); a compra da última etapa dá o final na hora (S.soCasa vai no save, a montanha pode ter crescido).
+     A montanha só cresce de novo se o dinheiro + a renda não pagam o resto da casa em EC.HOUSE_WAIT s (EC.HOUSE_GRACE s seguidos),
+     anunciada e LONGE do núcleo dourado (o dourado não reaparece do nada). Roda 1x/s, inclusive no modo acelerado (sem tela). */
+  const houseFinal = () => S.house >= D.HOUSE.length && (S.soCasa || dugFrac() >= D.END_DUG);
+  function houseLeft() {   // ¥ que faltam pra casa inteira: etapas que faltam + ferramentas que a etapa mais alta ainda pede
+    let c = 0, tier = 0;
+    for (let i = S.house; i < D.HOUSE.length; i++) { c += houseCost(D.HOUSE[i]); tier = Math.max(tier, D.HOUSE[i].tier); }
+    for (let i = S.tool + 1; i < tier && i < NT; i++) c += toolCost(TOOLS[i]);
+    return c;
+  }
+  function soCasaInfo() {
+    const h = D.HOUSE[S.house]; if (!h) return null;
+    const c = houseCost(h), lock = S.tool + 1 < h.tier ? TOOLS[h.tier - 1].name : '';
+    return { h, c, lock, n: S.house + 1, of: D.HOUSE.length, can: !lock && S.money >= c,
+      line: 'etapa ' + (S.house + 1) + '/' + D.HOUSE.length + ': ' + h.n + (lock ? ' · precisa: ' + lock : ' · ¥ ' + U.fmt(c)) };
+  }
+  function soCasaTick() {
+    if (S.ended || S.house >= D.HOUSE.length) { S.soCasa = false; S.soCasaT = 0; return; }
+    if (!S.soCasa) {
+      if (dugFrac() < D.END_DUG) return;
+      S.soCasa = true; S.soCasaT = 0; S.soCasaToast = true;
+      if (!FAST) saveNow();
+    }
+    if (S.soCasaToast && !FAST && UI && HUD.ready && !cs && !S.endOpen) {   // aviso uma vez (espera a cena/painel fechar)
+      S.soCasaToast = false; const i = soCasaInfo();
+      ui(() => { UI.banner('MONTANHA ACABADA!', 'agora só falta a casa', { icon: 'house', tone: 'gold', level: 3, dur: 3.5 });
+        UI.toast('Agora só falta a casa', { icon: 'house', tone: 'gold', sub: i.line + ' · toque na Casa (lá em cima)', dur: 7 }); });
+      sfx('fanfare');
+    } else if (FAST) S.soCasaToast = false;
+    if (S.heapArea >= S.heapTotal * EC.REFILL_AT) { S.soCasaT = 0; return; }   // ainda tem arroz pra cavar: segue juntando
+    const need = houseLeft() - S.money, eta = need / Math.max(1e-6, S.ips || 0);
+    if (need <= 0 || eta <= EC.HOUSE_WAIT) { S.soCasaT = 0; return; }
+    if (++S.soCasaT < EC.HOUSE_GRACE) return;
+    S.soCasaT = 0; refillHouse();
+  }
+  // a montanha cresce de novo pra juntar o da casa: no lado da montanha sem núcleo (camada com elipse) e longe do Kome
+  function refillHouse() {
+    const rad = EC.REFILL_RAD || 900, ells = MATS().filter(m => m.ellipse).map(m => m.ellipse);
+    let bx = WL.MX0 + rad, best = Infinity;
+    for (let x = WL.MX0 + rad; x <= WL.MX1 - rad; x += 50) {
+      let ov = 0; for (const e of ells) ov += Math.max(0, Math.min(x + rad, e.cx + e.rx) - Math.max(x - rad, e.cx - e.rx));
+      const sc = ov * 10 - Math.abs(x - P.x);
+      if (sc < best) { best = sc; bx = x; }
+    }
+    heap.add(bx, S.heapTotal * EC.REFILL_ADD, rad);
+    S.heapArea = heap.area; S.stats.refills = (S.stats.refills | 0) + 1;
+    if (!FAST) {
+      quake(0.3); sfx('pling');
+      ui(() => { UI.banner('A MONTANHA CRESCEU DE NOVO', 'um trem trouxe arroz pra você juntar o da casa', { icon: 'rice', tone: 'gold', level: 3, dur: 3.5 });
+        UI.toast('Arroz novo pra casa', { icon: 'house', sub: 'faltam ¥ ' + U.fmt(Math.max(0, houseLeft() - S.money)) + ' pra casa inteira · o final sai na última etapa', dur: 6 }); });
+      saveNow();
+    }
+  }
   function ending() {
     S.ended = true; S.endT = S.time; S.stats.earnedEnd = S.earned; computeStats();   // sementes da campanha = até aqui
     const res = G.Islands ? G.Islands.onEnding(S.time) : null;   // tempo e medalha da ilha (sementes extras)
@@ -1120,8 +1170,8 @@
     ];
     if (rf && rf.f > 0) list.splice(1, 0, { icon: 'clock', label: 'Recorde na ' + (G.Faixas ? G.Faixas.name(rf.f) : 'faixa'), value: rf.newT ? (rf.prev ? 'novo! antes ' + U.fmtTime(rf.prev) : 'primeiro tempo') : U.fmtTime(rf.best) + ' (bater o próprio tempo)' });
     const then = () => { S.endOpen = true; HUD.endCard({ rank: ['', 'C', 'A', 'S'][res.medal] || 'B', list }, () => { S.endOpen = false; if (res.modo && G.Modos) G.Modos.after(); else if (G.IslandsUI) G.IslandsUI.open(); else pickMountain(); }); };
-    if (res.last && !S.stats.legend && !res.modo) csPlay('finale', () => { S.stats.legend = 1; if (S.closet.indexOf('nihon') < 0) S.closet.push('nihon'); computeStats(); saveNow(); then(); });
-    else csPlay('ilhafim', then);
+    if (res.last && !S.stats.legend && !res.modo) csPlay('ultimo', () => csPlay('finale', () => { S.stats.legend = 1; if (S.closet.indexOf('nihon') < 0) S.closet.push('nihon'); computeStats(); saveNow(); then(); }));   // último grão + Kome em casa, depois o Kome-Oh
+    else csPlay('ilhafim', then);   // ilhafim já traz o último grão e o Kome em casa antes da medalha
   }
   function welcome(i) { ui(() => UI.banner('Bem-vindo a ' + i.n + '!', i.hook || i.d, { icon: 'star', tone: 'gold', dur: 3.5 })); sfx('fanfare'); }
   // ilha espelhada (scene.mirror): a montanha fica à ESQUERDA. Só o desenho e a entrada viram; a simulação é a mesma
@@ -1213,7 +1263,7 @@
     if (!FAST) slideTick(dt);
     if (!FAST && heap.flow > 30 && Math.random() < Math.min(0.9, heap.flow / 400)) trickle(heap.flowX, 1 + (heap.flow > 300 ? 2 : 0));
     S.heapArea = heap.area;
-    S.footT -= dt; if (S.footT <= 0) { S.footT = 1; S.footX = scanFoot(); if (!S.ended && S.house >= D.HOUSE.length && dugFrac() >= D.END_DUG && !cs) ending(); }   // final = casa pronta + montanha acabada
+    S.footT -= dt; if (S.footT <= 0) { S.footT = 1; S.footX = scanFoot(); soCasaTick(); if (!S.ended && houseFinal() && !cs) ending(); }   // final = casa pronta + montanha acabada (ou acabou antes da casa)
     celeTick(dt);
     fleetTick(dt);
     collectorTick(dt);
@@ -2196,6 +2246,17 @@
       const vc = HUD.chip({ id: 'vila', icon: 'house', label: 'Vila', order: 10, tone: '#FFE3EE', show: false, onClick: () => vilaGo(!vila.on) });
       const tick = () => { if (vc) vc.set({ label: vila.on ? 'Montanha' : 'Vila', icon: vila.on ? 'mount' : 'house', show: !!(S.stats.tipDone || S.time > 31) }); };
       setInterval(tick, 300); tick();
+      // chip "Só falta a casa" (montanha acabada antes da casa): fica até a casa ficar pronta; toca = compra a etapa (ou diz quanto falta)
+      const hc = HUD.chip({ id: 'socasa', icon: 'house', label: 'Só falta a casa', order: 2, tone: '#FFE9A8', show: false, onClick: () => { buyHouse(); } });
+      let flyEl = null;
+      const htick = () => {
+        const on = !!(S.soCasa && !S.ended && S.house < D.HOUSE.length), i = on ? soCasaInfo() : null;
+        if (hc) hc.set(on ? { show: true, prio: 10, hint: 'etapa ' + i.n + '/' + i.of + (i.lock ? ' · ' + i.lock : i.can ? ' · comprar!' : ' · ¥ ' + U.fmt(i.c)),
+          tip: 'Montanha acabada! Agora só falta a casa. ' + i.line, act: i.can ? 'Comprar' : 'Ver' } : { show: false, prio: 0 });
+        if (!flyEl || !flyEl.isConnected) flyEl = document.querySelector('.k-flyer');
+        if (flyEl) flyEl.classList.toggle('k-pulse', on);   // a "setinha": o cartão da Casa pulsa enquanto ela é o que falta
+      };
+      setInterval(htick, 500); htick();
       // chip "Ver o Pátio": aparece depois do final, com alguma turma no Pátio da Frota (ele mora depois da estátua do Kome-Oh)
       const pc = HUD.chip({ id: 'verpatio', icon: 'paw', label: 'Ver o Pátio', order: 16, tone: '#E8F4D8', show: false, onClick: () => patioTour() });
       const ptick = () => { if (pc) pc.set({ show: !ptour && patioHas() }); };

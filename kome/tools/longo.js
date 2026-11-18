@@ -25,7 +25,9 @@ const CHUNK = `((secs) => {
     K.step(1); K.tapAll();
     if (G.Events && G.Events.sim.pending()) { const id = G.Events.live(); G.Events.sim.tap(); note('dourado', 'evento ' + id); }
     if (s % 3) continue;
-    for (let guard = 0; guard < 8; guard++) {
+    const hs = S.soCasa && !S.ended && D.HOUSE[S.house];   // só falta a casa (montanha acabada): junta tudo pra casa
+    if (hs) { if (S.tool + 1 < hs.tier) { if (K.buyTool()) note('tool', 'ferramenta pra casa: ' + K.tool.name); } else if (K.buyHouse()) note('casa', 'casa: ' + hs.n + ' (só faltava a casa)'); }
+    for (let guard = 0; guard < 8 && !hs; guard++) {
       // candidatos: [custo, rótulo, tipo, compra]
       const C = [];
       const t = D.TOOLS[S.tool + 1];

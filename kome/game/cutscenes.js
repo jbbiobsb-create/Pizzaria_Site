@@ -330,6 +330,27 @@
       } },
     ],
   };
+    /* O ÚLTIMO GRÃO + KOME EM CASA: o momento do fim que o dono gosta. Entra no final da campanha (depois da planície), no fim de
+       cada ilha (antes da medalha) e antes do Grande Final (cena 'ultimo'). Montanha acabada antes da casa também cai aqui (ending). */
+    const lastGrain = { dur: 3.4, cap: 'Sobrou um grão. O último.', draw(g, k, t) {
+      const gy = H * 0.8, r = csIsland(g, gy, t), mx = W * 0.6;
+      g.globalAlpha = 0.22; g.fillStyle = '#F29C6B'; g.fillRect(0, 0, W, gy); g.globalAlpha = 1;   // fim de tarde
+      Draw.poly(g, [[mx - 46, gy + 1], [mx - 14, gy - 12], [mx + 14, gy - 12], [mx + 46, gy + 1]], PAL.rice || '#F6F1E4', { ol: 2 });   // montinho
+      const walk = U.clamp(k / 0.45, 0, 1), kx = W * 0.2 + (mx - 64 - W * 0.2) * walk, up = U.clamp((k - 0.55) / 0.2, 0, 1);
+      const pose = walk < 1 ? 'walk' : k < 0.55 ? 'sniff' : 'cheer';
+      E.drawShiba(g, kx, gy, pose, t, { scale: 2.6, pal: S.look.pal, face: 1 });
+      const gx = mx + (kx + 14 - mx) * up, gyy = gy - 16 - up * 112, sp = 0.5 + 0.5 * Math.sin(t * 9);
+      if (up > 0.6) { g.globalAlpha = 0.35 + 0.3 * sp; Draw.circle(g, gx, gyy, 16 + sp * 6, '#FFF3B0', { ol: 0 }); g.globalAlpha = 1; }
+      g.save(); g.translate(gx, gyy); g.rotate(0.5 + up * 2.6);
+      g.fillStyle = '#FFFDF4'; g.strokeStyle = CS_LINE; g.lineWidth = 2; g.beginPath(); g.ellipse(0, 0, 7, 4, 0, 0, 6.3); g.fill(); g.stroke(); g.restore();
+      for (let i = 0; i < 4 && up > 0.8; i++) { const a = t * 3 + i * 1.57, d = 22 + 6 * Math.sin(t * 5 + i); Draw.circle(g, gx + Math.cos(a) * d, gyy + Math.sin(a) * d, 2.4, PAL.gold, { ol: 0 }); }
+      csAir(g, t, r.fc);
+    } };
+    const homeShot = SHOTS.final[1];   // a casa com onsen e o Kome de molho
+    const homeIsl = { dur: 4.2, get cap() { return 'Casa pronta em ' + ISL().n + ': onsen quentinho e pé pra cima.'; }, draw: homeShot.draw };
+    SHOTS.final.splice(1, 0, lastGrain);
+    SHOTS.ilhafim.splice(1, 0, lastGrain, homeIsl);
+    SHOTS.ultimo = [lastGrain, homeIsl];
     return SHOTS;
   };
 })();

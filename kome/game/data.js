@@ -59,6 +59,9 @@
     PAY_BATCH: 0.4,         // ferramentas contínuas pagam em lotes
     SURPRISE: 1 / 120, SURPRISE_MULT: 3,
     REFILL_AT: 0.04, REFILL_ADD: 0.12,
+    // SÓ FALTA A CASA (montanha acabada antes da casa): a montanha só cresce de novo se o dinheiro + a renda não pagam o resto da
+    // casa (e a ferramenta que ela pede) em HOUSE_WAIT s, por HOUSE_GRACE s seguidos. Recarga longe do núcleo dourado (raio REFILL_RAD)
+    HOUSE_WAIT: 150, HOUSE_GRACE: 10, REFILL_RAD: 900,
     // Renda que o GDD conta e a Fase 1 ainda não tem (missões, visitantes, selos +2%/degrau, conquistas +1% cada) entra
     // como um multiplicador por degrau. Foi afinado com tools/playtest.js --auto. Quando a Fase 2 ligar esses sistemas,
     // baixar estes números (o da Bagger já é baixo de propósito: a fase dela tem que durar ~10 min).
