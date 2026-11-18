@@ -7,6 +7,7 @@
   const E = window.Pixxel, G = (window.KomeGame = window.KomeGame || {});
   const U = E.U, UI = E.UI, D = G.Data, PAL = E.PAL;
   const HUD = (G.HUD = { ready: false, zones: {} });
+  let swapFab = null, swapOn = false, swapId = '', swapT = 0, swapPos = '';
   let api, S, ui, swapBtn, swapPanel, yenPill, rate, combo, mount, flyer, toolBtn, slots = [], hornBtn, treeBtn, treePanel, tree, aj, slotNodes = [];
   let acc = 0, sampleT = 0, lastComboTone = '';
 
@@ -20,9 +21,25 @@
   if (UI && UI.defineIcon) {
     UI.defineIcon('mount', (P, C) => { P.poly([[0, 14], [6, 3], [10, 9], [12, 6], [16, 14]], C.gold || '#E0B040').poly([[4, 7], [6, 3], [8, 6]], '#FFF8EC').rect(0, 14, 16, 2, '#7A5034'); });
     UI.defineIcon('factory', (P, C) => { P.rect(11, 1, 3, 7, '#8A5A44').rect(1, 8, 14, 7, C.red || '#C8423A').poly([[1, 8], [5, 5], [5, 8], [9, 5], [9, 8]], C.red || '#C8423A').rect(3, 10, 2, 2, '#FFF3B0').rect(7, 10, 2, 2, '#FFF3B0').rect(11, 10, 2, 5, '#5A3A28'); });
+    UI.defineIcon('more', (P) => { P.rect(1, 6, 4, 4, '#3B2818').rect(6, 6, 4, 4, '#3B2818').rect(11, 6, 4, 4, '#3B2818').rect(2, 7, 2, 1, '#8A6A50').rect(7, 7, 2, 1, '#8A6A50').rect(12, 7, 2, 1, '#8A6A50'); });
     UI.defineIcon('drill', (P, C) => { P.rect(1, 5, 8, 7, '#C9D2DA').rect(1, 7, 8, 1, '#8794A0').poly([[9, 3], [15, 8], [9, 13]], C.gold || '#E0B040').rect(11, 6, 1, 5, '#9A6A20').rect(2, 12, 2, 2, '#5A3A28').rect(6, 12, 2, 2, '#5A3A28'); });
   }
   const chips = []; let chipRow = null, chipFitT = 0;
+  /* chips SECUNDÁRIOS (atalho pra tela que não pede ação agora): com 2+ ligados eles vão pra gaveta "Mais" (um chip só);
+     o secundário QUENTE (o de maior prio com hint) continua na fileira pra o aviso não sumir. HUD.chipEl(id) = o elemento
+     que está na tela pra esse chip (ele mesmo ou o "Mais"), pra dica apontar. */
+  const SEC = { cidade: 1, verpatio: 1, amuletos: 1, escada: 1 };
+  let more = null, moreBox = null, moreSig = '', moreT = 0, chipDemo = false;
+  function moreClose() { if (moreBox && moreBox.classList.contains('k-open')) { moreBox.classList.remove('k-open'); clearTimeout(moreT); } }
+  function moreOpen() {
+    if (!moreBox || !more) return;
+    if (moreBox.classList.contains('k-open')) { moreClose(); return; }
+    chipPopClose(); moreBox.classList.add('k-open');
+    const e = more.el, x = chipRow.offsetLeft + e.offsetLeft + e.offsetWidth / 2, half = moreBox.offsetWidth / 2;
+    moreBox.style.left = Math.round(x - half) + 'px'; moreBox.style.top = Math.round(chipRow.offsetTop + e.offsetTop + e.offsetHeight + 8) + 'px';
+    clearTimeout(moreT); moreT = setTimeout(moreClose, 9000);
+  }
+  document.addEventListener('pointerdown', e => { if (moreBox && moreBox.classList.contains('k-open') && !moreBox.contains(e.target) && !(more && more.el.contains(e.target))) moreClose(); }, true);
   function chipFit() {   // largura máxima: do fim do iene/¥-s até o começo do cartão da casa, medido na tela (vale pra celular)
     if (!chipRow || !yenPill) return;
     const pr = chipRow.parentNode.getBoundingClientRect(), k = pr.width / (chipRow.parentNode.offsetWidth || 1) || 1, cx = pr.left + pr.width / 2;
@@ -34,15 +51,32 @@
   }
   function chipLayout() {
     let top = null;
-    for (const c of chips) if (c.on && c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
+    const isOn = c => c !== more && (c.on || chipDemo);
+    for (const c of chips) if (isOn(c) && c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
+    // gaveta "Mais": só mexe no DOM quando o conjunto dobrado muda
+    const sec = chips.filter(c => isOn(c) && SEC[c.id] && c !== top), fold = sec.length >= 2;
+    const sig = fold ? sec.map(c => c.id).join(',') : '';
+    if (sig !== moreSig && more) {
+      moreSig = sig;
+      for (const c of chips) { c.fold = fold && sec.indexOf(c) >= 0; if (c !== more) (c.fold ? moreBox : chipRow).appendChild(c.el); }
+      chipRow.appendChild(more.el);
+      if (!fold) moreClose();
+    }
+    if (more) {
+      const mo = fold, dot = mo && sec.some(c => c.prio > 0), lb = 'Mais ' + sec.length;
+      if (more.el.style.display !== (mo ? '' : 'none')) more.el.style.display = mo ? '' : 'none';
+      if (more.b.textContent !== (mo ? lb : 'Mais')) more.b.textContent = mo ? lb : 'Mais';
+      more.el.classList.toggle('k-chip-dot', dot);
+    }
     for (const c of chips) {
-      const hot = c === top, e = c.el;
-      e.style.display = c.on ? '' : 'none';
+      if (c === more) continue;
+      const hot = c === top, e = c.el, on = isOn(c);
+      e.style.display = on ? '' : 'none';
       e.classList.toggle('k-chip-hot', hot); e.classList.toggle('k-pulse', hot);
-      e.classList.toggle('k-chip-dot', !hot && c.on && c.prio > 0);
+      e.classList.toggle('k-chip-dot', !hot && on && c.prio > 0);
       // celular: a fileira fica em UMA linha; o detalhe do chip quente vira balãozinho embaixo dele (game.css .k-mob)
       const mob = document.body.classList.contains('k-mob'), lb = hot && c.hot && !mob ? c.hot : c.label;
-      const hi = !hot ? '' : mob ? (c.hot ? c.hot + ' · ' : '') + c.hint : '· ' + c.hint;
+      const hi = !hot ? (c.fold && c.prio > 0 && c.hint ? c.hint : '') : mob ? (c.hot ? c.hot + ' · ' : '') + c.hint : '· ' + c.hint;
       if (c.b.textContent !== lb) c.b.textContent = lb;
       if (c.sm.textContent !== hi) c.sm.textContent = hi;
       const tn = hot ? '' : (c.tone || ''); if (e.style.background !== tn) e.style.background = tn;
@@ -68,7 +102,12 @@
   document.addEventListener('pointerdown', e => { if (chipPop && !chipPop.el.contains(e.target) && !chipPop.c.el.contains(e.target)) chipPopClose(); }, true);
   HUD.chip = function (o) {
     const Z = HUD.zones.tc; if (!Z || !UI) return null;
-    if (!chipRow) { chipRow = document.createElement('div'); chipRow.className = 'k-chips'; Z.appendChild(chipRow); window.addEventListener('resize', () => setTimeout(chipFit, 60)); }
+    if (!chipRow) {
+      chipRow = document.createElement('div'); chipRow.className = 'k-chips'; Z.appendChild(chipRow); window.addEventListener('resize', () => setTimeout(chipFit, 60));
+      moreBox = document.createElement('div'); moreBox.className = 'k-chip-more'; Z.appendChild(moreBox);
+      moreBox.addEventListener('pointerdown', e => e.stopPropagation());
+      more = HUD.chip({ id: 'mais', icon: 'more', label: 'Mais', order: 999, tone: '#F2EBDD', show: false, onClick: () => moreOpen() });
+    }
     const b = document.createElement('button'); b.className = 'k-btn k-chip'; b.setAttribute('data-chip', o.id);
     b.innerHTML = '<span class="k-chip-i"></span><b></b><small></small>';
     const c = { id: o.id, el: b, b: b.querySelector('b'), sm: b.querySelector('small'), ic: b.querySelector('.k-chip-i'), label: o.label || '', hot: '', hint: '', prio: 0, on: o.show !== false, tone: o.tone || '', order: o.order || 0, icon: null };
@@ -85,13 +124,24 @@
     b.addEventListener('click', e => {
       e.stopPropagation(); b.blur();
       const open = chipPop && chipPop.c === c; chipPopClose();
+      if (c.fold) { moreClose(); if (o.onClick) o.onClick(e); return; }   // dentro da gaveta "Mais": age direto
       if (c.tip && !b.classList.contains('k-chip-hot') && document.body.classList.contains('k-mob')) { if (!open) chipPopOpen(c, o); return; }   // toque: 1º mostra, botão age
       if (o.onClick) o.onClick(e);
     });
     let at = null; for (const q of chips) if (q.order > c.order) { at = q; break; }
-    chips.splice(at ? chips.indexOf(at) : chips.length, 0, c); chipRow.insertBefore(b, at ? at.el : null);
+    chips.splice(at ? chips.indexOf(at) : chips.length, 0, c);
+    let ref = null; for (let i = chips.indexOf(c) + 1; i < chips.length; i++) if (chips[i].el.parentNode === chipRow) { ref = chips[i].el; break; }
+    chipRow.insertBefore(b, ref); moreSig = '-';   // recalcula a gaveta com o chip novo
     return c.set({ icon: o.icon || 'star' });
   };
+  // HUD.chipEl(id): o que está na tela pra esse chip (ele, ou o "Mais" se está na gaveta); null se apagado
+  HUD.chipEl = function (id) {
+    const c = chips.find(q => q.id === id && (q.on || chipDemo) && q.el.style.display !== 'none' && q.el.offsetParent);
+    if (!c) { const any = chips.find(q => q.id === id && q.on && q.fold); return any && more && more.el.style.display !== 'none' ? more.el : null; }
+    return c.fold ? (more && more.el.style.display !== 'none' ? more.el : null) : c.el;
+  };
+  // prints/sweep: liga todos os chips (fileira cheia) e abre a gaveta
+  HUD.chipDemo = function (on) { chipDemo = on !== false; chipLayout(); if (chipDemo) setTimeout(moreOpen, 60); else moreClose(); };
   function icon(id) { return G.Props ? G.Props.icon(id) : 'paw'; }
 
   // descrição curta do efeito de um nó (a partir do fx)
@@ -182,8 +232,22 @@
     UI.spacer(Z.dock);
     hornBtn = UI.button(Z.dock, { icon: 'horn', tone: 'red', onClick: () => api.horn() });
     hornBtn.el.style.display = 'none';
-    swapBtn = UI.button(Z.dock, { icon: 'swap', label: 'Trocar de ferramenta', onClick: () => openSwap() });   // fica escondido: agora mora no Menu do Kome
-    UI.tooltip(swapBtn, 'Trocar de lugar: jogue com qualquer ferramenta que você já comprou');
+    // TROCAR DE MÁQUINA: botão grande com o ícone da máquina que você está pilotando + setinhas de troca.
+    // PC: na barra de baixo, antes da Árvore (tecla T). Celular: redondo, colado no CAVAR (em cima dele deitado, ao lado em pé).
+    swapBtn = UI.button(Z.dock, { icon: icon('hashi'), iconSize: 40, cls: 'k-swapbtn', label: 'Trocar de máquina', onClick: () => openSwap() });
+    UI.el('span', 'k-swap-mark', swapBtn.el).appendChild(UI.iconEl('swap', 18));
+    UI.tooltip(swapBtn, () => '<b>Trocar de máquina</b> (tecla T)<br>jogando com: ' + swapName() + '<br>pilote qualquer uma que você já comprou');
+    swapFab = UI.button(ui.hud, { icon: icon('hashi'), iconSize: 36, cls: 'k-swapfab', label: 'Trocar de máquina', onClick: () => openSwap() });
+    UI.el('span', 'k-swap-mark', swapFab.el).appendChild(UI.iconEl('swap', 16));
+    swapBtn.el.style.display = swapFab.el.style.display = 'none';
+    addEventListener('resize', () => setTimeout(swapPlace, 120));
+    document.addEventListener('keydown', e => {
+      if ((e.key !== 't' && e.key !== 'T') || e.ctrlKey || e.metaKey || e.altKey || e.repeat || !swapOn) return;
+      const tg = e.target; if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return;
+      if (swapPanel && swapPanel.isOpen) { swapPanel.close(); return; }
+      if (document.querySelector('.k-dim.k-show') || (G.Home && G.Home.isOpen())) return;
+      openSwap();
+    });
     treeBtn = UI.button(Z.dock, { icon: 'tree', title: 'Árvore', sub: 'do Kome', badge: 0, onClick: () => treePanel.open() });
 
     // árvore: mapa de nós da engine
@@ -384,8 +448,39 @@
     for (const n of D.TREE) if (!S.own[n.id] && S.money >= api.nodeCost(n) && api.nodeState(n) === 'open') nAff++;
     treeBtn.set({ badge: nAff });
     hornBtn.el.style.display = S.own.b0 && api.playing && api.playing().kind === 'bagger' ? '' : 'none';
-    (swapBtn.el || swapBtn).style.display = 'none';   // trocar ferramenta agora fica no Menu do Kome (menos botão na tela do celular)
+    swapTick(dt);
   };
+
+  /* ---- trocar de máquina: só toca no DOM quando muda (aparece, troca de máquina, muda de lugar) ---- */
+  function swapName() { const p = api.playing && api.playing(); return S.twinPlay ? 'Bagger Gêmea' : p ? p.name || (D.TOOLS.find(t => t.id === p.id) || {}).name || p.id : '…'; }
+  function swapTick(dt) {
+    const on = S.tool >= 1 || !!(api.twinReady && api.twinReady());
+    if (on !== swapOn) { swapOn = on; swapBtn.el.style.display = swapFab.el.style.display = on ? '' : 'none'; swapPos = ''; }
+    if (!on) return;
+    const p = api.playing && api.playing(), id = S.twinPlay ? 'bagger' : p ? p.id : 'hashi';
+    if (id !== swapId) {
+      swapId = id; swapBtn.set({ icon: icon(id) }); swapFab.set({ icon: icon(id) });
+      const lb = 'Trocar de máquina (jogando com ' + swapName() + ')'; swapBtn.el.setAttribute('aria-label', lb); swapFab.el.setAttribute('aria-label', lb);
+    }
+    if ((swapT -= dt) <= 0) { swapT = 0.5; swapPlace(); }
+  }
+  // celular: lê onde está o CAVAR e encosta o botão nele (deitado: em cima; em pé ou sem espaço em cima: do lado esquerdo)
+  function swapPlace() {
+    if (!swapFab || !swapOn || !document.body.classList.contains('k-mob')) return;
+    const dg = document.querySelector('.k-dig'), r = dg && dg.getBoundingClientRect(), hb = ui.hud.getBoundingClientRect();
+    let pos = 'none';
+    if (r && r.width && hb.width) {
+      const k = hb.width / (ui.hud.offsetWidth || hb.width), s = 60 * k, gap = 12 * k, port = innerHeight > innerWidth * 1.1;
+      let trB = 0; const tr = document.querySelector('.k-zone-tr'); if (tr) { const b = tr.getBoundingClientRect(); trB = b.bottom; }
+      let x = r.left + (r.width - s) / 2, y = r.top - s - gap;
+      if (port || y < trB + gap) { x = r.left - s - gap * 1.4; y = r.top + (r.height - s) / 2; }
+      pos = Math.round((x - hb.left) / k) + ',' + Math.round((y - hb.top) / k);
+    }
+    if (pos === swapPos) return; swapPos = pos;
+    const st = swapFab.el.style;
+    if (pos === 'none') { st.visibility = 'hidden'; return; }
+    const [l, t] = pos.split(','); st.visibility = ''; st.left = l + 'px'; st.top = t + 'px';
+  }
 
   HUD.bump = function () { if (HUD.ready && yenPill.bump) yenPill.bump(); };
   // botão da Oficina depois do final: mostra a Bagger Gêmea (que mora dentro da Oficina, na prancheta azul) até ela ficar pronta

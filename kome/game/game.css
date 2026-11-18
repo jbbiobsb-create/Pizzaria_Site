@@ -148,3 +148,30 @@ body.k-vila .k-zone-dock *,body.k-vila .k-vpad *{pointer-events:none !important}
 .k-chip-go{min-height:44px;padding:4px 12px;font-size:13px;background:#DDF0C2}
 body.k-vila-auto .k-vpad,body.k-vila-auto .k-digonly{opacity:.35 !important;pointer-events:none !important}
 body.k-vila-auto .k-vpad *{pointer-events:none !important}
+/* ---- trocar de máquina (game-ui.js swapTick/swapPlace): PC = barra de baixo, celular = redondo colado no CAVAR ---- */
+.k-btn.k-icon.k-swapbtn{width:64px;min-width:64px;height:56px;position:relative;background:#FFE9A8;overflow:visible}
+.k-swap-mark{position:absolute;right:-7px;bottom:-7px;width:24px;height:24px;box-sizing:border-box;border-radius:50%;background:#FFFAEE;border:2px solid #3B2818;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.k-mob .k-swapbtn{display:none !important}
+body:not(.k-mob) .k-swapfab{display:none !important}
+.k-btn.k-icon.k-swapfab{position:absolute;left:-300px;top:0;width:60px;min-width:60px;height:60px;border-radius:50%;background:#FFE9A8;pointer-events:auto;overflow:visible;transition:opacity .25s}
+body.k-vila .k-swapfab,body.k-night .k-swapfab,body.k-panelopen .k-swapfab,body.k-athome .k-swapfab{opacity:0;pointer-events:none}
+/* gaveta "Mais" dos chips secundários (Cidade, Ver o Pátio, Amuletos, Escada) */
+.k-chip-more{position:absolute;z-index:7;display:none;flex-direction:column;align-items:stretch;gap:6px;padding:8px;background:#FFF6DE;border:2px solid #3B2818;border-radius:14px;box-shadow:0 3px 0 rgba(59,40,24,.35);pointer-events:auto}
+.k-chip-more.k-open{display:flex}
+.k-chip-more .k-chip{justify-content:flex-start;max-width:none;flex:0 0 auto}
+.k-chip-more .k-chip small{display:inline;position:static;border:0;background:none;padding:0;box-shadow:none}
+.k-chip-more .k-chip small::before{display:none}
+/* ---- dicas de mecânica nova (game/dicas.js): anel no alvo + cartãozinho com seta; nunca pausa o jogo ---- */
+.k-dica-ring{position:fixed;z-index:9690;border:4px solid #F3C94A;border-radius:16px;pointer-events:none;animation:kcoach 1.1s ease-out infinite;display:none}
+.k-dica{position:fixed;z-index:9691;width:min(320px,calc(100vw - 24px));box-sizing:border-box;background:var(--k-cream,#FFFAEE);border:3px solid var(--k-ink,#3B2818);border-radius:14px;box-shadow:0 4px 0 var(--k-ink,#3B2818);padding:9px 12px 10px;font-family:var(--k-font,system-ui,sans-serif);font-weight:700;color:var(--k-ink,#3B2818);opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s}
+.k-dica.k-on{opacity:1;transform:none}
+.k-dica b{display:block;font-size:15px;font-weight:900;margin-bottom:2px}
+.k-dica span{display:block;font-size:13px;line-height:1.3}
+.k-dica-row{display:flex;align-items:center;gap:8px;margin-top:7px}
+.k-dica-row small{font-size:11px;opacity:.65;flex:1}
+.k-dica-ok{min-height:44px;font-size:14px;padding:4px 16px;background:#FFE9A8}
+.k-dica-arrow{position:absolute;left:var(--k-ax,50%);width:0;height:0;margin-left:-9px;border:9px solid transparent;display:none}
+.k-dica.k-up .k-dica-arrow{display:block;top:-12px;border-top:0;border-bottom:11px solid var(--k-ink,#3B2818)}
+.k-dica.k-down .k-dica-arrow{display:block;bottom:-12px;border-bottom:0;border-top:11px solid var(--k-ink,#3B2818)}
+@media (prefers-reduced-motion:reduce){.k-dica-ring{animation:none}.k-dica{transition:none}}
+.k-chips{position:relative}
