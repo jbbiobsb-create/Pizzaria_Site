@@ -2,8 +2,17 @@
 /* Kome tools: SIMULADOR DE HORAS — joga o jogo inteiro acelerado (campanha → modo infinito → ilhas → ...) com um jogador
    guloso e mede o que importa pra um jogo de 100 h: quanto dura cada fase, e principalmente ONDE fica chato
    (trecho sem nada novo aparecendo, renda travada). Só imprime o resumo.
-   uso: node tools/longo.js [--horas 10] [--verbose] [--chato 10] [--json saida.json]
+   uso: node tools/longo.js [--horas 10] [--verbose] [--chato 10] [--json saida.json] [--perfil casual] [--campanha-gulosa]
      --chato N   minutos sem novidade que contam como "trecho chato" (padrão 10)
+     --perfil casual   JOGADOR DE VERDADE (o pai do dono no celular) em vez do robô guloso: cava em rajadas e para pra olhar
+                 (parado ~40% do tempo), mira de vez em quando (não a cada segundo), olha a loja a cada 6–20 s e compra UMA coisa
+                 que dá pra comprar entre as que estão à vista (próxima ferramenta, casa, os 3 nós mais baratos), sem planejar;
+                 pega só parte dos sacos/onigiris/eventos dourados, escolhe amuleto no escuro e gasta as sementes clicando ao
+                 acaso (até 60 cliques). Números do perfil: CAS, logo abaixo. O ritmo das ilhas é afinado pros DOIS perfis
+                 (docs/medicoes/ilhas-casual.txt): casual 30–45 min, guloso ≥ 12–15 min.
+     --campanha-gulosa   com --perfil casual: a 1ª campanha (Honshu, até a 1ª viagem) joga no guloso pra chegar logo nas ilhas
+     --salva arq   guarda o save na chegada de cada ilha (antes de gastar as sementes) em arq.1, arq.2… (nº da viagem)
+     --de arq.N    começa daquele save (pula a campanha: afinar uma ilha leva 1–2 min) · --finais N  para depois de N finais
    Novidade = ferramenta, etapa da casa, nó da árvore, peça da Gêmea, nível de fábrica/loja, enfeite/bicho da Casa,
    conquista, ilha nova, montanha nova, marco da Oficina (nível 10/25/50). Roda em segundo plano se quiser:
    `node tools/longo.js --horas 100 > %TEMP%/longo.txt` (100 h simuladas ≈ 1 h real). */
@@ -12,22 +21,40 @@ const { launch } = require('./pw');
 const a = process.argv.slice(2), val = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d), has = k => a.includes(k);
 const HORAS = +val('--horas', 10), CHATO = +val('--chato', 10) * 60, LIM = HORAS * 3600;
 const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
+const PERFIL = val('--perfil', 'guloso'), CAMP_GULOSA = has('--campanha-gulosa');
+// perfil casual (segundos): rajada cavando / pausa olhando · de quanto em quanto mira · olha a loja · toca nos sacos (e a chance) ·
+// chance por segundo de tocar no evento dourado · compras por olhada depois do final (Pátio) · cliques na árvore de sementes
+const CAS = { on: [12, 40], off: [8, 30], aim: [3, 7], loja: [6, 20], saco: [4, 9], sacoP: 0.6, dourP: 0.08, patioN: 3, sementes: 60 };
 
 // um bloco de simulação dentro da página: joga `secs` segundos e devolve as novidades
-const CHUNK = `((secs) => {
+const CHUNK = `((secs, CAS) => {
   const K = __kome, D = K.data, S = K.S, G = KomeGame, out = [], t0 = S.time;
+  const rnd = r => r[0] + Math.random() * (r[1] - r[0]);
+  // casual: o estado mora na página (a viagem recarrega e ele recomeça numa rajada)
+  const c = CAS ? (window.__cas || (window.__cas = { on: true, left: rnd(CAS.on), aimT: 0, ax: 0, ay: 0, lojaT: rnd(CAS.loja), sacoT: rnd(CAS.saco) })) : null;
+  if (G.Amuletos && G.Amuletos.sim) G.Amuletos.sim.acaso = !!CAS;
   const note = (k, txt) => out.push({ t: S.time - t0, k, txt });
   const achN = () => Object.keys(S.stats.ach || {}).length + Object.keys((S.stats.heart || {}).ach || {}).length;
   let ach0 = achN(), esc0 = G.Escada ? G.Escada.total() : 0;
   for (let s = 0; s < secs && !(S.stats.simTravel); s++) {
     const ph = S.time % 20;
+    if (c) {   // casual: rajada cavando com a mira velha, pausa olhando a tela
+      if ((c.left -= 1) <= 0) { c.on = !c.on; c.left = rnd(c.on ? CAS.on : CAS.off); c.aimT = 0; }
+      if (c.on) { if ((c.aimT -= 1) <= 0) { const p = K.aim(); c.ax = p.x; c.ay = p.y; c.aimT = rnd(CAS.aim); } K.hold(c.ax, c.ay, true); } else K.hold(0, 0, false);
+      K.step(1);
+      if (c.on && (c.sacoT -= 1) <= 0) { c.sacoT = rnd(CAS.saco); if (Math.random() < CAS.sacoP) K.tapAll(); }
+      if (c.on && G.Events && G.Events.sim.pending() && Math.random() < CAS.dourP) { const id = G.Events.live(); G.Events.sim.tap(); note('dourado', 'evento ' + id); }
+      if ((c.lojaT -= 1) > 0) continue;
+      c.lojaT = rnd(CAS.loja);
+    } else {
     if (ph < 17) { const p = K.aim(); K.hold(p.x, p.y, true); } else K.hold(0, 0, false);
     K.step(1); K.tapAll();
     if (G.Events && G.Events.sim.pending()) { const id = G.Events.live(); G.Events.sim.tap(); note('dourado', 'evento ' + id); }
     if (s % 3) continue;
+    }
     const hs = S.soCasa && !S.ended && D.HOUSE[S.house];   // só falta a casa (montanha acabada): junta tudo pra casa
     if (hs) { if (S.tool + 1 < hs.tier) { if (K.buyTool()) note('tool', 'ferramenta pra casa: ' + K.tool.name); } else if (K.buyHouse()) note('casa', 'casa: ' + hs.n + ' (só faltava a casa)'); }
-    for (let guard = 0; guard < 8 && !hs; guard++) {
+    for (let guard = 0, gmax = c ? (S.ended ? CAS.patioN : 1) : 8; guard < gmax && !hs; guard++) {
       // candidatos: [custo, rótulo, tipo, compra]
       const C = [];
       const t = D.TOOLS[S.tool + 1];
@@ -62,7 +89,12 @@ const CHUNK = `((secs) => {
         if (H) { const own = (S.homeData || {}).own || {}; for (const it of D.DECOR) if (!own[it.id] && (!it.needs || own[it.needs])) C.push([H.cost(it), 'casa: ' + it.n, 'enfeite', () => { const m = S.money; H.buy(it); return S.money < m; }]); }
       }
       C.sort((x, y) => x[0] - y[0]);
-      const best = C[0]; if (!best || !(best[0] <= S.money)) break;
+      let best = C[0];
+      if (c) {   // casual: só o que está à vista (ferramenta, casa, 3 nós mais baratos; depois do final, o resto) e dá pra comprar agora; 1 ao acaso
+        let nn = 0; const V = C.filter(x => (x[2] !== 'no' || nn++ < 3) && x[0] <= S.money);
+        best = V[Math.random() * V.length | 0];
+      }
+      if (!best || !(best[0] <= S.money)) break;
       if (best[3]() === false) break;
       note(best[2], best[1]);
     }
@@ -89,16 +121,32 @@ const SEEDS = `(() => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I 
 const STATS = `(() => { const S = __kome.S, s = S.stats, G = KomeGame, f = v => Number(v || 0).toExponential(2);
   return JSON.stringify({ graos: f(((s.dugAll || 0) + S.dug) * 40), yen: f((s.earnedAll || 0) + S.earned), sacos: s.sacks | 0, bolsoes: s.pockets | 0, oni: s.onigiri | 0,
     dour: s.goldEv | 0, ilhas: s.islandsDone | 0, faixa: s.lap | 0, amul: s.amPick | 0, cor: (s.city && s.city.hearts) | 0, graus: G.Escada ? G.Escada.total() : 0 }); })()`;
+// casual: clica nas sementes ao acaso entre as que dá pra comprar (a absurda quando aparece), até CAS.sementes cliques
+const SEEDS_CAS = `((N) => { const S = __kome.S, G = KomeGame, I = G.Islands; if (!I || !I.sim) return 0; let n = 0;
+  const lv = id => (S.stats.sl || {})[id] | 0;
+  for (let g = 0; g < N; g++) { const have = Math.floor(S.stats.seeds || 0), L = KomeGame.Data.SEEDS.filter(s => (!s.max || lv(s.id) < s.max) && (!s.req || lv(s.req)) && I.sim.seedCost(s) <= have);
+    if (!L.length) break; const a = L.find(s => s.g === 'Absurdo'), s = a || L[Math.random() * L.length | 0]; I.sim.buy(s); n++; } return n; })`;
 (async () => {
   const b = await launch(), p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = [];
   p.on('pageerror', e => errs.push(e.message.split('\n')[0]));
   p.on('dialog', d => d.accept());
-  await p.goto(URL + '?fresh&nointro&nofont'); await p.waitForTimeout(800);
-  let spins = 0, T = 0, lastNew = 0, endedAt = null, islandStart = 0, phase = 'campanha';
+  if (!val('--de', '')) { await p.goto(URL + '?fresh&nointro&nofont'); await p.waitForTimeout(800); }
+  let spins = 0, T = 0, lastNew = 0, endedAt = null, islandStart = 0, phase = 'campanha', viagens = 0, finais = 0;
+  const SEEDS_RUN = () => p.evaluate(PERFIL === 'casual' ? `(${SEEDS_CAS})(${CAS.sementes})` : SEEDS).catch(() => 0);
+  const ISL = () => p.evaluate('__kome.S.island + " (volta " + ((__kome.S.stats.lap | 0) + 1) + ")"').catch(() => '?');
+  if (val('--de', '')) {   // save guardado na chegada de uma ilha: põe no navegador, recarrega sem ?fresh, gasta as sementes e segue
+    const sv = JSON.parse(fs.readFileSync(val('--de'), 'utf8'));
+    await p.addInitScript(ls => { try { if (sessionStorage.getItem('longo-de')) return; sessionStorage.setItem('longo-de', '1'); localStorage.clear(); for (const k in ls) localStorage.setItem(k, ls[k]); } catch (e) { /* */ } }, sv.ls);   // 1 vez só (a viagem recarrega a página)
+    await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(1500);
+    viagens = sv.viagens | 0; const sb = await SEEDS_RUN(), isl = await ISL(); phase = 'ilha ' + isl;
+    console.log('começa do save ' + path.basename(val('--de')) + ' → ilha ' + isl + ' (' + sb + ' melhorias de semente compradas)');
+  }
+  const ilhas = [];   // [nome, minutos até o final, novidades nos 5 primeiros minutos]
   const ev = [], gaps = [], fases = [], t0 = Date.now(), byKind = {};
   const fmt = s => (s >= 3600 ? Math.floor(s / 3600) + 'h' : '') + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + 'min';
   while (T < LIM) {
-    const r = await p.evaluate(`(${CHUNK})(300)`).catch(e => ({ erro: e.message.split('\n')[0] }));
+    const cas = PERFIL === 'casual' && !(CAMP_GULOSA && viagens === 0);
+    const r = await p.evaluate(`(${CHUNK})(300, ${cas ? JSON.stringify(CAS) : 'null'})`).catch(e => ({ erro: e.message.split('\n')[0] }));
     if (r.erro) { console.log('ERRO na simulação: ' + r.erro); break; }
     // proteções: bloco com eventos demais (laço de compra?) ou tempo parado; memória do node por bloco
     if (r.out.length > 3000) console.log('AVISO: ' + r.out.length + ' eventos em 1 bloco (' + r.out.slice(-3).map(e => e.txt).join(' | ') + ')');
@@ -112,15 +160,19 @@ const STATS = `(() => { const S = __kome.S, s = S.stats, G = KomeGame, f = v => 
     T += r.dt;
     if (has('--stats') && Math.floor(T / 1800) > Math.floor((T - r.dt) / 1800)) console.log(fmt(T) + '  stats ' + await p.evaluate(STATS).catch(e => e.message));
     if (r.ended && endedAt === null) { endedAt = T; if (r.endT > 0 && r.endT <= T - islandStart) endedAt = islandStart + r.endT;   // hora exata do final (S.endT), não o fim do bloco de 5 min
-      const Tb = T; T = endedAt; fases.push([phase, T - islandStart]); phase = r.island === 0 && !r.islandsDone ? 'infinito (Honshu)' : 'infinito (ilha ' + r.island + ')'; console.log(fmt(T) + '  FINAL da ilha ' + r.island + ' (' + fmt(T - islandStart) + ')'); T = Tb; }
+      const Tb = T; T = endedAt; fases.push([phase, T - islandStart]); phase = r.island === 0 && !r.islandsDone ? 'infinito (Honshu)' : 'infinito (ilha ' + r.island + ')'; console.log(fmt(T) + '  FINAL da ilha ' + r.island + ' (' + fmt(T - islandStart) + ')');
+      ilhas.push([phase, Math.round((T - islandStart) / 60), ev.filter(e => e[0] >= islandStart && e[0] < islandStart + 300 && /^(tool|no|casa)$/.test(e[1])).length]); T = Tb;
+      if (++finais >= +val('--finais', 1e9)) break; }
     // viaja: 30 min de modo infinito OU nada novo há 15 min (o jogador se cansaria), se ainda há ilha
     // viaja como o chip "hora de partir": depois de 30 min de Pátio e 4 min sem novidade de verdade (ou 2 h no máximo)
     if (endedAt !== null && (r.partir || T - endedAt > 7200)) {   // chip "hora de partir" (ou 2 h)
       fases.push([phase, T - endedAt]);
       await Promise.all([p.waitForNavigation({ timeout: 30000 }).catch(() => {}), p.evaluate(TRAVEL).catch(() => {})]);
       await p.waitForTimeout(1500);
-      const sb = await p.evaluate(SEEDS).catch(() => 0);
-      const isl = await p.evaluate('__kome.S.island + " (volta " + ((__kome.S.stats.lap | 0) + 1) + ")"').catch(() => '?');
+      viagens++;
+      if (val('--salva', '')) fs.writeFileSync(val('--salva') + '.' + viagens, JSON.stringify({ viagens, ls: await p.evaluate(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); o[k] = localStorage.getItem(k); } return o; }) }));
+      const sb = await SEEDS_RUN();
+      const isl = await ISL();
       const sx = await p.evaluate('JSON.stringify({sementes: __kome.S.stats.seedsAll, sl: __kome.S.stats.sl, earned: Math.round(__kome.S.earned)})').catch(() => '');
       ev.push([T, 'ilha', 'viagem pra ilha ' + isl]); lastNew = T; islandStart = T; endedAt = null; phase = 'ilha ' + isl;
       console.log(fmt(T) + '  VIAGEM → ilha ' + isl + ' (' + sb + ' melhorias de semente compradas) ' + (has('--verbose') ? sx : ''));
@@ -130,6 +182,8 @@ const STATS = `(() => { const S = __kome.S, s = S.stats, G = KomeGame, f = v => 
   await b.close();
   // ---- relatório ----
   console.log('\n== ' + fmt(T) + ' simuladas em ' + Math.round((Date.now() - t0) / 1000) + ' s reais' + (errs.length ? ' · ERROS DE PÁGINA: ' + errs.slice(0, 2).join(' | ') : ' · sem erro de página'));
+  console.log('perfil: ' + PERFIL + (PERFIL === 'casual' && CAMP_GULOSA ? ' (campanha no guloso)' : ''));
+  console.log('ILHAS (min até o final · compras nos 5 primeiros min): ' + ilhas.map(i => i[0] + ' ' + i[1] + ' min · ' + i[2]).join(' | '));
   console.log('fases:'); (fases.length > 24 ? fases.slice(0, 12).concat([['…', 0]], fases.slice(-10)) : fases).forEach(([n, d]) => console.log('  ' + n.padEnd(26) + fmt(d)));
   const isl = fases.filter(f => /^ilha/.test(f[0])), inf = fases.filter(f => /^infinito/.test(f[0]));
   const avg = L => L.length ? fmt(L.reduce((a, f) => a + f[1], 0) / L.length) : '—';

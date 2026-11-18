@@ -699,6 +699,34 @@
   }
   E.Stage = Stage;
 
+  /* E.gfx — saúde das telas de apoio (caches desenhados em canvas: montanha guardada, Draw.layer...).
+     Celular com a aba em segundo plano, tela bloqueada ou GPU reiniciada pode PERDER o conteúdo de um canvas acelerado
+     (contextlost → contextrestored = canvas transparente) sem nenhum erro: o cache continua "válido" e o desenho some.
+     epoch sobe quando a aba volta a aparecer, a página volta do bfcache ou algum canvas observado perde/recupera o contexto;
+     cada cache guarda o epoch com que foi feito e refaz quando muda.
+       E.gfx.epoch             número atual
+       E.gfx.bump()            força todo cache a se refazer (testes: simula a perda)
+       E.gfx.watch(canvas)     observa contextlost/contextrestored desse canvas (sobe o epoch)
+       E.gfx.lost(ctx2d)       true se o contexto está perdido agora (isContextLost; navegador sem a função = false)
+       E.gfx.ok(ctx2d, cv, w, h) true se a tela de apoio existe de verdade no tamanho pedido (iOS sem memória devolve null/0) */
+  const gfx = E.gfx = {
+    epoch: 1,
+    bump() { gfx.epoch++; return gfx.epoch; },
+    watch(cv) {
+      if (!cv || !cv.addEventListener || cv.__gfxW) return cv;
+      cv.__gfxW = 1;
+      cv.addEventListener('contextlost', () => gfx.bump());
+      cv.addEventListener('contextrestored', () => gfx.bump());
+      return cv;
+    },
+    lost(c) { try { return !c || (typeof c.isContextLost === 'function' && c.isContextLost()); } catch (e) { return false; } },
+    ok(c, cv, w, h) { return !!c && !!cv && cv.width === w && cv.height === h && !gfx.lost(c); },
+  };
+  if (doc) {
+    doc.addEventListener('visibilitychange', () => { if (!doc.hidden) gfx.bump(); });
+    if (root.addEventListener) root.addEventListener('pageshow', e => { if (e && e.persisted) gfx.bump(); });
+  }
+
   /* ======================================================================
      Input — ponteiro unificado (mouse + touch + caneta) e teclado
      ====================================================================== */
@@ -1622,18 +1650,24 @@
     if (!m || m.b || m.c || !(m.d > 0) || Math.abs(Math.abs(m.a) - m.d) > m.d * 1e-6 || typeof document === 'undefined') { fn(g); return; }
     const k = m.d, mir = m.a < 0 ? 1 : 0;
     let L = LAYERS.get(key);
-    if (!L) { L = { cv: null, k: 0, mir: 0, sig: undefined, z: 0, mp: 0, pk: 0, x0: 0, y0: 0, x1: 0, y1: 0 }; LAYERS.set(key, L); }
-    if (!L.cv || L.k !== k || L.mir !== mir || L.sig !== sig || L.z !== Draw.zoom || L.mp !== Draw.minPx || L.x0 !== x0 || L.y0 !== y0 || L.x1 !== x1 || L.y1 !== y1) {
+    if (!L) { L = { cv: null, c: null, k: 0, mir: 0, sig: undefined, z: 0, mp: 0, pk: 0, x0: 0, y0: 0, x1: 0, y1: 0, ep: 0, n: 0, off: 0 }; LAYERS.set(key, L); }
+    if (L.off > 0) { L.off--; fn(g); return; }   // tela de apoio falhou há pouco: direto
+    // a imagem pode virar transparente sem erro (celular perde o canvas em segundo plano): refaz quando a aba volta / a GPU volta
+    // (E.gfx.epoch), com o contexto perdido desenha direto, e de tempos em tempos (~15 s) refaz de qualquer jeito
+    const GF = E.gfx, ep = GF ? GF.epoch : 0;
+    if (L.c && GF && GF.lost(L.c)) { L.cv = L.c = null; L.off = 30; fn(g); return; }
+    if (!L.cv || ++L.n > 900 || L.ep !== ep || L.k !== k || L.mir !== mir || L.sig !== sig || L.z !== Draw.zoom || L.mp !== Draw.minPx || L.x0 !== x0 || L.y0 !== y0 || L.x1 !== x1 || L.y1 !== y1) {
       if (L.k !== k && L.pk !== k) { L.pk = k; fn(g); return; }   // escala mudando: espera assentar
       const P = 2, w = Math.ceil((x1 - x0) * k) + P * 2, h = Math.ceil((y1 - y0) * k) + P * 2;
       if (!(w > 0 && h > 0) || w * h > 2e6) { fn(g); return; }
-      if (!L.cv) L.cv = document.createElement('canvas');
+      if (!L.cv) { L.cv = document.createElement('canvas'); L.c = null; if (GF) GF.watch(L.cv); }
       L.cv.width = w; L.cv.height = h;
-      const c = L.cv.getContext('2d');
+      const c = L.c || (L.c = L.cv.getContext('2d'));
+      if (GF && !GF.ok(c, L.cv, w, h)) { L.cv = L.c = null; L.off = 120; fn(g); return; }   // iOS sem memória pra tela nova
       c.setTransform(mir ? -k : k, 0, 0, k, (mir ? x1 * k : -x0 * k) + P, -y0 * k + P);
       c.imageSmoothingEnabled = g.imageSmoothingEnabled; c.lineJoin = g.lineJoin; c.lineCap = g.lineCap;
       fn(c);
-      L.k = k; L.pk = k; L.mir = mir; L.sig = sig; L.z = Draw.zoom; L.mp = Draw.minPx; L.x0 = x0; L.y0 = y0; L.x1 = x1; L.y1 = y1;
+      L.k = k; L.pk = k; L.mir = mir; L.sig = sig; L.z = Draw.zoom; L.mp = Draw.minPx; L.x0 = x0; L.y0 = y0; L.x1 = x1; L.y1 = y1; L.ep = ep; L.n = 0;
     }
     const X = Math.round((mir ? m.a * x1 : m.a * x0) + m.e) - 2, Y = Math.round(m.d * y0 + m.f) - 2;
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(L.cv, X, Y); g.restore();
@@ -5501,8 +5535,10 @@
       draw,
       // dropCache(): solta a tela de apoio do cache (libera memória; a próxima draw com cache refaz tudo)
       dropCache() { if (BK.cv) { BK.cv.width = BK.cv.height = 0; } BK.cv = null; BK.g = null; BK.sig = ''; BK.w = BK.h = 0; return heap; },
-      // cacheStats -> {bakes: retângulos refeitos desde o início, w, h, K}
-      get cacheStats() { return { bakes: BK.n, w: BK.w, h: BK.h, K: BK.K }; },
+      // cacheStats -> {bakes: retângulos refeitos desde o início, w, h, K, fails: vezes que a tela de apoio falhou, on}
+      get cacheStats() { return { bakes: BK.n, w: BK.w, h: BK.h, K: BK.K, fails: BK.fails, on: !!BK.cv && BK.off <= 0 }; },
+      // _cacheCanvas: a tela de apoio atual (só testes: o alicerce apaga ela pra simular o celular perdendo o canvas)
+      get _cacheCanvas() { return BK.cv; },
       // prewarm(g): gera as texturas agora (evita o engasgo do primeiro frame)
       prewarm(g) {
         const vs = ['g', 's', 'ca', 'cb'];
@@ -5958,7 +5994,22 @@
     /* ---------- montanha guardada (o.cache): o corpo vai pra uma tela de apoio na escala da tela (1 pixel = 1 pixel, sem
        reamostrar) e só os retângulos das colunas que mudaram são refeitos; vivos por cima: brilhos, flash, grãos rolando.
        Refaz tudo quando muda escala/espelho/opções/camadas; câmera andando = copia o que já tem e desenha só a faixa nova. */
-    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false, fc: 0 };
+    const BK = { cv: null, g: null, K: 0, mir: 0, sig: '', bx: 0, by: 0, ox: 0, oy: 0, w: 0, h: 0, hs: null, fd: '', lastK: 0, n: 0, stale: false, fc: 0, ep: 0, age: 0, off: 0, fails: 0 };
+    const BK_REFRESH = 420;   // quadros com cache entre duas refeitas inteiras (~7 s): cura sozinho o que nenhum evento avisa
+    // A tela de apoio pode ficar TRANSPARENTE sem erro nenhum (celular: aba em segundo plano/tela bloqueada perde o canvas
+    // acelerado; iOS sem memória pra telas devolve contexto nulo). Era a "montanha invisível do nada". Aqui: contexto perdido =
+    // solta e desenha direto; aba voltou / GPU voltou (E.gfx.epoch) = refaz tudo; falhou ao criar/desenhar = direto por ~2 s.
+    function drawCached(g, view, time, o, S, dt) {
+      if (BK.off > 0) { BK.off--; return false; }
+      const GF = E.gfx;
+      if (BK.cv && GF) {
+        if (GF.lost(BK.g)) { heap.dropCache(); BK.off = 30; return false; }
+        if (BK.ep !== GF.epoch) BK.sig = '';
+      }
+      if (++BK.age > BK_REFRESH) BK.sig = '';
+      try { return drawCached0(g, view, time, o, S, dt); }
+      catch (e) { heap.dropCache(); BK.fails++; BK.off = 120; return false; }
+    }
     const BV = { x0: 0, x1: 0, y0: 0, y1: 0 };
     function bakeMargin(K) { const step = Math.max(1, Math.floor(1.6 / (colW * K))); return (8 * step + 4) * colW + 24 / K; }
     function foundSig() { let f = ''; for (let k = 0; k < heap.pockets.length; k++) f += heap.pockets[k].found ? '1' : '0'; return f; }
@@ -5977,7 +6028,7 @@
       c.restore();
       BK.n++;
     }
-    function drawCached(g, view, time, o, S, dt) {
+    function drawCached0(g, view, time, o, S, dt) {
       const m = g.getTransform();
       if (m.b || m.c || !(m.d > 0)) return false;
       const K = m.d;
@@ -5998,9 +6049,13 @@
       const cx = (view.x0 + view.x1) / 2, cy = (view.y0 + view.y1) / 2;
       let full = sig !== BK.sig || !BK.cv || cw > BK.w || ch > BK.h || cw < BK.w * 0.7 || ch < BK.h * 0.6;
       if (full) {
-        if (!BK.cv) { BK.cv = doc.createElement('canvas'); BK.g = BK.cv.getContext('2d'); }
-        BK.w = BK.cv.width = cw; BK.h = BK.cv.height = Math.ceil(ch * 1.06) + 24;   // folga em altura: o pico crescer 1 px não refaz tudo
-        BK.K = K; BK.mir = mir; BK.sig = sig;
+        const ch2 = Math.ceil(ch * 1.06) + 24;   // folga em altura: o pico crescer 1 px não refaz tudo
+        if (cw * ch2 > 16e6) return false;     // maior que o limite de canvas do iOS/celular: desenha direto
+        if (!BK.cv) { BK.cv = doc.createElement('canvas'); if (E.gfx) E.gfx.watch(BK.cv); }
+        if (!BK.g) BK.g = BK.cv.getContext('2d');
+        BK.w = BK.cv.width = cw; BK.h = BK.cv.height = ch2;
+        if (E.gfx && !E.gfx.ok(BK.g, BK.cv, cw, ch2)) throw new Error('tela de apoio da montanha não abriu');
+        BK.K = K; BK.mir = mir; BK.sig = sig; BK.ep = E.gfx ? E.gfx.epoch : 0; BK.age = 0;
         BK.bx = mir ? Math.ceil(m.e) - m.e : m.e - Math.floor(m.e); BK.by = m.f - Math.floor(m.f);
         if (!BK.hs || BK.hs.length !== n) BK.hs = new Float32Array(n);
       }

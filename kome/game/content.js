@@ -25,7 +25,7 @@
       } else if (f.tipo === 'amuleto') {
         const L = (D.AMULETOS = D.AMULETOS || []);
         if (L.some(a => a.id === id)) return;
-        L.push({ id, n: f.nome, d: f.texto || f.desc || '', tags: f.etiquetas || [], rar: f.raridade || 'comum', fx: f.fx || { kind: 'mult', values: {} },
+        L.push({ id, n: f.nome, d: f.texto || [f.bom, f.ruim].filter(Boolean).join(' · ') || f.desc || '', good: f.bom || '', bad: f.ruim || '', joke: f.piada || '', tags: f.etiquetas || [], rar: f.raridade || 'comum', fx: f.fx || { kind: 'mult', values: {} },
           icon: f.icone || 'star', unlock: f.desbloqueio || null, ai: f.ai || 1, faixa: f.faixa || 0 });
       } else if (f.tipo === 'evolucao') {
         const L = (D.EVOLUCOES = D.EVOLUCOES || []);
@@ -295,7 +295,7 @@
   /* ===== conteudo/amuleto-bento_da_vo.js ===== */
 ficha({
   tipo: 'amuleto', id: 'bento_da_vo', nome: 'Bentô da Vó',
-  texto: 'Ajudantes rendem ×2: a vó mandou marmita pra turma toda.',
+  bom: 'Ajudantes rendem o dobro', piada: 'A vó mandou marmita pra turma toda.',
   etiquetas: ['equipe', 'fabrica'], raridade: 'comum', icone: 'rice', ai: 1.4,
   fx: { kind: 'mult', values: { hm: 2 } },
 });
@@ -304,7 +304,7 @@ ficha({
   /* ===== conteudo/amuleto-chef.js ===== */
 ficha({
   tipo: 'amuleto', id: 'chef', nome: 'Chef',
-  texto: 'Tudo que a fábrica vende vale ×2; arroz cru vale ×0,5. Gastronomia é isso.',
+  bom: 'Fábrica vende pelo dobro', ruim: 'Arroz cru vale metade', piada: 'Gastronomia é isso.',
   etiquetas: ['fabrica'], raridade: 'comum', icone: 'onigiri', ai: 0.6,
   fx: { kind: 'mult', values: { fab: 2, sell: 0.5 } },
 });
@@ -313,7 +313,7 @@ ficha({
   /* ===== conteudo/amuleto-chuva_de_sacos.js ===== */
 ficha({
   tipo: 'amuleto', id: 'chuva_de_sacos', nome: 'Chuva de Sacos',
-  texto: 'Sacos caem 3× mais, mas valem metade. Bom pra quem tem dedo nervoso.',
+  bom: 'Caem 3 vezes mais sacos', ruim: 'Cada saco vale metade', piada: 'Bom pra quem tem dedo nervoso.',
   etiquetas: ['sorte'], raridade: 'comum', icone: 'sack', ai: 1.6,
   fx: { kind: 'mult', values: { sackRate: 3, sack: 0.5 } },
 });
@@ -322,7 +322,7 @@ ficha({
   /* ===== conteudo/amuleto-combo_eterno.js ===== */
 ficha({
   tipo: 'amuleto', id: 'combo_eterno', nome: 'Combo Eterno',
-  texto: 'O combo nunca cai, mas sobe 3× mais devagar. Paciência de monge.',
+  bom: 'O combo nunca cai', ruim: 'Combo sobe 3 vezes mais devagar', piada: 'Paciência de monge.',
   etiquetas: ['mao'], raridade: 'raro', icone: 'bolt', ai: 2.2,
   fx: { kind: 'regra', values: { comboDecay: 0, comboGain: 0.34 } },
 });
@@ -331,7 +331,7 @@ ficha({
   /* ===== conteudo/amuleto-coracao_de_bagger.js ===== */
 ficha({
   tipo: 'amuleto', id: 'coracao_de_bagger', nome: 'Coração de Bagger',
-  texto: 'Ferramentas de mão furam como a Bagger e rendem ×1,5.',
+  bom: 'Pata fura fundo e rende ×1,5', piada: 'Coração de máquina grande.',
   etiquetas: ['mao'], raridade: 'lendario', icone: 'bagger', ai: 3.2, desbloqueio: 'k19',
   fx: { kind: 'regra', values: { maoPow: 8, mao: 1.5 } },
 });
@@ -340,7 +340,7 @@ ficha({
   /* ===== conteudo/amuleto-coruja.js ===== */
 ficha({
   tipo: 'amuleto', id: 'coruja', nome: 'Coruja',
-  texto: 'De noite tudo rende ×3; de dia, ×0,8. Turno da madrugada.',
+  bom: 'De noite tudo rende ×3', ruim: 'De dia rende 20% menos', piada: 'Turno da madrugada.',
   etiquetas: ['equipe'], raridade: 'comum', icone: 'clock', ai: 1.3,
   fx: { kind: 'vivo', values: { noite: 3, dia: 0.8 } },
 });
@@ -349,7 +349,7 @@ ficha({
   /* ===== conteudo/amuleto-diesel_batizado.js ===== */
 ficha({
   tipo: 'amuleto', id: 'diesel_batizado', nome: 'Diesel Batizado',
-  texto: 'Máquinas a motor cavam 40% mais rápido; tudo custa 20% mais.',
+  bom: 'Motor cava 40% mais rápido', ruim: 'Tudo custa 20% mais', piada: 'O posto jura que é puro.',
   etiquetas: ['motor'], raridade: 'comum', icone: 'caminhao', ai: 1.6,
   fx: { kind: 'mult', values: { motorDig: 1.4, preco: 1.2 } },
 });
@@ -358,7 +358,7 @@ ficha({
   /* ===== conteudo/amuleto-esteira_expressa.js ===== */
 ficha({
   tipo: 'amuleto', id: 'esteira_expressa', nome: 'Esteira Expressa',
-  texto: 'Fábrica vende ×1,5 e a frota do Pátio rende +25%.',
+  bom: 'Fábrica vende ×1,5 e frota rende +25%', piada: 'Saiu pra entrega.',
   etiquetas: ['fabrica', 'motor'], raridade: 'raro', icone: 'gear', ai: 2,
   fx: { kind: 'mult', values: { fab: 1.5, frota: 1.25 } },
 });
@@ -367,7 +367,7 @@ ficha({
   /* ===== conteudo/amuleto-faixa_preta.js ===== */
 ficha({
   tipo: 'amuleto', id: 'faixa_preta', nome: 'Faixa Preta',
-  texto: 'Cada amuleto na build dá +25% de renda. Anos de treino pra isso.',
+  bom: 'Cada amuleto seu dá +25% de ganho', piada: 'Anos de treino pra isso.',
   etiquetas: ['equipe', 'motor'], raridade: 'lendario', icone: 'star', ai: 4.5, faixa: 7,
   fx: { kind: 'mult', values: { porAmuleto: 0.25 } },
 });
@@ -376,7 +376,7 @@ ficha({
   /* ===== conteudo/amuleto-ferramenta_de_estimacao.js ===== */
 ficha({
   tipo: 'amuleto', id: 'ferramenta_de_estimacao', nome: 'Ferramenta de Estimação',
-  texto: 'A ferramenta na mão rende +3% por minuto seguido (até ×2,5). Trocar zera.',
+  bom: 'Mesma ferramenta: +3% por minuto', ruim: 'Trocar de ferramenta zera', piada: 'Ela tem até nome.',
   etiquetas: ['mao', 'motor'], raridade: 'raro', icone: 'hat', ai: 2.6,
   fx: { kind: 'vivo', values: { estimacao: 0.03, estimacaoMax: 2.5 } },
 });
@@ -385,7 +385,7 @@ ficha({
   /* ===== conteudo/amuleto-frota_feliz.js ===== */
 ficha({
   tipo: 'amuleto', id: 'frota_feliz', nome: 'Frota Feliz',
-  texto: 'Cada máquina estacionada no pátio dá +5% de renda pra todo mundo.',
+  bom: 'Cada máquina no pátio dá +5% de ganho', piada: 'Máquina feliz trabalha melhor.',
   etiquetas: ['motor', 'equipe'], raridade: 'raro', icone: 'trator', ai: 3,
   fx: { kind: 'vivo', values: { porMaquina: 0.05 } },
 });
@@ -394,7 +394,7 @@ ficha({
   /* ===== conteudo/amuleto-gato_da_sorte.js ===== */
 ficha({
   tipo: 'amuleto', id: 'gato_da_sorte', nome: 'Gato da Sorte',
-  texto: '+12% de chance de crítico, mas o crítico paga ×3 em vez de ×5.',
+  bom: 'Golpe forte sai bem mais vezes', ruim: 'Golpe forte paga ×3 em vez de ×5', piada: 'Ele acena, você lucra.',
   etiquetas: ['sorte'], raridade: 'comum', icone: 'star', ai: 1.5,
   fx: { kind: 'mult', values: { crit: 0.12, critMult: 0.6 } },
 });
@@ -403,7 +403,7 @@ ficha({
   /* ===== conteudo/amuleto-gemeos.js ===== */
 ficha({
   tipo: 'amuleto', id: 'gemeos', nome: 'Gêmeos',
-  texto: 'Toda ferramenta nova chega com um shiba gêmeo que cava junto.',
+  bom: 'Cada ferramenta nova traz 1 ajudante', piada: 'Um shiba gêmeo cava junto.',
   etiquetas: ['equipe', 'motor'], raridade: 'lendario', icone: 'swap', ai: 3.5, desbloqueio: 'k24',
   fx: { kind: 'vivo', values: { porFerramenta: 1, hm: 1.25 } },
 });
@@ -412,7 +412,7 @@ ficha({
   /* ===== conteudo/amuleto-hora_do_rush.js ===== */
 ficha({
   tipo: 'amuleto', id: 'hora_do_rush', nome: 'Hora do Rush',
-  texto: 'Ferramenta nova = renda ×2 por 40 s; fora do rush, ×0,85. Compre rápido.',
+  bom: 'Ferramenta nova: ganho em dobro por 40 s', ruim: 'Fora disso, rende 15% menos', piada: 'Compre rápido.',
   etiquetas: ['motor'], raridade: 'raro', icone: 'horn', ai: 2,
   fx: { kind: 'vivo', values: { rush: 2, rushSec: 40, fora: 0.85 } },
 });
@@ -421,7 +421,7 @@ ficha({
   /* ===== conteudo/amuleto-ima_de_ouro.js ===== */
 ficha({
   tipo: 'amuleto', id: 'ima_de_ouro', nome: 'Ímã de Ouro',
-  texto: 'Bolsões dourados valem ×2,5; o resto do arroz, ×0,85. Vai caçar.',
+  bom: 'Bolsão dourado vale ×2,5', ruim: 'O resto do arroz vale 15% menos', piada: 'Vai caçar.',
   etiquetas: ['sorte'], raridade: 'comum', icone: 'chest', ai: 1.3,
   fx: { kind: 'mult', values: { gold: 2.5, sell: 0.85 } },
 });
@@ -430,7 +430,7 @@ ficha({
   /* ===== conteudo/amuleto-ippon.js ===== */
 ficha({
   tipo: 'amuleto', id: 'ippon', nome: 'Ippon',
-  texto: '+8% de chance de crítico e crítico ×2. Um golpe perfeito encerra a luta.',
+  bom: 'Golpe forte sai mais e paga o dobro', piada: 'Um golpe perfeito encerra a luta.',
   etiquetas: ['mao', 'sorte'], raridade: 'raro', icone: 'trophy', ai: 3.5, faixa: 5,
   fx: { kind: 'mult', values: { crit: 0.08, critMult: 2 } },
 });
@@ -439,7 +439,7 @@ ficha({
   /* ===== conteudo/amuleto-kiai.js ===== */
 ficha({
   tipo: 'amuleto', id: 'kiai', nome: 'Kiai!',
-  texto: 'O combo enche 3× mais rápido e esfria pela metade. Grite enquanto cava.',
+  bom: 'Combo enche 3 vezes mais rápido', piada: 'Grite enquanto cava.',
   etiquetas: ['mao'], raridade: 'comum', icone: 'bolt', ai: 3, faixa: 1,
   fx: { kind: 'mult', values: { comboGain: 3, comboDecay: 0.5 } },
 });
@@ -448,7 +448,7 @@ ficha({
   /* ===== conteudo/amuleto-lei_da_gravidade.js ===== */
 ficha({
   tipo: 'amuleto', id: 'lei_da_gravidade', nome: 'Lei da Gravidade',
-  texto: 'Avalanche de arroz paga ×1,5 por 3 s; o resto rende 10% menos.',
+  bom: 'Avalanche de arroz paga ×1,5', ruim: 'O resto rende 10% menos', piada: 'Newton aprovaria.',
   etiquetas: ['motor'], raridade: 'comum', icone: 'escav', ai: 1.2,
   fx: { kind: 'regra', values: { slide: 1, sell: 0.9 } },
 });
@@ -457,7 +457,7 @@ ficha({
   /* ===== conteudo/amuleto-manual_do_operador.js ===== */
 ficha({
   tipo: 'amuleto', id: 'manual_do_operador', nome: 'Manual do Operador',
-  texto: 'Máquinas a motor rendem ×1,4; ferramentas de mão, ×0,6. Leu as letras miúdas.',
+  bom: 'Motor rende ×1,4', ruim: 'Pata rende 40% menos', piada: 'Leu as letras miúdas.',
   etiquetas: ['motor'], raridade: 'comum', icone: 'book', ai: 1.8,
   fx: { kind: 'mult', values: { motor: 1.4, mao: 0.6 } },
 });
@@ -466,7 +466,7 @@ ficha({
   /* ===== conteudo/amuleto-mao_leve.js ===== */
 ficha({
   tipo: 'amuleto', id: 'mao_leve', nome: 'Mão Leve',
-  texto: 'O Goma abre os sacos sozinho, mas cobra 30% de taxa de serviço.',
+  bom: 'Os sacos abrem sozinhos', ruim: 'Cada saco vale 30% menos', piada: 'O Goma cobra taxa de serviço.',
   etiquetas: ['sorte', 'equipe'], raridade: 'comum', icone: 'sack_gold', ai: 1.2,
   fx: { kind: 'regra', values: { autosack: 1, sack: 0.7 } },
 });
@@ -475,7 +475,7 @@ ficha({
   /* ===== conteudo/amuleto-maratonista.js ===== */
 ficha({
   tipo: 'amuleto', id: 'maratonista', nome: 'Maratonista',
-  texto: 'Segurou o combo cheio 30 s? Renda ×1,6 até ele cair.',
+  bom: 'Combo cheio por 30 s: ganho ×1,6', piada: 'Fôlego de shiba.',
   etiquetas: ['mao'], raridade: 'raro', icone: 'trophy', ai: 2.2,
   fx: { kind: 'vivo', values: { maratona: 30, maratonaX: 1.6 } },
 });
@@ -484,7 +484,7 @@ ficha({
   /* ===== conteudo/amuleto-nucleo_vivo.js ===== */
 ficha({
   tipo: 'amuleto', id: 'nucleo_vivo', nome: 'Núcleo Vivo',
-  texto: 'Bolsões dourados cavados voltam a crescer devagar (e valem ×1,5).',
+  bom: 'Bolsão dourado cresce de novo e vale ×1,5', piada: 'A montanha está viva.',
   etiquetas: ['sorte'], raridade: 'lendario', icone: 'chest', ai: 3, desbloqueio: 'k16',
   fx: { kind: 'vivo', values: { regrow: 1, gold: 1.5 } },
 });
@@ -493,7 +493,7 @@ ficha({
   /* ===== conteudo/amuleto-onigiri_voador.js ===== */
 ficha({
   tipo: 'amuleto', id: 'onigiri_voador', nome: 'Onigiri Voador',
-  texto: 'Onigiris da Sorte cruzam o céu mesmo sem a árvore; sacos caem pela metade.',
+  bom: 'Onigiris da sorte cruzam o céu', ruim: 'Cai metade dos sacos', piada: 'Olha pra cima.',
   etiquetas: ['sorte'], raridade: 'comum', icone: 'onigiri', ai: 1.3,
   fx: { kind: 'regra', values: { oni: 1, sackRate: 0.5 } },
 });
@@ -502,7 +502,7 @@ ficha({
   /* ===== conteudo/amuleto-paladar_gourmet.js ===== */
 ficha({
   tipo: 'amuleto', id: 'paladar_gourmet', nome: 'Paladar Gourmet',
-  texto: 'Todo arroz vale ×1,6, mas o Kome cava 30% mais devagar (degustando).',
+  bom: 'Todo arroz vale ×1,6', ruim: 'O Kome cava 30% mais devagar', piada: 'Ele está degustando.',
   etiquetas: ['fabrica'], raridade: 'comum', icone: 'tigela', ai: 1.2,
   fx: { kind: 'mult', values: { val: 1.6, dig: 0.7 } },
 });
@@ -511,7 +511,7 @@ ficha({
   /* ===== conteudo/amuleto-pao_duro.js ===== */
 ficha({
   tipo: 'amuleto', id: 'pao_duro', nome: 'Pão-Duro',
-  texto: 'Tudo custa 20% menos; o Kome cavando ganha 30% menos. Cupom é cupom.',
+  bom: 'Tudo custa 20% menos', ruim: 'O Kome cavando ganha 30% menos', piada: 'Cupom é cupom.',
   etiquetas: ['fabrica'], raridade: 'comum', icone: 'coin', ai: 1.8,
   fx: { kind: 'mult', values: { preco: 0.8, kome: 0.7 } },
 });
@@ -520,7 +520,7 @@ ficha({
   /* ===== conteudo/amuleto-pata_de_ouro.js ===== */
 ficha({
   tipo: 'amuleto', id: 'pata_de_ouro', nome: 'Pata de Ouro',
-  texto: 'Ferramentas de mão rendem ×5; máquinas a motor, ×0,5. Partida raiz.',
+  bom: 'Pata rende ×5', ruim: 'Motor rende metade', piada: 'Partida raiz.',
   etiquetas: ['mao'], raridade: 'raro', icone: 'pata', ai: 4,
   fx: { kind: 'mult', values: { mao: 5, motor: 0.5 } },
 });
@@ -529,7 +529,7 @@ ficha({
   /* ===== conteudo/amuleto-pavio_curto.js ===== */
 ficha({
   tipo: 'amuleto', id: 'pavio_curto', nome: 'Pavio Curto',
-  texto: 'Combo cheio vira Fúria do Kome; o combo cai 2× mais rápido.',
+  bom: 'Combo cheio liga a Fúria do Kome', ruim: 'Combo cai 2 vezes mais rápido', piada: 'Não provoca.',
   etiquetas: ['mao'], raridade: 'comum', icone: 'bolt', ai: 1.5,
   fx: { kind: 'regra', values: { furia: 1, comboDecay: 2 } },
 });
@@ -538,7 +538,7 @@ ficha({
   /* ===== conteudo/amuleto-pisao_sismico.js ===== */
 ficha({
   tipo: 'amuleto', id: 'pisao_sismico', nome: 'Pisão Sísmico',
-  texto: 'Toda patada vira Patada Sísmica. Os vizinhos já reclamaram.',
+  bom: 'Toda patada vira Patada Sísmica', ruim: 'Cava 8% mais devagar', piada: 'Os vizinhos já reclamaram.',
   etiquetas: ['mao'], raridade: 'comum', icone: 'duaspas', ai: 1.4,
   fx: { kind: 'regra', values: { stomp: 1, dig: 0.92 } },
 });
@@ -547,7 +547,7 @@ ficha({
   /* ===== conteudo/amuleto-preguica_boa.js ===== */
 ficha({
   tipo: 'amuleto', id: 'preguica_boa', nome: 'Preguiça Boa',
-  texto: 'Renda offline ×3 e o limite sobe pra 24 h. Pode dormir, é estratégia.',
+  bom: 'Fora do jogo rende ×3, por até 24 h', piada: 'Pode dormir, é estratégia.',
   etiquetas: ['equipe'], raridade: 'comum', icone: 'clock', ai: 0.8,
   fx: { kind: 'regra', values: { offline: 3, offCap: 24 } },
 });
@@ -556,7 +556,7 @@ ficha({
   /* ===== conteudo/amuleto-randori.js ===== */
 ficha({
   tipo: 'amuleto', id: 'randori', nome: 'Randori',
-  texto: 'Todo arroz vale +25% e os sacos ×1,5. Treino livre, lucro livre.',
+  bom: 'Arroz vale +25% e sacos valem ×1,5', piada: 'Treino livre, lucro livre.',
   etiquetas: ['sorte'], raridade: 'raro', icone: 'sack_gold', ai: 3.5, faixa: 3,
   fx: { kind: 'mult', values: { val: 1.25, sack: 1.5 } },
 });
@@ -565,7 +565,7 @@ ficha({
   /* ===== conteudo/amuleto-saco_do_imperador.js ===== */
 ficha({
   tipo: 'amuleto', id: 'saco_do_imperador', nome: 'Saco do Imperador',
-  texto: 'Todo saco já nasce lendário (×10), mas caem 4× menos.',
+  bom: 'Todo saco é lendário (vale ×10)', ruim: 'Caem 4 vezes menos sacos', piada: 'Poucos e bons.',
   etiquetas: ['sorte'], raridade: 'lendario', icone: 'sack_leg', ai: 3, desbloqueio: 'k29',
   fx: { kind: 'regra', values: { sackFloor: 3, sackRate: 0.25 } },
 });
@@ -574,7 +574,7 @@ ficha({
   /* ===== conteudo/amuleto-selo_do_xogum.js ===== */
 ficha({
   tipo: 'amuleto', id: 'selo_do_xogum', nome: 'Selo do Xogum',
-  texto: 'Cada amuleto da build dá +10%, e conjunto acende com 2 iguais.',
+  bom: 'Cada amuleto dá +10% e trio fecha com 2', piada: 'Ordem do Xogum.',
   etiquetas: ['equipe', 'fabrica'], raridade: 'lendario', icone: 'trophy', ai: 4, desbloqueio: 'k30',
   fx: { kind: 'vivo', values: { porAmuleto: 0.1, conjunto2: 1 } },
 });
@@ -583,7 +583,7 @@ ficha({
   /* ===== conteudo/amuleto-sindicato.js ===== */
 ficha({
   tipo: 'amuleto', id: 'sindicato', nome: 'Sindicato dos Shibas',
-  texto: '+3 shibas ajudantes; você cavando ganha 20% menos (eles têm piso).',
+  bom: '+3 shibas ajudantes', ruim: 'O Kome cavando ganha 20% menos', piada: 'Eles têm piso salarial.',
   etiquetas: ['equipe'], raridade: 'comum', icone: 'paw', ai: 1.6,
   fx: { kind: 'mult', values: { help: 3, kome: 0.8 } },
 });
@@ -592,7 +592,7 @@ ficha({
   /* ===== conteudo/amuleto-tatame.js ===== */
 ficha({
   tipo: 'amuleto', id: 'tatame', nome: 'Tatame Macio',
-  texto: '+3 shibas ajudantes e a frota rende ×1,3. Todo mundo treina junto.',
+  bom: '+3 shibas ajudantes e frota rende ×1,3', piada: 'Todo mundo treina junto.',
   etiquetas: ['equipe'], raridade: 'raro', icone: 'paw', ai: 3.5, faixa: 2,
   fx: { kind: 'mult', values: { help: 3, frota: 1.3 } },
 });
@@ -601,7 +601,7 @@ ficha({
   /* ===== conteudo/amuleto-tenis_do_vovo.js ===== */
 ficha({
   tipo: 'amuleto', id: 'tenis_do_vovo', nome: 'Tênis do Vovô',
-  texto: 'O Kome corre 60% mais e alcança mais longe; cava 10% menos.',
+  bom: 'O Kome corre e alcança mais longe', ruim: 'Cava 10% menos', piada: 'Amortecimento de 1987.',
   etiquetas: ['mao'], raridade: 'comum', icone: 'paw', ai: 1.1,
   fx: { kind: 'mult', values: { spd: 1.6, reach: 1.3, dig: 0.9 } },
 });

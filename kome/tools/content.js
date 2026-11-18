@@ -17,7 +17,7 @@
        // evento: dur (s), mult (×renda), icone ('star'|'clock'|'rice'...), sub (texto do aviso)
        // loja: k ('sell' renda | 'val' valor do arroz | 'gold' bolsões), r (bônus por nível, ex.: 0.06)
        // roupa: ilha (0..4) = só aparece enterrada naquela ilha
-       // amuleto (omamori, game/amuletos.js): texto (1 linha), etiquetas ['mao'|'motor'|'sorte'|'fabrica'|'equipe'],
+       // amuleto (omamori, game/amuletos.js): bom (o que ganha, 1 frase curta, sai verde), ruim (o custo, sai marrom), piada, etiquetas ['mao'|'motor'|'sorte'|'fabrica'|'equipe'],
        //   raridade 'comum'|'raro'|'lendario', fx: {kind, values: {gancho: valor}} (ganchos no topo do amuletos.js),
        //   icone (id de ferramenta do G.Props, 'onigiri', 'sack_gold', 'sack_leg', 'coin' ou ícone do E.UI), desbloqueio
        //   (id de conquista do goals.js: lendário só entra no baralho depois dela), ai (nota pro jogador guloso dos testes),
@@ -58,7 +58,7 @@ const API = `/* GERADO por tools/content.js a partir de conteudo/*.js — não e
       } else if (f.tipo === 'amuleto') {
         const L = (D.AMULETOS = D.AMULETOS || []);
         if (L.some(a => a.id === id)) return;
-        L.push({ id, n: f.nome, d: f.texto || f.desc || '', tags: f.etiquetas || [], rar: f.raridade || 'comum', fx: f.fx || { kind: 'mult', values: {} },
+        L.push({ id, n: f.nome, d: f.texto || [f.bom, f.ruim].filter(Boolean).join(' · ') || f.desc || '', good: f.bom || '', bad: f.ruim || '', joke: f.piada || '', tags: f.etiquetas || [], rar: f.raridade || 'comum', fx: f.fx || { kind: 'mult', values: {} },
           icon: f.icone || 'star', unlock: f.desbloqueio || null, ai: f.ai || 1, faixa: f.faixa || 0 });
       } else if (f.tipo === 'evolucao') {
         const L = (D.EVOLUCOES = D.EVOLUCOES || []);

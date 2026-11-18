@@ -218,7 +218,7 @@
     openTab = tab || null;
     if (usePlace()) {
       try {
-        openPlace(tab); open = true;
+        const nc = H0().newCloth; openPlace(tab); open = true; P.newCloth = tab === 'roupa' ? 0 : nc;
         H0().newCloth = 0; H0().newAch = 0; badge();
         document.body.classList.add('k-athome'); if (UI.root) UI.root.classList.add('k-athome');
         api.sfx('whoosh');
@@ -282,11 +282,34 @@
      ===================================================================================================================== */
   const PW = 960, PH = 540, GY = 300, INK = '#3B2818';
   const NT = () => E.Nature;
-  const TABS = [{ id: 'jardim', n: 'Jardim' }, { id: 'bichos', n: 'Bichos' }, { id: 'roupa', n: 'Roupas' }, { id: 'tema', n: 'Tema' },
-    { id: 'caderno', n: 'Caderno' }, { id: 'ilhas', n: 'Ilhas' }, { id: 'armazem', n: 'Armazém' }];
-  const TITLES = { jardim: 'Jardim', bichos: 'Bichinhos', roupa: 'Guarda-roupa', tema: 'Tema do quintal', caderno: 'Caderno', ilhas: 'Ilhas', armazem: 'Armazém' };
-  const BAR = { y: 454, w: 82, h: 78, gap: 8 };
-  const barX = i => i < 0 ? 16 : Math.round((PW - (TABS.length * BAR.w + (TABS.length - 1) * BAR.gap)) / 2 + 40) + i * (BAR.w + BAR.gap);
+  // UX (docs/design/ux-guia.md): 5 abas na varanda, ícone + palavra. Os cartões de antes continuam existindo por dentro
+  // (G.Home.open('bichos'|'tema'|'ilhas'|'armazem') segue valendo): GROUP diz em qual aba cada um mora.
+  const TABS = [{ id: 'casa', n: 'Construir' }, { id: 'jardim', n: 'Quintal' }, { id: 'roupa', n: 'Roupas' }, { id: 'caderno', n: 'Caderno' }, { id: 'mais', n: 'Mais' }];
+  const GROUP = { bichos: 'jardim', tema: 'jardim', ilhas: 'mais', armazem: 'mais' };
+  const CARDS = ['casa', 'jardim', 'bichos', 'tema', 'roupa', 'caderno', 'mais', 'ilhas', 'armazem'];
+  const TITLES = { casa: 'Construir a casa', jardim: 'Quintal', bichos: 'Quintal', roupa: 'Guarda-roupa', tema: 'Quintal', caderno: 'Caderno', ilhas: 'Ilhas', armazem: 'Armazém', mais: 'Mais coisas' };
+  const BAR = { y: 454, w: 122, h: 78, gap: 10 };
+  const barX = i => i < 0 ? 16 : Math.round((PW - (TABS.length * BAR.w + (TABS.length - 1) * BAR.gap)) / 2 + 52) + i * (BAR.w + BAR.gap);
+  const yen = v => '¥ ' + U.fmt(v);
+  const isMob = () => document.body.classList.contains('k-mob');
+  /* ---- a obra da casa (regra e preço são do game.js: G.Game.buyHouse / houseCost; aqui é só a tela) ---- */
+  const GAIN = { h1: 'Ganha 1 shiba ajudante pra cavar', h2: 'Seu arroz passa a valer +25%', h3: 'Paredes e varanda: já parece casa', h4: 'Telhado novo e luz acesa à noite', h5: 'Seu arroz passa a valer +30%', h6: 'Banho quente. É a última etapa!' };
+  const NH = () => D.HOUSE.length;
+  const hCost = h => (G.Game && G.Game.houseCost ? G.Game.houseCost(h) : h.c);
+  const shortTool = h => { const tn = D.TOOLS[h.tier - 1].name; return tn.length <= 14 ? tn : tn.split(' ')[0]; };
+  function houseNow() {   // a etapa da vez: null = casa pronta
+    const h = D.HOUSE[S.house]; if (!h) return null;
+    const c = hCost(h), lock = S.tool + 1 < h.tier ? shortTool(h) : '';
+    return { h, c, lock, can: !lock && S.money >= c, miss: Math.max(0, c - S.money) };
+  }
+  // montanha: 100% = o final (mesma conta da barra do HUD)
+  const mountPct = () => { const f = S.heapTotal ? 1 - S.heapArea / S.heapTotal : 0; return S.ended || S.soCasa ? 1 : U.clamp(f / (D.END_DUG || 1), 0, 1); };
+  function stageArt(i) {
+    const k = 'hs' + i; if (icoCache[k]) return icoCache[k];
+    const c = document.createElement('canvas'); c.width = 208; c.height = 144; const g = c.getContext('2d');
+    try { g.fillStyle = '#CDE9F5'; g.fillRect(0, 0, 208, 144); g.fillStyle = '#9CCB6B'; g.fillRect(0, 112, 208, 32); NT().house(g, 104, 122, { stage: i, s: 0.78, t: 0, lit: false, garden: false, onsen: i >= 5 }); } catch (e) { /* sem desenho */ }
+    return (icoCache[k] = c);
+  }
   let P = null;
   // onde cada enfeite mora no quintal (âncora = pé do desenho; w×h = área de toque acima da âncora)
   function sino(g, x, y, t) { const sy = y - 108, wd = PAL.wood || '#8B5A2B'; Draw.box(g, x - 3, sy - 4, 6, y - sy + 4, wd, { r: 2 }); Draw.box(g, x - 3, sy - 6, 30, 6, wd, { r: 2 }); NT().windchime(g, x + 22, sy, { t, s: 1.15 }); }
@@ -350,15 +373,17 @@
   }
   function tabIcon(id) {
     if (id === 'roupa') { const lk = S.look || {}; return clothIcon(lk.acc ? { id: lk.acc, kind: 'acc' } : { id: lk.pal || 'kome', kind: 'pal' }, true); }
-    const k = 'tab_' + id; if (icoCache[k]) return icoCache[k];
+    const k = 'tab_' + id + (id === 'casa' ? Math.min(S.house, NH()) : ''); if (icoCache[k]) return icoCache[k];
     let c = null;
     try {
+      if (id === 'casa') { c = mk(); NT().house(c.getContext('2d'), 56, 92, { stage: Math.max(1, Math.min(S.house, NH()) - 1), s: 0.52, t: 0, lit: false, garden: false, onsen: false }); }
+      else
       if (id === 'jardim') c = itemIcon(D.decorById.bonsai);
       else if (id === 'bichos') { c = mk(); E.drawShibaHead(c.getContext('2d'), 56, 62, 0, { scale: 4, pal: 'shiro', still: true }); }
       else if (id === 'tema') c = themeIcon(D.themeById.primavera || D.THEMES[0]);
       else if (id === 'ilhas') { c = mk(); const g = c.getContext('2d'); g.fillStyle = '#6EC1E4'; g.strokeStyle = INK; g.lineWidth = 4; g.beginPath(); g.ellipse(56, 80, 46, 18, 0, 0, 6.3); g.fill(); g.stroke();
         g.fillStyle = '#F1D9A0'; g.beginPath(); g.ellipse(56, 76, 30, 10, 0, 0, 6.3); g.fill(); g.stroke(); NT().tree(g, 56, 76, { kind: 'pine', seed: 5, t: 0, s: 0.5, shadow: false }); }
-      else c = UI.icon && UI.icon({ caderno: 'book', armazem: 'sack', voltar: 'rice' }[id] || 'star', 64);
+      else c = UI.icon && UI.icon({ caderno: 'book', armazem: 'sack', voltar: 'rice', mais: 'chest' }[id] || 'star', 64);
     } catch (e) { c = null; }
     return c ? (icoCache[k] = c) : null;
   }
@@ -367,37 +392,7 @@
   function buildPlace() {
     const root = document.createElement('div'); root.className = 'kh-root';
     document.body.appendChild(root);
-    const css = document.createElement('style');
-    css.textContent = [
-      '.kh-root{position:fixed;inset:0;z-index:55;background:#2a1a10;display:none}.kh-root.kh-open{display:block}',
-      '.kh-card{position:absolute;z-index:5;background:#FFF6DE;border:3px solid #3B2818;border-radius:18px;box-shadow:0 6px 0 rgba(59,40,24,.5);font-family:var(--k-font,system-ui,sans-serif);font-weight:800;color:#3B2818;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;transition:left .3s cubic-bezier(.2,.9,.3,1),top .3s cubic-bezier(.2,.9,.3,1)}',
-      '.kh-card *{box-sizing:border-box}',
-      '.kh-card.kh-in{animation:khin .3s cubic-bezier(.2,1.5,.4,1) both}@keyframes khin{0%{transform:scale(.86) translateY(16px);opacity:0}100%{transform:none;opacity:1}}',
-      '.kh-head{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 16px;background:#F3C94A;border-bottom:3px solid #3B2818;flex:none}',
-      '.kh-title{flex:1;font-size:24px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-      '.kh-x{width:46px;height:46px;flex:none;border-radius:12px;border:3px solid #3B2818;background:#FFF6DE;font:900 26px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 3px 0 #3B2818;color:#3B2818;padding:0}',
-      '.kh-x:active,.kh-btn:active,.kh-tile:active{transform:translateY(3px);box-shadow:0 1px 0 #3B2818}',
-      '.kh-body{flex:1;min-height:0;overflow-y:auto;padding:10px;touch-action:pan-y;-webkit-overflow-scrolling:touch;font-size:17px}',
-      '.kh-hint{font-size:17px;opacity:.78;margin:0 2px 8px}',
-      '.kh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
-      '.kh-tile{position:relative;display:flex;align-items:center;gap:6px;padding:5px 8px 5px 3px;border:3px solid #3B2818;border-radius:14px;background:#FFFDF4;box-shadow:0 3px 0 #3B2818;cursor:pointer;min-height:76px;padding-right:22px;text-align:left;font:inherit;color:inherit;width:100%}',
-      '.kh-tile canvas{width:58px;height:58px;flex:none;image-rendering:auto}',
-      '.kh-tile b{display:block;font-size:17px;line-height:1.08;font-weight:900}',
-      '.kh-tile small{display:block;font-size:17px;line-height:1.1;font-weight:800;opacity:.72;margin-top:2px}',
-      '.kh-tile.kh-sel{background:#FFE7A0;outline:3px solid #E39A2C;outline-offset:1px}',
-      '.kh-tile.kh-dim{opacity:.58}',
-      '.kh-tile.kh-on small{color:#2E7D4F;opacity:1}',
-      '.kh-tile.kh-on::after{content:"✓";position:absolute;right:6px;top:4px;font-size:18px;font-weight:900;color:#2E7D4F}',
-      '.kh-foot{flex:none;border-top:3px solid #3B2818;padding:9px 10px 10px 12px;background:#FBEFD0;display:flex;align-items:center;gap:10px;min-height:76px}',
-      '.kh-foot .kh-txt{flex:1;min-width:0}.kh-foot b{font-size:19px;display:block;font-weight:900;line-height:1.1}.kh-foot span{font-size:17px;display:block;opacity:.8;line-height:1.15}',
-      '.kh-btn{font:inherit;font-size:19px;font-weight:900;padding:8px 14px;min-height:52px;border:3px solid #3B2818;border-radius:14px;background:#8FD17E;color:#3B2818;box-shadow:0 4px 0 #3B2818;cursor:pointer;white-space:nowrap;flex:none}',
-      '.kh-btn.kh-no{background:#E9DCC0;color:#7A6450}.kh-btn.kh-alt{background:#FFF6DE}',
-      '.kh-big{display:flex;gap:12px;align-items:center}.kh-big canvas{width:84px;height:84px;flex:none;background:#FBEFD0;border:3px solid #3B2818;border-radius:14px}',
-      '.kh-big b{font-size:22px;display:block;font-weight:900}.kh-big span{font-size:17px;display:block;opacity:.8}',
-      '.kh-row{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}',
-      '.kh-pane{font-size:17px;zoom:1.3}',
-    ].join('\n');
-    document.head.appendChild(css);
+    // o CSS do palco (.kh-*) mora em game/ux-casa.css
     root.classList.add('kh-open');                 // visível na criação: o Stage mede o pai de verdade
     const stage = E.Stage({ parent: root, width: PW, height: PH, bg: '#2a1a10' });
     const input = E.Input(stage, { keys: false, wheel: false });
@@ -434,6 +429,7 @@
   function say(s) { P.toast = { t: s, life: 2.2 }; }
   function anchorOf(id) {
     const sp = spotOf(id); if (sp) return { x: sp.x, y: GY + sp.y, h: sp.h };
+    if (id === 'casa') return { x: 470, y: GY + 2, h: 150 };
     if (id === 'kome') { const b = brains.kome; return { x: PW * (b ? b.f : 0.49), y: GY + 96, h: 60 }; }
     const fs = friendSpot(id); if (fs) { const b = brains['shiba_' + id]; return { x: PW * (b ? b.f : fs[0]), y: GY + fs[1], h: 56 }; }
     const it = D.decorById[id]; if (it && it.fromCard) { const b = brains[id]; return { x: PW * (b ? b.f : (it.onde.x !== undefined ? it.onde.x : 0.5)), y: GY + (it.onde.y || 0), h: 50 }; }
@@ -470,7 +466,7 @@
   }
   function closeCard() { if (P.cardEl) P.cardEl.remove(); P.cardEl = null; P.card = null; P.tab = null; P.sel = null; P.prev = null; api.sfx('click'); }
   function el(tag, cls, parent, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; if (parent) parent.appendChild(e); return e; }
-  function cvCopy(src, n) { const c = mk(n || 112); if (src) c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c; }
+  function cvCopy(src, n) { const c = mk(n || 112); if (src) { const g = c.getContext('2d'); g.imageSmoothingEnabled = src.width >= 100; g.drawImage(src, 0, 0, c.width, c.height); } return c; }
   function sideFor(id) { const a = id ? anchorOf(id) : null; return a && a.x > 470 ? 'l' : 'r'; }
   function renderCard(anim) {
     const card = P.card; if (!card) return;
@@ -479,89 +475,179 @@
     const c = el('div', 'kh-card k-theme' + (anim ? ' kh-in' : ''), P.stage.el); P.cardEl = c;
     c.addEventListener('pointerdown', e => e.stopPropagation());
     const head = el('div', 'kh-head', c);
+    if (card.type === 'tab' && GROUP[card.id] === 'mais') { const bk = btn(head, 'kh-back', 'Voltar'); bk.onclick = () => openCard({ type: 'tab', id: 'mais' }); }
     el('div', 'kh-title', head, card.type === 'tab' ? TITLES[card.id] : card.title || '');
     const x = el('button', 'kh-x', head, '×'); x.setAttribute('aria-label', 'Fechar'); x.onclick = () => closeCard();
     if (card.type === 'tab') {
-      const wide = card.id === 'caderno' || card.id === 'ilhas' || card.id === 'armazem', w = wide ? 470 : 404;
-      if (['jardim', 'bichos', 'roupa', 'tema'].indexOf(card.id) >= 0 && P.sel) P.side = sideFor(card.id === 'jardim' || card.id === 'bichos' ? P.sel : null);
+      const w = isMob() ? 548 : 476;
+      if (['jardim', 'bichos'].indexOf(card.id) >= 0 && P.sel) P.side = sideFor(P.sel);
       else if (!P.sel) P.side = 'r';
-      Object.assign(c.style, { width: w + 'px', height: '430px', top: '12px', left: (P.side === 'l' ? 12 : PW - w - 12) + 'px' });
+      Object.assign(c.style, { width: w + 'px', height: '432px', top: '10px', left: (P.side === 'l' ? 10 : PW - w - 10) + 'px' });
       const body = el('div', 'kh-body', c);
       fillTab(card.id, body, c);
-      body.scrollTop = keep;
+      // rolagem: sombra + setinha embaixo enquanto tem mais coisa pra ver
+      const more = el('div', 'kh-more', c, '▼');
+      const upd = () => more.classList.toggle('kh-off', body.scrollHeight - body.scrollTop - body.clientHeight < 12);
+      body.addEventListener('scroll', upd, { passive: true });
+      if (anim && P.scrollTo) { const r = P.scrollTo; body.scrollTop = Math.max(0, r.offsetTop - body.offsetTop - 70); } else body.scrollTop = keep;
+      P.scrollTo = null; upd();
     } else {
       fillProp(card, c);
-      const a = anchorOf(card.id), w = 340; c.style.width = w + 'px';
+      const a = anchorOf(card.id), w = 360; c.style.width = w + 'px';
       const h = c.offsetHeight || 190, sp = spotOf(card.id), top = a.y - (sp ? sp.h : a.h) - h - 12;
       c.style.left = Math.round(U.clamp(a.x - w / 2, 12, PW - w - 12)) + 'px';
       c.style.top = Math.round(top >= 12 ? top : U.clamp(a.y + 12, 12, 444 - h)) + 'px';
     }
   }
+  // botão com ícone + palavra (guia de UX): dourado = dá pra fazer, cinza = travado, creme = secundário
+  function btn(parent, cls, label, icon) {
+    const b = el('button', 'kh-btn' + (cls ? ' ' + cls : ''), parent);
+    const ic = icon && UI.icon ? UI.icon(icon, 56) : null; if (ic) b.appendChild(cvCopy(ic, 56));
+    el('span', '', b, label); return b;
+  }
+  function shake(e) { if (!e) return; e.classList.remove('ux-shake'); void e.offsetWidth; e.classList.add('ux-shake'); }
+  function no(e, why) { shake(e); say(why); api.sfx('error'); }
+  function hint(body, txt) { return el('div', 'kh-hint', body, txt); }
+  function prog(body, n, of, word) {
+    const p = el('div', 'kh-prog', body), bar = el('i', '', p); bar.style.transform = 'scaleX(' + (of ? n / of : 0) + ')';
+    el('span', '', p, n + ' de ' + of + ' ' + word); return p;
+  }
+  // fileira "Enfeites · Bichos · Estação" dentro da aba Quintal
+  function seg(body, cur) {
+    const r = el('div', 'kh-seg', body);
+    [['jardim', 'Enfeites', 'tree'], ['bichos', 'Bichos', 'paw'], ['tema', 'Estação', 'star']].forEach(([id, n, ic]) => {
+      const b = btn(r, id === cur ? 'kh-cur' : 'kh-alt', n, ic); b.onclick = () => { if (id !== cur) openCard({ type: 'tab', id }); };
+    });
+  }
   function tileEl(grid, icon, name, sub, st, onClick, id) {
-    const b = el('button', 'kh-tile' + (st.on ? ' kh-on' : '') + (st.dim ? ' kh-dim' : '') + (P.sel === id ? ' kh-sel' : ''), grid);
+    const b = el('button', 'kh-tile' + (st.on ? ' kh-on' : '') + (st.can ? ' kh-can' : '') + (st.dim ? ' kh-dim' : '') + (st.v ? ' kh-v' : '') + (P.sel === id ? ' kh-sel' : ''), grid);
     b.appendChild(cvCopy(icon));
     const tx = el('div', '', b); el('b', '', tx, name); el('small', '', tx, sub);
-    b.onclick = onClick;
+    b.onclick = () => onClick(b);
     b.onpointerenter = () => { P.prev = id; }; b.onpointerleave = () => { if (P.prev === id) P.prev = null; };
     return b;
   }
-  function foot(c, title, txt, btn, btnCls, onBtn) {
+  function foot(c, title, txt, label, cls, onBtn, icon) {
     const f = el('div', 'kh-foot', c), t = el('div', 'kh-txt', f); el('b', '', t, title); if (txt) el('span', '', t, txt);
-    if (btn) { const b = el('button', 'kh-btn' + (btnCls ? ' ' + btnCls : ''), f, btn); b.onclick = onBtn; }
+    if (label) { const b = btn(f, cls, label, icon); b.onclick = () => onBtn(b); }
   }
   const shopSt = it => { const own = H0().own;
-    if (own[it.id]) return H0().hide[it.id] ? { sub: 'guardado', on: false } : { sub: 'no quintal', on: true };
-    const lock = it.needs && !own[it.needs];
-    return { sub: lock ? 'precisa: ' + D.decorById[it.needs].n : '¥ ' + U.fmt(cost(it)), dim: lock || S.money < cost(it) }; };
+    if (own[it.id]) return H0().hide[it.id] ? { sub: 'guardado', on: false } : { sub: '✓ no quintal', on: true };
+    const lock = it.needs && !own[it.needs], cc = cost(it);
+    return lock ? { sub: 'precisa: ' + D.decorById[it.needs].n, dim: true } : S.money < cc ? { sub: 'falta ' + yen(cc - S.money), dim: true } : { sub: yen(cc), can: true }; };
+
+  /* ---- a escada da casa: 6 etapas com desenho, "etapa 2 de 6", preço, o que ganha e UM botão dourado ---- */
+  function buildHouse(b) {
+    const n = houseNow(); if (!n) return;
+    if (n.lock) return no(b, 'Compre a ' + n.lock + ' antes (lá na montanha)');
+    if (!n.can) return no(b, 'Faltam ' + yen(n.miss) + '. Volte a cavar!');
+    const was = S.house; if (G.Game && G.Game.buyHouse) G.Game.buyHouse();
+    if (S.house === was) return no(b, 'Agora não deu. Tente de novo');
+    if (!open) return;
+    popAt('casa', n.h.n + '!'); P.pops.kome = 0;
+    if (S.house >= NH() || api.busy()) { close(); return; }   // casa pronta: volta pro jogo (é lá que o final / o aviso da montanha aparece)
+    renderCard(true);
+  }
+  function fillHouse(body, c) {
+    const n = houseNow(), done = Math.min(S.house, NH()), mp = mountPct();
+    hint(body, !n ? (mp >= 1 ? 'Casa pronta. Parabéns!' : 'Casa pronta! Agora acabe a montanha') : n.can ? 'Toque em Construir!' : n.lock ? 'Compre a ' + n.lock + ' antes' : 'Cave mais: faltam ' + yen(n.miss));
+    // o que falta pro final, sempre à vista
+    const goal = el('div', 'kh-goal', body); el('b', '', goal, 'Pra zerar o jogo:');
+    const g1 = el('span', done >= NH() ? 'kh-ok' : '', goal, (done >= NH() ? '✓ ' : '') + 'Casa pronta · ' + done + ' de ' + NH());
+    const g2 = el('span', mp >= 1 ? 'kh-ok' : '', goal, (mp >= 1 ? '✓ ' : '') + 'Montanha acabada · ' + Math.floor(mp * 100) + '%');
+    void g1; void g2;
+    const ladder = el('div', 'kh-ladder', body);
+    D.HOUSE.forEach((h, i) => {
+      const st = i < done ? 'done' : i === done ? 'now' : 'next';
+      const row = el('div', 'kh-step kh-' + st, ladder); row.appendChild(cvCopy(stageArt(i), 208)).height = 144;
+      const cv = row.firstChild; cv.getContext('2d').drawImage(stageArt(i), 0, 0);
+      const tx = el('div', 'kh-steptx', row);
+      el('small', '', tx, 'Etapa ' + (i + 1) + ' de ' + NH());
+      el('b', '', tx, h.n);
+      el('span', '', tx, GAIN[h.id] || '');
+      el('em', '', row, st === 'done' ? '✓ Feito' : yen(hCost(h)));
+      if (st === 'now') P.scrollTo = row;
+    });
+    if (!n) { foot(c, 'Casa pronta!', mp >= 1 ? 'Onsen quentinho e pé pra cima' : 'Falta só acabar a montanha', 'Cavar', 'kh-gold', () => close(), 'rice'); return; }
+    foot(c, 'Etapa ' + (done + 1) + ' de ' + NH() + ': ' + n.h.n, n.can ? 'Custa ' + yen(n.c) : n.lock ? 'Custa ' + yen(n.c) + ' · precisa: ' + n.lock : 'Custa ' + yen(n.c) + ' · você tem ' + yen(S.money),
+      n.can ? 'Construir' : n.lock ? 'Travado' : 'Faltam ' + yen(n.miss), n.can ? 'kh-gold kh-main' : 'kh-no', b => buildHouse(b), n.can ? 'house' : 'lock');
+  }
+  function howFind(it) {
+    if (it.prize) return 'Prêmio de quem viaja por todas as ilhas';
+    if (it.island && D.ISLANDS && D.ISLANDS[it.island]) return 'Escondida na ilha ' + D.ISLANDS[it.island].n;
+    return 'Escondida no ouro da montanha. Cave lá!';
+  }
   function fillTab(id, body, c) {
     const own = H0().own;
+    if (id === 'casa') return fillHouse(body, c);
+    if (id === 'mais') {
+      hint(body, 'Toque pra abrir');
+      const col = el('div', 'kh-col', body);
+      [['ilhas', 'Ilhas', 'Viaje pra outra ilha do Japão'], ['armazem', 'Armazém', 'Veja o arroz que você guardou'], ['tema', 'Estação do ano', 'Mude o clima do quintal']].forEach(([k, n, d]) => {
+        const b = el('button', 'kh-tile kh-wide', col); b.appendChild(cvCopy(tabIcon(k)));
+        const tx = el('div', '', b); el('b', '', tx, n); el('small', '', tx, d); el('i', 'kh-go', b, '›');
+        b.onclick = () => openCard({ type: 'tab', id: k });
+      });
+      return;
+    }
     if (id === 'jardim' || id === 'bichos') {
-      const items = D.DECOR.filter(x => x.kind === (id === 'jardim' ? 'decor' : 'pet'));
-      el('div', 'kh-hint', body, items.filter(x => own[x.id]).length + '/' + items.length + ' no quintal · toque pra ver onde fica');
+      const items = D.DECOR.filter(x => x.kind === (id === 'jardim' ? 'decor' : 'pet')), word = id === 'jardim' ? 'enfeite' : 'bicho';
+      seg(body, id);
+      hint(body, 'Toque num ' + word + ' pra ver onde ele fica');
+      prog(body, items.filter(x => own[x.id]).length, items.length, 'no quintal');
       const grid = el('div', 'kh-grid', body);
-      items.forEach(it => tileEl(grid, itemIcon(it), it.n, shopSt(it).sub, shopSt(it), () => { P.sel = it.id; api.sfx('click'); renderCard(); }, it.id));
+      items.forEach(it => { const st = shopSt(it); tileEl(grid, itemIcon(it), it.n, st.sub, st, () => { P.sel = it.id; api.sfx('click'); renderCard(); }, it.id); });
       const it = P.sel && D.decorById[P.sel];
-      if (!it) { foot(c, 'Seu quintal, do seu jeito', 'Só enfeite: não muda a renda. ¥ ' + U.fmt(S.money) + ' no bolso'); return; }
-      if (own[it.id]) foot(c, it.n, it.d, H0().hide[it.id] ? 'Pôr no quintal' : 'Guardar', H0().hide[it.id] ? '' : 'kh-alt', () => { toggleHide(it); renderCard(); });
-      else { const lock = it.needs && !own[it.needs], cc = cost(it);
-        foot(c, it.n, it.d, lock ? 'Precisa: ' + D.decorById[it.needs].n : 'Comprar ¥' + U.fmt(cc), lock || S.money < cc ? 'kh-no' : '', () => { placeBuy(it); renderCard(); }); }
+      if (!it || it.kind !== (id === 'jardim' ? 'decor' : 'pet')) { foot(c, 'É só enfeite', 'Deixa bonito, não muda o ganho'); return; }
+      if (own[it.id]) foot(c, it.n, it.d, H0().hide[it.id] ? 'Pôr no quintal' : 'Guardar', H0().hide[it.id] ? 'kh-gold' : 'kh-alt', () => { toggleHide(it); renderCard(); }, H0().hide[it.id] ? 'tree' : 'chest');
+      else { const lock = it.needs && !own[it.needs], cc = cost(it), okBuy = !lock && S.money >= cc;
+        foot(c, it.n, lock ? 'Precisa ter: ' + D.decorById[it.needs].n : 'Custa ' + yen(cc), okBuy ? 'Comprar' : lock ? 'Travado' : 'Faltam ' + yen(cc - S.money), okBuy ? 'kh-gold kh-main' : 'kh-no',
+          b => { if (lock) return no(b, 'Compre antes: ' + D.decorById[it.needs].n); if (S.money < cc) return no(b, 'Faltam ' + yen(cc - S.money) + '. Volte a cavar!'); placeBuy(it); renderCard(); }, okBuy ? 'yen' : 'lock'); }
       return;
     }
     if (id === 'roupa') {
+      P.newCloth = 0;
       const have = S.closet || [], look = S.look || {};
       const clothes = [{ id: 'kome', kind: 'pal', n: 'Kome clássico', d: 'chapéu de palha' }].concat(foundFirst(D.CLOSET, have));
-      el('div', 'kh-hint', body, have.length + '/' + D.CLOSET.length + ' achados · toque pra vestir');
-      const grid = el('div', 'kh-grid', body);
+      hint(body, 'Toque numa roupa pra vestir');
+      prog(body, have.length, D.CLOSET.length, 'achadas');
+      const grid = el('div', 'kh-grid kh-g3', body);
       const okOf = it => it.id === 'kome' || have.indexOf(it.id) >= 0;
       const onOf = it => okOf(it) && (it.kind === 'pal' ? (look.pal || 'kome') === it.id : look.acc === it.id);
-      clothes.forEach(it => tileEl(grid, clothIcon(it, okOf(it)), okOf(it) ? it.n : '???', onOf(it) ? 'vestindo' : okOf(it) ? (it.kind === 'acc' ? 'acessório' : 'pelagem') : 'não achado', { on: onOf(it), dim: !okOf(it) }, () => {
+      clothes.forEach(it => tileEl(grid, clothIcon(it, okOf(it)), okOf(it) ? it.n : '???', onOf(it) ? '✓ vestindo' : okOf(it) ? 'vestir' : (it.prize ? 'prêmio' : it.island ? 'outra ilha' : 'no ouro'), { on: onOf(it), can: okOf(it) && !onOf(it), dim: !okOf(it), v: 1 }, b => {
         P.sel = it.id;
-        if (okOf(it)) { api.wear(it.kind, it.id); if (G.HUD && G.HUD.refreshCloset) G.HUD.refreshCloset(); popAt('kome', 'que estilo!'); const kb = brains.kome; if (kb) { kb.st = 'idle'; kb.idle = 'dance'; kb.T = 2.2; } }
-        else api.sfx('click');
+        if (!okOf(it)) { no(b, howFind(it)); Array.prototype.forEach.call(grid.children, q => q.classList.toggle('kh-sel', q === b)); footSet(c, 'Ainda não achou', howFind(it)); return; }
+        api.wear(it.kind, it.id); if (G.HUD && G.HUD.refreshCloset) G.HUD.refreshCloset(); api.sfx('pling');
+        const kb = brains.kome, took = it.kind === 'acc' && (S.look || {}).acc !== it.id;
+        if (took) { poof('kome'); P.pops.kome = 0; if (kb) { kb.st = 'idle'; kb.idle = 'scratch'; kb.T = 1.8; } }
+        else { popAt('kome', 'que estilo!'); if (kb) { kb.st = 'idle'; kb.idle = 'dance'; kb.T = 2.6; } }
         renderCard();
       }, it.id));
       const it = P.sel && clothes.find(q => q.id === P.sel);
-      if (!it) foot(c, 'O Kome se arruma', 'Roupas aparecem cavando bolsões de ouro');
-      else foot(c, okOf(it) ? it.n : 'Ainda não achado', okOf(it) ? it.d : (it.island || it.prize ? it.d : 'ache cavando bolsões de ouro'));
+      if (!it) foot(c, 'O Kome se arruma', 'As roupas ficam escondidas no ouro');
+      else if (!okOf(it)) foot(c, 'Ainda não achou', howFind(it));
+      else foot(c, it.n, onOf(it) && it.kind === 'acc' ? 'Toque de novo pra tirar' : it.d);
       return;
     }
     if (id === 'tema') {
-      el('div', 'kh-hint', body, 'Vale pro quintal e pra montanha');
+      seg(body, id);
+      hint(body, 'Toque numa estação pra usar');
       const grid = el('div', 'kh-grid', body);
       const ownTh = it => it.sec === 0 || own['th_' + it.id];
-      D.THEMES.forEach(it => tileEl(grid, themeIcon(it), it.n, H0().theme === it.id ? 'em uso' : ownTh(it) ? 'toque pra usar' : '¥ ' + U.fmt(cost(it)), { on: H0().theme === it.id, dim: !ownTh(it) && S.money < cost(it) }, () => {
-        P.sel = it.id;
-        if (ownTh(it)) { if (H0().theme !== it.id) { H0().theme = it.id; api.save(); api.sfx('pling'); popAt('kome'); } }
-        else api.sfx('click');
-        renderCard();
-      }, it.id));
+      D.THEMES.forEach(it => { const cc = cost(it), on = H0().theme === it.id;
+        tileEl(grid, themeIcon(it), it.n, on ? '✓ em uso' : ownTh(it) ? 'usar' : S.money < cc ? 'falta ' + yen(cc - S.money) : yen(cc), { on, can: !on && (ownTh(it) || S.money >= cc), dim: !ownTh(it) && S.money < cc }, () => {
+          P.sel = it.id;
+          if (ownTh(it)) { if (H0().theme !== it.id) { H0().theme = it.id; api.save(); api.sfx('pling'); popAt('kome'); } }
+          else api.sfx('click');
+          renderCard();
+        }, it.id); });
       const it = P.sel && D.themeById[P.sel];
-      if (!it || ownTh(it)) { const cur = D.themeById[H0().theme] || D.THEMES[0]; foot(c, cur.n, cur.d); return; }
-      const cc = cost(it);
-      foot(c, it.n, it.d, 'Comprar ¥' + U.fmt(cc), S.money < cc ? 'kh-no' : '', () => {
-        if (S.money < cc) { say('Faltam ¥' + U.fmt(cc - S.money) + ' pra ' + it.n); api.sfx('error'); return; }
+      if (!it || ownTh(it)) { const cur = D.themeById[H0().theme] || D.THEMES[0]; foot(c, cur.n, 'Vale pro quintal e pra montanha'); return; }
+      const cc = cost(it), okBuy = S.money >= cc;
+      foot(c, it.n, 'Custa ' + yen(cc), okBuy ? 'Comprar' : 'Faltam ' + yen(cc - S.money), okBuy ? 'kh-gold kh-main' : 'kh-no', b => {
+        if (S.money < cc) return no(b, 'Faltam ' + yen(cc - S.money) + '. Volte a cavar!');
         S.money -= cc; own['th_' + it.id] = 1; H0().theme = it.id; api.sfx('pling'); api.save(); popAt('kome', it.n + '!'); renderCard();
-      });
+      }, okBuy ? 'yen' : 'lock');
       return;
     }
     // caderno / ilhas / armazém: o conteúdo é o de sempre (dono: goals.js, islands.js, items.js)
@@ -569,28 +655,23 @@
     if (id === 'caderno' && G.Goals) G.Goals.mountIn(pane);
     else if (id === 'ilhas' && G.Islands) G.Islands.fill(pane);
     else if (id === 'armazem' && G.Items) G.Items.fill(pane);
-    if (!pane.firstChild) el('div', 'kh-hint', pane, 'Nada por aqui ainda.');
+    if (!pane.firstChild) hint(pane, 'Nada por aqui ainda.');
   }
+  function footSet(c, title, txt) { const f = c.querySelector('.kh-foot'); if (!f) return; f.innerHTML = ''; const t = el('div', 'kh-txt', f); el('b', '', t, title); if (txt) el('span', '', t, txt); }
   function fillProp(card, c) {
     const body = el('div', 'kh-body', c), big = el('div', 'kh-big', body);
     if (card.id === 'kome') {
       const lk = S.look || {}, cl = lk.acc ? D.CLOSET.find(q => q.id === lk.acc) : D.CLOSET.find(q => q.id === lk.pal);
-      big.appendChild(cvCopy(tabIcon('roupa'), 88)); const t = el('div', '', big); el('b', '', t, 'Kome'); el('span', '', t, 'vestindo: ' + (cl ? cl.n : 'chapéu de palha'));
-      const r = el('div', 'kh-row', body), b = el('button', 'kh-btn', r, 'Trocar roupa'); b.onclick = () => openCard({ type: 'tab', id: 'roupa' });
-      return;
-    }
-    if (card.id === 'casa') {
-      big.appendChild(cvCopy(tabIcon('caderno'), 88)); const t = el('div', '', big); el('b', '', t, S.house > 0 ? 'Casa do Kome' : 'Terreno à venda');
-      el('span', '', t, S.house > 0 ? 'Fase ' + S.house + ' de 6 · melhora pela árvore de upgrades' : 'compre a casa na árvore de upgrades');
-      const r = el('div', 'kh-row', body), b = el('button', 'kh-btn kh-alt', r, 'Abrir o caderno'); b.onclick = () => openCard({ type: 'tab', id: 'caderno' });
+      big.appendChild(cvCopy(tabIcon('roupa'), 88)); const t = el('div', '', big); el('b', '', t, 'Kome'); el('span', '', t, 'Está de ' + (cl ? cl.n : 'chapéu de palha'));
+      const r = el('div', 'kh-row', body), b = btn(r, 'kh-gold', 'Trocar roupa', 'hat'); b.onclick = () => openCard({ type: 'tab', id: 'roupa' });
       return;
     }
     const it = D.decorById[card.id]; if (!it) return;
     big.appendChild(cvCopy(itemIcon(it), 88)); const t = el('div', '', big); el('b', '', t, it.n); el('span', '', t, it.d);
     const extra = it.id === 'lago' && has('carpas') ? D.decorById.carpas : it.id === 'onsen' && has('capivara') ? D.decorById.capivara : null;
     const r = el('div', 'kh-row', body);
-    if (extra) { const b2 = el('button', 'kh-btn kh-alt', r, 'Guardar ' + extra.n.toLowerCase()); b2.onclick = () => { toggleHide(extra); closeCard(); }; }
-    const b = el('button', 'kh-btn kh-alt', r, 'Guardar'); b.onclick = () => { toggleHide(it); closeCard(); };
+    if (extra) { const b2 = btn(r, 'kh-alt', 'Guardar ' + extra.n.toLowerCase(), 'chest'); b2.onclick = () => { toggleHide(extra); closeCard(); }; }
+    const b = btn(r, 'kh-alt', 'Guardar', 'chest'); b.onclick = () => { toggleHide(it); closeCard(); };
   }
 
   /* ---- desenho do lugar ---- */
@@ -602,7 +683,7 @@
     g.fillStyle = sel ? '#D9A43A' : '#EBD9B0'; Draw.rrect(g, x, y + lift + h - 26, w, 26, 14); g.fill(); g.fillRect(x, y + lift + h - 26, w, 10);
     g.fillStyle = 'rgba(255,255,255,.55)'; Draw.rrect(g, x + 6, y + lift + 4, w - 12, 5, 2.5); g.fill();
     if (icon) { const s = 44; g.drawImage(icon, Math.round(x + w / 2 - s / 2), Math.round(y + lift + 7), s, s); }
-    Draw.text(g, label, x + w / 2, y + lift + h - 13, { size: 17, col: INK, sw: 0, weight: 900 });
+    Draw.text(g, label, x + w / 2, y + lift + h - 13, { size: 19, col: INK, sw: 0, weight: 900 });
   }
   function deck(g) {
     const y = BAR.y - 10, wd = '#B9844E';
@@ -641,7 +722,7 @@
         if (S.house > 0) N.house(g, hx, hy, { stage: S.house - 1, s: 1.55, t });
         else if (G.World && G.World.drawPlot) { G.World.drawPlot(g, hx, hy + 4, 2.2); Draw.text(g, 'À VENDA', hx + 34, hy - 78, { size: 18, col: PAL.red, sw: 3, weight: 900, stroke: '#FFF6DE' }); }
       }) });
-      boxes.push({ x: hx - 120, y: hy - 190, w: 240, h: 190, id: 'casa', z: hy - 50, fn: () => { P.pops.casa = 0.2; openCard({ type: 'prop', id: 'casa', title: 'Casa' }); } }); }
+      boxes.push({ x: hx - 120, y: hy - 190, w: 240, h: 190, id: 'casa', z: hy - 50, fn: () => { P.pops.casa = 0.2; openCard({ type: 'tab', id: 'casa' }); } }); }
     // bichos das fichas (conteudo/)
     for (const it of D.DECOR) {
       if (!it.fromCard || (!has(it.id) && showGhost !== it.id)) continue;
@@ -693,16 +774,18 @@
     // título (vai pro lado livre quando tem cartão aberto)
     const tx = !P.card || P.card.type !== 'tab' ? PW / 2 : P.side === 'l' ? 700 : 262; P.titleX += (tx - P.titleX) * 0.15;
     Draw.text(g, 'Casa do Kome', P.titleX, 34, { size: 30, col: PAL.cream, sw: 5 });
-    Draw.text(g, '¥ ' + U.fmt(S.money) + ' · ' + countOwned() + '/' + D.DECOR.length + ' no quintal', P.titleX, 64, { size: 18, col: PAL.cream, sw: 4 });
+    Draw.text(g, '¥ ' + U.fmt(S.money) + ' · ' + countOwned() + ' de ' + D.DECOR.length + ' no quintal', P.titleX, 64, { size: 18, col: PAL.cream, sw: 4 });
     // varanda com as abas
     deck(g);
-    const zones = [];
+    const zones = [], hn = houseNow();
     const hov = i => P.mx !== undefined && !P.input.touch && P.my >= BAR.y - 6 && P.mx >= barX(i) && P.mx < barX(i) + BAR.w;
     tile(barX(-1), BAR.y, BAR.w, BAR.h, false, hov(-1), tabIcon('voltar'), 'Cavar');
     zones.push({ x: barX(-1) - 4, y: BAR.y - 10, w: BAR.w + 8, h: BAR.h + 18, fn: () => close() });
     TABS.forEach((tb, i) => {
-      const x = barX(i), sel = P.card && P.card.type === 'tab' && P.card.id === tb.id;
+      const x = barX(i), sel = P.card && P.card.type === 'tab' && (GROUP[P.card.id] || P.card.id) === tb.id;
       tile(x, BAR.y, BAR.w, BAR.h, sel, hov(i), tabIcon(tb.id), tb.n);
+      // bolinha dourada: tem novidade nessa aba (dá pra construir / roupa nova achada)
+      if (!sel && ((tb.id === 'casa' && hn && hn.can) || (tb.id === 'roupa' && P.newCloth))) { const bx = x + BAR.w - 9, by = BAR.y + 3 + Math.sin(t * 5) * 2; g.fillStyle = INK; g.beginPath(); g.arc(bx, by, 11, 0, 6.3); g.fill(); g.fillStyle = '#F2C230'; g.beginPath(); g.arc(bx, by, 8, 0, 6.3); g.fill(); }
       zones.push({ x: x - 4, y: BAR.y - 10, w: BAR.w + 8, h: BAR.h + 18, fn: () => { if (sel) closeCard(); else openCard({ type: 'tab', id: tb.id }); } });
     });
     P.zones = zones;
@@ -758,7 +841,7 @@
     place: {
       get on() { return !!(P && P.on); },
       tod: v => { if (P) P.todForce = v === undefined ? null : v; },
-      card: id => { if (!P || !P.on) return; if (TABS.some(x => x.id === id)) openCard({ type: 'tab', id }); else openCard({ type: 'prop', id, title: (D.decorById[id] || {}).n || 'Kome' }); },
+      card: id => { if (!P || !P.on) return; if (CARDS.indexOf(id) >= 0) openCard({ type: 'tab', id }); else openCard({ type: 'prop', id, title: (D.decorById[id] || {}).n || 'Kome' }); },
       sel: id => { if (P && P.card) { P.sel = id; renderCard(); } },
       close: () => P && P.card && closeCard(),
       step(sec) { for (let left = sec; left > 1e-6; left -= 1 / 30) tickPlace(Math.min(1 / 30, left)); drawPlace(); },

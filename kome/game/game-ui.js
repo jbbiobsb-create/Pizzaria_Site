@@ -28,8 +28,6 @@
   /* chips SECUNDÁRIOS (atalho pra tela que não pede ação agora): com 2+ ligados eles vão pra gaveta "Mais" (um chip só);
      o secundário QUENTE (o de maior prio com hint) continua na fileira pra o aviso não sumir. HUD.chipEl(id) = o elemento
      que está na tela pra esse chip (ele mesmo ou o "Mais"), pra dica apontar. */
-  const SEC = { cidade: 1, verpatio: 1, amuletos: 1, escada: 1 };
-  const FOLD2 = ['tatuzao', 'modo', 'fabrica', 'vila', 'patio'];
   let more = null, moreBox = null, moreSig = '', moreT = 0, chipDemo = false;
   function moreClose() { if (moreBox && moreBox.classList.contains('k-open')) { moreBox.classList.remove('k-open'); document.body.classList.remove('k-moreopen'); clearTimeout(moreT); } }
   function moreOpen() {
@@ -51,45 +49,33 @@
     const w = Math.max(200, Math.floor(2 * Math.min(cx - l, r - cx) / k) - 20);
     if (chipRow._w !== w) { chipRow._w = w; chipRow.style.maxWidth = w + 'px'; }
   }
+  /* FILEIRA = SÓ ALERTAS (rodada de UX): quem tem novidade (prio > 0) ou relógio correndo (ALWAYS). Atalho parado não mora
+     mais aqui: toda função fica nos hubs da barra de navegação (Comprar · Lugares · Viagem · Mais). No máx. 3 chips, 1 linha. */
+  const ALWAYS = { modo: 1 };
   function chipLayout() {
-    let top = null;
     const isOn = c => c !== more && (c.on || chipDemo);
-    for (const c of chips) if (isOn(c) && c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
-    // gaveta "Mais": só mexe no DOM quando o conjunto dobrado muda
-    const sec = chips.filter(c => isOn(c) && SEC[c.id] && c !== top);
-    // fileira estreita (celular pequeno, muita coisa ligada): dobra também os menos urgentes, nessa ordem, até caber
-    const mob = document.body.classList.contains('k-mob'), rw = mob && innerHeight > innerWidth ? innerWidth - 24 : chipRow && chipRow._w;
-    const inl = chips.filter(c => isOn(c) && !SEC[c.id]), cap = rw ? Math.max(3, Math.floor(rw / (mob ? 54 : 70)) * (mob ? 1 : 2)) : 99;
-    for (const id of FOLD2) { if (inl.length + Math.min(1, sec.length) <= cap) break; const c = inl.find(q => q.id === id && q !== top); if (c) { inl.splice(inl.indexOf(c), 1); sec.push(c); } }
-    sec.sort((a, b) => a.order - b.order);
-    const fold = sec.length >= 2;
-    const sig = fold ? sec.map(c => c.id).join(',') : '';
-    if (sig !== moreSig && more) {
-      moreSig = sig;
-      for (const c of chips) { c.fold = fold && sec.indexOf(c) >= 0; if (c !== more) (c.fold ? moreBox : chipRow).appendChild(c.el); }
-      chipRow.appendChild(more.el);
-      if (!fold) moreClose();
-    }
-    if (more) {
-      const mo = fold, dot = mo && sec.some(c => c.prio > 0), lb = 'Mais ' + sec.length;
-      if (more.el.style.display !== (mo ? '' : 'none')) more.el.style.display = mo ? '' : 'none';
-      if (more.b.textContent !== (mo ? lb : 'Mais')) more.b.textContent = mo ? lb : 'Mais';
-      more.el.classList.toggle('k-chip-dot', dot);
-    }
+    const mob = document.body.classList.contains('k-mob');
+    const rw = mob && innerHeight > innerWidth ? innerWidth - 24 : (chipRow && chipRow._w) || 400;
+    const cap = Math.max(1, Math.min(3, Math.floor(rw / 140)));
+    const al = chips.filter(c => isOn(c) && (c.prio > 0 || ALWAYS[c.id] || chipDemo)).sort((x, y) => y.prio - x.prio).slice(0, cap);
+    let top = null;
+    for (const c of al) if (c.prio > 0 && c.hint && (!top || c.prio > top.prio)) top = c;
+    if (more && more.el.style.display !== 'none') more.el.style.display = 'none';
     for (const c of chips) {
       if (c === more) continue;
-      const hot = c === top, e = c.el, on = isOn(c);
-      e.style.display = on ? '' : 'none';
+      const hot = c === top, e = c.el, on = al.indexOf(c) >= 0;
+      c.fold = false;
+      if (e.style.display !== (on ? '' : 'none')) e.style.display = on ? '' : 'none';
       e.classList.toggle('k-chip-hot', hot); e.classList.toggle('k-pulse', hot);
       e.classList.toggle('k-chip-dot', !hot && on && c.prio > 0);
-      // celular: a fileira fica em UMA linha; o detalhe do chip quente vira balãozinho embaixo dele (game.css .k-mob)
-      const mob = document.body.classList.contains('k-mob'), lb = hot && c.hot && !mob ? c.hot : c.label;
-      const hi = !hot ? (c.fold && c.prio > 0 && c.hint ? c.hint : '') : mob ? (c.hot ? c.hot + ' · ' : '') + c.hint : '· ' + c.hint;
+      // celular: o detalhe do chip quente vira balãozinho embaixo dele (game.css .k-mob)
+      const lb = hot && c.hot && !mob ? c.hot : c.label;
+      const hi = !hot ? '' : mob ? (c.hot ? c.hot + ' · ' : '') + c.hint : '· ' + c.hint;
       if (c.b.textContent !== lb) c.b.textContent = lb;
       if (c.sm.textContent !== hi) c.sm.textContent = hi;
       const tn = hot ? '' : (c.tone || ''); if (e.style.background !== tn) e.style.background = tn;
     }
-    chipFit();
+    chipFit(); navDots();
   }
   // toque (celular): chip com tip (preço, detalhe que no PC fica no hover) abre um cartãozinho com o texto e o botão da ação
   let chipPop = null;
@@ -118,7 +104,7 @@
     }
     const b = document.createElement('button'); b.className = 'k-btn k-chip'; b.setAttribute('data-chip', o.id);
     b.innerHTML = '<span class="k-chip-i"></span><b></b><small></small>';
-    const c = { id: o.id, el: b, b: b.querySelector('b'), sm: b.querySelector('small'), ic: b.querySelector('.k-chip-i'), label: o.label || '', hot: '', hint: '', prio: 0, on: o.show !== false, tone: o.tone || '', order: o.order || 0, icon: null };
+    const c = { id: o.id, el: b, b: b.querySelector('b'), sm: b.querySelector('small'), ic: b.querySelector('.k-chip-i'), label: o.label || '', hot: '', hint: '', prio: 0, on: o.show !== false, tone: o.tone || '', order: o.order || 0, icon: null, click: o.onClick || null };
     c.set = function (p) {
       // chips são atualizados por vários relógios (300–700 ms): sem mudança, não refaz o layout (chipFit mede a tela = layout forçado)
       const sig0 = c.label + '|' + c.hot + '|' + c.hint + '|' + c.prio + '|' + c.on + '|' + c.tone + '|' + c.icon;
@@ -150,12 +136,13 @@
   };
   // HUD.chipEl(id): o que está na tela pra esse chip (ele, ou o "Mais" se está na gaveta); null se apagado
   HUD.chipEl = function (id) {
-    const c = chips.find(q => q.id === id && (q.on || chipDemo) && q.el.style.display !== 'none' && q.el.offsetParent);
-    if (!c) { const any = chips.find(q => q.id === id && q.on && q.fold); return any && more && more.el.style.display !== 'none' ? more.el : null; }
-    return c.fold ? (more && more.el.style.display !== 'none' ? more.el : null) : c.el;
+    const c = chips.find(q => q.id === id && (q.on || chipDemo));
+    if (!c) return null;
+    if (c.el.style.display !== 'none' && c.el.offsetParent) return c.el;
+    const t = navTabs[GROUP[id] || 'lugares']; return t ? t.el : null;   // chip sem alerta mora no hub: a dica aponta a aba
   };
   // prints/sweep: liga todos os chips (fileira cheia) e abre a gaveta
-  HUD.chipDemo = function (on) { chipDemo = on !== false; chipLayout(); if (chipDemo) setTimeout(moreOpen, 60); else moreClose(); };
+  HUD.chipDemo = function (on) { chipDemo = on !== false; chipLayout(); };
   function icon(id) { return G.Props ? G.Props.icon(id) : 'paw'; }
 
   // descrição curta do efeito de um nó (a partir do fx)

@@ -49,16 +49,16 @@
   // especialização: a Oficina chama ao bater um marco. spec(t, 'r'|'d') grava a escolha (a tela nova usa direto)
   function spec(t, ch) { const sp = S.stats.spec || (S.stats.spec = {}); (sp[t.id] || (sp[t.id] = [])).push(ch === 'd' ? 'd' : 'r'); }
   function specChoice(t, done) {
-    UI.dialog({ kicker: 'Marco da ' + t.name, title: 'Pra onde ela vai?', text: 'Escolha um caminho (dá pra mudar na próxima ilha).',
+    UI.dialog({ kicker: 'Marco! ' + t.name, title: 'Escolha 1 presente', text: 'Não tem escolha errada. As duas são boas!',
       buttons: [
-        { title: 'Mais rápida', sub: 'bônus desta máquina +50%', onClick: () => { spec(t, 'r'); done(); } },
-        { title: 'Mais dourada', sub: '+10% em todos os bolsões dourados', onClick: () => { spec(t, 'd'); done(); } },
+        { title: 'Mais rápida', sub: 'esta máquina rende +50%', onClick: () => { spec(t, 'r'); done(); } },
+        { title: 'Mais dourada', sub: 'arroz dourado vale +10%', onClick: () => { spec(t, 'd'); done(); } },
       ] });
   }
   const speedK = id => { const a = (S.stats.spec || {})[id] || []; return 1 + 0.5 * a.filter(c => c === 'r').length; };
 
   function pay(c, what, fn, quiet) {
-    if (S.money < c) { if (!quiet) UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: what }); return false; }
+    if (S.money < c) { if (!quiet) UI.toast('Falta ¥ ' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: what }); return false; }
     S.money -= c; fn(); if (G.priceBump) G.priceBump(); api.recompute(); api.save(); api.sfx('pling'); return true;
   }
   /* compras: a lista antiga e a tela nova da Oficina chamam AS MESMAS funções (q = quieto: sem aviso em DOM nem passeio de
@@ -81,32 +81,35 @@
   // seções no painel da Oficina (lista antiga, de reserva)
   function fillPanel(col, refresh) {
     const r = run(), row = (o) => { const b = UI.button(col, Object.assign({ size: 'sm' }, o)); (b.el || b).style.width = '100%'; return b; };
-    UI.el('div', 'k-h', col, 'Máquina gigante');
+    UI.el('div', 'k-h', col, 'Bagger Gêmea');
     const gp = Math.min(D.GIANT.length, r.giant | 0), part = D.GIANT[gp];
-    UI.el('div', 'k-homehint', col, 'Bagger Gigante: ' + gp + '/4 peças' + (gp ? ' · renda ×' + String(D.GIANT[gp - 1].mult).replace('.', ',') : ''));
-    if (part) row({ title: 'Peça ' + (gp + 1) + ': ' + part.n, sub: '¥ ' + U.fmt(cost.giant()) + ' · ' + part.d, icon: 'horn', onClick: () => buy.giant() && refresh() });
+    UI.el('div', 'k-homehint', col, gp + ' de 4 peças' + (gp < 4 ? ' · compre a próxima' : ' · pronta!'));
+    if (part) row({ title: 'Peça ' + (gp + 1) + ': ' + part.n, sub: '¥ ' + U.fmt(cost.giant()) + ' · mais arroz', icon: 'horn', onClick: () => buy.giant() && refresh() });
     else {
-      UI.el('div', 'k-homehint', col, '✓ Bagger Gêmea completa, comendo o monte de estoque ao lado da 293');
+      UI.el('div', 'k-homehint', col, 'Pronta! Ela cava ao lado da Bagger. Escolha a cor:');
       const line = UI.el('div', 'k-row', col); line.style.flexWrap = 'wrap'; line.style.gap = '4px';
       for (const [id, n] of PAINTS) {
         UI.button(line, { title: ((r.paint || 'kawaii') === id ? '✓ ' : '') + n, size: 'sm', onClick: () => { buy.paint(id); refresh(); } });
       }
     }
-    UI.el('div', 'k-h', col, 'Fábrica no pé da montanha · nível ' + (r.fab | 0));
-    row({ title: 'Ampliar a fábrica', sub: '¥ ' + U.fmt(cost.fab()) + ' · +12% de renda · ' + nextFab(r.fab | 0), icon: 'gear', onClick: () => buy.fab() && refresh() });
-    UI.el('div', 'k-h', col, 'Cidade que compra');
-    UI.el('div', 'k-homehint', col, 'cada nível de loja +4% de renda; a cliente escolhida ganha o bônus dela');
+    UI.el('div', 'k-h', col, 'Galpão do pátio · nível ' + (r.fab | 0));
+    row({ title: 'Ampliar o galpão', sub: '¥ ' + U.fmt(cost.fab()) + ' · +12% de arroz', icon: 'gear', onClick: () => buy.fab() && refresh() });
+    UI.el('div', 'k-h', col, 'Lojas da cidade');
+    UI.el('div', 'k-homehint', col, 'Cada nível de loja: +4% de arroz. A favorita (★) dá um bônus extra.');
     for (const sh of D.SHOPS) {
       const L = r.shops[sh.id] | 0, on = r.client === sh.id;
-      row({ title: (on ? '★ ' : '') + sh.n + ' · nível ' + L, sub: '¥ ' + U.fmt(cost.shop(sh.id)) + ' · ' + sh.d, icon: on ? 'star' : 'rice', onClick: () => buy.shop(sh.id) && refresh() });
+      row({ title: (on ? '★ ' : '') + sh.n + ' · nível ' + L, sub: '¥ ' + U.fmt(cost.shop(sh.id)) + ' · ' + shopLine(sh), icon: on ? 'star' : 'rice', onClick: () => buy.shop(sh.id) && refresh() });
     }
     const owned = D.SHOPS.filter(sh => r.shops[sh.id]);
     if (owned.length > 1) {
       const line = UI.el('div', 'k-row', col); line.style.flexWrap = 'wrap'; line.style.gap = '4px';
-      UI.el('div', 'k-homehint', col, 'trocar a cliente (de graça):');
+      UI.el('div', 'k-homehint', col, 'Trocar a favorita (de graça):');
       for (const sh of owned) UI.button(line, { title: (r.client === sh.id ? '✓ ' : '') + sh.n, size: 'sm', onClick: () => { buy.client(sh.id); refresh(); } });
     }
   }
+  // linha simples do bônus da loja favorita ("Favorita: +10% no preço")
+  const SHOP_KN = { sell: 'de arroz', val: 'no preço', gold: 'no dourado' };
+  const shopLine = sh => 'Favorita: +' + Math.round((sh.r || 0) * 100) + '% ' + (SHOP_KN[sh.k] || 'de arroz');
   const PAINTS = [['kawaii', 'Pintura kawaii'], ['dino', 'Pintura dinossauro'], ['normal', 'Pintura de fábrica']];
   const nextFab = L => L < 1 ? 'esteira' : L < 3 ? 'Komes empacotando' : L < 5 ? 'braço robô' : L < 7 ? 'robozinhos' : 'mais de tudo';
 

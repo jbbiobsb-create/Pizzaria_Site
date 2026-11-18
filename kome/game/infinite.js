@@ -38,11 +38,11 @@
   // Devolve null se faltou dinheiro, senão { L, mile, cost }.
   function up(t, o) {
     const q = !!(o && o.quiet), c = cost(t);
-    if (S.money < c) { if (!q) UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: t.name }); return null; }
+    if (S.money < c) { if (!q) UI.toast('Falta ¥ ' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: t.name }); return null; }
     S.money -= c; const L = (lv()[t.id] | 0) + 1; lv()[t.id] = L; if (G.priceBump) G.priceBump();
     const mile = isMile(L);
     api.recompute(); if (!q) api.sfx(mile ? 'fanfare' : 'pling');
-    if (mile && !q) { UI.banner(t.name + ' nível ' + L + '!', 'marco: o bônus dela dobrou', { icon: 'star', tone: 'gold', dur: 2.6 }); if (G.Ind) G.Ind.specChoice(t, () => { api.recompute(); api.save(); refresh(); }); }
+    if (mile && !q) { UI.banner(t.name + ' nível ' + L + '!', 'Marco! Ela ficou 2x mais forte', { icon: 'star', tone: 'gold', dur: 2.6 }); if (G.Ind) G.Ind.specChoice(t, () => { api.recompute(); api.save(); refresh(); }); }
     api.save(); refresh();
     return { L, mile, cost: c };
   }
@@ -57,14 +57,14 @@
     const b = panel.body; b.innerHTML = '';
     const col = UI.el('div', 'k-col', b);
     if (G.Ind) G.Ind.fillPanel(col, refresh);
-    UI.el('div', 'k-h', col, 'Frota');
-    UI.el('div', 'k-homehint', col, 'Cada nível deixa ESSA máquina mais forte enquanto você usa ela: mais renda e mais força pra atravessar arroz duro. Troque de lugar (setinhas) pra usar as antigas.');
+    UI.el('div', 'k-h', col, 'Suas máquinas');
+    UI.el('div', 'ux-hint', col, 'Toque numa máquina pra deixar ela mais forte.');
     const now = api.playing ? api.playing() : null;
     for (const t of owned().slice().reverse()) {
-      const L = lv()[t.id] | 0, nx = nextMileOf(L), c = cost(t), on = now && now.id === t.id;
-      const btn = UI.button(col, { title: (on ? '★ ' : '') + t.name + ' · nível ' + L, sub: '¥ ' + U.fmt(c) + ' · renda ×' + mult(t.id).toFixed(2).replace('.', ',') + ' · força ×' + powK(t.id).toFixed(1).replace('.', ',') + (on ? ' · usando agora' : '') + (nx ? ' · marco no ' + nx : ''),
-        icon: G.Props ? G.Props.icon(t.id) : 'bolt', size: 'sm', onClick: () => up(t) });
-      const el = btn.el || btn; el.style.width = '100%'; if (S.money < c) el.style.opacity = '0.6';
+      const L = lv()[t.id] | 0, nx = nextMileOf(L), c = cost(t), on = now && now.id === t.id, can = S.money >= c;
+      const btn = UI.button(col, { title: t.name + (on ? ' (em uso)' : ''), sub: 'nível ' + L + ' · marco no ' + nx + ' · ' + (can ? '¥ ' + U.fmt(c) : 'falta ¥ ' + U.fmt(c - S.money)),
+        icon: G.Props ? G.Props.icon(t.id) : 'bolt', size: 'sm', onClick: () => { if (!up(t)) { el.classList.remove('ux-shake'); void el.offsetWidth; el.classList.add('ux-shake'); } } });
+      const el = btn.el || btn; el.classList.add('ux-ofi-row', can ? 'ux-ofi-can' : 'ux-ofi-lock');
     }
   }
   // A Oficina é um LUGAR (game/oficina.js). A lista antiga continua aqui de reserva: abre se a tela nova não carregou,
@@ -149,7 +149,7 @@
     sim: { cost, up },   // tools/longo.js (simulador de horas) compra sem abrir a tela
     addEvent: e => { if (!EVENTS.some(x => x.id === e.id)) EVENTS.push(e); },   // fichas de conteudo/ (tipo evento)
     mult, powK, evMult, tick, open, openList, event: () => ev, eventLeft: () => evT,
-    levels: lv, info, up, owned, playing: () => (api && api.playing ? api.playing() : null), MILES, mileAt, isMile, classic: false,
+    levels: lv, info, up, owned, multAt: (t, L) => 1 + bonusOf(L) * (G.Ind ? G.Ind.speedK(t.id) : 1), playing: () => (api && api.playing ? api.playing() : null), MILES, mileAt, isMile, classic: false,
     recompute() { api.recompute(); api.save(); refresh(); },
   };
 })();

@@ -177,9 +177,20 @@
     // turmas na tela: as abertas + a PRÓXIMA absurda travada ("???", diz qual nó destrava)
     const absList = () => { const out = []; let next = true;
       for (const t of P.turmas) { const ok = unlocked(t); if (!ok && !next) continue; if (!ok) next = false; const sd = t.seed ? seedById(t.seed) : null;
-        out.push({ id: t.id, name: t.n, n: cnt(t.id), rate: rateOf(t.id), absurd: !!t.seed, locked: !ok, lockTxt: ok ? '' : 'destrava com o nó "' + (sd ? sd.n : t.seed) + '"' }); }
+        out.push({ id: t.id, name: t.n, n: cnt(t.id), rate: rateOf(t.id), absurd: !!t.seed, locked: !ok, lockTxt: ok ? '' : 'Destrava com a semente "' + (sd ? sd.n : t.seed) + '"', lockSeed: ok ? '' : t.seed,
+          each: t.r * R0() * marcoMult(t.id) * synMult(t.id) * heart() * sind() }); }   // each = quanto UMA unidade a mais rende agora (¥/s), pra tela mostrar o salto
       return out; };
-    const fam = a => (a.cond === 'segredo' ? 'segredo' : a.cond === 'ganho' ? 'riqueza' : a.cond === 'eventos' ? 'eventos' : 'turmas');
+    // família na galeria (só apresentação): pela condição da planilha
+    const FAMC = { segredo: 'segredo', ganho: 'riqueza', cavado: 'riqueza', renda: 'riqueza', compras: 'riqueza', viagens: 'viagem', ilha: 'viagem', voltas: 'viagem',
+      fabrica: 'mini', cardapio: 'mini', oficina: 'mini', oficina_soma: 'mini', tatuzao: 'mini', colecao: 'mini', tempo: 'coracao', offline: 'coracao', offline_max: 'coracao', nomes: 'coracao', conquistas: 'coracao', tigelas: 'coracao' };
+    const fam = a => FAMC[a.cond] || (/^(evento|chuva|gigante|desfile|tempestade|mochila|frenesi|livro)/.test(a.cond) ? 'eventos' : 'turmas');
+    // quanto falta (só pras condições que o jogo já mede: a tela usa no "quase lá"); mesma conta do achOk, sem mudar regra
+    const prog = a => { const s = S();
+      if (a.cond === 'qtd') return [a.maq === 'todas' ? Math.min(...openTurmas().map(t => cnt(t.id))) : cnt(a.maq), a.alvo];
+      if (a.cond === 'ganho') return [(s.stats.earnedAll || 0) + (s.earned || 0), a.alvo];
+      if (a.cond === 'eventos') return [s.stats.goldEv | 0, a.alvo];
+      return null; };
+    const TN = id => { const t = D.TOOLS && D.TOOLS.find(x => x.id === id); return t ? t.name : byId[id] ? byId[id].n : id; };   // nome curto ("Pata", "Hashi")
     G.CookieUI.use({
       ready: () => on(), money: () => S().money,
       patio: () => absList(),
@@ -187,23 +198,30 @@
       price: (id, k) => costN(id, k === 'max' ? Math.max(1, maxK(id)) : k), maxBuy: id => maxK(id),
       buy: (id, k) => buy(id, k === 'max' ? 'max' : k),
       marco: id => { const i = mks(id); if (i >= P.at.length) return null; const r = marcoRow(id);
-        return { at: P.at[i], name: r ? r.n : byId[id].n, desc: r ? r.d : byId[id].n + ' rende o dobro', mult: sl('marco_turbo') && i < 2 ? 3 : 2, price: marcoCost(id), ready: cnt(id) >= P.at[i], prev: i ? { at: P.at[i - 1] } : null }; },
+        return { at: P.at[i], name: r ? r.n : byId[id].n, desc: r ? r.d : byId[id].n + ' rende o dobro', mult: sl('marco_turbo') && i < 2 ? 3 : 2, price: marcoCost(id), ready: cnt(id) >= P.at[i], prev: i ? { at: P.at[i - 1] } : null, done: i, of: P.at.length }; },
+      marcos: id => ({ done: mks(id), of: P.at.length }), shortName: id => TN(id),
       buyMarco: id => buyMarco(id),
       sinergias: id => SYN.filter(u => u.maq.split('+').indexOf(id) >= 0).map(u => { const [a, b] = u.maq.split('+'), other = a === id ? b : a;
-        return { id: u.id, other, otherName: byId[other].n, name: u.n, desc: u.d, mult: u.ef === 'mult_par' ? u.v || 1 : 1 + (u.v || 0), state: synOn(u.id) ? 'on' : synOpen(u) ? 'ready' : 'need', need: u.alvo, have: Math.min(cnt(a), cnt(b)), price: synCost(u) }; }),
+        return { id: u.id, other, otherName: byId[other].n, name: u.n, desc: u.d, mult: u.ef === 'mult_par' ? u.v || 1 : 1 + (u.v || 0), state: synOn(u.id) ? 'on' : synOpen(u) ? 'ready' : 'need', need: u.alvo, have: Math.min(cnt(a), cnt(b)), price: synCost(u),
+          a, b, aName: TN(a), bName: TN(b), kind: u.ef === 'mult_par' ? 'par' : 'por', v: u.v || 0 }; }),   // par: as duas ×v · por: b ganha +v por unidade de a
       buySinergia: sid => { const u = SYN.find(x => x.id === sid); return u ? buySyn(u) : false; },
-      coracao: () => { const nx = TIG.find(u => !H0().tig[u.id]); return { n: achN(), total: CK.ach.length, per: perAch(), bonus: achN() * perAch(), next: nx ? { need: nx.alvo, name: nx.n } : null, recent: [] }; },
-      conquistas: () => CK.ach.map(a => ({ id: a.id, name: a.n, desc: a.d, fam: fam(a), icon: a.icon, secret: a.cond === 'segredo', got: !!H0().ach[a.id], hint: null })),
-      tigelas: () => TIG.map(u => ({ id: u.id, name: u.n, desc: u.d, need: u.alvo, price: tigCost(u), owned: !!H0().tig[u.id], can: tigOpen(u) && S().money >= tigCost(u) })),
+      coracao: () => { const nx = TIG.find(u => !H0().tig[u.id]); return { n: achN(), total: CK.ach.length, per: perAch(), bonus: achN() * perAch(), bonusAll: heart() - 1, extra: (G.City ? G.City.grains() : 0) + (G.Escada ? G.Escada.total() : 0), next: nx ? { need: nx.alvo, name: nx.n } : null, recent: [] }; },
+      conquistas: () => CK.ach.map(a => ({ id: a.id, name: a.n, desc: a.d, fam: fam(a), icon: a.icon, secret: a.cond === 'segredo', got: !!H0().ach[a.id], hint: null, prog: H0().ach[a.id] ? null : prog(a) })),
+      tigelas: () => TIG.map(u => ({ id: u.id, name: u.n, desc: u.d, need: u.alvo, v: u.v || 0, price: tigCost(u), owned: !!H0().tig[u.id], can: tigOpen(u) && S().money >= tigCost(u) })),
       buyTigela: i => (TIG[i] ? buyTig(TIG[i]) : false),
       seeds: () => Math.floor(S().stats.seeds || 0),   // sem |0: passa de 2^31 nas voltas altas
       seedTree: () => {
         const BR = { Viagem: { name: 'Viagem', color: '#E3BC62', icon: 'boat' }, 'Pátio': { name: 'Pátio', color: '#7DB34A', icon: 'paw' }, Sorte: { name: 'Sorte', color: '#F3C94A', icon: 'star' }, 'Coração': { name: 'Coração', color: '#E86A7A', icon: 'star' }, 'Poupança': { name: 'Poupança', color: '#6FA8DC', icon: 'yen' }, Absurdo: { name: 'Absurdo', color: '#E3BC62', icon: 'drill' } };
         const col = {}; return { branches: BR, nodes: D.SEEDS.map(s => { const b = s.g || 'Viagem', k = Object.keys(BR).indexOf(b), r = (col[b] = (col[b] | 0) + 1) - 1;
-          return { id: s.id, n: s.n, desc: s.d, now: () => (I() && I().seedFx ? I().seedFx(s) : ''), branch: b, pos: { x: (k - 2) * 1.6, y: -1 - r * 1.2 }, req: s.req ? [s.req] : [], size: b === 'Absurdo' ? 2 : 1, icon: BR[b].icon, max: s.max || 0, absurd: b === 'Absurdo' }; }) };
+          return { id: s.id, n: s.n, desc: s.d, now: () => (I() && I().seedFx ? I().seedFx(s) : ''), fxAt: s.fx ? L => (L > 0 ? s.fx(L) : '') : null, branch: b, pos: { x: (k - 2) * 1.6, y: -1 - r * 1.2 }, req: s.req ? [s.req] : [], size: b === 'Absurdo' ? 2 : 1, icon: BR[b].icon, max: s.max || 0, absurd: b === 'Absurdo' }; }) };
       },
       seedLevel: id => ((S().stats.sl || {})[id] | 0), seedCost: id => { const s = seedById(id); return s && I() ? I().seedCost(s) : Infinity; },
       buySeed: id => { const s = seedById(id); return !!(s && I() && I().buy(s) !== false); },
+      // quantos níveis (até k) cabem nas sementes de agora e quanto custam juntos (mesma série do islands.js: base × seedGrow^nível)
+      seedPlan: (id, k) => { const s = seedById(id); if (!s || !I()) return { n: 0, cost: Infinity };
+        const g = (D.ENDGAME && D.ENDGAME.seedGrow) || 1.45, have = Math.floor(S().stats.seeds || 0); let L = I().lvl(s.id), n = 0, cost = 0;
+        while (n < k && !(s.max && L >= s.max)) { const c = Math.ceil(s.base * Math.pow(g, L)); if (n > 0 && cost + c > have) break; cost += c; n++; L++; }
+        return { n, cost: n ? cost : Infinity }; },
       away: () => pendAway, claimAway: () => { if (pendAway) { S().money += pendAway.total; S().earned += pendAway.total; pendAway = null; } },
       partir: () => (I() && I().seedsPatio && on() ? { ok: G.Patio.partir(), patio: I().seedsPatio(), island: I().seedsBase(), later: null, laterMin: 20 } : null),
     });

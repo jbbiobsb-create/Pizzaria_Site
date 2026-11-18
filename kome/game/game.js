@@ -209,6 +209,7 @@
   };
   let slideFX = null, slideSum = 0, slideT = 0, rumbleCD = 0;
   function buildWorld() {
+    if (heap && heap.dropCache) heap.dropCache();   // solta a tela de apoio da montanha velha já (iOS conta memória de canvas até o GC)
     heap = E.Heap({ width: WL.WW, colW: WL.COLW, x0: 0, y0: 0, seed: WL.SEED + ((S.mount || 1) - 1) * 7919 + (S.island | 0) * 104729, layers: MATS(), onPocket });
     if (!heap.layers || !heap.layers.length) heap.setLayers(MATS());
     heap.minK = 0.41;
@@ -1144,16 +1145,45 @@
     if (++S.soCasaT < EC.HOUSE_GRACE) return;
     S.soCasaT = 0; refillHouse();
   }
-  // a montanha cresce de novo pra juntar o da casa: no lado da montanha sem núcleo (camada com elipse) e longe do Kome
-  function refillHouse() {
-    const rad = EC.REFILL_RAD || 900, ells = MATS().filter(m => m.ellipse).map(m => m.ellipse);
-    let bx = WL.MX0 + rad, best = Infinity;
-    for (let x = WL.MX0 + rad; x <= WL.MX1 - rad; x += 50) {
-      let ov = 0; for (const e of ells) ov += Math.max(0, Math.min(x + rad, e.cx + e.rx) - Math.max(x - rad, e.cx - e.rx));
-      const sc = ov * 10 - Math.abs(x - P.x);
-      if (sc < best) { best = sc; bx = x; }
+  // frente da máquina na mão (x de mundo): daqui pra direita ela alcança. Trator/escavadeira/Bagger/caminhão só cavam pra frente
+  // (+x; a ilha espelhada só vira o desenho) e no celular o CAVAR só procura arroz à frente: arroz atrás deles fica inalcançável
+  function workFront() {
+    if (cur.kind === 'bagger' && S.m) return S.m.x + 520 * (S.m.k || 1);   // corpo + roda (~560 à frente)
+    if (cur.kind === 'haul') return Math.max(P.x, LX.x) + (TOOLS[D.toolIndex.escav].park || 100) + 60;
+    if (cur.seat === 'cab') return P.x + (cur.park || 100) + 60;
+    return P.x + 120;
+  }
+  // põe a máquina na mão antes de xFoot (o pé do arroz novo), virada pra ele (montanha nova, recarga sem espaço na frente)
+  function seatBefore(xFoot) {
+    if (cur.kind === 'bagger' && S.m) { S.m.x = Math.min(S.m.x, xFoot - 700 * (S.m.k || 1)); S.m.vx = 0; P.x = S.m.x; S.bagX = S.m.x; }
+    else if (cur.kind === 'haul') { const pk = TOOLS[D.toolIndex.escav].park || 100; LX.x = Math.min(LX.x, xFoot - pk); LX.vx = 0; P.x = Math.min(P.x, LX.x - 170); }
+    else if (cur.seat === 'cab') { P.x = Math.min(P.x, xFoot - (cur.park || 100)); P.vx = 0; }
+    else P.x = Math.min(P.x, xFoot - 60);
+    P.y = heap.surf(P.x);
+  }
+  // refillSpot() -> {x, rad, seat}: onde a recarga da casa cai. Sempre NA FRENTE da máquina (pé do monte >= workFront + folga
+  // pro arroz escorrer), longe do núcleo dourado (camada com elipse, duro) e o mais perto possível; sem espaço na frente nem
+  // com o monte mais estreito (até ~half): longe do núcleo e seat = a máquina vai pra antes dele (o "trem" traz ela junto)
+  function refillSpot() {
+    const R0 = EC.REFILL_RAD || 900, ells = MATS().filter(m => m.ellipse).map(m => m.ellipse), front = workFront() + 150;
+    const ovOf = (x, rad) => { let ov = 0; for (const e of ells) ov += Math.max(0, Math.min(x + rad, e.cx + e.rx) - Math.max(x - rad, e.cx - e.rx)); return ov; };
+    for (let rad = R0; rad >= R0 * 0.5 - 1; rad *= 0.8) {
+      const lo = Math.max(WL.MX0 + rad, front + rad), hi = WL.MX1 - rad * 0.6;
+      if (lo > hi) continue;
+      let bx = lo, best = Infinity;
+      for (let x = lo; x <= hi; x += 50) { const sc = ovOf(x, rad) * 10 + (x - lo) * 0.5; if (sc < best) { best = sc; bx = x; } }
+      return { x: bx, rad, seat: false };
     }
+    let bx = WL.MX0 + R0, best = Infinity;
+    for (let x = WL.MX0 + R0; x <= WL.MX1 - R0; x += 50) { const sc = ovOf(x, R0) * 10 + Math.abs(x - front) * 0.1; if (sc < best) { best = sc; bx = x; } }
+    return { x: bx, rad: R0, seat: true };
+  }
+  // a montanha cresce de novo pra juntar o da casa: na frente da máquina, longe do núcleo dourado (ver refillSpot)
+  function refillHouse() {
+    const sp = refillSpot(), bx = sp.x, rad = sp.rad;
+    if (sp.seat) seatBefore(bx - rad - 150);
     heap.add(bx, S.heapTotal * EC.REFILL_ADD, rad);
+    if (sp.seat) { S.footX = Math.min(S.footX, bx - rad); yardSnap(); }
     S.heapArea = heap.area; S.stats.refills = (S.stats.refills | 0) + 1;
     if (!FAST) {
       quake(0.3); sfx('pling');
@@ -1526,7 +1556,7 @@
     S.heapArea = heap.area; S.footX = scanFoot(); S.sacks.length = 0; S.quake = 0;
     S.bagX = Math.max(1000, S.footX - 760);
     if (cur.kind === 'bagger' && S.m) { S.m.x = S.footX - 700; S.m.vx = 0; P.x = S.m.x; }
-    else { P.x = Math.min(P.x, S.footX - 60); }
+    else seatBefore(S.footX);   // máquina de cabine / caminhão (a pá carregadeira também) ficam antes do pé, nunca dentro do monte
     S.lastDigX = S.footX; S.camX = P.x; yardSnap();
     if (!FAST) {
       fx.flash(PAL.cream, 0.4, 0.8); sfx('pling');
@@ -2148,18 +2178,21 @@
      - caminhão: sempre do lado da montanha;
      - Bagger: começa na roda e avança enquanto a roda morde pouco (abaixo da faixa boa), sem passar da roda + 60. */
   function digAim(a) {
-    const k = cur.kind;
+    const k = cur.kind, dtA = U.clamp(S.time - (digAim.t || 0), 0, 0.1); digAim.t = S.time;
     if (k === 'hand' || k === 'push' || k === 'jack') return a === null ? P.x + P.face * (k === 'jack' ? 8 : cur.reach * (st.reach || 1)) : a;
     if (k === 'haul') return Math.max(a === null ? 0 : a, P.x + 200);
     if (k === 'bagger') {
       const b = T.bite ? T.bite(S.m) : null, bx = b && b.x === b.x ? b.x : P.x + 600;
-      const dtA = U.clamp(S.time - (digAim.t || 0), 0, 0.1); digAim.t = S.time;
       if (a === null) return bx;
       const band = S.m && S.m.band ? S.m.band[0] : 0.4, mk = (S.m && S.m.k) || 1;
       return (S.bite01 || 0) < band + 0.05 ? Math.min(a + 160 * mk * dtA, bx + 60 * mk) : a;
     }
-    const front = faceAhead(P.x, 16, 1400) + 10;   // máquinas de cabine (sempre de frente pra montanha, P.face = 1)
-    return Math.max(a === null ? P.x + (cur.park || 60) * 0.55 + 24 : a, front);
+    // máquinas de cabine (sempre de frente pra montanha, P.face = 1): barranco à frente; se onde mira já está quase raso
+    // (menos de 60% do raio da cratera acima do chão da máquina), a mira avança devagar: ela vai entrando no barranco
+    const front = faceAhead(P.x, 16, 1400) + 10, park = cur.park || 60;
+    a = Math.max(a === null ? P.x + park * 0.55 + 24 : a, front);
+    if (heap.height(a) - heap.height(P.x) < cur.r * 0.6) a = Math.min(a + Math.max(40, VMAX(cur) * 0.12) * dtA, Math.max(front, P.x + park + 160));
+    return a;
   }
   /* ---- celular: joystick transparente, botão de cavar, tela cheia, zoom com pinça (e rodinha do mouse no PC) ---- */
   const VK = { l: false, r: false, dig: false }, pinch = { on: false, d0: 0, z0: 1 };
@@ -2448,7 +2481,8 @@
     stats: () => st, nodeState: id => nodeState(D.nodeById[id]), nodeCost: id => nodeCost(D.nodeById[id]),
     reset() { save.clear(); saveNow = () => {}; location.reload(); },
     save: () => saveNow(), exportStr: () => save.exportStr(),
-    heapCache(v) { if (v !== undefined) HEAP_CACHE = !!v; return HEAP_CACHE; },   // testes: liga/desliga a montanha guardada
+    heapCache(v) { if (v !== undefined) HEAP_CACHE = !!v; return HEAP_CACHE; },
+    refillSpot: () => Object.assign({ front: workFront() }, refillSpot()), refill: () => refillHouse(),   // testes: recarga da casa na frente da máquina   // testes: liga/desliga a montanha guardada
     res(v) { RES.off = true; if (v) stage.setMaxDpr(v); return stage.dpr; },   // testes de desempenho: resolução fixa (desliga a adaptativa)
     patioTour: () => patioTour(), patioTourT: t => { if (ptour && typeof t === 'number') ptour.t = t; return !!ptour; },   // testes/prints do Ver o Pátio
     view() { if (celeCard && celeCard.close) { celeCard.close(); celeCard = null; } S.stamp = 0; S.camX = P.x + 30 / cur.zoom; camTick(1); cam.snapTo(cam.tx, cam.ty, cur.zoom); },

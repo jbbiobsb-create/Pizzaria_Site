@@ -197,6 +197,55 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
     return { a, b: b2, c, d }; });
   ok(fp.a > 0 && fp.b === fp.a && fp.c > fp.a * 10 && Math.abs(fp.d / fp.c - Math.pow(0.94, 8)) < 0.01,
     'fábrica: preço parado com a renda ×100 (' + Math.round(fp.a) + ' → ' + Math.round(fp.b) + '), muda ao comprar (' + Math.round(fp.c) + '), Amigo do Corretor 8 = ×' + (fp.d / fp.c).toFixed(2));
+  // MONTANHA GUARDADA (v7: "a pilha fica invisível do nada", "a bagger não limpa o chão", "montanha atrás do trator"):
+  // a montanha com cache tem que sair igual à desenhada direto depois de cavar (Pá, trator, Bagger), da tela de apoio ser apagada
+  // (celular perde o canvas em segundo plano: aba voltando = E.gfx.bump; sem aviso nenhum = refeita sozinha em ~7 s) e de não
+  // conseguir criar a tela (iOS sem memória); a Bagger raspa o degrau entre as esteiras e a roda; a recarga da casa cai na frente
+  {
+    const p3 = await b.newPage({ viewport: { width: 960, height: 540 } }); p3.on('pageerror', e => errs.push(e.message.split('\n')[0]));
+    await p3.goto(URL + '?fresh&nointro&nofont'); await p3.waitForTimeout(900);
+    await p3.evaluate(() => { const K = __kome; K.loop.stop(); K.addMoney(1e18);
+      window.__hc = { mk: () => { const c = document.createElement('canvas'); c.width = 960; c.height = 540; return c.getContext('2d'); } };
+      __hc.a = __hc.mk(); __hc.b = __hc.mk();
+      // desenha a montanha em 2 telas com a mesma câmera (com e sem cache) e conta pixels bem diferentes (0..1)
+      __hc.cmp = (frames, pre) => { const H = K.heap, cam = K.cam, v = cam.view({}, 30 / cam.z), t = 1;
+        const draw = (g, cache) => { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 960, 540); cam.apply(g); H.draw(g, v, t, { pockets: 'found', rolling: false, cache }); };
+        for (let i = 0; i < (frames || 3); i++) { draw(__hc.a, true); if (pre && i === 0) pre(); }
+        draw(__hc.b, false);
+        const A = __hc.a.getImageData(0, 0, 960, 540).data, B = __hc.b.getImageData(0, 0, 960, 540).data;
+        let d = 0, on = 0; for (let i = 0; i < A.length; i += 4) { if (B[i + 3] > 0) on++; if (Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]) + Math.abs(A[i + 3] - B[i + 3]) > 80) d++; }
+        return { d: d / (A.length / 4), on: on / (A.length / 4) }; };
+      __hc.dig = sec => { for (let s = 0; s < sec * 4; s++) { const a = K.aim(); K.hold(a.x, a.y, true); K.step(1 / 4); if (s % 4 === 0) __hc.cmp(1); } K.hold(0, 0, false); K.view(); };
+      __hc.tool = id => { const i = K.data.TOOLS.findIndex(t => t.id === id); while (K.S.tool < i) { if (!K.buyTool()) K.S.tool++; } K.setTool(i); K.view(); }; });
+    const hc = async (msg, fn, frames, pre) => { const r = await p3.evaluate(([f, fr, pr]) => { if (f) (0, eval)('(' + f + ')')(); return __hc.cmp(fr, pr ? (0, eval)('(' + pr + ')') : null); }, [fn ? fn.toString() : '', frames || 3, pre ? pre.toString() : '']);
+      ok(r.on > 0.05 && r.d < 0.004, 'montanha guardada = direta: ' + msg + ' (' + (r.d * 100).toFixed(2) + '% diferente, montanha em ' + Math.round(r.on * 100) + '% da tela)'); };
+    await hc('começo', null);
+    await hc('Pá cavando 30 s', () => { __hc.tool('pa'); __hc.dig(30); });
+    await hc('trator cavando 30 s', () => { __hc.tool('trator'); __hc.dig(30); });
+    await hc('Bagger cavando 60 s', () => { __hc.tool('bagger'); __hc.dig(60); });
+    await hc('tela de apoio apagada + aba voltou (E.gfx.bump)', null, 2, () => { const c = __kome.heap._cacheCanvas; c.getContext('2d').clearRect(0, 0, c.width, c.height); Pixxel.gfx.bump(); });
+    await hc('tela de apoio apagada sem aviso (refeita sozinha)', null, 440, () => { const c = __kome.heap._cacheCanvas; c.getContext('2d').clearRect(0, 0, c.width, c.height); });
+    await hc('tela de apoio não abre (iOS sem memória)', null, 3, () => { const o = HTMLCanvasElement.prototype.getContext; __kome.heap.dropCache(); HTMLCanvasElement.prototype.getContext = function () { return null; }; setTimeout(() => { HTMLCanvasElement.prototype.getContext = o; }, 0); });
+    const fl = await p3.evaluate(() => __kome.heap.cacheStats.fails);
+    ok(fl >= 1, 'montanha: tela que não abre conta falha e desenha direto (falhas ' + fl + ')');
+    // Bagger: degrau na zona morta (entre o pé das esteiras e a roda) com a roda cavando no alto
+    const sh = await p3.evaluate(() => { const K = __kome, H = K.heap; __hc.tool('bagger');
+      for (let s = 0; s < 360; s++) { const a = K.aim(); K.hold(a.x, -300, true); K.step(1 / 4); } K.hold(0, 0, false);
+      const m = K.m, b2 = KomeGame.Tools.bagger.bite(m); let mx = 0, x0 = 0; for (x0 = m.x - 300; x0 < b2.x && H.height(x0) <= 34; x0 += 4);
+      for (let x = x0; x < b2.x - b2.r; x += 4) mx = Math.max(mx, H.height(x));
+      return { mx: Math.round(mx), w: Math.round(b2.x - b2.r - x0) }; });
+    ok(sh.mx < 90, 'Bagger raspa o degrau entre as esteiras e a roda (mais alto ' + sh.mx + ' em ' + sh.w + ' de largura; antes ~160)');
+    // recarga da casa: sempre na frente da máquina (o pé do monte novo depois da frente dela) ou a máquina vai pra antes dele
+    const rf = await p3.evaluate(() => { const K = __kome, out = [];
+      for (const id of ['pa', 'trator', 'caminhao', 'bagger']) for (const px of [2600, 5200, 7600]) {
+        __hc.tool(id); K.heap.h.fill(0); K.heap.wake(); if (K.m && id === 'bagger') K.m.x = px; K.P.x = px; K.step(0.3);
+        const sp = K.refillSpot(); K.refill(); const fr = K.refillSpot().front; K.step(0.1);
+        const okk = sp.seat ? fr - 150 <= sp.x - sp.rad : sp.x - sp.rad >= sp.front, inb = sp.x - sp.rad >= K.data.WORLD.MX0 - 1 && sp.x + sp.rad * 0.6 <= K.data.WORLD.MX1 + 1;
+        if (!okk || !inb) out.push(id + '@' + px + ': monte ' + Math.round(sp.x - sp.rad) + '..' + Math.round(sp.x + sp.rad) + ' frente ' + Math.round(sp.seat ? fr : sp.front)); }
+      return out; });
+    ok(!rf.length, 'recarga da casa cai na frente da máquina, dentro do mundo (Pá/trator/caminhão/Bagger × 3 lugares)' + (rf.length ? ': ' + rf.join(' | ') : ''));
+    await mute(p3); await p3.close();
+  }
   ok(!errs.length, 'sem erro de página' + (errs.length ? ': ' + errs.slice(0, 2).join(' | ') : ''));
   await b.close();
   console.log(bad ? bad + ' FALHA(S)' : 'ALICERCE OK');
