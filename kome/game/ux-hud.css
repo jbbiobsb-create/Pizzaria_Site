@@ -89,3 +89,64 @@ body.k-tight .k-tipcontrols{max-width:230px;box-sizing:border-box;font-size:12px
 .k-dig.k-dig-lock{background:rgba(242,194,48,.92);border-color:#3B2818}
 /* tela muito baixa: a plaquinha de controles não cabe acima da barra de abas (as dicas cobrem) */
 @media (max-height:380px){.k-tipcontrols{display:none}}
+/* ======================================================================
+   HUD LIMPO (pedido do dono: "priorize a VISIBILIDADE, menos confuso") — vale pra todo tamanho de tela
+   · centro da tela sempre livre: nada de chip, zoom ou faixa no meio · avisos = UM slot pequeno no topo (.ux-note)
+   · combo só aparece quando passa de ×1,00 · "recorde/grãos cavados" só no PC alto
+   ====================================================================== */
+.ux-note{position:absolute;left:50%;top:clamp(56px,14vh,124px);z-index:60;transform:translate(-50%,-8px);opacity:0;pointer-events:none;
+ display:flex;align-items:center;gap:8px;max-width:min(520px,62vw);box-sizing:border-box;padding:4px 14px 5px 8px;
+ background:#FFF8EA;color:#3B2818;border:3px solid #3B2818;border-radius:12px;box-shadow:0 3px 0 #3B2818;
+ font-family:var(--k-font,system-ui,sans-serif);transition:opacity .18s,transform .18s}
+.ux-note.ux-note-in{opacity:1;transform:translate(-50%,0)}
+.ux-note-t{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.ux-note-t b{font-size:calc(16px*var(--k-fs,1));font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ux-note-t small{font-size:calc(14px*var(--k-fs,1));font-weight:700;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ux-note-gold{background:#FFE08A}
+.ux-note-bad{background:#F6C3BB}
+.ux-note-big{background:#F2C230;border-radius:6px;padding:5px 18px 6px 10px;box-shadow:0 4px 0 #3B2818}
+.ux-note-big .ux-note-t b{font-size:calc(19px*var(--k-fs,1));letter-spacing:.02em}
+@media (prefers-reduced-motion:reduce){.ux-note{transition:none}}
+/* engine: os toasts/banners antigos não aparecem mais (tudo passa pelo .ux-note) */
+.k-toasts,.k-banners{display:none !important}
+.k-bar.ux-combo-off{display:none}
+/* zoom e tela cheia: só no canto (k-zbl). Sem lugar no canto, somem (pinça e Mais › Ajustes › Zoom continuam) */
+body:not(.k-zbl) .k-zb,.k-fullscr{display:none !important}   /* tela cheia: automática no 1º toque + Mais › Ajustes */
+/* celular (qualquer tamanho): sem fileira de chips (novidade = bolinha na aba + 1 aviso), sem linha de recorde */
+body.k-mob .k-chips,body.k-mob .k-chip-more{display:none !important}
+body.k-mob .k-rate-line{display:none}
+@media (max-height:700px){.k-rate-line{display:none}}
+
+/* ---- tela baixa (celular deitado, ≤ 420 px de altura): faixa fina em cima, barra fina embaixo, meio vazio ---- */
+@media (max-height:420px){
+ .k-zone-tl,.k-zone-tc,.k-zone-tr{top:4px}
+ .k-zone-tl{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;max-width:44vw}
+ .k-zone-tl .k-pill.k-big{font-size:calc(20px*var(--k-fs));min-height:40px;padding:1px 12px 1px 6px}
+ .k-zone-tl .k-pill.k-big .k-ico{width:24px !important;height:24px !important}
+ .k-rate .k-pill{font-size:calc(14px*var(--k-fs));min-height:30px;padding:1px 8px 1px 5px}
+ .k-rate .k-spark{display:none}
+ .k-zone-tl > .k-bar{position:absolute;left:0;top:46px;width:150px}
+ .ux-mis{width:auto !important;max-width:none !important;min-height:44px;margin-top:0;padding:2px 8px;gap:5px}
+ .ux-mis .ux-mis-t,.ux-mis .ux-mis-bar{display:none}
+ .ux-mis.ux-mis-open{position:absolute;left:0;top:50px;z-index:5;max-width:min(300px,60vw) !important}
+ .ux-mis.ux-mis-open .ux-mis-t{display:-webkit-box}
+ .ux-mis .ux-mis-ic{width:24px;height:24px}
+ .ux-mis-go{padding:2px 6px}
+ .k-zone-tc .k-goals,.k-zone-tc > *{transform-origin:top center}
+ .k-zone-tc > *:first-child{width:min(190px,24vw) !important}
+ .k-zone-tr .k-flyer{width:52px;min-width:52px;min-height:48px;padding:2px}
+ .k-zone-tr .k-flyer .k-btn-t{display:none}
+ .k-zone-tr .k-flyer .k-btn-ico{height:34px}
+ .k-zone-dock{bottom:3px;gap:6px}
+ .k-zone-dock > .k-slot{display:none !important}
+ .k-zone-dock > .k-btn{min-height:48px}
+ .k-zone-dock > .k-toolbtn{flex:0 1 210px !important;min-width:140px;min-height:48px;padding-top:2px;padding-bottom:2px}
+ .k-btn.k-nav,body.k-tight .k-zone-dock > .k-btn.k-nav{width:62px !important;min-width:62px;min-height:48px;padding:2px 2px 3px}
+ .k-btn.k-nav .k-btn-ico,.k-btn.k-nav .k-ico{max-height:24px}
+ .k-btn.k-nav .k-btn-t > span{font-size:calc(13px*var(--k-fs))}
+ .ux-note{top:52px;max-width:min(440px,56vw);padding:2px 12px 3px 6px}
+ .ux-note-t b{font-size:calc(15px*var(--k-fs,1))}
+ .ux-note-big .ux-note-t b{font-size:calc(16px*var(--k-fs,1))}
+}
+/* telinha muito baixa (≤ 320 px): a sublinha do aviso some, o aviso fica numa linha só */
+@media (max-height:320px){.ux-note-t small{display:none}.k-zone-tl .k-pill.k-big{min-height:36px}}

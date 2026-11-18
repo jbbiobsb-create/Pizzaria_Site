@@ -2201,9 +2201,9 @@
   /* ---- celular: joystick transparente, botão de cavar, tela cheia, zoom com pinça (e rodinha do mouse no PC) ---- */
   const VK = { l: false, r: false, dig: false }, pinch = { on: false, d0: 0, z0: 1 };
   function goFull() {
-    const el = document.documentElement;
-    if (document.fullscreenElement || !el.requestFullscreen) return;
-    el.requestFullscreen({ navigationUI: 'hide' }).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* */ } }).catch(() => {});
+    const el = document.documentElement, rq = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (document.fullscreenElement || document.webkitFullscreenElement || !rq) return;
+    try { const p = rq.call(el, { navigationUI: 'hide' }); if (p && p.then) p.then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* */ } }).catch(() => {}); } catch (e) { /* sem tela cheia */ }
   }
   function setZoomMul(v) { S.zoomMul = U.clamp(v, 0.55, 1.9); }
   function mobileInit() {
@@ -2387,7 +2387,7 @@
     if (!had) { P.x = WL.START_X; P.y = heap.surf(P.x); }
     S.camX = P.x + 30; camTick(0.016); cam.snapTo(cam.tx, cam.ty, cur.zoom);
     if (heap.prewarm) { try { heap.prewarm(g); } catch (e) { /* */ } }
-    HUD.init({ newMountain: pickMountain, ended: () => S.ended, wear, closet: () => S.closet, look: () => S.look, stage, buyTool, buyNode, buyHouse, horn, nodeState, nodeCost, toolCost, houseCost, stats: () => st, setOpt, openHome: tab => G.Home && G.Home.open(tab), playAs, twinReady: () => !!(G.Ind && (G.Ind.run().giant | 0) >= 4), twinPlaying: () => !!S.twinPlay, playing: () => cur,
+    HUD.init({ goFull, newMountain: pickMountain, ended: () => S.ended, wear, closet: () => S.closet, look: () => S.look, stage, buyTool, buyNode, buyHouse, horn, nodeState, nodeCost, toolCost, houseCost, stats: () => st, setOpt, openHome: tab => G.Home && G.Home.open(tab), playAs, twinReady: () => !!(G.Ind && (G.Ind.run().giant | 0) >= 4), twinPlaying: () => !!S.twinPlay, playing: () => cur,
       exportStr: () => { saveNow(); return save.exportStr(); },
       importStr: s => { if (!save.importStr(s)) return false; save.save(); location.reload(); return true; },
       reset: () => { save.clear(); saveNow = () => {}; location.reload(); } });

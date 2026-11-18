@@ -278,6 +278,15 @@
       });
       mark();
     };
+    { const de = document.documentElement;   // Tela cheia (iPhone sem a função: o botão não aparece)
+      if (de.requestFullscreen || de.webkitRequestFullscreen) {
+        const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+        const fb = h('button', 'ux-btn mx-fsbtn mx-tela', b); fb.type = 'button';
+        const fl = h('b', null, fb, ''); const fsm = h('small', null, fb, 'esconde as barras do navegador');
+        const lab = () => { fl.textContent = isFs() ? '⤡ Sair da tela cheia' : '⤢ Tela cheia'; fsm.textContent = isFs() ? 'volta as barras do navegador' : 'esconde as barras do navegador'; };
+        fb.addEventListener('click', () => { sfx('click'); if (isFs()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } else if (api.goFull) api.goFull(); setTimeout(lab, 400); });
+        document.addEventListener('fullscreenchange', lab); lab();
+      } }
     h('div', 'k-h', b, 'Zoom (ou faça pinça com 2 dedos)');
     { const box = h('div', 'mx-fs mx-cavar', b);
       [['−', 'Afastar', 1 / 1.15], ['1×', 'Normal', 0], ['+', 'Aproximar', 1.15]].forEach(q => {
