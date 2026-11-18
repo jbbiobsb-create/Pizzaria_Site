@@ -53,7 +53,7 @@
    onSettings(key, value)             opcional: avisa a troca de um ajuste desta tela (hoje só 'cochilo', pra secreta
                                       cochilo_desligado). onCochilo('aceito') idem (secreta cochilo_aceito).
 
-   GANCHOS: G.CookieUI.openPatio() · openHeart(tab?) · openSeeds() · showAway() · cochilo(force) · close() · isOpen()
+   GANCHOS: G.CookieUI.openPatio() · openHeart(tab?) · openSeeds(idDaSemente?) · seedsInfo() -> {n, can, cheapest, any} · closeSeeds() · showAway() · cochilo(force) · close() · isOpen()
    DEMO: index.html?dev&cookie=demo  (+ &away=cap mostra o teto offline; &cochilo=1 mostra o cochilo em 4 s)
    ====================================================================================================================== */
 (function () {

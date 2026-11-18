@@ -77,4 +77,8 @@ body.k-tight .k-zone-dock > .k-btn.k-nav{max-width:none;width:68px !important;mi
 .k-tile-t b{font-size:calc(20px*var(--k-fs))}
 .k-tile-t small{font-size:calc(16px*var(--k-fs));opacity:1}
 /* celular pequeno: a plaquinha "Como jogar" não entra embaixo do Trocar/CAVAR */
-body.k-tight .k-tipcontrols{max-width:calc(100vw - 400px);font-size:12px}
+body.k-tight .k-tipcontrols{max-width:230px;box-sizing:border-box;font-size:12px}
+/* PC estreito: as compras rápidas encolhem e a 3ª some antes de empurrar as abas pra fora */
+.k-zone-dock > .k-slot{flex:0 1 150px;min-width:96px}
+.k-zone-dock > .k-toolbtn{flex:0 1 218px;min-width:150px}
+@media (max-width:1150px){body:not(.k-mob) .k-zone-dock > .k-slot3{display:none}}

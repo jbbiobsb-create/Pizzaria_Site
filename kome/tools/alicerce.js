@@ -218,7 +218,7 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
       __hc.dig = sec => { for (let s = 0; s < sec * 4; s++) { const a = K.aim(); K.hold(a.x, a.y, true); K.step(1 / 4); if (s % 4 === 0) __hc.cmp(1); } K.hold(0, 0, false); K.view(); };
       __hc.tool = id => { const i = K.data.TOOLS.findIndex(t => t.id === id); while (K.S.tool < i) { if (!K.buyTool()) K.S.tool++; } K.setTool(i); K.view(); }; });
     const hc = async (msg, fn, frames, pre) => { const r = await p3.evaluate(([f, fr, pr]) => { if (f) (0, eval)('(' + f + ')')(); return __hc.cmp(fr, pr ? (0, eval)('(' + pr + ')') : null); }, [fn ? fn.toString() : '', frames || 3, pre ? pre.toString() : '']);
-      ok(r.on > 0.05 && r.d < 0.004, 'montanha guardada = direta: ' + msg + ' (' + (r.d * 100).toFixed(2) + '% diferente, montanha em ' + Math.round(r.on * 100) + '% da tela)'); };
+      ok(r.on > 0.05 && r.d < 0.03, 'montanha guardada = direta (sumir = ~todo o monte; meio pixel de borda no zoom 3 dá ~2%): ' + msg + ' (' + (r.d * 100).toFixed(2) + '% diferente, montanha em ' + Math.round(r.on * 100) + '% da tela)'); };
     await hc('começo', null);
     await hc('Pá cavando 30 s', () => { __hc.tool('pa'); __hc.dig(30); });
     await hc('trator cavando 30 s', () => { __hc.tool('trator'); __hc.dig(30); });

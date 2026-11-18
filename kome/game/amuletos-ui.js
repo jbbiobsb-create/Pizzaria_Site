@@ -81,7 +81,7 @@
   }
   function lines(parent, x) {
     const box = el('div', 'k-am-lns', parent);
-    const ln = (txt, good) => { const r = el('div', 'k-am-ln ' + (good ? 'g' : 'b'), box); const ic = glyph(fxIcon(x, good), 22); if (ic) r.appendChild(ic); el('span', null, r, txt); };
+    const ln = (txt, good) => { const r = el('div', 'k-am-ln ' + (good ? 'g' : 'b'), box); el('i', null, r, good ? '▲' : '▼'); const ic = glyph(fxIcon(x, good), 22); if (ic) r.appendChild(ic); el('span', null, r, (good ? '' : 'Custo: ') + txt); };   // cor nunca sozinha: seta + palavra
     if (x.good) ln(x.good, true); if (x.bad) ln(x.bad, false);
     if (!x.good && !x.bad) el('div', 'k-am-ln', box, x.d);
     return box;
@@ -234,6 +234,7 @@
       const d = el('div', null, r); el('b', null, d, (on ? 'Fechado! ' : '') + m + ' de ' + need + ' ' + tg(tt).de); el('span', null, d, (on ? 'Bônus ligado: ' : 'Bônus: ') + s.d);
     }
     const done = () => { if (!panel) return; panel = null; dim.remove(); p.remove(); };
+    const fb = btn(el('div', 'k-am-pf', p), 'Fechar', '', () => { sfx('click'); done(); }); fb.insertBefore(UI.icon('x', 22), fb.firstChild);
     x.addEventListener('click', e => { e.stopPropagation(); sfx('click'); done(); });
     dim.addEventListener('pointerdown', e => { if (e.target === dim) done(); });
     panel = { done };
