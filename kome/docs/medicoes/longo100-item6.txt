@@ -1,0 +1,84 @@
+# Item 6 — ilhas e medalhas (preço por viagem) + nós Absurdo + silhuetas absurdas no Pátio · 2026-11-19
+# tools/longo.js --chato 5 (agora com a hora EXATA do final, S.endT; antes arredondava pro bloco de 5 min) + tools/dopamina.js
+# Antes (longo100-absurdas.txt): ilhas 14–19 min nas voltas 1–7 (média 25), Pátio 47, 73 trechos >5 min, maior 17 min.
+
+## A) 100 h COMPLETAS, preço por viagem trip [3.5,16,25,30,34] grow 0.3, Kyushu ×1.25, Honshu ×0.8 — ANTES dos amuletos entrarem
+== 100h04min simuladas em 2373 s reais · sem erro de página
+fases:
+  campanha                  1h02min
+  infinito (Honshu)         1h17min
+  ilha 1 (volta 1)          32min
+  infinito (ilha 1)         57min
+  ilha 2 (volta 1)          30min
+  infinito (ilha 2)         34min
+  ilha 3 (volta 1)          31min
+  infinito (ilha 3)         33min
+  ilha 4 (volta 1)          34min
+  infinito (ilha 4)         30min
+  ilha 0 (volta 2)          32min
+  infinito (ilha 0)         47min
+  …                         00min
+  ilha 1 (volta 16)         29min
+  infinito (ilha 1)         40min
+  ilha 2 (volta 16)         26min
+  infinito (ilha 2)         38min
+  ilha 3 (volta 16)         34min
+  infinito (ilha 3)         40min
+  ilha 4 (volta 16)         43min
+  infinito (ilha 4)         36min
+  ilha 0 (volta 17)         37min
+  infinito (ilha 0)         47min
+média: ilha 31min · Pátio 42min · viagens 80 · ilha mais curta 23min · Pátio mais curto 30min
+novidades por tipo: conquista 85 · no 5751 · tool 562 · casa 486 · novo 854 · compra 131160 · montanha 286 · marco 6069 · upgrade 1777 · dourado 1226
+trechos CHATOS (mais de 5 min sem novidade): 52
+  (resto dos trechos: maior 14 min; 52 no total)
+minutos por ilha (16 voltas):
+0 n 16 first3 [32, 31, 31] min 30 q25 31 med 33 q75 34 max 37
+1 n 16 first3 [32, 34, 27] min 26 q25 28 med 30 q75 31 max 34
+2 n 16 first3 [30, 24, 26] min 23 q25 24 med 26 q75 26 max 30
+3 n 16 first3 [31, 26, 28] min 26 q25 29 med 29 q75 32 max 34
+4 n 16 first3 [34, 31, 33] min 31 q25 33 med 35 q75 39 max 43
+
+## B) 8 h, números FINAIS (trip [3.5,17,27,32,38] grow 0.3, Kyushu ×1.25, Honshu 1) COM os amuletos (commit b9f52f3)
+== 8h04min simuladas em 166 s reais · sem erro de página
+fases:
+  campanha                  1h02min
+  infinito (Honshu)         1h17min
+  ilha 1 (volta 1)          28min
+  infinito (ilha 1)         36min
+  ilha 2 (volta 1)          28min
+  infinito (ilha 2)         31min
+  ilha 3 (volta 1)          27min
+  infinito (ilha 3)         42min
+  ilha 4 (volta 1)          29min
+  infinito (ilha 4)         40min
+  ilha 0 (volta 2)          1h09min
+  infinito (ilha 0)         10min
+média: ilha 36min · Pátio 39min · viagens 5 · ilha mais curta 27min · Pátio mais curto 10min
+novidades por tipo: conquista 79 · no 426 · tool 54 · casa 36 · novo 49 · compra 7062 · montanha 23 · marco 342 · upgrade 121 · dourado 64 · enfeite 1
+trechos CHATOS (mais de 5 min sem novidade): 8
+  3h39min → 3h48min  (10 min, ilha 2 (volta 1))
+  7h37min → 7h46min  (9 min, ilha 0 (volta 2))
+  2h40min → 2h48min  (8 min, ilha 1 (volta 1))
+  6h52min → 6h59min  (7 min, ilha 0 (volta 2))
+  7h46min → 7h53min  (7 min, ilha 0 (volta 2))
+  7h01min → 7h07min  (6 min, ilha 0 (volta 2))
+  7h32min → 7h37min  (5 min, ilha 0 (volta 2))
+  4h46min → 4h51min  (5 min, ilha 3 (volta 1))
+== jogo de HOJE (eventos do longo.js, 8.1 h)
+  aguentou as 8.1 h simuladas sem largar · engajado 100% do tempo · 8262 novidades
+  dopamina a cada 15 min: ▃██▆████▆▆█████▆██████████▆██▆▃▃█
+
+## C) 100 h com os números finais + amuletos: PARADA em 84h29 a pedido do dono (ele roda a régua inteira)
+81h54min  FINAL da ilha 0 (39min)
+83h23min  FINAL da ilha 1 (23min)
+84h29min  FINAL da ilha 2 (29min)
+minutos por ilha até 84 h (sem parede: volta 14+ andando):
+0 n 13 first3 [45, 25, 30] min 25 q25 29 med 32 q75 42 max 60
+1 n 14 first3 [33, 25, 32] min 22 q25 22 med 23 q75 25 max 38
+2 n 14 first3 [29, 28, 17] min 17 q25 20 med 21 q75 27 max 33
+3 n 13 first3 [26, 20, 29] min 20 q25 24 med 26 q75 29 max 33
+4 n 13 first3 [41, 28, 39] min 21 q25 28 med 34 q75 39 max 45
+Obs.: os amuletos abrem a variância (ilha 2 de 24 a 73 min e Honshu 2 de 16 a 69 min em rodadas de 8 h com os mesmos números).
+Medalhas foram tiradas da régua A (sem amuletos): ouro [31,28,24,29,33] · prata [45,40,35,40,47]. Com amuletos o quartil
+rápido do robô ficou ~[29,22,20,24,28]: se o ouro ficar fácil demais no teste do dono, apertar pra esses valores.
