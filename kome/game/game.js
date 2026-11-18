@@ -1223,7 +1223,12 @@
   const INDC = { mainX: 0, floor: null, zoom: 1, col: null };
   const SILO_P = () => (Wd.props || []).find(p => p.node === 'a7');
   const IND_CTX = () => { INDC.footX = S.footX; INDC.siloX = (SILO_P() || {}).x || 0; INDC.fabX = Wd.X ? Wd.X.fabPorta : 0; INDC.noA = cur.kind === 'bagger'; INDC.mainX = S.bag && S.bag.m ? S.bag.m.x : S.footX - 700; INDC.floor = baggerFloor; INDC.zoom = cam.z; INDC.col = S.col; return INDC; };
-  const PORTRAIT = () => MOBILE && innerHeight > innerWidth * 1.1;   // celular em pé: aviso de virar cobre tudo e o jogo pausa
+  // celular em pé: aviso de virar cobre tudo e o jogo pausa. Guardado e refeito só no resize (ler innerWidth várias vezes por quadro
+  // depois do HUD mexer no DOM forçava layout no celular)
+  let portraitV = MOBILE && innerHeight > innerWidth * 1.1;
+  const portraitUpd = () => { portraitV = MOBILE && innerHeight > innerWidth * 1.1; };
+  addEventListener('resize', portraitUpd); addEventListener('orientationchange', () => setTimeout(portraitUpd, 60));
+  const PORTRAIT = () => portraitV;
   let rotDrawn = false;
   function update(dt) {
     if (G.Sim && !cs && !PORTRAIT()) G.Sim.tick(dt);
@@ -2210,7 +2215,24 @@
     saveT += dt; if (saveT >= 10) { saveT = 0; saveNow(); }
     S.perf.upd += (performance.now() - t0 - S.perf.upd) * 0.05;
   }
-  function draw() { const t0 = performance.now(); render(); S.perf.ren += (performance.now() - t0 - S.perf.ren) * 0.05; }
+  // telas cheias e opacas (Cidade, Fábrica, Oficina) cobrem o canvas: não desenha a montanha escondida atrás (o jogo continua rodando)
+  const covered = () => !!((G.City && G.City.isOpen && G.City.isOpen()) || (G.Fab && G.Fab.isOpen && G.Fab.isOpen()) || (G.Ofi && G.Ofi.isOpen && G.Ofi.isOpen()));
+  function draw() { if (!FAST && covered()) return; const t0 = performance.now(); adaptRes(t0); render(); S.perf.ren += (performance.now() - t0 - S.perf.ren) * 0.05; }
+  /* RESOLUÇÃO ADAPTATIVA: se o quadro fica lento por ~3 s seguidos (média > 24 ms, ou seja < ~42 quadros/s), a resolução interna do
+     canvas desce um degrau (2 → 5/3 → 4/3 pixels por unidade). Degraus em que 3×dpr é inteiro: o fundo em pixel art fica igual.
+     Só desce (sobe de novo ao recarregar); não conta com tela coberta, aba escondida, cutscene ou logo depois de mudar. */
+  const RES = { last: 0, avg: 16, slow: 0, hold: 3, steps: [2, 5 / 3, 4 / 3] };
+  function adaptRes(now) {
+    const R = RES, dt = R.last ? now - R.last : 16; R.last = now;
+    if (!stage || !stage.setMaxDpr || document.hidden || cs || dt > 250) { R.slow = 0; return; }   // pausa longa (aba, alerta) não conta
+    if ((R.hold -= dt / 1000) > 0) { R.avg = 16; return; }
+    R.avg += (dt - R.avg) * 0.05;
+    R.slow = R.avg > 24 ? R.slow + dt / 1000 : 0;
+    if (R.slow < 3) return;
+    const nx = R.steps.find(v => v < stage.dpr - 0.01);
+    R.slow = 0; R.hold = 3;
+    if (nx) { stage.setMaxDpr(nx); console.info('[kome] resolução adaptativa: ' + nx.toFixed(2)); }
+  }
 
   function boot() {
     stage = E.Stage({ width: W, height: H, bg: PAL.sky, fit: MOB0 ? (aw, ah) => (aw / ah >= 1.6 ? 'cover' : 'contain') : 'contain' });

@@ -561,12 +561,14 @@
                            └ canvas
      ====================================================================== */
   // E.Stage({canvas|parent, width=960, height=540, fit='contain'|'cover'|'none', maxDpr=2, bg, pixelated=false, integer=false, maxScale, margin=0}) -> stage
+  //   stage.setMaxDpr(v) troca o teto depois (resolução adaptativa)
   function Stage(opts) {
     opts = opts || {};
     if (!doc) throw new Error('Pixxel: E.Stage precisa de um documento (DOM)');
     const q = v => (typeof v === 'string' ? doc.querySelector(v) : v);
     const w = opts.width || 960, h = opts.height || 540;
-    const fit = opts.fit || 'contain', maxDpr = opts.maxDpr || 2, pixelated = !!opts.pixelated;
+    const fit = opts.fit || 'contain', pixelated = !!opts.pixelated;
+    let maxDpr = opts.maxDpr || 2;
     const em = Emitter();
 
     let cv = q(opts.canvas) || doc.createElement('canvas');
@@ -643,6 +645,9 @@
         em.emit('resize', stage);
         return stage;
       },
+      // setMaxDpr(v): muda o teto da resolução interna (resolução adaptativa: celular lento desce um degrau) e refaz o tamanho
+      setMaxDpr(v) { v = Math.max(1, +v || 2); if (v === maxDpr) return stage; maxDpr = v; return stage.resize(); },
+      get maxDpr() { return maxDpr; },
       // begin(): setTransform(dpr) + limpa (com bg se houver); chamar no começo de cada render
       begin() {
         const d = stage.dpr;
