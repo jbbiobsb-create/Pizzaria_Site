@@ -1,1 +1,24 @@
 /* UX: missoes (docs/design/ux-guia.md) */
+/* Jornada (game/missoes.js): cartão fixo embaixo do dinheiro. Dourado = "Pegar" (regra 6), barra "12 de 30" (regra 9) */
+.ux-mis{display:flex;align-items:center;gap:8px;box-sizing:border-box;width:min(270px,46vw);min-height:56px;margin-top:6px;padding:5px 8px;
+  background:#FFF6E0;border:3px solid #3B2818;border-radius:10px;box-shadow:3px 3px 0 #3B2818;color:#3B2818;font:inherit;text-align:left;
+  pointer-events:auto;cursor:pointer;touch-action:manipulation}
+.ux-mis:active{transform:translate(3px,3px);box-shadow:0 0 0 #3B2818}
+.ux-mis-ic{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:34px;height:34px}
+.ux-mis-tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ux-mis-t{font-size:calc(15px*var(--k-fs,1));font-weight:900;line-height:1.15;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ux-mis-row{display:flex;align-items:center;gap:6px}
+.ux-mis-bar{flex:1 1 auto;height:9px;border:2px solid #3B2818;border-radius:5px;background:#E8D9B4;overflow:hidden}
+.ux-mis-bar > i{display:block;height:100%;background:#4E8A3C;transform-origin:left center;transform:scaleX(0);transition:transform .2s}
+.ux-mis-n{flex:0 0 auto;font-size:calc(14px*var(--k-fs,1));font-weight:800;white-space:nowrap}
+.ux-mis-go{flex:0 0 auto;font-size:calc(14px*var(--k-fs,1));font-weight:900;padding:4px 7px;border:2px solid #3B2818;border-radius:7px;background:#F3E6C4;white-space:nowrap}
+.ux-mis.ux-mis-ok{background:#F2C230}
+.ux-mis.ux-mis-ok .ux-mis-go{background:#FFE07A;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.ux-mis.ux-mis-ok .ux-mis-bar > i{background:#B8860B}
+.ux-mis.ux-mis-pop{animation:uxMisPop .18s ease-out}
+@keyframes uxMisPop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+.ux-mis:focus-visible{outline:3px solid #2E64B0;outline-offset:2px}
+/* celular deitado (tela baixa): uma linha só, pra não empurrar o direcional */
+@media (max-height:500px){.ux-mis{min-height:48px;padding:3px 6px;width:min(250px,34vw)}.ux-mis-t{-webkit-line-clamp:1}.ux-mis-ic{width:28px;height:28px}}
+@media (prefers-reduced-motion:reduce){.ux-mis.ux-mis-pop{animation:none}.ux-mis-bar > i{transition:none}}
+.k-reduce .ux-mis.ux-mis-pop{animation:none}

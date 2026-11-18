@@ -1297,7 +1297,7 @@
     if (S.quake > 0) S.quake = Math.max(0, S.quake - dt * 1.4);
     S.time += dt;
     E.Exhaust.tint = S.own.cB ? DIESEL_TINT : null;   // cB Diesel Premium: fumaça azul
-    dayTick(dt); S.tod = todNow(); if (G.Inf) G.Inf.tick(dt); if (G.Islands) G.Islands.evTick(dt); feelFlags(); if (G.Goals) G.Goals.tick(dt);
+    dayTick(dt); S.tod = todNow(); if (G.Inf) G.Inf.tick(dt); if (G.Islands) G.Islands.evTick(dt); feelFlags(); if (G.Goals) G.Goals.tick(dt); if (G.Missoes) G.Missoes.tick(dt);
     if (G.Ind && !FAST) G.Ind.tick(dt, IND_CTX());
     if (G.Belts && !FAST) G.Belts.tick(dt, IND_CTX());
     { const L = E.Nature && E.Nature.light ? E.Nature.light(S.tod) : null; const nt = L ? L.night * 0.6 + L.dusk * 0.4 : 0; inp.night = iL.night = iT.night = iF.night = iW.night = nt; }
@@ -2295,8 +2295,16 @@
     joy.addEventListener('pointermove', e => { if (e.pointerId === jid) jmove(e); });
     const jup = e => { if (e.pointerId !== jid) return; jid = -1; VK.l = VK.r = false; knob.style.transform = ''; };
     joy.addEventListener('pointerup', jup); joy.addEventListener('pointercancel', jup);
-    dig.addEventListener('pointerdown', e => { const alt = S.opts.cavar === 'alternar'; VK.dig = alt ? !VK.dig : true; if (!alt) dig.setPointerCapture(e.pointerId); dig.classList.toggle('on', VK.dig); dig.classList.toggle('k-dig-lock', alt && VK.dig); dig.textContent = alt && VK.dig ? 'PARAR' : 'CAVAR'; initAudio(); if (S.own.b0 && cur.kind === 'bagger') horn(); e.preventDefault(); });
-    const dup = () => { if (S.opts.cavar === 'alternar') return; VK.dig = false; dig.classList.remove('on', 'k-dig-lock'); if (dig.textContent !== 'CAVAR') dig.textContent = 'CAVAR'; };   // 'alternar': 1 toque liga, outro desliga
+    // Ajustes › Jeito de cavar (guia A8): 'segurar' = hoje · 'alternar' = 1 toque liga, outro desliga · 'auto' = cava sozinho parado
+    // (readPointer). Ligado aparece no botão: dourado + "CAVANDO". digSync só mexe no DOM quando muda; roda também quando o ajuste troca
+    let digHeld = false;
+    const digSync = () => { const m = S.opts.cavar || 'segurar';
+      if (m !== 'alternar' && !digHeld && VK.dig) VK.dig = false;   // saiu do 'alternar' com ele ligado: desliga
+      const lock = (m === 'alternar' && VK.dig) || m === 'auto', txt = lock ? 'CAVANDO' : 'CAVAR';
+      dig.classList.toggle('on', digHeld); dig.classList.toggle('k-dig-lock', lock); if (dig.textContent !== txt) dig.textContent = txt; };
+    setInterval(digSync, 300);
+    dig.addEventListener('pointerdown', e => { const alt = S.opts.cavar === 'alternar'; if (alt) VK.dig = !VK.dig; else { VK.dig = true; digHeld = true; dig.setPointerCapture(e.pointerId); } digSync(); initAudio(); if (S.own.b0 && cur.kind === 'bagger') horn(); e.preventDefault(); });
+    const dup = () => { if (S.opts.cavar === 'alternar') return; VK.dig = false; digHeld = false; digSync(); };
     dig.addEventListener('pointerup', dup); dig.addEventListener('pointercancel', dup);
     full.addEventListener('pointerdown', e => { e.preventDefault(); if (document.fullscreenElement) document.exitFullscreen(); else goFull(); });
   }
@@ -2439,6 +2447,7 @@
     if (S.ended && !S.stats.cs_ilhas && !(S.island | 0) && !/nointro/.test(location.search)) setTimeout(() => endgameIntro(), 2500);
     if (G.Inf) G.Inf.init({ sfx, save: () => saveNow(), recompute: () => computeStats(), playing: () => cur, busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()) });
     if (G.Goals) G.Goals.init({ sfx, recompute: () => computeStats(), pay: v => credit(v, 2, false), quiet: () => FAST || !!cs || !!S.endOpen, badge: () => G.Home && G.Home.noteNew() });
+    if (G.Missoes) G.Missoes.init({ sfx, pay: v => credit(v, 2, false), fast: () => FAST, quiet: () => FAST || !!cs || !!S.endOpen });   // Jornada (missoes.js)
     if (G.Carta) G.Carta.init({ sfx, had: () => had, fast: () => FAST, save: () => saveNow(), recompute: () => computeStats(), gift: giftSacks,
       busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()) || (S.cele.t >= 0 && S.cele.t < S.cele.dur) });
     if (G.Escada) G.Escada.init({ sfx, recompute: () => computeStats(), quiet: () => FAST || !!cs || !!S.endOpen, badge: () => G.Home && G.Home.noteNew() });
