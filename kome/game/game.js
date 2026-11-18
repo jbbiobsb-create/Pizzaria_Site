@@ -1367,16 +1367,16 @@
   const DAY_SEC = 240, DAY_SCENE = 6;   // dia de 4 min e cena de dormir de 6 s (dá tempo de ver a casa crescendo)
   const todNow = () => 0.08 + 0.74 * U.clamp(S.dayT / DAY_SEC, 0, 1);       // 0.08 manhã ... 0.82 fim do pôr do sol
   function dayTick(dt) {
-    if (S.ended) return;
+    if (S.ended) { if (S.dayEnd > 0) { S.dayEnd = 0; document.body.classList.remove('k-night'); } return; }   // final no meio da noite: a noite acaba (antes S.dayEnd ficava > 0 pra sempre e travava amuletos/faixa/modos/carta)
     if (S.dayEnd > 0) {
       S.dayEnd -= dt;
-      if (S.dayEnd <= 0) { S.dayEnd = 0; S.day++; S.dayT = 0; S.dayEarn = 0; if (!FAST) ui(() => UI.banner('Dia ' + S.day, 'bom dia, Kome!', { icon: 'star', dur: 1.6 })); }
+      if (S.dayEnd <= 0) { S.dayEnd = 0; S.day++; document.body.classList.remove('k-night'); S.dayT = 0; S.dayEarn = 0; if (!FAST) ui(() => UI.banner('Dia ' + S.day, 'bom dia, Kome!', { icon: 'star', dur: 1.6 })); }
       return;
     }
     S.dayT += dt;
     if (S.dayT >= DAY_SEC && S.cele.t < 0 && !visit) {
       const pay = Math.round(S.dayEarn * 0.15);                                // salário do dia: 15% do que ganhou hoje
-      document.body.classList.add('k-night'); setTimeout(() => document.body.classList.remove('k-night'), DAY_SCENE * 1000);
+      document.body.classList.add('k-night');   // sai quando a noite acaba (no relógio do jogo; o setTimeout de antes voltava o HUD antes da hora com o jogo lento)
       S.dayPay = pay; S.money += pay; S.earned += pay; S.dayEnd = DAY_SCENE; if (G.priceBump) G.priceBump();   // preços da Oficina/Casa só se atualizam quando o dia vira
       if (!FAST) { sfx('pling'); saveNow(); }
     }
@@ -2265,6 +2265,8 @@
     if (nx) { stage.setMaxDpr(nx); console.info('[kome] resolução adaptativa: ' + nx.toFixed(2)); }
   }
 
+  // recarga depois de viagem/modo: mantém ?nointro (testes) e ?dev (o admin tem save próprio; sem ele a viagem caía no save de verdade)
+  const reQ = () => { const q = location.search, o = []; if (/nointro/.test(q)) o.push('nointro'); if (/[?&]dev\b/.test(q)) o.push('dev'); return o.length ? '?' + o.join('&') : ''; };
   function boot() {
     // celular: começa em 5/3 pixels por unidade (canvas ~30% menor que em 2: no Pixel 5 deitado 2133x900 em vez de 2560x1080;
     // a tela tem ~2,0 pixels reais por unidade, a diferença quase não aparece). ?dpr=2 (ou __kome.res(2)) volta pro máximo.
@@ -2343,10 +2345,10 @@
       busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()),
       onEvent: e => { if (!FAST && e.erupt) quake(0.5); if (!FAST && e.frost) sfx('whoosh'); },
       // viagem: reescreve o save e recarrega; testes (?nointro) continuam sem cutscene na chegada
-      travel: (next, gain) => { saveNow(); const d = save.data || save.load(); G.Islands.makeSave(d, next, gain); save.save(); saveNow = () => {}; location.href = location.pathname + (/nointro/.test(location.search) ? '?nointro' : ''); } });
+      travel: (next, gain) => { saveNow(); const d = save.data || save.load(); G.Islands.makeSave(d, next, gain); save.save(); saveNow = () => {}; location.href = location.pathname + reQ(); } });
     // modos de partida (modos.js): reescreve o save (retrato/volta) e recarrega, igual à viagem
     if (G.Modos) G.Modos.init({ sfx, fast: () => FAST, save: () => saveNow(), busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || PORTRAIT() || (G.Home && G.Home.isOpen()) || (G.IslandsUI && G.IslandsUI.isOpen()),
-      rewrite: fn => { saveNow(); const d = save.data || save.load(); fn(d); save.save(); saveNow = () => {}; location.href = location.pathname + (/nointro/.test(location.search) ? '?nointro' : ''); } });
+      rewrite: fn => { saveNow(); const d = save.data || save.load(); fn(d); save.save(); saveNow = () => {}; location.href = location.pathname + reQ(); } });
     setMirror();
     if (G.IslandsUI) G.IslandsUI.init({ sfx, save: () => saveNow(), play: (id, then) => csPlay(id, then), pickMountain, busy: () => !!cs || S.dayEnd > 0 || !!S.endOpen || (G.Home && G.Home.isOpen()) });
     // chegou numa ilha nova: cutscene da chegada (com o cenário da ilha) ou só o aviso nos testes

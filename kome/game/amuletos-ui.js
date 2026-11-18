@@ -205,7 +205,7 @@
     open.rr = btn(ft, c === 0 ? 'Trocar as 3 · grátis (carta do dia)' : 'Trocar as 3 · ★ ' + c + (c > 1 ? ' sementes' : ' semente'), can ? 'gold' : 'off', () => {
       if (busyPick) return;
       if (DEMO) { demoCards = sample(); render(); sfx('whoosh'); return; }
-      if (!A().reroll()) { sfx('error', { vol: 0.5 }); open.rr.classList.remove('k-cui-shake'); return; }
+      if (!A().reroll()) { sfx('error', { vol: 0.5 }); const rb = open.rr; rb.classList.remove('k-cui-shake'); void rb.offsetWidth; rb.classList.add('k-cui-shake'); return; }   // treme (antes só tirava a classe: nunca tremia)
       sfx('whoosh'); render();
     });
     btn(ft, 'Depois', '', () => { if (busyPick) return; api.later = true; close(); });
