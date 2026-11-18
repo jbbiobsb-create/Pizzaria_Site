@@ -214,7 +214,7 @@
     // escolha pendente
     if (!pending()) return;
     if (!a.offer || !a.offer.length) a.offer = draw(offerN());
-    if (fast()) { const b = best(offer()); if (b) pick(b.id, true); return; }
+    if (fast()) { const o = offer(), b = G.Amuletos.sim.acaso && o && o.length ? o[Math.random() * o.length | 0] : best(o); if (b) pick(b.id, true); return; }   // sim.acaso: jogador casual do tools/longo.js (escolhe no escuro)
     const UIx = G.AmuletosUI;
     if (!UIx || UIx.isOpen() || UIx.later || (api && api.busy && api.busy()) || (G.Faixas && G.Faixas.isOpen())) { if (!UIx || !UIx.isOpen()) waitT = Math.max(waitT, 1.5); return; }
     if ((waitT -= dt) > 0) return;
@@ -239,6 +239,6 @@
     seeds: () => Math.floor((S() && S().stats.seeds) || 0), discovered: () => Object.assign({}, st().disc), unlocked,
     max: maxN, sets: CFG.sets, TAGS, RAR, MARCOS, fast,
     dyn: () => ({ rush: dyn.rushT, est: dyn.est, full: dyn.fullT, night: night() }),
-    sim: { best, score, drain: () => { const l = log; log = []; return l; }, auto() { const o = offer(); const b = o && best(o); return b ? pick(b.id, true) : null; } },
+    sim: { acaso: false, best, score, drain: () => { const l = log; log = []; return l; }, auto() { const o = offer(); const b = o && best(o); return b ? pick(b.id, true) : null; } },
   };
 })();

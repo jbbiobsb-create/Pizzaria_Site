@@ -770,6 +770,25 @@
     if (S.pend > 0 && (payNow || S.pendAge > 45)) { const d = TT.dump(tr) || iT; flush(d.x, d.y, payNow && S.haulCrown ? D.HAUL.crown : 1); }
   }
 
+  /* ZONA MORTA da Bagger ("a bagger não limpa o chão"): a roda fica sempre ~560 à frente do corpo (lança curta não traz ela
+     pra perto) e o corpo para 300 antes de qualquer arroz > 34 de altura. Cavando com a roda no alto sobrava um degrau baixo
+     (~160) entre as esteiras e a roda que ninguém alcançava, e a Bagger ficava parada atrás dele. Segurando, ela raspa esse
+     banco (só colunas até `lim` de altura, entre xa e xb), dentro de um orçamento de área (budget) pra não virar renda grátis. */
+  function shaveShelf(xa, xb, lim, budget, maxD) {
+    if (!(xb > xa + 8) || !(budget > 0)) return;
+    let w = 0;
+    for (let x = xa; x <= xb; x += 4) { const hh = heap.height(x); if (hh > 0.3 && hh <= lim) w += 4; }
+    if (w < 8) return;
+    const depth = Math.min(budget / w, maxD);
+    digO.pow = cur.pow * st.powMul;
+    let a = -1;
+    for (let x = xa; x <= xb + 4; x += 4) {
+      const hh = x <= xb ? heap.height(x) : 0, ok = hh > 0.3 && hh <= lim;
+      if (ok && a < 0) a = x;
+      else if (!ok && a >= 0) { const r = heap.digRect(a, x - 4, depth, digO); a = -1; if (r.got > 0) { S.dug += r.got; S.pend += r.val * yenK(); if (G.Items) G.Items.add(r.byMat); } }
+    }
+  }
+
   /* Bagger 293: fica no chão no pé da montanha, rasteja até o ponteiro, o ponteiro em Y é a lança, segurar gira a roda */
   function driveBagger(dt, hold) {
     const m = S.m, MO = D.MORDIDA, b0 = T.bite(m);
@@ -811,6 +830,7 @@
     digO.pow = 99;
     const fl = heap.digRect(m.x - 330, Math.min(m.x + 330, fx0 - 12), 160 * dt, digO);
     if (fl.got > 0) { S.dug += fl.got; S.pend += fl.val * yenK(); if (G.Items) G.Items.add(fl.byMat); }
+    if (hold && b.active) shaveShelf(fx0 - 12, b.x - b.r * 0.7, 220 * mk, Aeff() * dt * 0.4, 140 * dt);
     payStep(m, T, dt, payNow, 1);
   }
 
