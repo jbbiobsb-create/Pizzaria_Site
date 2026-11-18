@@ -10,11 +10,18 @@ const { launch } = require('./pw');
 const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
 // mute(pg): a página que vai sair não grava mais nada (o save ao ocultar/sair pode chegar DEPOIS do script de injeção da próxima carga)
 const mute = pg => pg.evaluate(() => { try { Storage.prototype.setItem = function () {}; } catch (e) { /* */ } }).catch(() => {});
+// file:// no Chromium: de vez em quando (~1 em 300 navegações, mais com a CPU cheia) a página nova abre com um localStorage VAZIO e
+// temporário (o de verdade fica intacto e volta na carga seguinte; a sessionStorage some bem mais). A marca diz se a página está vendo o
+// storage de verdade; open() recarrega até ver (a página do storage falso é calada antes, pra não gravar nada)
+const MARK = 'alicerce-mark';
+const markOk = pg => pg.evaluate(k => localStorage.getItem(k) === '1', MARK).catch(() => false);
+const open = async (pg, url, ms) => { for (let i = 0; ; i++) { await pg.goto(url); await pg.waitForTimeout(ms || 700); if (i >= 3 || await markOk(pg)) return; await mute(pg); } };
+const marca = async (pg, url, ms) => { await pg.goto(url); await pg.evaluate(k => localStorage.setItem(k, '1'), MARK); await open(pg, url, ms); };
 let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m); if (!c) bad++; };
 (async () => {
   const b = await launch(), p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = [];
   p.on('pageerror', e => errs.push(e.message.split('\n')[0]));
-  await p.goto(URL + '?fresh&nointro&nofont'); await p.waitForTimeout(700);
+  await marca(p, URL + '?fresh&nointro&nofont');
   // 1) cavar
   const r1 = await p.evaluate(() => { const K = __kome, S = K.S; const m0 = S.money;
     for (let s = 0; s < 240; s++) { const a = K.aim(); K.hold(a.x, a.y, true); K.step(1 / 4); }
@@ -29,7 +36,7 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   await p.evaluate(() => { KomeGame.Game.saveNow(); });
   const keyInfo = await p.evaluate(() => Object.keys(localStorage).filter(k => /kome/.test(k)));
   await p.evaluate(() => { KomeGame.Game.saveNow(); });
-  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  await open(p, URL + '?nointro&nofont');
   const r3 = await p.evaluate(() => ({ inv: __kome.S.stats.inv || {}, money: __kome.S.money }));
   const rf = await p.evaluate(() => KomeGame.Fab.state.machines.map(m => m.type + '@' + m.x + ',' + m.y).join(' '));
   ok(/panela@2,2/.test(rf) && /moldadora@4,2/.test(rf) && /divisor@6,2/.test(rf), 'fábrica volta igual depois de recarregar: ' + rf);
@@ -41,7 +48,7 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   await p.addInitScript(() => { if (!/[?&]alicerce_mig\b/.test(location.search)) return;
     const k = 'kome-no-japao-v4', raw = localStorage.getItem(k); if (!raw) return; const d = JSON.parse(raw);
     d.__v = 4; delete d.stats.inv; delete d.stats.got; d.money = 777; d.tool = 3; localStorage.setItem(k, JSON.stringify(d)); localStorage.removeItem(k + '.bak'); });
-  await mute(p); await p.goto(URL + '?nointro&nofont&alicerce_mig'); await p.waitForTimeout(700);
+  await mute(p); await open(p, URL + '?nointro&nofont&alicerce_mig');
   const r2 = await p.evaluate(() => { const K = __kome, S = K.S; for (let s = 0; s < 40; s++) { const a = K.aim(); K.hold(a.x, a.y, true); K.step(1 / 4); } K.hold(0, 0, false); K.step(3);
     return { money: S.money, tool: S.tool, inv: S.stats.inv, v: JSON.parse(localStorage.getItem('kome-no-japao-v4')).__v }; });
   ok(r2.tool === 3 && r2.money >= 777, 'save v4 carregou (ferramenta ' + r2.tool + ', ¥' + Math.round(r2.money) + ')');
@@ -54,7 +61,7 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok(r5.mig, 'migração criou S.stats.am (amuletos)');
   ok(r5.pend && r5.cur.length === 1 && r5.n === 2, 'modo acelerado escolhe o amuleto na hora (chegada + 1ª máquina a motor): ' + r5.cur.join());
   ok(r5.okR && r5.spent === 1 && r5.diff, 'rerrolar custa 1 semente e troca as cartas');
-  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  await open(p, URL + '?nointro&nofont');
   const r6 = await p.evaluate(() => { const S = __kome.S, A = KomeGame.Amuletos; const n = S.stats.am.cur.length, d = Object.keys(S.stats.am.disc).length;
     S.stats.islandsDone = 2; const after = A.current().length, disc = Object.keys(A.discovered()).length; return { n, d, after, disc, rr: S.stats.am.rr }; });
   ok(r6.n === 2 && r6.d >= 2, 'amuletos voltam do save (' + r6.n + ' na build, ' + r6.d + ' descobertos)');
@@ -71,7 +78,7 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok(r7.still && r7.on && r7.view, 'Cidade abre no 1º mochi vendido pela fábrica (não no onigiri)');
   ok(r7.okD && r7.del === 1 && r7.hearts >= 1, 'entrega na hora com a tela fechada: ' + r7.del + ' entrega, ♥' + r7.hearts);
   ok(r7.grains >= 1 && r7.dh > 0.009 && r7.obra, 'amizade: +1 grão no Arroz do Coração (+' + (r7.dh * 100).toFixed(1) + '%) e obra começou');
-  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  await open(p, URL + '?nointro&nofont');
   const r8 = await p.evaluate(() => { const S = __kome.S, G = KomeGame, C = G.City; const st = C.state;
     const off = G.Sim.catchUp(3600), built = S.stats.city.lots.filter(l => l.b).length;
     const d = JSON.parse(JSON.stringify({ v: 4, stats: S.stats, island: 0, earned: 1 })); G.Islands.makeSave(d, 1, 10);
@@ -106,13 +113,14 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   ok(rEsc.g >= 10 && rEsc.t1 > rEsc.t0 && rEsc.dh > (rEsc.t1 - rEsc.t0) * 0.0099, 'escada: 5.000 sacos = ' + rEsc.g + ' graus de uma vez, +' + (rEsc.dh * 100).toFixed(0) + '% no Coração · mais perto: ' + rEsc.c);
   ok(rEsc.dug === 100 && rEsc.keep, 'viagem soma dugAll e não zera os graus');
   const rCa = await p.evaluate(() => { const S = __kome.S, G = KomeGame, C = G.Carta; S.stats.carta.day = '2000-01-01'; S.stats.carta.tok = {}; G.Game.saveNow(); return C.today(); });
-  await p.goto(URL + '?nointro&nofont'); await p.waitForTimeout(700);
+  await open(p, URL + '?nointro&nofont');
   const rCb = await p.evaluate(() => { const K = __kome, S = __kome.S, G = KomeGame, C = G.Carta; const pend = C.pending(); K.step(2); const after = C.pending();
     const day = S.stats.carta.day; S.stats.islandsDone = 3; S.island = 1; S.stats.carta.tok.rr = 1; const rc = G.Amuletos.rerollCost(); return { pend, after, day, rc }; });
   ok(rCb.pend && !rCb.after && rCb.day === rCa, 'carta do dia: abre num dia novo; no modo acelerado o presente entra sem tela (dia ' + rCb.day + ')');
   ok(rCb.rc === 0, 'presente "rerrolar grátis" deixa a troca de cartas de graça');
   // 10) modos de partida (modos.js): retrato da partida dentro do save, ilha com bandeira, volta igual + o que é permanente
-  const nav = async fn => { await Promise.all([p.waitForNavigation({ timeout: 20000 }).catch(() => {}), p.evaluate(fn).catch(() => {})]); await p.waitForTimeout(800); };
+  const nav = async fn => { await Promise.all([p.waitForNavigation({ timeout: 20000 }).catch(() => {}), p.evaluate(fn).catch(() => {})]); await p.waitForTimeout(800);
+    if (!(await markOk(p))) { await mute(p); await open(p, p.url(), 800); } };
   // o jogo segue rodando em tempo real entre um evaluate e outro (ajudantes vendem): o retrato tem pelo menos os ¥12.345, não exatamente
   await p.evaluate(() => { const S = __kome.S; S.stats.lap = 1; S.stats.legend = 1; S.money = 12345; S.island = 2; S.stats.mrec = {}; KomeGame.Game.saveNow(); });
   const dd = await p.evaluate(() => KomeGame.Modos.daily());
@@ -151,12 +159,12 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m);
   // scripts do jogo. &inj=N força navegação de verdade (só o hash mudando não recarrega) e a página velha é calada antes (mute)
   await p2.addInitScript(() => { const m = /^#alicerce_inject=(.*)$/.exec(location.hash); if (!m) return;
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* */ }
-    localStorage.clear(); localStorage.setItem('kome-no-japao-v4', decodeURIComponent(m[1])); });
+    Object.keys(localStorage).forEach(k => { if (/^kome-no-japao-v4/.test(k)) localStorage.removeItem(k); }); localStorage.setItem('kome-no-japao-v4', decodeURIComponent(m[1])); });
   let inj = 0;
   const go = async d => { if (d) await mute(p2);
-    await p2.goto(URL + '?nointro&nofont' + (d ? '&inj=' + (++inj) + '#alicerce_inject=' + encodeURIComponent(typeof d === 'string' ? d : JSON.stringify(d)) : '')); await p2.waitForTimeout(700); };
+    await open(p2, URL + '?nointro&nofont' + (d ? '&inj=' + (++inj) + '#alicerce_inject=' + encodeURIComponent(typeof d === 'string' ? d : JSON.stringify(d)) : '')); };
   const mod = f => { const d = JSON.parse(fxSave); f(d); return d; };
-  await p2.goto(URL + '?nointro&nofont&fresh'); await p2.waitForTimeout(300);
+  await marca(p2, URL + '?nointro&nofont&fresh', 300);
   const casa = () => p2.evaluate(() => { const S = __kome.S; return { house: S.house, tool: S.tool, money: S.money, nodes: Object.keys(S.own).length, closet: S.closet.join(), home: Object.keys(S.homeData.own).length, time: S.time }; });
   await go(fxSave);
   const c1 = await casa();
