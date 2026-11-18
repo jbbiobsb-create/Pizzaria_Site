@@ -431,7 +431,6 @@
      cheia = vende tudo na doca: nada se perde). Pedidos pagam ORDER_PAY × o valor do produto na doca; lojas compram o que passa
      de SHOP_LINE da despensa por SHOP_PAY ×. Tempos em segundos de jogo. cap e pedido = segundos do ritmo que chega na despensa. */
   D.CITY = {
-    unlock: 'mochi',                     // abre quando a fábrica vende o 1º mochi
     share: 0.4,                          // fatia "Vila" da Doca de Venda (onigiri, mochi, mochi dourado)
     start: { arroz: 30 },                // presente da abertura: 1ª entrega na hora
     OPEN_EARN: 5000,                     // a Cidade abre CEDO: quando você já ganhou isso no total (ou no 1º produto da fábrica)
@@ -470,15 +469,16 @@
         fala: ['Paz, Kome. E mochi dourado.', 'O sino toca no festival.', 'Respira... e come.'], build: ['templo', 'bentoya'] },
     ],
     BUILD: {   // o que a amizade abre (1 de 2 por nível): loja = compra o que sobra · heart = +1 ♥ nos pedidos daquele prato · gap = pedidos mais rápidos · mora = morador novo
-      onigiriya: { nome: 'Onigiri-ya', art: 'lojinha_onigiri', loja: ['onigiri'], fx: 'compra o onigiri que sobra na despensa' },
-      mochiya: { nome: 'Mochiya', art: 'loja_mochiya', loja: ['mochi', 'mochid'], fx: 'compra o mochi que sobra na despensa' },
-      bentoya: { nome: 'Bentô-ya', art: 'cid_bentoya', loja: ['onigiri', 'mochi'], fx: 'monta bentô com o que sobra na despensa' },
-      konbini: { nome: 'Konbini', art: 'loja_konbini', loja: ['onigiri', 'mochi', 'mochid'], fx: 'compra um pouco de tudo que sobra' },
-      chaya: { nome: 'Casa de Chá', art: 'cid_chaya', heart: 'mochi', fx: 'pedidos de mochi: +1 coração' },
-      fliperama: { nome: 'Fliperama', art: 'cid_fliperama', heart: 'onigiri', fx: 'pedidos de onigiri: +1 coração' },
-      sento: { nome: 'Sentô', art: 'cid_sento', gap: 1, fx: 'pedidos novos chegam 2× mais rápido' },
-      casa_kuro: { nome: 'Casa nova', art: 'cid_casa_kuro', mora: 'kuro', fx: 'Kuro, músico de rua, se muda' },
-      templo: { nome: 'Templo', art: 'cid_templo', mora: 'matcha', fest: 1, fx: 'Monge Matcha se muda · festival +50%' },
+      // perk = bônus NO JOGO PRINCIPAL (G.City.applyStats/offH): sell/dig = +% · combo = combo cai X% mais devagar · offH = +h de tempo fora. fx = a frase
+      onigiriya: { nome: 'Onigiri-ya', art: 'lojinha_onigiri', loja: ['onigiri'], perk: { sell: 0.05 }, fx: 'Arroz vende +5% · compra o onigiri que sobra' },
+      mochiya: { nome: 'Mochiya', art: 'loja_mochiya', loja: ['mochi', 'mochid'], perk: { sell: 0.05 }, fx: 'Arroz vende +5% · compra o mochi que sobra' },
+      bentoya: { nome: 'Bentô-ya', art: 'cid_bentoya', loja: ['onigiri', 'mochi'], perk: { sell: 0.05 }, fx: 'Arroz vende +5% · monta bentô com o que sobra' },
+      konbini: { nome: 'Konbini', art: 'loja_konbini', loja: ['onigiri', 'mochi', 'mochid'], perk: { sell: 0.08 }, fx: 'Arroz vende +8% · compra de tudo que sobra' },
+      chaya: { nome: 'Casa de Chá', art: 'cid_chaya', heart: 'mochi', perk: { offH: 2 }, fx: 'Rende +2 h a mais com o jogo fechado' },
+      fliperama: { nome: 'Fliperama', art: 'cid_fliperama', heart: 'onigiri', perk: { combo: 0.4 }, fx: 'Combo de cavar cai 40% mais devagar' },
+      sento: { nome: 'Sentô', art: 'cid_sento', gap: 1, perk: { dig: 0.10 }, fx: 'Cava +10% de arroz · pedidos 2× mais rápidos' },
+      casa_kuro: { nome: 'Casa nova', art: 'cid_casa_kuro', mora: 'kuro', perk: { dig: 0.05 }, fx: 'Kuro toca música: cava +5% de arroz' },
+      templo: { nome: 'Templo', art: 'cid_templo', mora: 'matcha', fest: 1, perk: { sell: 0.10 }, fx: 'Arroz vende +10% · festival enche +50%' },
     },
     SEASONS: [
       { nome: 'Primavera', fest: 'Hanami', tree: 'sakura', grass: '#8FAE62', sub: 'piquenique debaixo das cerejeiras' },
