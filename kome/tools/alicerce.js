@@ -15,8 +15,10 @@ const mute = pg => pg.evaluate(() => { try { Storage.prototype.setItem = functio
 // storage de verdade; open() recarrega até ver (a página do storage falso é calada antes, pra não gravar nada)
 const MARK = 'alicerce-mark';
 const markOk = pg => pg.evaluate(k => localStorage.getItem(k) === '1', MARK).catch(() => false);
-const open = async (pg, url, ms) => { for (let i = 0; ; i++) { await pg.goto(url); await pg.waitForTimeout(ms || 700); if (i >= 3 || await markOk(pg)) return; await mute(pg); } };
-const marca = async (pg, url, ms) => { await pg.goto(url); await pg.evaluate(k => localStorage.setItem(k, '1'), MARK); await open(pg, url, ms); };
+// (&r=N na nova tentativa: com o mesmo endereço só o #hash mudaria e o goto não recarregaria)
+const open = async (pg, url, ms) => { for (let i = 0; ; i++) { await pg.goto(i ? url.replace(/(#|$)/, '&r=' + i + '$1') : url); await pg.waitForTimeout(ms || 700); if (i >= 3 || await markOk(pg)) return; await mute(pg); } };
+const marca = async (pg, url, ms) => { for (let i = 0; i < 4; i++) {   // grava a marca e confere numa 2ª carga (a 1ª pode ter sido a do storage falso)
+  await pg.goto(url + (i ? '&r=' + i : '')); await pg.evaluate(k => localStorage.setItem(k, '1'), MARK); await pg.goto(url + '&m=' + i); await pg.waitForTimeout(ms || 700); if (await markOk(pg)) return; } };
 let bad = 0; const ok = (c, m) => { console.log((c ? 'ok    ' : 'FALHOU ') + m); if (!c) bad++; };
 (async () => {
   const b = await launch(), p = await b.newPage({ viewport: { width: 960, height: 540 } }); const errs = [];
