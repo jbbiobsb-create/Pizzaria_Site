@@ -22,3 +22,8 @@
 @media (max-height:500px){.ux-mis{min-height:48px;padding:3px 6px;width:min(250px,34vw)}.ux-mis-t{-webkit-line-clamp:1}.ux-mis-ic{width:28px;height:28px}}
 @media (prefers-reduced-motion:reduce){.ux-mis.ux-mis-pop{animation:none}.ux-mis-bar > i{transition:none}}
 .k-reduce .ux-mis.ux-mis-pop{animation:none}
+/* não encostar na plaquinha de controles (centro) nem esticar com a zona */
+.ux-mis{align-self:flex-start;width:min(250px,26vw);max-width:min(250px,26vw)}
+@media (max-height:500px){.ux-mis{width:min(230px,30vw);max-width:min(230px,30vw)}}
+/* a plaquinha de controles dura só os 30 s iniciais: a missão espera ela sair (não sobrepor) */
+body:has(.k-tipcontrols) .ux-mis{visibility:hidden}

@@ -87,3 +87,5 @@ body.k-tight .k-tipcontrols{max-width:230px;box-sizing:border-box;font-size:12px
 .ux-canhoto .k-dig{right:auto;left:max(22px,env(safe-area-inset-left))}
 /* Ajustes › Cavar com 1 toque: botão aceso enquanto está cavando */
 .k-dig.k-dig-lock{background:rgba(242,194,48,.92);border-color:#3B2818}
+/* tela muito baixa: a plaquinha de controles não cabe acima da barra de abas (as dicas cobrem) */
+@media (max-height:380px){.k-tipcontrols{display:none}}
