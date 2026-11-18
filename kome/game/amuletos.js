@@ -5,6 +5,8 @@
    S.stats.islandsDone, sem mexer no islands.js). Rerrolar as 3 custa Sementes 1, 2, 4, 8… (zera por ilha).
    Conjuntos: 3 da mesma etiqueta (mao, motor, sorte, fabrica, equipe) acendem um bônus com nome (D.AMULETO.sets).
    Lendários só entram no baralho depois da conquista (G.Goals, campo desbloqueio da ficha).
+   FAIXAS (game/faixas.js) mexem aqui: menos amuletos por ilha (amMax), menos cartas (amOffer), sem o da chegada (semChegada) e
+   fichas com faixa: n só entram no baralho depois de jogar aquela faixa.
 
    FICHAS: conteudo/amuleto-<id>.js (tipo 'amuleto', ver tools/content.js) → D.AMULETOS. fx: {kind, values}; as chaves de
    values são os GANCHOS abaixo (kind é só o rótulo do tipo de efeito: mult | regra | vivo).
@@ -207,7 +209,7 @@
     if (!a.offer || !a.offer.length) a.offer = draw(offerN());
     if (fast()) { const b = best(offer()); if (b) pick(b.id, true); return; }
     const UIx = G.AmuletosUI;
-    if (!UIx || UIx.isOpen() || UIx.later || (api && api.busy && api.busy())) { if (!UIx || !UIx.isOpen()) waitT = Math.max(waitT, 1.5); return; }
+    if (!UIx || UIx.isOpen() || UIx.later || (api && api.busy && api.busy()) || (G.Faixas && G.Faixas.isOpen())) { if (!UIx || !UIx.isOpen()) waitT = Math.max(waitT, 1.5); return; }
     if ((waitT -= dt) > 0) return;
     waitT = CFG.wait; UIx.open();
   }

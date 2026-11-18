@@ -243,6 +243,7 @@
 
   G.Faixas = {
     init(a) { api = a || {}; if (G.Sim) G.Sim.add('faixas', { tick }); if (S()) { fst(); syncBelt(); } },
+    isOpen: () => !!cur,   // cartão de faixa/evolução aberto (amuletos.js espera)
     level, name, belt, rulesOf, has, mult, val, seedMul, applyStats, mats, nextTxt, mapInfo, title, card, newAmulets, REGRAS,
     best: () => (S() ? Math.max(fst().best | 0, level()) : 0),
     present: n => present(n || Math.max(1, level())),   // ?dev / testes
