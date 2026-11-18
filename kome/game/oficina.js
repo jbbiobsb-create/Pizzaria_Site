@@ -20,7 +20,7 @@
   const toolOf = id => DATA.TOOLS.find(t => t.id === id) || null;
   const idxOf = id => DATA.TOOLS.findIndex(t => t.id === id);
   const lvOf = id => ((GS().stats.lv || {})[id] | 0);
-  const fx2 = v => v.toFixed(2).replace('.', ','), fx1 = v => v.toFixed(1).replace('.', ',');
+  const fx2 = v => (v >= 1e4 ? U.fmt(v) : v.toFixed(2).replace('.', ',')), fx1 = v => (v >= 1e4 ? U.fmt(v) : v.toFixed(1).replace('.', ','));   // marcos sem fim: ×12,3 mil
   const pct = v => '+' + Math.round(v * 100) + '%';
 
   /* ======================================================================
@@ -131,7 +131,7 @@
   // reabre a escolha de um marco pendente (o mais antigo daquela máquina)
   function openMile(id) {
     const t = toolOf(id); if (!t || !pendOf(id) || V.mile) return false;
-    V.hold = null; V.board = null; V.mile = { tool: t, L: G.Inf.MILES[G.Inf.info(t).spec.length], t: 0.9, again: true }; sfx('click', { pitch: 1.2 });
+    V.hold = null; V.board = null; V.mile = { tool: t, L: G.Inf.mileAt(G.Inf.info(t).spec.length), t: 0.9, again: true }; sfx('click', { pitch: 1.2 });
     return true;
   }
   function later() {
@@ -283,12 +283,13 @@
     nvBadge(x, y + 34, inf.L, inf.miles);
     if (pend) {   // marco pendente: o botão dourado reabre a escolha
       button(x + 76, y + 33, w - 76, 28, '★ escolher', () => openMile(tl.id), { fill: Math.sin(t * 6) > 0 ? C.goldL : '#FFF0B8', size: 17 });
-      txt('marco ' + G.Inf.MILES[inf.spec.length] + ' pendente', x + w, y + 78, T(17, C.goldD, 'right'));
-    } else {      // régua dos marcos: 10, 25 e 50 viram estrela
-      const rx = x + 82, rw = w - 96, ry = y + 42, MIL = G.Inf.MILES;
-      meter(rx, ry, rw, 9, Math.min(1, inf.L / 50), C.gold);
+      txt('marco ' + G.Inf.mileAt(inf.spec.length) + ' pendente', x + w, y + 78, T(17, C.goldD, 'right'));
+    } else {      // régua dos marcos: 10, 25 e 50 viram estrela; depois do 50 a régua anda de 25 em 25 (3 marcos à vista)
+      const rx = x + 82, rw = w - 96, ry = y + 42, L0 = inf.L < 50 ? 0 : 50 + 25 * Math.max(0, Math.floor((inf.L - 50) / 25) - 1), L1 = inf.L < 50 ? 50 : L0 + 75;
+      const MIL = inf.L < 50 ? G.Inf.MILES : [L0 + 25, L0 + 50, L0 + 75];
+      meter(rx, ry, rw, 9, Math.min(1, (inf.L - L0) / (L1 - L0)), C.gold);
       MIL.forEach(m => {
-        const mx = rx + rw * m / 50, got = inf.L >= m, nxt = inf.nextMile === m;
+        const mx = rx + rw * (m - L0) / (L1 - L0), got = inf.L >= m, nxt = inf.nextMile === m;
         blit(got ? SPR.star : SPR.starOff, mx - 2, ry + 15 + (nxt ? Math.sin(t * 4) * 1.5 : 0), 2);
         txt(String(m), mx - 2, ry + 30, T(17, got ? C.goldD : nxt ? INK : '#9a8a76'));
       });
@@ -435,7 +436,7 @@
     E.drawShibaHead(g, x + 52, y + 50, performance.now() / 1000, { scale: 1.1, expr: 'happy' });
     txt('Oficina do Kome', x + 100, y + 34, T(22, INK, 'left'));
     txt('cada máquina sua mora aqui e pode ficar mais forte', x + 100, y + 62, T(17, '#6B4A2E', 'left'));
-    const tips = ['Toque numa máquina (ou na régua de baixo): ela sobe na plataforma', 'Melhorar: +5% de renda e mais força. Segure pra repetir', 'Nível 10, 25 e 50: o bônus DOBRA; escolha o caminho na hora ou depois', '“Usar esta máquina” troca a que o Kome pilota na montanha', 'Prancheta azul: Bagger Gêmea · Quadro: fábrica do pátio', 'Cortiça: as lojas da cidade e a cliente preferida'];
+    const tips = ['Toque numa máquina (ou na régua de baixo): ela sobe na plataforma', 'Melhorar: +5% de renda e mais força. Segure pra repetir', 'Nível 10, 25, 50 e depois a cada 25: o bônus DOBRA; escolha o caminho na hora ou depois', '“Usar esta máquina” troca a que o Kome pilota na montanha', 'Prancheta azul: Bagger Gêmea · Quadro: fábrica do pátio', 'Cortiça: as lojas da cidade e a cliente preferida'];
     tips.forEach((s, i) => { g.fillStyle = C.gold; g.beginPath(); g.arc(x + 34, y + 104 + i * 34, 5, 0, TAU); g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke(); txt(s, x + 50, y + 105 + i * 34, T(18, INK, 'left')); });
     hit(0, 0, W, H, () => { V.help = false; sfx('click'); });
   }
@@ -559,7 +560,7 @@
         if (inf.miles >= 2) A.twinkle(g, b.x + bk.dx, b.y + bk.dy, bk.w, bk.h, t, 3, idxOf(id));
         const bx = b.x + bk.dx + 22;
         A.levelBadge(g, bx, b.y + 6, inf.L, inf.miles);
-        A.medals(g, bx + 30 + (inf.miles + Math.min(3, inf.spec.length)) * 5.5, b.y + 16, inf.miles, inf.spec, t);
+        A.medals(g, bx + 30 + A.medalSlots(inf.miles, inf.spec) * 5.5, b.y + 16, inf.miles, inf.spec, t);
         if (inf.miles > inf.spec.length) blit(SPR.star, bx, b.y - 12 + Math.sin(t * 5) * 3, 2);   // marco esperando escolha
       } });
     }

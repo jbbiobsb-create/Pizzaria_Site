@@ -1,7 +1,8 @@
 /* Kome no Japão — infinite.js
    Modo infinito (rodada de 16/11, etapa 4). Só liga DEPOIS do final da campanha, pra não mexer no balanço.
    - Oficina: cada veículo comprado tem nível. Cada nível dá +5% de renda; no nível 10, 25 e 50 o bônus daquele veículo
-     DOBRA (marco). Preço = segundos da renda atual × 1,12^nível, então nunca acaba.
+     DOBRA (marco) e, depois do 50, um marco a cada 25 níveis (75, 100, 125…) pra sempre (jogo-infinito.md: nada tem teto),
+     cada um dobrando de novo e dando uma medalha nova. Preço = segundos da renda atual × 1,12^nível, então nunca acaba.
    - Eventos: a cada ~2 min acontece um (hora do rush, veio dourado, festival) com multiplicador e contagem no HUD.
    Estado: S.stats.lv = { toolId: nível } (vai no save junto com stats). Liga por G.Inf.init(api) em game.js. */
 (function () {
@@ -17,7 +18,12 @@
   ];
   const lv = () => (S.stats.lv || (S.stats.lv = {}));
   const owned = () => D.TOOLS.slice(0, S.tool + 1);
-  const miles = L => MILES.filter(m => L >= m).length;
+  const EVERY = 25;   // depois do último de MILES, um marco a cada 25 níveis
+  const LAST = MILES[MILES.length - 1];
+  const miles = L => MILES.filter(m => L >= m).length + (L > LAST ? Math.floor((L - LAST) / EVERY) : 0);
+  const mileAt = k => (k < MILES.length ? MILES[k] : LAST + EVERY * (k - MILES.length + 1));   // nível do k-ésimo marco (0 = o do nível 10)
+  const isMile = L => MILES.indexOf(L) >= 0 || (L > LAST && (L - LAST) % EVERY === 0);
+  const nextMileOf = L => mileAt(miles(L));
   const bonusOf = L => 0.05 * L * Math.pow(2, miles(L));
   // o nível vale só pra máquina que você está usando (pedido do irmão do dono: evoluir a pata não pode fortalecer a Bagger)
   function mult(id) {
@@ -34,7 +40,7 @@
     const q = !!(o && o.quiet), c = cost(t);
     if (S.money < c) { if (!q) UI.toast('Faltam ¥' + U.fmt(c - S.money), { icon: 'yen', tone: 'bad', sub: t.name }); return null; }
     S.money -= c; const L = (lv()[t.id] | 0) + 1; lv()[t.id] = L; if (G.priceBump) G.priceBump();
-    const mile = MILES.indexOf(L) >= 0;
+    const mile = isMile(L);
     api.recompute(); if (!q) api.sfx(mile ? 'fanfare' : 'pling');
     if (mile && !q) { UI.banner(t.name + ' nível ' + L + '!', 'marco: o bônus dela dobrou', { icon: 'star', tone: 'gold', dur: 2.6 }); if (G.Ind) G.Ind.specChoice(t, () => { api.recompute(); api.save(); refresh(); }); }
     api.save(); refresh();
@@ -44,7 +50,7 @@
   function info(t) {
     const L = lv()[t.id] | 0, sk = G.Ind ? G.Ind.speedK(t.id) : 1, pw = n => 1 + 0.04 * n * Math.pow(1.5, miles(n));
     return { L, cost: cost(t), mult: 1 + bonusOf(L) * sk, multNext: 1 + bonusOf(L + 1) * sk, pow: pw(L), powNext: pw(L + 1),
-      miles: miles(L), nextMile: MILES.find(m => m > L) || 0, prevMile: MILES.filter(m => m <= L).pop() || 0, spec: ((S.stats.spec || {})[t.id] || []).slice() };
+      miles: miles(L), nextMile: nextMileOf(L), prevMile: miles(L) ? mileAt(miles(L) - 1) : 0, spec: ((S.stats.spec || {})[t.id] || []).slice() };
   }
   function refresh() {
     if (!panel) return;
@@ -55,7 +61,7 @@
     UI.el('div', 'k-homehint', col, 'Cada nível deixa ESSA máquina mais forte enquanto você usa ela: mais renda e mais força pra atravessar arroz duro. Troque de lugar (setinhas) pra usar as antigas.');
     const now = api.playing ? api.playing() : null;
     for (const t of owned().slice().reverse()) {
-      const L = lv()[t.id] | 0, nx = MILES.find(m => m > L), c = cost(t), on = now && now.id === t.id;
+      const L = lv()[t.id] | 0, nx = nextMileOf(L), c = cost(t), on = now && now.id === t.id;
       const btn = UI.button(col, { title: (on ? '★ ' : '') + t.name + ' · nível ' + L, sub: '¥ ' + U.fmt(c) + ' · renda ×' + mult(t.id).toFixed(2).replace('.', ',') + ' · força ×' + powK(t.id).toFixed(1).replace('.', ',') + (on ? ' · usando agora' : '') + (nx ? ' · marco no ' + nx : ''),
         icon: G.Props ? G.Props.icon(t.id) : 'bolt', size: 'sm', onClick: () => up(t) });
       const el = btn.el || btn; el.style.width = '100%'; if (S.money < c) el.style.opacity = '0.6';
@@ -143,7 +149,7 @@
     sim: { cost, up },   // tools/longo.js (simulador de horas) compra sem abrir a tela
     addEvent: e => { if (!EVENTS.some(x => x.id === e.id)) EVENTS.push(e); },   // fichas de conteudo/ (tipo evento)
     mult, powK, evMult, tick, open, openList, event: () => ev, eventLeft: () => evT,
-    levels: lv, info, up, owned, playing: () => (api && api.playing ? api.playing() : null), MILES, classic: false,
+    levels: lv, info, up, owned, playing: () => (api && api.playing ? api.playing() : null), MILES, mileAt, isMile, classic: false,
     recompute() { api.recompute(); api.save(); refresh(); },
   };
 })();

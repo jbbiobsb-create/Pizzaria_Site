@@ -784,20 +784,37 @@
   /* ======================================================================
      MEDALHAS da máquina (marcos 10/25/50) e adesivos da escolha (raio = mais rápida, grão = mais dourada)
      ====================================================================== */
+  // marcos depois do 50 (75, 100, 125…): cada um é uma medalha de cor nova (rubi, esmeralda, safira, ametista, arco-íris…)
+  const XMED = ['#E0525A', '#3FBF7F', '#4C8DF0', '#B36BE8', '#F08A3C', '#2EC4C4', 'rainbow'];
   function levelBadge(g, x, y, lvl, miles) {
-    const w = lvl >= 100 ? 40 : lvl >= 10 ? 32 : 24;
+    const w = lvl >= 1000 ? 48 : lvl >= 100 ? 40 : lvl >= 10 ? 32 : 24;
     g.fillStyle = INK; D.rrect(g, x - w / 2 - 2, y - 12, w + 4, 24, 8); g.fill();
-    g.fillStyle = miles >= 3 ? K.goldL : miles >= 2 ? '#DDE6EE' : miles >= 1 ? '#EDB27A' : K.cream; D.rrect(g, x - w / 2, y - 10, w, 20, 6); g.fill();
+    g.fillStyle = miles >= 4 ? medCol(g, miles - 4, x - w / 2, x + w / 2) : miles >= 3 ? K.goldL : miles >= 2 ? '#DDE6EE' : miles >= 1 ? '#EDB27A' : K.cream; D.rrect(g, x - w / 2, y - 10, w, 20, 6); g.fill();
     D.text(g, String(lvl), x, y + 0.5, { size: 17, col: INK, sw: 0, weight: 900 });
   }
+  function medCol(g, i, x0, x1) {
+    const c = XMED[i % XMED.length]; if (c !== 'rainbow') return c;
+    const gr = g.createLinearGradient(x0, 0, x1, 0); ['#FF8A8A', '#FFD36B', '#9BE38A', '#7FC8FF', '#C9A0F0'].forEach((k, j) => gr.addColorStop(j / 4, k)); return gr;
+  }
+  // quantas medalhas a fita mostra (3 estrelas + até 3 medalhas novas; a última leva o número se tiver mais)
+  const medalSlots = (miles, spec) => Math.min(3, miles) + Math.min(3, Math.max(0, miles - 3)) + (spec ? Math.min(3, spec.length) : 0);
   function medals(g, x, y, miles, spec, t, sc) {
     if (!miles && !(spec && spec.length)) return;
     sc = sc || 2;
-    const n = miles + (spec ? Math.min(3, spec.length) : 0), w = n * 11 * sc * 0.5 + 8;
+    const n = medalSlots(miles, spec), w = n * 11 * sc * 0.5 + 8, h = 13 * sc * 0.5;
     let px = x - w / 2 + 4 + 5.5 * sc * 0.5;
-    g.fillStyle = INK; D.rrect(g, x - w / 2 - 2, y - 13 * sc * 0.5 - 3, w + 4, 13 * sc * 0.5 + 6, 6); g.fill();
-    g.fillStyle = '#4A3424'; D.rrect(g, x - w / 2, y - 13 * sc * 0.5 - 1, w, 13 * sc * 0.5 + 2, 4); g.fill();
-    for (let i = 0; i < miles; i++) { blit(g, spr.star, px, y - 1 + (Math.sin(t * 3 + i) > 0.96 ? -1 : 0), sc * 0.5); px += 11 * sc * 0.5; }
+    g.fillStyle = INK; D.rrect(g, x - w / 2 - 2, y - h - 3, w + 4, h + 6, 6); g.fill();
+    g.fillStyle = '#4A3424'; D.rrect(g, x - w / 2, y - h - 1, w, h + 2, 4); g.fill();
+    for (let i = 0; i < Math.min(3, miles); i++) { blit(g, spr.star, px, y - 1 + (Math.sin(t * 3 + i) > 0.96 ? -1 : 0), sc * 0.5); px += 11 * sc * 0.5; }
+    const extra = Math.max(0, miles - 3);
+    for (let i = Math.max(0, extra - 3); i < extra; i++) {   // as 3 medalhas mais novas
+      const r = 2.6 * sc, cx = px, cy = y - h * 0.5;
+      g.fillStyle = INK; g.beginPath(); g.arc(cx, cy, r + 1, 0, TAU); g.fill();
+      g.fillStyle = medCol(g, i, cx - r, cx + r); g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(cx - r * 0.35, cy - r * 0.35, r * 0.35, 0, TAU); g.fill();
+      if (i === extra - 1 && extra > 3) D.text(g, String(extra), cx, cy + 0.5, { size: Math.max(9, 4 * sc), col: INK, sw: 2, stroke: K.cream, weight: 900 });
+      px += 11 * sc * 0.5;
+    }
     if (spec) for (let i = Math.max(0, spec.length - 3); i < spec.length; i++) { blit(g, spec[i] === 'd' ? spr.grain : spr.bolt, px, y - 1, sc * 0.5); px += 11 * sc * 0.5; }
   }
   // brilhos piscando em cima de uma máquina (marco 25+)
@@ -829,6 +846,6 @@
     geo, K, PX, blit, shadow, sil, spr, flyer, BB, HAND, LIFT_S,
     bg() { if (!bgCv) paintBg(); return bgCv; }, sun() { if (!sunCv) paintSun(); return sunCv; }, dusk() { if (!duskCv) paintDusk(); return duskCv; },
     donor, bake, drawBake, glow, live, liveTick, liveDraw, liftPos,
-    mech, yard, yardPoke, yardRect, wall, flyerOf, pegPos, lamps, lift, levelBadge, medals, twinkle, stamp, plate, icon,
+    mech, yard, yardPoke, yardRect, wall, flyerOf, pegPos, lamps, lift, levelBadge, medals, medalSlots, twinkle, stamp, plate, icon,
   };
 })();

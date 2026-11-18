@@ -23,7 +23,7 @@
   const LIGHT = [255, 250, 230, 255]; // creme das luzes (#FFFAE6)
   // até vigintilhão (1e63); cada jogo pode continuar com U.addUnits([...]) (×1000 cada nome)
   const FMT_UNITS = ['', 'mil', 'mi', 'bi', 'tri', 'quatri', 'quinti', 'sexti', 'septi', 'octi', 'noni', 'deci',
-    'undeci', 'duodeci', 'tredeci', 'quatordeci', 'quindeci', 'sexdeci', 'septendeci', 'octodeci', 'novendeci', 'vigint'];
+    'undeci', 'duodeci', 'tredeci', 'quatordeci', 'quindeci', 'sexdeci', 'septendeci', 'octodeci', 'novendeci', 'viginti'];
   const colorCache = new Map();       // cache de mixCss/shade (strings -> string)
   const COLOR_CACHE_MAX = 4000;
 
